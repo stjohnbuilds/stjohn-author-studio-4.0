@@ -666,7 +666,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           selected={selected}
           setSelected={setSelected}
           saveStatus={saveStatus}
-          onBack={() => { setView('bookDetail'); }}
+          usesCustomDragRegion={usesCustomDragRegion}
           onAssignCharacter={(charId) => {
             const sp = currentSpanFor(activeProject, activeChapterIndex, selected);
             const same = sp?.characterId === charId && !sp?.sideVoiceId;

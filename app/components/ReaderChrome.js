@@ -139,7 +139,7 @@ export function pillBtnStyle(tone = 'prep') {
 // screens. Leaves room on the left for the Home pill.
 // ---------------------------------------------------------------------------
 
-export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad = 130, children }) {
+export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad = 16, children }) {
   // Title is absolutely positioned at 50% of the viewport so it stays
   // truly centered no matter how wide the right-side controls are
   // (Marie noticed the reader title sat off-centre while the home title

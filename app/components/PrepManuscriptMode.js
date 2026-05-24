@@ -54,6 +54,12 @@ import ImportFlow from './ImportFlow.js';
 const TONE = 'prep';
 const PASTEL_PREP = MODE_TOKENS.prep.pastel;
 const PREP_INK = MODE_TOKENS.prep.ink;
+// Mid-tone "accent" — what we now use for primary button backgrounds.
+// PREP_INK still backs text, borders, and progress lines (it's the
+// dark anchor of the palette), but buttons in the dock and on inline
+// forms use this softer pastel-y accent so the UI doesn't feel
+// wine-coloured.
+const PREP_ACCENT = MODE_TOKENS.prep.accent || MODE_TOKENS.prep.ink;
 const useDismissable = sharedUseDismissable;
 const SaveBadge = (props) => <SharedSaveBadge {...props} tone={TONE} />;
 const StickyTopBar = (props) => <SharedStickyTopBar {...props} tone={TONE} />;

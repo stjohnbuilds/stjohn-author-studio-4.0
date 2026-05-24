@@ -1031,6 +1031,24 @@ ipcMain.handle('write-prep-data', (_, projects) => {
   return ok;
 });
 
+ipcMain.handle('read-quill-data', () => {
+  const primary = readFromPath(quillDataPath());
+  if (primary !== null) return primary;
+  const mirror = readFromPath(quillMirrorDataPath());
+  if (mirror !== null) {
+    writeToPath(quillDataPath(), mirror);
+    return mirror;
+  }
+  return [];
+});
+
+ipcMain.handle('write-quill-data', (_, projects) => {
+  const normalizedProjects = Array.isArray(projects) ? projects : [];
+  const ok = writeToPath(quillDataPath(), normalizedProjects);
+  writeToPath(quillMirrorDataPath(), normalizedProjects);
+  return ok;
+});
+
 ipcMain.handle('get-data-location', () => getDataLocationInfo());
 
 ipcMain.handle('choose-data-location', async () => {

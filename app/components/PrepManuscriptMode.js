@@ -122,19 +122,40 @@ function paragraphsFromHtml(html = '') {
 
 function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
   let raw = [];
+  let issues = [];
+  let totalQuoteMarks = 0;
+  let quoteMarksEven = true;
   try {
     const result = detectDialogueSpansInHtml(sectionHtml) || {};
     raw = Array.isArray(result.dialogueSpans) ? result.dialogueSpans : (Array.isArray(result) ? result : []);
+    issues = Array.isArray(result.issues) ? result.issues : [];
+    totalQuoteMarks = Number(result.totalQuoteMarks || 0);
+    quoteMarksEven = result.quoteMarksEven !== false;
   } catch {
     raw = [];
   }
-  return raw.map((s, si) => ({
+  const dialogueSpans = raw.map((s, si) => ({
     id: `span-${chapterIdx}-${sectionIdx}-${si}`,
     text: (s.text || '').trim(),
     afterText: (s.afterText || '').trim(),
     characterId: null,
     sideVoiceId: null,
   }));
+  // Decorate each span with whether it has a corresponding issue.
+  raw.forEach((s, si) => {
+    const overlapping = issues.filter((iss) => {
+      const a = Number(iss.wordStartIndex || 0);
+      const b = Number(iss.wordEndIndex || a);
+      const x = Number(s.wordStartIndex || 0);
+      const y = Number(s.wordEndIndex || x);
+      return Math.max(a, x) <= Math.min(b, y);
+    });
+    if (overlapping.length > 0 && dialogueSpans[si]) {
+      dialogueSpans[si].issueCount = overlapping.length;
+      dialogueSpans[si].issueTopMessage = overlapping[0].message || 'Review this dialogue.';
+    }
+  });
+  return { dialogueSpans, issues, totalQuoteMarks, quoteMarksEven };
 }
 
 function isCompatiblePrepProject(p) {
@@ -182,23 +203,29 @@ function buildShellFromStructure(file, structure) {
 }
 
 function chapterCounts(chapter) {
-  const all = (chapter.sections || []).flatMap((s) => s.dialogueSpans || []);
+  const sections = chapter.sections || [];
+  const all = sections.flatMap((s) => s.dialogueSpans || []);
+  const allIssues = sections.flatMap((s) => s.safetyIssues || []);
   return {
     total: all.length,
     assigned: all.filter((s) => s.characterId).length,
-    scanning: (chapter.sections || []).some((s) => s.scanning),
+    scanning: sections.some((s) => s.scanning),
+    issues: allIssues.length,
+    blockingIssues: allIssues.filter((i) => i.blocking !== false).length,
   };
 }
 
 function projectCounts(project) {
-  let total = 0, assigned = 0, scanning = false;
+  let total = 0, assigned = 0, scanning = false, issues = 0, blockingIssues = 0;
   (project.chapters || []).forEach((ch) => {
     const c = chapterCounts(ch);
     total += c.total;
     assigned += c.assigned;
+    issues += c.issues;
+    blockingIssues += c.blockingIssues;
     if (c.scanning) scanning = true;
   });
-  return { total, assigned, scanning };
+  return { total, assigned, scanning, issues, blockingIssues };
 }
 
 // ===========================================================================
@@ -297,7 +324,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           });
           // eslint-disable-next-line no-await-in-loop
           await new Promise((r) => setTimeout(r, 0));
-          const spans = detectSectionSpans(sec.html || '', ch.chapterIndex, sec.sectionIndex);
+          const { dialogueSpans, issues, totalQuoteMarks, quoteMarksEven } = detectSectionSpans(sec.html || '', ch.chapterIndex, sec.sectionIndex);
           setAllProjects((all) => all.map((p) => {
             if (p.id !== shell.id) return p;
             const chapters = p.chapters.map((cch) => {
@@ -305,7 +332,14 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
               return {
                 ...cch,
                 sections: cch.sections.map((csec) =>
-                  csec.sectionIndex !== sec.sectionIndex ? csec : { ...csec, dialogueSpans: spans, scanning: false }
+                  csec.sectionIndex !== sec.sectionIndex ? csec : {
+                    ...csec,
+                    dialogueSpans,
+                    safetyIssues: issues,
+                    totalQuoteMarks,
+                    quoteMarksEven,
+                    scanning: false,
+                  }
                 ),
               };
             });
@@ -690,6 +724,11 @@ function BookDetailView({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.title || `Chapter ${ch.chapterIndex + 1}`}</div>
                   </div>
+                  {c.issues > 0 && (
+                    <span title={`${c.issues} dialogue warning${c.issues === 1 ? '' : 's'} (e.g. missing closing quote)`} style={{ padding: '2px 8px', background: '#FDF3E3', color: '#9A6A1F', border: '1px solid #E3CBA1', borderRadius: 999, fontSize: '0.66rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      ⚠ {c.issues}
+                    </span>
+                  )}
                   <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                     {c.scanning ? 'scanning…' : `${c.assigned}/${c.total}`}
                   </div>
@@ -816,7 +855,7 @@ function ReaderView({
       <StickyTopBar
         onBack={onBack}
         title={`Chapter ${(orderedIdx.indexOf(activeChapterIndex)) + 1} of ${orderedIdx.length} · ${chapter?.title || ''}`}
-        subtitle={`${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%) · ${project.title}`}
+        subtitle={`${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)${chapterCount.issues > 0 ? ` · ⚠ ${chapterCount.issues} warning${chapterCount.issues === 1 ? '' : 's'}` : ''} · ${project.title}`}
       >
         <select
           value={activeChapterIndex}
@@ -881,9 +920,25 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
 
   const blocks = useMemo(() => paragraphsFromHtml(section.html), [section.html]);
   const spans = section.dialogueSpans || [];
+  const safetyIssues = section.safetyIssues || [];
+  // Section-level warnings (the kind that don't bind to a single span:
+  // missing-closing-quote at end of section, uneven-quotes, etc.). We
+  // surface them as a small amber strip ABOVE the section text so Marie
+  // sees the warning while reading the surrounding context.
+  const sectionLevelIssues = safetyIssues.filter((iss) => {
+    const t = iss.type || '';
+    return t === 'missing-closing-quote' || t === 'uneven-quotes' || t === 'closing-quote-without-opening';
+  });
   let spanCursor = 0;
   return (
     <>
+      {sectionLevelIssues.length > 0 && (
+        <div style={{ margin: '8px 0 14px', padding: '6px 12px', background: '#FDF3E3', border: '1px solid #E3CBA1', borderRadius: 8, fontSize: '0.74rem', color: '#7A4F11', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {sectionLevelIssues.map((iss, i) => (
+            <div key={i}>⚠ {iss.message}</div>
+          ))}
+        </div>
+      )}
       {blocks.map((block, bi) => {
         const segments = [];
         let cursor = 0;
@@ -914,27 +969,30 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
               const char = span?.characterId ? charactersById.get(span.characterId) : null;
               const sv = char && span?.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === span.sideVoiceId) : null;
               const isSelected = selected.sectionIndex === section.sectionIndex && selected.spanIndex === seg.spanIndex;
+              const spanIssueCount = span?.issueCount || 0;
+              const spanIssueMsg = span?.issueTopMessage || '';
               // Main character → its pastel. Side voice → progressively
               // darker shades of that pastel so they read as variants.
               const bg = char ? colorForAssignment(char, sv) : (isSelected ? '#FFF6CC' : 'transparent');
               const refKey = `${section.sectionIndex}|${seg.spanIndex}`;
+              const hasWarning = spanIssueCount > 0;
               return (
                 <button
                   key={i}
                   ref={(el) => { if (el) dialogueRefs.current[refKey] = el; else delete dialogueRefs.current[refKey]; }}
                   type="button"
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
-                  title={char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned'}
+                  title={(char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned') + (hasWarning ? ` · ⚠ ${spanIssueMsg}` : '')}
                   style={{
                     background: bg,
-                    border: '1px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
+                    border: '1px solid ' + (isSelected ? PREP_INK : (hasWarning ? '#C47F2A' : (char ? PREP_INK + '66' : '#e3d8b0'))),
                     borderRadius: 6,
                     padding: '0 6px', margin: '0 1px',
                     fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit',
                     color: 'var(--text)', cursor: 'pointer',
                     boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
                   }}
-                >“{seg.text}”</button>
+                >“{seg.text}”{hasWarning && <span aria-hidden="true" style={{ marginLeft: 3, fontSize: '0.7em', color: '#C47F2A', fontWeight: 700 }}>⚠</span>}</button>
               );
             })}
           </Tag>

@@ -102,9 +102,11 @@ function extractSubSections(chapterHtml, chapterLevel) {
     }
   });
   if (cur.nodes.length || cur.title) out.push(cur);
-  // Only return sub-sections if there are at least 2 — a chapter with
-  // no sub-headings or a single sub-heading isn't worth nesting.
-  if (out.filter((s) => s.title).length < 2) return [];
+  // Return sub-sections if the chapter has at least one titled sub-heading.
+  // Previously this required >= 2 sub-headings, which silently hid the
+  // "Show sub-headings" toggle's effect for any chapter with a single
+  // scene break — exactly the "clicking it doesn't do shit" Marie hit.
+  if (out.filter((s) => s.title).length < 1) return [];
   return out.map((s, i) => ({
     id: uid(),
     title: s.title || '(intro)',

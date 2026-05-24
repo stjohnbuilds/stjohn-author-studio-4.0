@@ -626,7 +626,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         <BookDetailView
           project={activeProject}
           saveStatus={saveStatus}
-          onBack={() => { setView('home'); }}
+          usesCustomDragRegion={usesCustomDragRegion}
           onDelete={() => {
             if (window.confirm(`Delete "${activeProject.title}"? This can't be undone.`)) deleteProject(activeProject.id);
           }}

@@ -742,20 +742,16 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
       .map((a) => a.optionId)
       .filter(Boolean);
     setCharacterIds(charsAtRange);
+    const wordEl = event?.currentTarget || getQuillWordElement(start);
     setPopoverOpen(true);
-    setPopoverPos(positionFromEvent(event));
+    setPopoverPos(computePopoverPos(wordEl));
   }
 
-  function positionFromEvent(event) {
-    const r = event?.currentTarget?.getBoundingClientRect?.();
-    if (!r) return null;
-    return { top: window.scrollY + r.top - 8, left: window.scrollX + r.left };
-  }
-
-  function openPopover(event) {
+  function openPopover() {
     if (!selectedRange) return;
+    const wordEl = getQuillWordElement(selectedRange.start);
     setPopoverOpen(true);
-    setPopoverPos(positionFromEvent(event));
+    setPopoverPos(computePopoverPos(wordEl));
   }
 
   function saveAnnotation() {

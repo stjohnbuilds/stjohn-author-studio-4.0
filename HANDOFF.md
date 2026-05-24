@@ -160,6 +160,10 @@ forward into 4.0 with the shared engines and the pastel palette.
 
 ### A. Studio landing page (login + mode picker)  **<-- DO THIS FIRST**
 
+**This is a PORT. A working login screen exists in a previous attempt
+of this app — find it first, then port it.** See §2b. Don't design
+from scratch.
+
 When the app opens, Marie should see a small login screen (Supabase
 auth) and after login, the 4-mode picker. NOT dropping straight into
 Proof like it does now.

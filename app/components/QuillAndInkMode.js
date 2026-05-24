@@ -149,6 +149,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }, []);
 
   // persist on change (debounced). Writes local AND attempts cloud push.
+  // After cloud push we write the generated cloudId back onto the project
+  // so the next save upserts in place instead of inserting a new row.
   useEffect(() => {
     if (!hydrated) return;
     setSaveStatus('saving');
@@ -156,16 +158,27 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     saveTimerRef.current = setTimeout(async () => {
       try {
         await persistProjects(allProjects);
-        // Fire-and-forget cloud push for each project. Failures are
-        // logged but don't disrupt the local save.
         const supabase = getSupabaseClient();
         if (supabase) {
           const { data } = await supabase.auth.getSession();
           const ownerId = data?.session?.user?.id;
           if (ownerId) {
+            const cloudIdUpdates = [];
             for (const project of allProjects) {
-              try { await pushQuillProject(supabase, project, ownerId); }
-              catch (e) { console.warn('[Quill] cloud push failed for', project.title, e?.message || e); }
+              try {
+                const cloudId = await pushQuillProject(supabase, project, ownerId);
+                if (cloudId && cloudId !== project.cloudId) {
+                  cloudIdUpdates.push({ projectId: project.id, cloudId });
+                }
+              } catch (e) {
+                console.warn('[Quill] cloud push failed for', project.title, e?.message || e);
+              }
+            }
+            if (cloudIdUpdates.length) {
+              setAllProjects((all) => all.map((p) => {
+                const update = cloudIdUpdates.find((u) => u.projectId === p.id);
+                return update ? { ...p, cloudId: update.cloudId } : p;
+              }));
             }
           }
         }

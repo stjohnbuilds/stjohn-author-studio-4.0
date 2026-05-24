@@ -1,6 +1,6 @@
-appId: com.scriptandsync.app
-productName: Script and Sync
-copyright: Copyright © 2025
+appId: com.stjohnbuilds.authorstudio
+productName: StJohn Author Studio
+copyright: Copyright © 2026 StJohn Builds
 
 directories:
   output: dist
@@ -42,10 +42,10 @@ win:
       arch: [x64]
 
 portable:
-  artifactName: Script and Sync (Portable).exe
+  artifactName: StJohn Author Studio (Portable).exe
 
 nsis:
-  artifactName: Script and Sync Setup.exe
+  artifactName: StJohn Author Studio Setup.exe
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

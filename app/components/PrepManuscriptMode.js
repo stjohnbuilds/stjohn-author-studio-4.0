@@ -795,6 +795,7 @@ function ReaderView({
   onAssignCharacter, onAssignSideVoice,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
+  onUpdateSectionHtml,
 }) {
   const chapter = project.chapters.find((c) => c.chapterIndex === activeChapterIndex) || project.chapters[0];
   const dialogueRefs = useRef({});

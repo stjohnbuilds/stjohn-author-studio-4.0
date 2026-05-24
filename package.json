@@ -26,6 +26,7 @@
     "guardrails:install": "bash scripts/install-git-hooks.sh"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.1",
     "@xenova/transformers": "^2.6.5",
     "jszip": "^3.10.1",
     "mammoth": "^1.8.0",

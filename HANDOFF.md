@@ -239,6 +239,10 @@ and Marie has emphasized it three times.
 
 ### D. Phone companion
 
+**This is a PORT. A working scaffold exists. Marie says "it was
+actually quite solid." See §2b — read the scaffold completely
+before writing any 4.0 code, then port it.**
+
 There's a working scaffold to port from:
 `/Users/mariemackay/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/`
 

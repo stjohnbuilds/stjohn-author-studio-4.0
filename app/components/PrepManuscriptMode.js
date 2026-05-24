@@ -667,6 +667,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           onRemoveCharacter={removeCharacter}
           onAddSideVoice={addSideVoice}
           onRemoveSideVoice={removeSideVoice}
+          onRemoveChapter={removeChapter}
           onExportDocx={exp?.docx}
           onExportDialogueCsv={exp?.csvAll}
           onExportNarratorCsv={exp?.csvNarrators}

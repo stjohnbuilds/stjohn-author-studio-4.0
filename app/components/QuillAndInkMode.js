@@ -890,114 +890,89 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
-      <div style={{
-        position: 'sticky',
-        top: usesCustomDragRegion ? 40 : 16,
-        zIndex: 1400,
-        background: 'rgba(255,255,255,0.94)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '10px 16px 10px 92px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        minHeight: 54,
-        WebkitAppRegion: 'no-drag',
-      }}>
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', maxWidth: '55%', pointerEvents: 'none' }}>
-          <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text)' }}>
-            Chapter {chapterIndex + 1} of {chapters.length}
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {chapter.title}
-          </div>
-        </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => onChangeChapter(chapters[Math.max(0, chapterIndex - 1)]?.id)}
-            disabled={chapterIndex <= 0}
-            style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex <= 0 ? 0.3 : 1 }}
-          >
-            ← Prev
-          </button>
-          <button
-            onClick={() => onChangeChapter(chapters[Math.min(chapters.length - 1, chapterIndex + 1)]?.id)}
-            disabled={chapterIndex >= chapters.length - 1}
-            style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex >= chapters.length - 1 ? 0.3 : 1 }}
-          >
-            Next →
-          </button>
-          <SaveBadge status={saveStatus} tone="quill" />
-        </div>
-      </div>
+      <StickyTopBar
+        tone="quill"
+        usesCustomDragRegion={usesCustomDragRegion}
+        title={`Chapter ${chapterIndex + 1} of ${chapters.length}`}
+        subtitle={chapter.title}
+      >
+        <button
+          type="button"
+          onClick={() => onChangeChapter(chapters[Math.max(0, chapterIndex - 1)]?.id)}
+          disabled={chapterIndex <= 0}
+          style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex <= 0 ? 0.3 : 1 }}
+        >
+          ← Prev
+        </button>
+        <button
+          type="button"
+          onClick={() => onChangeChapter(chapters[Math.min(chapters.length - 1, chapterIndex + 1)]?.id)}
+          disabled={chapterIndex >= chapters.length - 1}
+          style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex >= chapters.length - 1 ? 0.3 : 1 }}
+        >
+          Next →
+        </button>
+        <SaveBadge status={saveStatus} tone="quill" />
+      </StickyTopBar>
 
-      <div style={{ display: 'flex', gap: 22, padding: '1.4rem 1.25rem', maxWidth: 1200, margin: '0 auto', alignItems: 'flex-start' }}>
-        <div style={{
-          flex: '1 1 auto',
-          background: 'linear-gradient(180deg, #fbfaf7 0%, #ffffff 16%, #ffffff 100%)',
-          border: '1px solid var(--border)',
-          borderRadius: 16,
-          padding: '1.8rem 2rem',
-          fontSize: '16.5px',
-          lineHeight: 1.92,
-          minHeight: '60vh',
-          userSelect: 'none',
-        }}>
+      {/* Centered paper. Same READER_WIDTH the other modes use, so
+          Quill stops feeling like a different app. Bottom padding
+          leaves room for the fixed annotation dock. */}
+      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 200px' }}>
+        <div
+          className="quill-reader-body"
+          style={{
+            background: READER_PAGE_BG,
+            border: '1px solid var(--border)',
+            borderRadius: 16,
+            padding: '1.8rem 2.2rem',
+            fontSize: READER_FONT_SIZE,
+            lineHeight: READER_LINE_HEIGHT,
+            minHeight: '60vh',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+          }}
+        >
           {renderedContent}
         </div>
-
-        <aside style={{
-          flex: '0 0 280px',
-          maxWidth: 280,
-          background: 'rgba(255,255,255,0.78)',
-          border: '1px solid var(--border)',
-          borderRadius: 16,
-          padding: '1rem',
-          position: 'sticky',
-          top: 120,
-          maxHeight: '78vh',
-          overflowY: 'auto',
-        }}>
-          <div style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL.ink, marginBottom: 10 }}>
-            Annotations · {annotationsForChapter.length}
-          </div>
-          {!annotationsForChapter.length && (
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>
-              Drag across text to start.
-            </div>
-          )}
-          {annotationsForChapter.map((ann) => (
-            <div key={ann.id} style={{
-              padding: '8px 10px',
-              borderRadius: 10,
-              border: '1px solid var(--border)',
-              marginBottom: 6,
-              background: 'white',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: ann.color || QUILL.accent, flexShrink: 0 }} />
-                <button
-                  onClick={() => jumpToAnnotation(ann)}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, color: QUILL.ink, textAlign: 'left' }}
-                >
-                  {ann.label || ann.classLabel || 'Annotation'}
-                </button>
-                <button
-                  onClick={() => deleteAnnotation(ann.id)}
-                  style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.78rem' }}
-                  title="Delete"
-                >
-                  ×
-                </button>
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text)', fontStyle: 'italic', marginBottom: 2 }}>
-                &ldquo;{(ann.selectedText || '').slice(0, 80)}{(ann.selectedText || '').length > 80 ? '…' : ''}&rdquo;
-              </div>
-              {ann.note && <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{ann.note}</div>}
-            </div>
-          ))}
-        </aside>
       </div>
+
+      {/* Floating action button in the LINE'S LEFT MARGIN — replaces
+          the inline + that used to float above the first selected word.
+          Position computed from the selected word's getBoundingClientRect
+          and its block's left edge, so the button always sits in the
+          gutter beside the line, not on top of the text. */}
+      {selectedRange && selectionActionPos && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={openPopover}
+          style={{
+            position: 'fixed',
+            top: selectionActionPos.top,
+            left: selectionActionPos.left,
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            background: 'white',
+            color: QUILL.ink,
+            border: '1px solid ' + QUILL.ink + '66',
+            cursor: 'pointer',
+            fontSize: '1.1rem',
+            fontWeight: 700,
+            lineHeight: 1,
+            boxShadow: '0 6px 18px rgba(76,72,70,0.18)',
+            zIndex: 1550,
+            display: 'grid',
+            placeItems: 'center',
+            WebkitAppRegion: 'no-drag',
+          }}
+          aria-label={editingAnnotationId ? 'Edit annotation' : 'Add annotation'}
+          title={editingAnnotationId ? 'Edit annotation' : 'Add annotation'}
+        >
+          {editingAnnotationId ? '✎' : '+'}
+        </button>
+      )}
 
       {popoverOpen && popoverPos && (
         <div

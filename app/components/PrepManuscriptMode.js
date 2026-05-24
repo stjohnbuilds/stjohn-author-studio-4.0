@@ -134,12 +134,18 @@ function paragraphsFromHtml(html = '') {
   let m;
   while ((m = re.exec(html)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = decodeHtmlEntities(stripTags(m[2])).replace(/\s+/g, ' ').trim();
+    // CRITICAL: use the engine's stripHtml here. It replaces tags with
+    // a space (not an empty string), which matters when inline <span>
+    // or <em> splits a word — the engine sees "Really ?" with a space,
+    // and the reader has to see the exact same thing or indexOf fails
+    // and the dialogue span doesn't render. That bug stopped Next from
+    // advancing past every italic-mid-quote dialogue in the manuscript.
+    const text = engineStripHtml(m[2]);
     if (!text) continue;
     blocks.push({ tag, text, isHeading: /^h\d$/.test(tag) });
   }
   if (blocks.length === 0) {
-    const fallback = decodeHtmlEntities(stripTags(html)).replace(/\s+/g, ' ').trim();
+    const fallback = engineStripHtml(html);
     if (fallback) blocks.push({ tag: 'p', text: fallback, isHeading: false });
   }
   return blocks;

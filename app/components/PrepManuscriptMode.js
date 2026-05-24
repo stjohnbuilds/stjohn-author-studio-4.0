@@ -269,7 +269,10 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   const [error, setError] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
-  const [pendingImport, setPendingImport] = useState(null); // { fileName, structure, projectName }
+  // When set, the next ImportFlow confirm will REPLACE this project's
+  // contents (preserve id + characters where possible) instead of
+  // creating a brand-new project.
+  const [replacingProjectId, setReplacingProjectId] = useState(null);
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
 

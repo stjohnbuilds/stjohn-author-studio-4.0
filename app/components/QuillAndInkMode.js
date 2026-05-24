@@ -917,7 +917,9 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
           style={{
             position: 'absolute',
             top: popoverPos.top + 22,
-            left: Math.max(12, popoverPos.left - 120),
+            // Clamp to viewport so the popover never falls off-screen
+            // when annotating near the right edge or in a narrow window.
+            left: clampPopoverLeft(popoverPos.left - 120, 320),
             zIndex: 1600,
             background: 'white',
             border: '1px solid ' + QUILL.ink + '55',

@@ -971,29 +971,47 @@ function ReaderView({
   );
 }
 
-function SectionBody({ section, charactersById, selected, onSelectDialogue, dialogueRefs, onDialogueButtonMounted }) {
+function SectionBody({
+  section, chapterIndex, charactersById, selected,
+  onSelectDialogue, dialogueRefs, onDialogueButtonMounted,
+  onUpdateSectionHtml,
+}) {
+  const [fixing, setFixing] = useState(false);
+
   if (!section.html && section.scanning) return <p style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>(scanning…)</p>;
   if (!section.html) return null;
 
   const blocks = useMemo(() => paragraphsFromHtml(section.html), [section.html]);
   const spans = section.dialogueSpans || [];
   const safetyIssues = section.safetyIssues || [];
-  // Section-level warnings (the kind that don't bind to a single span:
-  // missing-closing-quote at end of section, uneven-quotes, etc.). We
-  // surface them as a small amber strip ABOVE the section text so Marie
-  // sees the warning while reading the surrounding context.
-  const sectionLevelIssues = safetyIssues.filter((iss) => {
-    const t = iss.type || '';
-    return t === 'missing-closing-quote' || t === 'uneven-quotes' || t === 'closing-quote-without-opening';
-  });
+
+  if (fixing) {
+    return (
+      <SectionFixer
+        section={section}
+        blocks={blocks}
+        onCancel={() => setFixing(false)}
+        onSave={(newHtml) => {
+          if (onUpdateSectionHtml) onUpdateSectionHtml(chapterIndex, section.sectionIndex, newHtml);
+          setFixing(false);
+        }}
+      />
+    );
+  }
+
   let spanCursor = 0;
   return (
     <>
-      {sectionLevelIssues.length > 0 && (
-        <div style={{ margin: '8px 0 14px', padding: '6px 12px', background: '#FDF3E3', border: '1px solid #E3CBA1', borderRadius: 8, fontSize: '0.74rem', color: '#7A4F11', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {sectionLevelIssues.map((iss, i) => (
-            <div key={i}>⚠ {iss.message}</div>
-          ))}
+      {safetyIssues.length > 0 && (
+        <div style={{ margin: '8px 0 14px', padding: '8px 12px', background: '#FDF3E3', border: '1px solid #E3CBA1', borderRadius: 8, fontSize: '0.78rem', color: '#7A4F11', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 1 }}>⚠ {safetyIssues[0].message}</span>
+          {onUpdateSectionHtml && (
+            <button
+              type="button"
+              onClick={() => setFixing(true)}
+              style={{ padding: '4px 10px', background: '#C47F2A', color: 'white', border: 'none', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+            >Fix</button>
+          )}
         </div>
       )}
       {blocks.map((block, bi) => {
@@ -1026,13 +1044,8 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
               const char = span?.characterId ? charactersById.get(span.characterId) : null;
               const sv = char && span?.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === span.sideVoiceId) : null;
               const isSelected = selected.sectionIndex === section.sectionIndex && selected.spanIndex === seg.spanIndex;
-              const spanIssueCount = span?.issueCount || 0;
-              const spanIssueMsg = span?.issueTopMessage || '';
-              // Main character → its pastel. Side voice → progressively
-              // darker shades of that pastel so they read as variants.
               const bg = char ? colorForAssignment(char, sv) : (isSelected ? '#FFF6CC' : 'transparent');
               const refKey = `${section.sectionIndex}|${seg.spanIndex}`;
-              const hasWarning = spanIssueCount > 0;
               return (
                 <button
                   key={i}
@@ -1046,17 +1059,17 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                   }}
                   type="button"
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
-                  title={(char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned') + (hasWarning ? ` · ⚠ ${spanIssueMsg}` : '')}
+                  title={char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned'}
                   style={{
                     background: bg,
-                    border: '1px solid ' + (isSelected ? PREP_INK : (hasWarning ? '#C47F2A' : (char ? PREP_INK + '66' : '#e3d8b0'))),
+                    border: '1px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
                     borderRadius: 6,
                     padding: '0 6px', margin: '0 1px',
                     fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit',
                     color: 'var(--text)', cursor: 'pointer',
                     boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
                   }}
-                >{seg.text}{hasWarning && <span aria-hidden="true" style={{ marginLeft: 3, fontSize: '0.7em', color: '#C47F2A', fontWeight: 700 }}>⚠</span>}</button>
+                >{seg.text}</button>
               );
             })}
           </Tag>
@@ -1064,6 +1077,97 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
       })}
     </>
   );
+}
+
+// Inline editor that lets Marie patch the missing close quote without
+// re-importing the whole .docx. Shows one editable line per paragraph;
+// the "Insert "" button drops a closing curly quote at the cursor.
+// On Save, we rebuild section.html and the parent reruns dialogue
+// detection so the warning either clears or moves to the next problem.
+function SectionFixer({ section, blocks, onCancel, onSave }) {
+  // Pre-fill with the section's plain text, paragraph per line. Headings
+  // get a "## " prefix so they round-trip when we rebuild.
+  const initial = blocks.map((b) => (b.isHeading ? `## ${b.text}` : b.text)).join('\n\n');
+  const [text, setText] = useState(initial);
+  const ref = useRef(null);
+
+  function insertCloseQuote() {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? start;
+    const next = text.slice(0, start) + '”' + text.slice(end);
+    setText(next);
+    // Restore cursor just after the inserted quote.
+    setTimeout(() => {
+      el.focus();
+      const pos = start + 1;
+      el.selectionStart = pos;
+      el.selectionEnd = pos;
+    }, 0);
+  }
+
+  function rebuildHtml() {
+    const paras = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    return paras.map((p) => {
+      if (p.startsWith('## ')) {
+        const body = p.slice(3).trim();
+        return `<h2>${escapeHtml(body)}</h2>`;
+      }
+      if (p.startsWith('# ')) {
+        const body = p.slice(2).trim();
+        return `<h1>${escapeHtml(body)}</h1>`;
+      }
+      return `<p>${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`;
+    }).join('');
+  }
+
+  return (
+    <div style={{ margin: '8px 0 24px', padding: '12px 14px', background: 'white', border: '1px solid ' + PREP_INK + '55', borderRadius: 12, boxShadow: '0 6px 22px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Fix this section
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button type="button" onClick={insertCloseQuote}
+            title={'Insert a closing curly quote at the cursor'}
+            style={{ padding: '5px 10px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>
+            Insert &rdquo; here
+          </button>
+        </div>
+      </div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+        Click in the text below to place your cursor, then tap "Insert &rdquo; here" — or just type the missing close quote yourself. Save when it looks right.
+      </div>
+      <textarea
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        spellCheck={false}
+        style={{
+          width: '100%', minHeight: 200,
+          padding: '10px 12px',
+          fontFamily: 'Georgia, serif',
+          fontSize: '0.95rem',
+          lineHeight: 1.5,
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          background: '#FBF8F2',
+          color: 'var(--text)',
+          outline: 'none',
+          resize: 'vertical',
+        }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 10 }}>
+        <button type="button" onClick={onCancel} style={{ padding: '7px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+        <button type="button" onClick={() => onSave(rebuildHtml())} style={{ padding: '7px 14px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>Save &amp; rescan</button>
+      </div>
+    </div>
+  );
+}
+
+function escapeHtml(s = '') {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ===========================================================================

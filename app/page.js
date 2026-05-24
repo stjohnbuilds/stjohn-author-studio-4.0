@@ -1557,6 +1557,19 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
           </div>
         </div>
       )}
+      {authEmail && (
+        <div style={{ marginTop:'1.4rem', textAlign:'center', fontSize:'0.72rem', color:'var(--text-light)' }}>
+          Signed in as <span style={{ color:'var(--text-muted)', fontWeight:600 }}>{authEmail}</span>
+          <span style={{ margin:'0 6px', color:'var(--text-light)' }}>·</span>
+          <button
+            type="button"
+            onClick={onSignOut}
+            style={{ background:'none', border:'none', padding:0, color:'var(--accent-dark)', fontSize:'0.72rem', fontWeight:600, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3 }}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

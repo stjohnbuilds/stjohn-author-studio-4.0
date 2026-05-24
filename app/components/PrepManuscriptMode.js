@@ -1681,7 +1681,7 @@ function AddSideVoiceInline({ characterNarrator, saveLabel = 'Save', onSave, onC
 function pillToggleStyle(active) {
   return {
     flex: 1, padding: '4px 8px',
-    background: active ? PREP_INK : 'white',
+    background: active ? PREP_ACCENT : 'white',
     color: active ? 'white' : 'var(--text-muted)',
     border: '1px solid ' + (active ? PREP_INK : 'var(--border)'),
     borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer',

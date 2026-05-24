@@ -1,11 +1,12 @@
-# HANDOFF — StJohn Author Studio 4.0 — 2026-05-24 (overnight)
+# HANDOFF — StJohn Author Studio 4.0 — 2026-05-24 (overnight + QoL pass)
 
 Fresh Claude session: read this file first. Top to bottom. Then `CLAUDE.md`,
 then `TODO.md`. Don't write code before you've read all three.
 
 This handoff replaces the earlier one — Claude ran overnight on
 2026-05-24 and landed login, Quill & Ink desktop mode, the Supabase
-cloud sync, and a phone scaffold. Marie is reviewing fresh in the
+cloud sync, and a phone scaffold. Then did a quality-of-life pass:
+bug fixes, dead-code cleanup, edge cases. Marie is reviewing in the
 morning, so most of the test passes are still hers to do.
 
 ---

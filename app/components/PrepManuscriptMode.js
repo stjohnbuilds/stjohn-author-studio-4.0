@@ -424,6 +424,44 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }));
   }
 
+  // ---- in-place section edit (used by the "Fix missing quote" affordance).
+  // Marie clicks Fix on a warning, edits the paragraphs to insert the
+  // missing close quote, hits Save. We update section.html and rerun
+  // dialogue detection so the warning either clears or moves.
+  function updateSectionHtml(chapterIndex, sectionIndex, newHtml) {
+    const { dialogueSpans: nextSpans, issues, totalQuoteMarks, quoteMarksEven } = detectSectionSpans(newHtml, chapterIndex, sectionIndex);
+    updateActive((p) => ({
+      ...p,
+      chapters: p.chapters.map((ch) => {
+        if (ch.chapterIndex !== chapterIndex) return ch;
+        return {
+          ...ch,
+          sections: ch.sections.map((sec) => {
+            if (sec.sectionIndex !== sectionIndex) return sec;
+            // Preserve assignments by best-effort matching new spans to old by text.
+            const oldByText = new Map();
+            (sec.dialogueSpans || []).forEach((sp) => {
+              if (!oldByText.has(sp.text)) oldByText.set(sp.text, sp);
+            });
+            const mergedSpans = nextSpans.map((sp) => {
+              const prior = oldByText.get(sp.text);
+              return prior ? { ...sp, characterId: prior.characterId || null, sideVoiceId: prior.sideVoiceId || null } : sp;
+            });
+            return {
+              ...sec,
+              html: newHtml,
+              dialogueSpans: mergedSpans,
+              safetyIssues: issues,
+              totalQuoteMarks,
+              quoteMarksEven,
+              scanning: false,
+            };
+          }),
+        };
+      }),
+    }));
+  }
+
   // ---- dialogue assignment (only in reader; uses activeChapterIndex + selected) ----
   function assignCurrent({ characterId = null, sideVoiceId = null } = {}) {
     updateActive((p) => ({

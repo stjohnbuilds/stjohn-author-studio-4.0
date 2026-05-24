@@ -1,348 +1,413 @@
-# HANDOFF — StJohn Author Studio 4.0 — 2026-05-23
+# HANDOFF — StJohn Author Studio 4.0 — 2026-05-24
 
-If you're a fresh Claude session opening this folder: **read this file first**, then `CLAUDE.md`, then `docs/BUILD_PLAN_V4.md`, then `TODO.md`. Then read this user-state section before you touch any code.
+Fresh Claude session: read this file first. Top to bottom. Then `CLAUDE.md`,
+then `TODO.md`. Don't write code before you've read all three.
 
----
-
-## 0. Files to read, in order
-
-Open these and actually read them before writing any code:
-
-| Order | File | Why |
-|---|---|---|
-| 1 | `HANDOFF.md` (this file) | Current state, Marie's open requests, things I got wrong |
-| 2 | `CLAUDE.md` | App purpose, data tables, hard rules, commands |
-| 3 | `docs/BUILD_PLAN_V4.md` | Phase order + definitions of done |
-| 4 | `TODO.md` | Active backlog (Phase 6 follow-ups, Studio landing, export polish, etc.) |
-| 5 | `docs/FRONT_FUNCTION_TREE.md` | Skeleton of every UI button per mode |
-| 6 | `docs/INTERNAL_FUNCTION_TREE.md` | Engines / IPC / data flow inventory |
-| 7 | `docs/WIRING_MATRIX.md` | Button → bridge → handler → engine, with the "Verified live" column |
-| 8 | `dev/active/phase-6-prep-manuscript/phase-6-{plan,context,tasks}.md` | The plan that drove Prep Manuscript work |
-| 9 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/feedback_plain_speak.md` | Marie's tone preference |
-| 10 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/feedback_just_build.md` | Marie's "stop checking in" rule |
-| 11 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/reference_bible_location.md` | Where the bible lives |
-| 12 | `~/Library/CloudStorage/.../my-claude-setup-bible.md` | Marie's master setup bible (read-only) |
-
-Code files most likely to touch:
-
-| File | Role |
-|---|---|
-| `app/page.js` | Root. Owns `APP_MODES`, `appMode` state, routes to per-mode views. Home pill / 4-mode pill chrome. |
-| `app/components/ReaderChrome.js` | Shared chrome primitives (chapter pill, save badge, sticky bar, home pill, button factories, useDismissable). Edit here to affect every mode. |
-| `app/components/PrepManuscriptMode.js` | Prep mode end-to-end (home/setup/bookDetail/reader views, dock, character chips, side voice popovers). |
-| `app/components/prepExport.js` | Prep export — narrator breakdown + in-place .docx patching from the stored source bytes. |
-| `app/components/ProofingReader.js` | SaS 3.0 proofer reader (2600 lines). Still has its own copies of ReaderChrome-style components. Migrate later. |
-| `app/components/SessionsView.js` | SaS 3.0 book detail (chapters list + audio + transcription queue). |
-| `app/components/ManuscriptSetup.js` | SaS 3.0 import flow (the one Marie wants shared with Prep). |
-| `app/components/PrebuildMode.js` | "Duet Audio Prep" — already-built component used when `appMode === 'prebuild'`. |
-| `packages/manuscript-engine/` | Pure JS engine: text-normalize, word-import (incl. `parseManuscriptStructure`), dialogue-detection (curly + straight quotes), dialogue-safety-check. |
-| `main.js` | Electron main process. IPC handlers including `read-prep-data` / `write-prep-data`. |
-| `preload.js` | Electron bridge. Exposes `window.electron.readPrepData` / `writePrepData` and the SaS 3.0 surface. |
-| `tests/manuscript-engine.test.mjs` | Smoke tests for dialogue detection (4 passing). Run with `npm test`. |
-
-Other useful spots:
-
-- `.claude/hooks/` — scope-locked hooks (per bible Step 2.5). `_log.sh` is the shared logger.
-- `.claude/hook-activity.log` — verify hooks are firing with `cat`.
-- `.claude/settings.json` — hook wiring.
-- `Save Data/` — local user data folder (gitignored). `prep-manuscript-projects.json` lives here when the app has run.
-- `TODAY-CHANGES-2026-05-23.md` — inherited from SaS 3.0; safe to ignore unless you're touching Proof.
+This handoff supersedes the 2026-05-23 one. That version is no longer
+accurate — most of what was "next steps" got built and polished in the
+2026-05-24 session.
 
 ---
 
-## 1. Read Marie first, code second
+## 0. Two-line summary
 
-Marie is the user. She is **non-technical**, she is **exhausted** with this app (it's her fourth attempt — three previous attempts ended in disasters), and she has been giving the previous Claude session very clear feedback that kept getting half-fixed. She has explicitly said:
-
-- "Talk to me like I'm 10. No code-speak. 3-5 short bullets."
-- "Just do the work. Don't check in between passes. Only interrupt for things only I can decide (Supabase creds, a real design fork, hard blockers)."
-- "Use shared engines. Don't duplicate code. If you fix something, it should fix everywhere."
-- "A feature is done when I click it on a real file. Tests passing is not enough."
-
-Two memory notes live at `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/`:
-- `feedback_plain_speak.md`
-- `feedback_just_build.md`
-
-Read both before the first turn.
+The desktop app exists and works for Proof Listen and Prep Manuscript.
+Duet Prep inherits from Script & Sync 3.0 and runs as-is. The next
+three big builds are **Studio landing page (login)**, **Quill & Ink
+mode**, and **the phone companion + Supabase cloud sync**.
 
 ---
 
-## 2. What this app is, in plain English
+## 1. How to launch
 
-One desktop app + one phone companion for self-published audiobook + print prep. **Four desktop modes**, **two phone modes**, **one shared brain**.
-
-- **Proof Listen** — listen to audio against a manuscript, flag mistakes for the engineer.
-- **Prep Manuscript** — tag every dialogue line with a character + narrator (and side voice variants) before recording. Export a highlighted Word doc + narrator chapter list.
-- **Duet Prep** — find duet / engineer markers.
-- **Quill & Ink** — annotate a manuscript for special-edition print (InDesign export).
-- **Phone Script** — tap to flag while listening; flags sync to cloud.
-- **Phone Quill** — tap to annotate while reading; annotations sync to cloud.
-
-**Hard rules:**
-- Audio NEVER goes to Supabase. Audio stays on whichever device played it.
-- One shared reader, one shared cloud-sync, one shared manuscript-engine, one shared audio-engine.
-- No fake sample data.
-- All four modes look and feel like one app.
-
-Full source of truth: `CLAUDE.md`.
-
----
-
-## 3. Where we are right now (2026-05-23)
-
-| Mode | Status |
-|---|---|
-| Proof Listen | **Inherited working from Script and Sync 3.0.** Not touched yet. |
-| Prep Manuscript | **Mostly built, lots of polish issues. See §5.** |
-| Duet Prep | Uses the existing "Duet Audio Prep" mode from SaS 3.0 base. Not extended. |
-| Quill & Ink | **Not built. Coming Soon screen.** |
-| Phone | **Not built.** Reference exists in `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23`. Needs Supabase env vars from Marie. |
-| Studio landing (4-mode picker home) | **Not built.** Logged in `TODO.md`. |
-
-Repo: `github.com/stjohnbuilds/stjohn-author-studio-4.0` (private). Push freely.
-
-Working tree at handoff: clean (everything committed + pushed up through Prep v6.6).
-
----
-
-## 4. Architecture map (already in place)
-
-### Shared chrome (use these — don't reinvent)
-
-`app/components/ReaderChrome.js`:
-- `READER_WIDTH`, `READER_PAGE_BG`, `READER_FONT_SIZE`, `READER_LINE_HEIGHT`, `HOME_CONTAINER`
-- `MODE_TOKENS` — pastel + ink per mode (proof/prep/duet/quill)
-- `ChapterContextPill` — small uppercase pill (matches the Proof reader pattern)
-- `SaveBadge` — green dot + label
-- `StickyTopBar` — three-column grid with centered title (Back · centered title · controls)
-- `HomePill` — the "⌂ Home" pill that replaces the 4-mode switcher inside a project
-- `topBtnStyle`, `pillBtnStyle` — button factories per tone
-- `useDismissable(open, onClose, ignoreRef)` — close popovers on outside-click + Escape
-
-`app/components/PrepManuscriptMode.js` already imports from there. ProofingReader.js and PrebuildMode.js have their own inline copies of these patterns — **migrating them to ReaderChrome is a TODO** (`docs/TODO.md`).
-
-### Shared engines (`packages/manuscript-engine/`)
-
-Ported from 2.0. Pure JS modules.
-- `text-normalize/` — escaping, word display
-- `word-import/` — `parseManuscriptStructure(html, { chapterLevel: 1 })` + `applyChapterNumbers`
-- `dialogue-detection/` — handles **curly AND straight quotes** (tests prove this)
-- `dialogue-safety-check/` — reports unterminated/uneven quotes etc.
-
-### Prep mode data shape
-
-```
-project = {
-  id, title, fileName, importedAt, updatedAt,
-  sourceDocxBase64,   // ORIGINAL .docx bytes — used by export to patch in place
-  characters: [{ id, name, narratorName, colorHex, sideVoices: [...] }],
-  chapters: [{
-    id, chapterIndex, chapterNumber, title,
-    sections: [{
-      id, sectionIndex, title, html,
-      dialogueSpans: [{ id, text, afterText, characterId, sideVoiceId, issueCount, issueTopMessage }],
-      safetyIssues: [...], totalQuoteMarks, quoteMarksEven, scanning,
-    }]
-  }]
-}
-```
-
-Persisted via Electron IPC `read-prep-data` / `write-prep-data` →
-`prep-manuscript-projects.json` in the Save Data folder.
-
-`isCompatiblePrepProject(p)` discards any older saved shape silently
-so Marie isn't forced to re-import when the schema bumps.
-
----
-
-## 5. What Marie said in her last testing pass (the things to fix NEXT)
-
-These are direct asks. Don't drop any of them.
-
-### A. Dialogue safety warnings — too aggressive / wrong (LATEST)
-
-> "The only time there should be a fucking flag is when there is an unfinished quotation mark, within a reasonable amount of space. So if there's one quotation mark and there isn't another one in a couple of paragraphs, flag it for it to be checked."
-
-The engine currently emits these warning types (and Prep filters to a meaningful set in `detectSectionSpans` → `MEANINGFUL_ISSUE_TYPES`):
-
-- `missing-closing-quote`
-- `closing-quote-without-opening`
-- `uneven-quotes`
-- `nested-or-multi-paragraph-dialogue`
-
-What Marie actually wants: **only** flag an UNTERMINATED quote where the next quote mark is "more than a couple of paragraphs away." Right now even short un-closed quotes within a paragraph get flagged. Tighten this:
-- In the detector (or as a post-filter): only keep `missing-closing-quote` / `uneven-quotes` if the gap to the next quote is > N paragraphs (~2-3).
-- Drop `nested-or-multi-paragraph-dialogue` entirely unless she asks for it back.
-- Probably also drop `closing-quote-without-opening` unless she specifically asks — same noise category in practice.
-
-### B. Need a way to INSERT a quote mark inline (LATEST)
-
-> "I need a way to insert the quotation mark so that it doesn't, like, get fucked up. You know? Like, I'm not reuploading the whole thing. Just be like, insert quotation mark here or something, wherever I wanna click."
-
-So: when a warning fires, the user should be able to click somewhere in the manuscript to drop in a quote mark and have the engine re-run on that section so the flag clears (and dialogue detection updates). Currently she'd have to fix the source .docx and re-import. That's the friction she's complaining about.
-
-Plan:
-- Per-section "fix" button next to the amber warning strip.
-- Clicking it puts the section into an "insert quote" mode: clicking a position in the section text inserts `"` (or curly `"`) at that character position in `section.html`.
-- Re-run dialogue detection on that section; warning re-evaluates.
-- Persist the modified section.html on the project.
-
-The trickier part: the source .docx is the original (preserved bytes). Inserting a quote in our in-memory `section.html` doesn't update the bytes. Two options:
-1. **Track edits separately** as a list of `{ sectionId, position, char }`. On export, re-apply them to the original document.xml in addition to highlighting.
-2. **Rebuild section.html on edit** and store the edited html; flag the project as "has user edits, export from rebuilt path not original".
-
-Option 1 keeps the "preserve original" promise intact but is more code. Lean toward option 1.
-
-### C. Sticky header inconsistency — what number is being shown? (LATEST)
-
-> "The header in the main area, and then when you click into chapter one of sixty one, chapter two, why does why does it say that chapter one of sixty two, chapter two, like, I removed the first chapter, therefore, it's naming it chapter two instead of using the fucking navigation system?"
-
-What's happening:
-- The reader top bar title currently reads `Chapter N of M · {ch.title}`.
-- `N` = `orderedIdx.indexOf(activeChapterIndex) + 1` — i.e. position 1..N among included chapters.
-- `ch.title` = the chapter's title from the source manuscript (e.g. "Chapter 2" because she deselected the original first chapter on import).
-
-Marie sees `Chapter 1 of 61 · Chapter 2` and reads it as a bug. Pick ONE source of truth. Recommended: show only the navigation position OR only the source title, never both jammed together. Maybe `Chapter 1 of 61` and the actual title as a smaller subtitle below.
-
-Apply the same logic to the book-detail chapter list, the chapter dropdown options, and the docx exports' chapter headings.
-
-### D. Centering inconsistency (LATEST)
-
-> "Why is it centered sometimes and not others?"
-
-`StickyTopBar` was updated in v6.5 to a 3-column grid (Back · centered title · controls). Confirm every screen actually uses it consistently. Also check the in-page content (chapter list / characters panel / setup screen) for the same centering rhythm.
-
-### E. "Use existing import system, don't recode it"
-
-> "There is already a new project import system. Use it. Do not copy it. Do not recode it. Use it for little, like, scenes and chapters. There's already a system."
-
-She means SaS 3.0's `BookSetup` (= `app/components/ManuscriptSetup.js`) used by Proof Listen. It already handles: upload, narrator extraction, scene/chapter detection, navigation. Marie wants Prep to use that SAME flow.
-
-This is a real architectural refactor — `ManuscriptSetup` is ~1000 lines tightly coupled to Proof's data model. Extracting a shared `ImportFlow` component used by both Proof and Prep is the right move. Big effort, do it carefully. Note in `TODO.md`.
-
-### F. Export still doesn't feel like the original
-
-> "I uploaded document, and that exact same document has to be what's downloaded, but with highlights and one page of reviews."
-
-v6.6 added the in-place patch path: load the original .docx bytes, inject narrator-breakdown paragraphs at the top of `<w:body>`, regex-wrap single-run `<w:t>` content with shaded runs. **Marie hasn't confirmed yet whether the output looks right.** Have her re-import, export, and look. Likely-remaining issues:
-
-- Multi-run dialogues (italic mid-quote) are skipped (left un-highlighted). She may want a fallback strategy.
-- Narrator breakdown is currently injected as raw paragraphs — they'll use the original doc's `Normal` style, which may not center / bold the headings. Fix: inline-style the runs (font-size/bold) inside the breakdown paragraphs so they look right without needing styles.xml in the source doc.
-- The escape function `xml()` returns `&quot;` for `"`. The dialogue match needs to match what's actually in the source XML (which uses literal `"` inside `<w:t>` in most cases). Re-check the regex carefully.
-
----
-
-## 6. Things I (the previous Claude) got wrong — avoid these
-
-1. **Built TWO readers.** I made a separate reader for Prep with my own styles instead of using the Proof reader's. Marie caught it. The fix was ReaderChrome — keep this pattern. ProofingReader still has inline copies; migrate it eventually.
-
-2. **Bad chapter detection.** First pass split on h1 AND h2, returning 171 "chapters" for a 24-chapter novel. Correct: `parseManuscriptStructure(html, { chapterLevel: 1 })` — h1 only.
-
-3. **Double curly quotes in the reader.** Rendered `"{text}"` around dialogue buttons even though the source's own quotes were still in the surrounding plain text. Result: `""text"."`. Now just renders `{text}` and trusts the source quotes.
-
-4. **Race in cross-chapter Next.** The parent wrapped `setActiveChapterIndex` to also set selected; my own moveDialogue then set selected again. Sometimes one won, sometimes the other. Fix in v6.5: removed the wrapper, use explicit `onJumpToChapter` for dropdown and raw setter for cross-chapter hop in `moveDialogue`.
-
-5. **Polling-based scroll.** First attempt at Next-scrolls used a setTimeout retry loop. Flaky for cross-chapter hops. Fix in v6.6: `pendingScrollKey` state + ref callback that scrolls the moment the button mounts. **This is now reliable** — do NOT regress to polling.
-
-6. **Side voices given no visual distinction.** First I added a dashed underline + ◇ marker — Marie hated it. Fix in v6.1+: side voices get a darker shade of the character's pastel (`colorForAssignment` / `darkenHex`).
-
-7. **Popover positioning.** Used `left:0` which left-anchored to the chip. Off-center for chips in the middle of a row. Fix in v6.5: `left:50%; transform:translateX(-50%)`. Also z-index 1500 to sit above sticky top bar (1400) and HomePill (1300).
-
-8. **Asked too many questions / checked in between every pass.** Marie hates this. Once she says "go", execute end-to-end and only come back when there's something concrete to click or you genuinely need her input.
-
-9. **Reported success without verifying.** Never claim a feature works without Marie clicking it on a real file. Tests passing is necessary but not sufficient.
-
-10. **Built fake demo state.** The 2.0 rebuild had 4577 lines of renderer with hardcoded `sampleProjects`. 4.0 was deliberately built without that pattern. **Don't bring it back.**
-
----
-
-## 7. Hooks — they need to be firing
-
-Per Marie's bible Step 2.5, every project has `.claude/hooks/` with a logger that writes to `.claude/hook-activity.log`. She verifies hooks with `cat .claude/hook-activity.log`.
-
-This project's hooks already exist + are scope-locked to `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0`. They fire only when a Claude Code session is opened INSIDE that folder (not from a parent or sibling). If you're working from a different directory, they won't fire here and Marie won't see them — open Claude Code in the 4.0 folder.
-
-Smoke test command (writes one line to the log):
-```
-CLAUDE_PROJECT_DIR=/Users/mariemackay/Dev/StJohn-Author-Studio-4.0 \
-  bash ~/Dev/StJohn-Author-Studio-4.0/.claude/hooks/_log.sh "smoke" "OK" "session start"
-```
-
----
-
-## 8. How to launch the app (for handing to Marie)
-
-She launches with:
 ```
 cd ~/Dev/StJohn-Author-Studio-4.0 && npm start
 ```
 
-Cmd+Q to close the Electron window. Reload = close + re-run.
-
-For a fresh prod build (e.g. testing the export):
-```
-npm run build && npm start
-```
+Paste that into Terminal and hit Enter. Cmd+Q to close.
 
 Tests:
 ```
 npm test
 ```
 
-Marie does NOT use the terminal naturally. Always give her the exact paste-line and remind her to hit Enter.
+Marie does NOT use the terminal naturally. Always give her the exact
+paste-line and remind her to hit Enter — this rule is also in her
+memory file at
+`/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/feedback_always_give_run_command.md`.
 
 ---
 
-## 9. Concrete next steps in order
+## 2. Marie's rules — read these before you do anything
 
-1. **Tighten the safety warnings** (§5A) — only flag `missing-closing-quote` / `uneven-quotes` when the next quote mark is >2 paragraphs away. Drop `nested-or-multi-paragraph-dialogue` from the user-facing surface.
+Marie is non-technical, she's exhausted (this is her fourth attempt at
+the app), and she's very specific about what she wants. These rules are
+non-negotiable:
 
-2. **Inline quote-insert affordance** (§5B) — let Marie click in a flagged section to drop a `"` at her cursor position, re-run detection. Persist edits separately as a `manualInserts` list so the original .docx bytes stay intact for export.
+1. **Plain English.** Short bullets. No code-speak unless she asks. 2–4
+   sentences default. Talk like a person, not a coder.
+2. **Don't check in between passes.** When she says "go", execute end
+   to end. Only come back when there's something concrete to click or
+   you genuinely need her input (Supabase creds, design forks, hard
+   blockers).
+3. **Use shared engines. Never duplicate.** If you find yourself
+   writing a second copy of something that already exists, stop and
+   share the existing one. `packages/manuscript-engine/`,
+   `app/components/ReaderChrome.js`, `app/components/ImportFlow.js`
+   exist precisely so each mode uses them. Marie noticed and called
+   out the previous duplicate-upload-flow in 2026-05-24.
+4. **A feature is "done" when Marie clicks it on a real file.** Tests
+   passing is not enough. Run the app, do the thing, see it work, THEN
+   call it done.
+5. **End every code change with the run command in a code block.**
+   `cd ~/Dev/StJohn-Author-Studio-4.0 && npm start`. Tell her to paste
+   and hit Enter. This is a saved feedback memory.
+6. **Pastels, not wine.** Marie loathes dark "wine purple", "dark
+   green" button colors. The mode tokens already have a `pastel` (very
+   light) + `accent` (mid-tone) + `ink` (dark) split — use `accent`
+   for solid button backgrounds, `pastel` for chip/active-tab fills,
+   `ink` for text + borders. Defined in `MODE_TOKENS` in
+   `app/components/ReaderChrome.js`.
+7. **End every response that touches files with "Files I changed:".**
+   A plain-text footer listing each file + what changed. The Stop-hook
+   that's supposed to do this gets swallowed by the UI, so the footer
+   is the only reliable trace Marie sees.
 
-3. **Fix the header confusion** (§5C) — pick one source of truth for "which chapter number." Probably: navigation position as the primary title, source title as a smaller subtitle.
-
-4. **Audit centering across all views** (§5D) — book detail, setup, reader.
-
-5. **Verify the in-place .docx export works on Marie's real file** (§5F) — she needs to delete the existing project, re-import, export, open in Word, and look. If the narrator breakdown paragraphs look wrong, inline-style them. If many dialogues aren't highlighted, debug the regex (likely encoding mismatch on quote characters).
-
-6. **Extract a shared ImportFlow component** so Prep and Proof share the upload + name + chapter selection screen (§5E). Big refactor, do it deliberately.
-
-7. **Studio landing page** with the 4-mode picker as the first screen on launch (in `TODO.md`).
-
-8. **Migrate ProofingReader and PrebuildMode to ReaderChrome** so chrome edits propagate everywhere.
-
-9. **Phone scaffold** — needs Marie's Supabase keys before deploy.
-
----
-
-## 10. Where the references live (read-only — never edit)
-
-Per `CLAUDE.md`:
-- `~/Library/CloudStorage/.../Script and Sync 3.0` — primary base / proofer
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/script-and-sync - ARCHIVED 2026-05-23`
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23`
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23`
-- `~/Dev/StJohn-Author-Studio-2.0` — the failed previous rebuild. The dialogue engine that's now in `packages/manuscript-engine/` was ported from here.
-
-You may `ls`, `find`, `grep`, `Read`. You may NOT edit / write / move / delete.
-
----
-
-## 11. Bible
-
-Marie's master Claude Code Setup Bible lives at:
-`~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/my-claude-setup-bible.md`
-
-Read-only. It defines the hooks/CLAUDE.md/TODO.md/dev-active patterns and the golden rules.
+There are also feedback memory files at
+`/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/`.
+Read them.
 
 ---
 
-## Final word
+## 3. Read these files, in this order
 
-Marie's threatened to quit twice today. The next session can earn back her trust by:
-- NOT checking in for permission between passes.
-- Doing real work, not surface fixes.
-- Honoring the architecture (shared chrome, shared engines, no duplicates).
-- Verifying with her on real files, not pre-declaring success.
+| Order | Path | Why |
+|---|---|---|
+| 1 | `HANDOFF.md` (this file) | State + rules |
+| 2 | `CLAUDE.md` | App purpose, data tables, architecture rules |
+| 3 | `TODO.md` | Active backlog (cleaned up 2026-05-24) |
+| 4 | `app/components/ReaderChrome.js` | Shared chrome (sticky bar, home pill, save badge, button factories, mode tokens) |
+| 5 | `app/components/ImportFlow.js` | Shared upload + chapter picker. Prep + Duet use it. Proof's BookSetup is the last duplicate. |
+| 6 | `app/components/PrepManuscriptMode.js` | Prep mode end-to-end. Use it as the pattern for new modes. |
+| 7 | `app/components/prepExport.js` | In-place .docx patcher (highlights + Word comments + paragraph edits + narrator breakdown) |
+| 8 | `packages/manuscript-engine/` | Pure JS engine. Dialogue detection, parsing, text normalization. |
+| 9 | `docs/BUILD_PLAN_V4.md` if it exists, or skip | Phase plan |
+| 10 | `tests/manuscript-engine.test.mjs` | Smoke tests. Run `npm test`. |
+| 11 | Memory files at `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/` | Marie's feedback preferences |
+
+---
+
+## 4. State of the four modes
+
+| Mode | Status |
+|---|---|
+| **Proof Listen** | Inherited working from Script and Sync 3.0. The 2600-line `ProofingReader.js` still has its own copies of chapter pill / sticky bar / save badge — should migrate to `ReaderChrome.js` (low risk, low priority, logged in TODO). |
+| **Prep Manuscript** | Heavily polished 2026-05-24. Shared upload, one-rule dialogue warnings, paragraph fixer, edit-chapters cog, side-voice Word comments, pastel palette. The fully-built mode. |
+| **Duet Prep** | Uses the existing Duet Audio Prep from the SaS 3.0 base, with `PrebuildMode.js` and the shared `ImportFlow`. Not extended in 4.0. Works as-is. |
+| **Quill & Ink** | **NOT BUILT.** Currently shows the Coming Soon panel. There's a working alpha to port from — see §6 below. |
+| **Phone** | **NOT BUILT.** There's a working scaffold to port from — see §7. |
+| **Studio landing page** | **NOT BUILT.** First screen on launch should be a login + 4-mode picker, not dropping into Proof. See §5 next. |
+
+---
+
+## 5. What's next — in priority order
+
+### A. Studio landing page (login + mode picker)  **<-- DO THIS FIRST**
+
+When the app opens, Marie should see a small login screen (Supabase
+auth) and after login, the 4-mode picker. NOT dropping straight into
+Proof like it does now.
+
+- Supabase auth: email + password. Show/hide password toggle. **Marie
+  explicitly asked for a show/hide password eye icon — include it.**
+- "Forgot password" link.
+- After login: the 4-mode picker is the home screen (with the pastel
+  pill toggle in `app/page.js` `AppModeToggle`).
+- "Sign out" lives somewhere subtle once logged in (probably on the
+  4-mode home).
+- The login UI should match the pastel aesthetic. No dark/wine colors.
+- A similar login screen existed in a previous attempt (probably in
+  the archived `apps/` folder or the 2.0 attempt). **Look at it before
+  designing from scratch — Marie said "it's been done before, don't
+  fuck around with anything that's ugly."**
+
+The Supabase project + tables already exist (see §8). Marie can give
+you the URL + anon key when you ask (or look in any old
+`.env`/`supabase.js` in the archives). Don't store her credentials in
+the repo.
+
+### B. Quill & Ink mode
+
+There's a near-complete alpha to port from:
+`/Users/mariemackay/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/`
+
+Read-only. You may `ls`, `find`, `grep`, `Read`. You may NOT edit or
+delete anything inside.
+
+What Quill & Ink does:
+- Read a manuscript chapter at a time (use the shared `ReaderChrome`
+  and the same import flow as Prep).
+- Annotate inline — drag across text to highlight a range, double-click
+  a word to jump to it. The "drag along highlights" interaction Marie
+  liked from the alpha.
+- Annotation list with `+` and ✏️ icons (Marie specifically mentioned
+  she liked these — port them).
+- The audio player from Proof gets reused.
+- Export an InDesign-friendly file (the alpha exported some form of
+  this — look at the alpha's export code).
+
+Supabase tables that already exist for Quill: `quill_projects`,
+`quill_chapters`, `quill_annotations`. All have RLS.
+
+Make it match Prep's visual aesthetic — same pastel pink mode token
+(`MODE_TOKENS.quill`), same `StickyTopBar` + `HomeBackPill`.
+
+### C. Supabase cloud sync wiring
+
+The shared `packages/cloud-sync/` directory (or its equivalent) needs to
+be the SINGLE place every mode talks to Supabase. Per-table CRUD
+helpers, not per-mode duplicates. Marie has been very clear on this.
+
+Tables (all exist already with RLS, project id
+`evcusovtjfypfyfvnooy`):
+- `script_sync_projects`
+- `script_sync_section_transcriptions`
+- `script_sync_flags`
+- `quill_projects`
+- `quill_chapters`
+- `quill_annotations`
+
+Audio NEVER goes to Supabase. The shared `cloud-sync` should have
+guards that strip audio paths before any upload. This is in CLAUDE.md
+and Marie has emphasized it three times.
+
+### D. Phone companion
+
+There's a working scaffold to port from:
+`/Users/mariemackay/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/`
+
+Marie says it was "actually quite solid" and just needs porting + a UI
+fix-up. Marie also mentioned there might be an even earlier phone
+attempt in `Manuscript Prepper 1.0` worth looking at — go look first.
+
+Scope (deliberately small per CLAUDE.md):
+- Login (Supabase auth, same as desktop)
+- Project list (text only)
+- Open a chapter, see manuscript + transcript text
+- Pick an audio file from the phone (audio stays local on phone — NEVER
+  uploaded)
+- Listen / read; tap to add a flag (Script mode) or annotation (Quill
+  mode)
+- Save: only flag/annotation text + timestamp + position go to cloud
+- Export: dump flags/annotations to CSV
+- No transcribing on phone. No manuscript editing.
+
+Deploy to Vercel when it works.
+
+### E. Smaller cleanup tasks (low priority, low risk)
+
+- Migrate `ProofingReader.js` to use `ReaderChrome.js` — Prep already
+  does, Proof still has inline copies. Pure refactor, no behaviour
+  change.
+- Migrate `PrebuildMode.js` (Duet) to use `ReaderChrome.js` for its
+  chrome too.
+- Migrate Proof's `BookSetup` (`app/components/ManuscriptSetup.js`) to
+  use the shared `ImportFlow.js` — last duplicate of the upload flow.
+
+These are all logged in `TODO.md`.
+
+---
+
+## 6. What got built / polished in the 2026-05-24 session
+
+This is mostly so you don't accidentally redo work or miss context.
+
+### Shared upload flow
+- `app/components/ImportFlow.js` (new). One component, used by Prep
+  and Duet. Title input, .docx upload, H1/H2/H3 selector, optional
+  scene-splitting toggle, chapter list with checkboxes + Set First
+  toggle + Show Sub-headings toggle.
+- Deleted `PrebuildManuscriptUpload.js`.
+- Prep's old inline `SetupView` is gone — uses `ImportFlow` directly.
+- Pulls `STYLE_MAP` + `convertShadingToHighlight` + `applyHexColors`
+  from `ManuscriptSetup.js` so Google Docs–style background highlights
+  get converted to Word highlights consistently across modes.
+
+### One dialogue warning rule (only)
+- `packages/manuscript-engine/dialogue-detection/index.js`. Emits ONE
+  issue type — `missing-closing-quote` — and only when the next quote
+  mark is more than ~3 paragraphs after the orphaned open. All other
+  warning types (tiny / long / empty dialogue, nested, uneven,
+  quote-context-review) are gone. Marie specifically asked for this.
+- Each issue carries a `blockIndex` so the UI can scroll to the
+  affected paragraph.
+
+### Section Fixer
+- Per-paragraph editor that appears in place of the warning paragraph.
+- "Insert " here" button drops a closing curly quote at the cursor.
+- Save → updates `section.html`, reruns dialogue detection.
+- Edits are also recorded in `section.manualEdits` so the export can
+  replay them onto the original .docx (otherwise the missing quote
+  Marie typed in would stay missing in the exported file).
+
+### Header / chrome
+- `HomeBackPill` in `ReaderChrome.js`. Single button at top-left, same
+  position as the 4-mode toggle on home. Morphs between ⌂ (book
+  detail → home) and ← (reader → book detail). No more separate Back
+  button + Home pill fighting for the same screen position.
+- `StickyTopBar` is now top-aligned with `HomeBackPill` (top:40 with
+  custom drag region). Title absolutely centered.
+
+### Header confusion fix (Marie's old complaint)
+- Reader top bar reads `Chapter 5 of 62` from the navigation system —
+  the source heading (e.g. "Chapter 6" because she deselected the
+  original Chapter 1) only shows in the subtitle, and only when it
+  differs from the nav number.
+
+### Edit chapters cog
+- "⚙ Edit" button next to the Chapters section header on the book
+  detail page. Trash icon per chapter to remove an
+  accidentally-included one. Chapter numbers re-flow automatically.
+
+### Auto-assign on character add
+- When a dialogue is selected and Marie adds a new character via the
+  chip dock, the new character is immediately assigned to that
+  dialogue. `addCharacter` returns the new id synchronously so the
+  caller can chain.
+
+### Side-voice Word comments in the export
+- Every dialogue assigned to a side voice now has an inline Word
+  comment with each piece of info on its own line:
+  ```
+  Character: Jim
+  Narrator: Mark
+  Side voice of Crescent
+  Notes: happy
+  [Recurring]
+  ```
+- Main-character dialogues just get the highlight, no comment noise.
+- `word/comments.xml` is added to the zip with the namespaces Word
+  actually expects (`xmlns:mc`, `xmlns:w14`) so it doesn't trigger the
+  "unreadable" repair dialog.
+- Dropped the `<w:rStyle w:val="CommentReference"/>` reference — user
+  docs don't define that style and Word's repair flagged the file.
+- Document rels + content-types patched to wire `comments.xml` in.
+
+### Pastel palette
+- `MODE_TOKENS` in `ReaderChrome.js` now has `pastel` (very light),
+  `accent` (mid-tone for solid buttons), `ink` (dark for text/borders)
+  per mode.
+- Prep switched from green to **yellow** (Marie didn't love the green).
+- `topBtnStyle('solid')` uses `accent`, not `ink` — the buttons feel
+  pastel, not wine-y.
+- 10-colour `CHARACTER_PALETTE` in `PrepManuscriptMode.js` in Marie's
+  preferred order: pink → peach → yellow → mint → green → cyan → blue
+  → periwinkle → lavender → rose.
+
+### Export polish
+- Strip any previously-injected narrator breakdown before adding a new
+  one (so re-importing an exported file doesn't pile up breakdowns).
+- Replay `section.manualEdits` onto the source XML before highlights
+  are applied (so the Fix button's quote ends up in the exported file).
+- The regex in `applyHighlightsInPlace` is constrained so the `rPr`
+  capture cannot cross `<w:r>` boundaries — without this fix, the
+  regex backtracked across run boundaries and produced six copies of
+  the narrator breakdown when Marie tested earlier.
+- `paragraphsFromHtml` in BOTH `PrepManuscriptMode.js` AND
+  `prepExport.js` now use the engine's `stripHtml` so paragraph text
+  matches what the engine sees. Before, the reader's `stripTags`
+  replaced tags with empty string but the engine replaced with a space
+  → italic-mid-quote dialogues like `"Really?"` (split across runs)
+  produced "Really ?" on the engine side and "Really?" on the reader
+  side, and the Next button got stuck on every italic-emphasised
+  dialogue.
+
+---
+
+## 7. Reference folders (READ-ONLY)
+
+You may `ls`, `find`, `grep`, `Read`. You may NOT edit, write, move,
+or delete anything inside these.
+
+| Path | What it is |
+|---|---|
+| `/Users/mariemackay/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/Script and Sync 3.0/` | Primary base. The 4.0 repo was copied from here. |
+| `.../Script and Sync - ARCHIVED 2026-05-23/` | Older proofer. Cross-reference only. |
+| `.../StJohn Author Apps/apps/script-and-sync - ARCHIVED 2026-05-23/` | Older SaS. |
+| `.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/` | Alpha Quill. **Port from here for §5B.** |
+| `.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/` | Phone scaffold. **Port from here for §5D.** |
+| `.../Manuscript Prepper 1.0/` | Earlier phone attempt Marie said might also be solid. Worth a peek before committing to one. |
+| `~/Dev/StJohn-Author-Studio-2.0/` | The failed 2.0 attempt. The dialogue engine in `packages/manuscript-engine/` was ported from here. Other things were not worth keeping. |
+
+---
+
+## 8. Supabase
+
+Project: `evcusovtjfypfyfvnooy` ("Typing and Tomes 2.0 DATA"). Six
+tables already exist, all with RLS:
+
+- `script_sync_projects`
+- `script_sync_section_transcriptions`
+- `script_sync_flags`
+- `quill_projects`
+- `quill_chapters`
+- `quill_annotations`
+
+No new tables required for the next round of work. If you find yourself
+about to create one, stop — there's almost certainly an existing one
+that fits.
+
+URL + anon key: ask Marie or look in any archived `.env`/`supabase.js`
+file. Do not commit credentials.
+
+Prep + Duet do NOT have Supabase tables yet (desktop-only for v4.0).
+
+---
+
+## 9. Known limitations / things to keep in mind
+
+- **Multi-run dialogues are not highlighted in the in-place export.**
+  If the source manuscript has italic emphasis mid-quote (the engine
+  detects the dialogue text as e.g. "Really ?"), the export's regex
+  intentionally doesn't match those — they get left un-shaded. Not a
+  bug; round-tripping multi-run formatting would risk breaking the
+  document. Marie knows.
+- **Source manuscripts can have pre-existing Google Docs highlights**
+  (background fills on text) that bleed through into the export
+  because they get converted to Word highlights at import time. Marie
+  said to ignore this — it's the source's fault, not ours.
+- **Fix-quote edits lose formatting on that one paragraph.** When
+  `applyManualEdits` replays a paragraph edit, it replaces the whole
+  `<w:p>` with a single-run paragraph containing the new text. Any
+  italic emphasis inside that one paragraph is lost. Acceptable
+  tradeoff for the simplest possible "insert a missing quote" path.
+- **The Fix button's editor only shows ONE paragraph** (the one the
+  warning points to). Marie wanted this — she explicitly said dumping
+  the whole section into a textarea was "annoying".
+
+---
+
+## 10. Things Marie hates (will tell you off for)
+
+- Adding extra clarifying questions when she's said go.
+- Hand-waving a bug fix without actually diagnosing the root cause.
+- Wine-purple / dark-green / "ugly" colours on buttons.
+- Two competing UI elements doing the same job (Back button + Home
+  pill on the same screen, two upload flows, etc.).
+- Forgetting the run command at the end of a response.
+- Saying "this should work now" without testing it.
+- Mismatched centering between screens.
+- Multi-step setup when one step would do.
+
+---
+
+## 11. Final word
+
+The session that produced this handoff fixed a lot of stuff Marie
+caught in 2026-05-23 + 2026-05-24 testing. The remaining work is real
+greenfield (Quill, Supabase, Phone) but with strong references to port
+from. The previous Claude burned itself out trying to build all of
+that in one session — that's why this handoff exists. Do one thing at
+a time. Test it on a real file. Then move on.
 
 Good luck.

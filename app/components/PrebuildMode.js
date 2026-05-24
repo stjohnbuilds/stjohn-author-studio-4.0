@@ -322,15 +322,49 @@ export default function PrebuildMode({ modeToggle = null }) {
 
   // ─── Home view ────────────────────────────────────────────────────────────
   if (view === 'newProject') {
-    return <PrebuildManuscriptUpload
-      onBack={() => setView('home')}
-      onSave={(proj) => {
-        const updated = [...projects, proj];
-        save(updated);
-        setActiveProject(proj);
-        setView('project');
-      }}
-    />;
+    return (
+      <ImportFlow
+        accent="#9069B0"
+        heading="New duet audio prep"
+        blurb="Upload the engineer manuscript. We'll detect chapters and the highlighted insertions."
+        submitLabel="Create project"
+        allowSceneSplitting={false}
+        defaultSplitScenes={true}
+        onCancel={() => setView('home')}
+        onConfirm={(payload) => {
+          const chapters = (payload.chapters || []).map((c) => ({
+            ...c,
+            audioFile: null,
+            audioPath: null,
+            whisperWords: null,
+            whisperAlignment: null,
+            whisperMatchQuality: null,
+            transcribed: false,
+          }));
+          const proj = {
+            id: Date.now(),
+            title: payload.title || payload.fileName?.replace(/\.docx$/i, '') || 'Untitled',
+            fileName: payload.fileName,
+            fullHtml: payload.fullHtml,
+            chapterLevel: payload.chapterLevel,
+            characterNames: {},
+            exportOptions: {
+              includeBook: true,
+              bookLabel: payload.title || payload.fileName?.replace(/\.docx$/i, '') || 'Untitled',
+              includeCharacter: true,
+              includeContext: true,
+              contextWordCount: 3,
+              includeHighlight: true,
+            },
+            chapters,
+          };
+          const updated = [...projects, proj];
+          save(updated);
+          setActiveProject(proj);
+          setView('project');
+        }}
+      />
+    );
   }
 
   if (view === 'home') {

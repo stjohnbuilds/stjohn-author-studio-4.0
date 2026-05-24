@@ -140,30 +140,42 @@ export function pillBtnStyle(tone = 'prep') {
 // ---------------------------------------------------------------------------
 
 export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad = 130, children }) {
-  // zIndex 1400 puts the bar above the HomePill (1300) + bottom dock
-  // (1200) + any inline popovers, so the Back button + chapter
-  // dropdown stay clickable when the user has scrolled down the page.
-  // Title block is centered (flex spacer left, controls right) so the
-  // chapter context reads symmetrically.
+  // Title is absolutely positioned at 50% of the viewport so it stays
+  // truly centered no matter how wide the right-side controls are
+  // (Marie noticed the reader title sat off-centre while the home title
+  // looked right — that was the grid's middle column shrinking).
+  // WebkitAppRegion: 'no-drag' opts the whole bar out of Electron's
+  // draggable title-strip, so the Back button keeps registering clicks
+  // even when the user has scrolled — the top 38px drag region was
+  // eating clicks on the back button after scroll.
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 1400,
       background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-light)',
       padding: `10px 16px 10px ${leftPad}px`,
-      display: 'grid',
-      gridTemplateColumns: 'auto 1fr auto',
+      display: 'flex',
       alignItems: 'center',
       gap: 10,
+      minHeight: 54,
+      WebkitAppRegion: 'no-drag',
     }}>
-      <button type="button" onClick={onBack} style={topBtnStyle(tone, 'ghost')}>← Back</button>
-      <div style={{ minWidth: 0, textAlign: 'center' }}>
+      <button type="button" onClick={onBack} style={{ ...topBtnStyle(tone, 'ghost'), WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 2 }}>← Back</button>
+      <div style={{
+        position: 'absolute',
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center',
+        maxWidth: '55%',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }}>
         <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
         {subtitle && (
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{subtitle}</div>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end' }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 2, WebkitAppRegion: 'no-drag' }}>
         {children}
       </div>
     </div>

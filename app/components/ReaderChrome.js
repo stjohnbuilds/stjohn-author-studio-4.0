@@ -24,12 +24,17 @@ export const READER_FONT_SIZE = '16.5px';
 export const READER_LINE_HEIGHT = 1.92;
 export const HOME_CONTAINER = 640;
 
-// Per-mode ink color tokens. Add more as modes come online.
+// Per-mode color tokens. Three colors each:
+//   pastel — very light fill (chips, active tab background)
+//   accent — mid-tone button fill (replaces the old "ink" on solid
+//            buttons; ink itself was too wine-y for Marie's taste)
+//   ink    — dark text + border accent
+// Prep is yellow now per Marie's request — she didn't love the green.
 export const MODE_TOKENS = {
-  proof: { ink: '#5C4A78', pastel: '#E5DCEF' },   // pastel purple
-  prep:  { ink: '#3F6A52', pastel: '#DCEBE0' },   // pastel green
-  duet:  { ink: '#3F5772', pastel: '#DCE6F0' },   // pastel blue
-  quill: { ink: '#834D5C', pastel: '#F4DCE0' },   // pastel pink
+  proof: { ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6' },   // soft purple
+  prep:  { ink: '#7A6A1F', accent: '#D9BE4E', pastel: '#FBF1C8' },   // pastel yellow
+  duet:  { ink: '#3F5772', accent: '#7FA1C9', pastel: '#DEE9F5' },   // pastel blue
+  quill: { ink: '#834D5C', accent: '#CB8AA0', pastel: '#F8E2E8' },   // pastel pink
 };
 
 // ---------------------------------------------------------------------------

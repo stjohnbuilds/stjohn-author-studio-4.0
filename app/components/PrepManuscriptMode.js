@@ -120,17 +120,9 @@ function paragraphsFromHtml(html = '') {
   return blocks;
 }
 
-// Only the warnings Marie actually wants to see (orphan / missing /
-// uneven quotes + multi-paragraph dialogue). The "tiny/long/empty
-// dialogue span" warnings and the soft "quote-context-review" are
-// noise for her workflow and were explicitly asked to be removed.
-const MEANINGFUL_ISSUE_TYPES = new Set([
-  'missing-closing-quote',
-  'closing-quote-without-opening',
-  'uneven-quotes',
-  'nested-or-multi-paragraph-dialogue',
-]);
-
+// The engine emits ONE warning type now: missing-closing-quote, only
+// when the next quote mark is more than ~3 paragraphs after the
+// orphaned open. We pass it straight through.
 function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
   let raw = [];
   let issues = [];
@@ -138,8 +130,8 @@ function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
   let quoteMarksEven = true;
   try {
     const result = detectDialogueSpansInHtml(sectionHtml) || {};
-    raw = Array.isArray(result.dialogueSpans) ? result.dialogueSpans : (Array.isArray(result) ? result : []);
-    issues = (Array.isArray(result.issues) ? result.issues : []).filter((iss) => MEANINGFUL_ISSUE_TYPES.has(iss.type));
+    raw = Array.isArray(result.dialogueSpans) ? result.dialogueSpans : [];
+    issues = Array.isArray(result.issues) ? result.issues : [];
     totalQuoteMarks = Number(result.totalQuoteMarks || 0);
     quoteMarksEven = result.quoteMarksEven !== false;
   } catch {
@@ -152,20 +144,6 @@ function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
     characterId: null,
     sideVoiceId: null,
   }));
-  // Decorate each span with whether it has a corresponding issue.
-  raw.forEach((s, si) => {
-    const overlapping = issues.filter((iss) => {
-      const a = Number(iss.wordStartIndex || 0);
-      const b = Number(iss.wordEndIndex || a);
-      const x = Number(s.wordStartIndex || 0);
-      const y = Number(s.wordEndIndex || x);
-      return Math.max(a, x) <= Math.min(b, y);
-    });
-    if (overlapping.length > 0 && dialogueSpans[si]) {
-      dialogueSpans[si].issueCount = overlapping.length;
-      dialogueSpans[si].issueTopMessage = overlapping[0].message || 'Review this dialogue.';
-    }
-  });
   return { dialogueSpans, issues, totalQuoteMarks, quoteMarksEven };
 }
 

@@ -570,7 +570,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
             setSelected({ sectionIndex: firstSec?.sectionIndex ?? 0, spanIndex: 0 });
             setView('reader');
           }}
-          onReplace={replaceActiveManuscript}
+          onReplace={startReplaceManuscript}
           onAddCharacter={addCharacter}
           onUpdateCharacter={updateCharacter}
           onRemoveCharacter={removeCharacter}

@@ -5,6 +5,7 @@ import ProofingReader from './components/ProofingReader';
 import BookDetail from './components/SessionsView';
 import InfoTip from './components/InfoTip';
 import PrebuildMode from './components/PrebuildMode';
+import ModeSwitcher, { ComingSoonPanel } from './components/ModeSwitcher';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
 
 // Detect Electron
@@ -1352,16 +1353,17 @@ function SettingsCog({
 
 function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport }) {
   const saveLocationText = formatSaveLocation(dataLocation);
+  const [activeMode, setActiveMode] = useState('proof-listen');
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>
-      <div style={{ marginBottom:'1.9rem', textAlign:'center' }}>
-        <img
-          src="/branding/script-and-sync-header.png"
-          alt="Script and Sync"
-          style={{ width:'min(420px, 92%)',height:'auto',display:'block',margin:'0 auto 0.85rem' }}
-        />
-        <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>Script and Sync</h1>
+      <div style={{ marginBottom:'1.4rem', textAlign:'center' }}>
+        <div style={{ fontSize:'1.55rem',fontWeight:600,letterSpacing:'0.02em',color:'var(--accent-dark)' }}>StJohn Author Studio</div>
+        <div style={{ fontSize:'0.78rem',color:'var(--text-muted)',marginTop:4 }}>Proof Listen · Prep Manuscript · Duet Prep · Quill &amp; Ink</div>
+        <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>StJohn Author Studio</h1>
       </div>
+      <ModeSwitcher activeMode={activeMode} onChange={setActiveMode} />
+      {activeMode !== 'proof-listen' && <ComingSoonPanel mode={activeMode} />}
+      {activeMode === 'proof-listen' && (
       <div style={{ display:'grid', gap:14 }}>
         <section style={{ background:'rgba(255,255,255,0.78)', border:'1px solid var(--border)', borderRadius:22, padding:'1rem' }}>
           <button data-tutorial="create-book" onClick={onNew} style={{ display:'block',width:'100%',padding:'14px 18px',background:'var(--accent)',color:'white',border:'none',borderRadius:16,fontSize:'0.96rem',fontWeight:600,cursor:'pointer',textAlign:'left',marginBottom:12 }}
@@ -1402,6 +1404,7 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
           )}
         </section>
       </div>
+      )}
       {isElectron && (
         <div style={{ marginTop:'1.4rem',background:'var(--success-light)',border:'1px solid #d3ddd6',borderRadius:12,padding:'9px 11px',color:'var(--success)' }}>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10 }}>

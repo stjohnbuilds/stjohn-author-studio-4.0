@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Script and Sync',
-  description: 'Compare audio recordings against your manuscript',
+  title: 'StJohn Author Studio',
+  description: 'Proof Listen, Prep Manuscript, Duet Prep, and Quill & Ink — one studio for self-published audiobook and print work.',
 };
 
 export default function RootLayout({ children }) {

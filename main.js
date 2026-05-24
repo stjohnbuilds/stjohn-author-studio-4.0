@@ -6,7 +6,10 @@ const fs = require('fs');
 const os = require('os');
 const { pathToFileURL } = require('url');
 const isDev = process.env.NODE_ENV === 'development';
-const APP_FOLDER_NAME = 'Script and Sync';
+// 4.0 rebrand: Save Data folder is now under "StJohn Author Studio". If
+// you want to migrate books from a Script and Sync 3.0 install, open
+// Settings inside the app and point Save Folder at the old location.
+const APP_FOLDER_NAME = 'StJohn Author Studio';
 const SAVE_DATA_FOLDER_NAME = 'Save Data';
 const DRIVE_SUBFOLDER = path.join('Game Dev', 'GitHub');
 const WHISPER_DEFAULT_MODEL = 'ggml-base.en.bin';
@@ -16,7 +19,7 @@ const WHISPER_MODEL_CANDIDATES = [
   'ggml-large-v3-turbo.bin',
 ];
 const CURRENT_PLATFORM_KEY = process.platform;
-const WINDOWS_APP_USER_MODEL_ID = 'com.scriptandsync.app';
+const WINDOWS_APP_USER_MODEL_ID = 'com.stjohnbuilds.authorstudio';
 let staticServer = null;
 
 function getWindowsIconPath() {
@@ -1004,7 +1007,7 @@ ipcMain.handle('choose-data-location', async () => {
   const currentBooks = getCurrentBooksForMigration();
   const currentPrebuildProjects = getCurrentPrebuildProjectsForMigration();
   const result = await dialog.showOpenDialog({
-    title: 'Choose Script and Sync data folder',
+    title: 'Choose StJohn Author Studio data folder',
     defaultPath: getPrimaryDataDir(),
     properties: ['openDirectory', 'createDirectory'],
     buttonLabel: 'Use this folder',

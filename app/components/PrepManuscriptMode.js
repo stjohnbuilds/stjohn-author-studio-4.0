@@ -1379,7 +1379,16 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
           scrollable strip. */}
       {adding && (
         <div>
-          <AddCharacterInline existingCount={characters.length} onSave={(payload) => { onAdd(payload); setAdding(false); }} onCancel={() => setAdding(false)} />
+          <AddCharacterInline existingCount={characters.length} onSave={(payload) => {
+            const newId = onAdd(payload);
+            // If we're in the reader (mode === 'assign') and there's a
+            // dialogue selected, auto-assign the brand-new character to
+            // it so Marie doesn't have to click again.
+            if (mode === 'assign' && onAssignCharacter && newId) {
+              onAssignCharacter(newId);
+            }
+            setAdding(false);
+          }} onCancel={() => setAdding(false)} />
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>

@@ -74,17 +74,6 @@ function uid(prefix = 'id') {
 }
 function stripTags(s = '') { return String(s).replace(/<[^>]*>/g, ''); }
 
-// Browser-safe ArrayBuffer → base64. Chunked so a 1MB+ .docx doesn't
-// blow the call stack with String.fromCharCode(...bytes).
-async function arrayBufferToBase64(ab) {
-  const bytes = new Uint8Array(ab);
-  let binary = '';
-  const CHUNK = 0x8000;
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
-}
 function nextPaletteColor(usedHexes = []) {
   const used = new Set(usedHexes);
   return CHARACTER_PALETTE.find((c) => !used.has(c)) || CHARACTER_PALETTE[usedHexes.length % CHARACTER_PALETTE.length];

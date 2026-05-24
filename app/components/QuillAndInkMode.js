@@ -557,10 +557,7 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
           />
         );
       })}
-      {/* fallback for empty annCount block */}
-      <span style={{ display: 'none' }}>
-      </div>
-    </div>
+    </BookDetail>
   );
 }
 

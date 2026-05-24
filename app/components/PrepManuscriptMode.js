@@ -572,11 +572,32 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       {usesCustomDragRegion && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 38, WebkitAppRegion: 'drag', zIndex: 1100 }} />
       )}
-      {/* Top-left chrome: the 4-mode pill lives only on the Prep home.
-          Inside a project the StickyTopBar's Back button is the single
-          nav button — no more separate HomePill sitting behind the bar
-          eating clicks. */}
+      {/* Top-left nav. ONE pill, same position, morphs by view:
+          - home: the 4-mode tab switcher (passed in as modeToggle)
+          - bookDetail/setup: ⌂ icon → go to home (project list)
+          - reader: ← icon → go back to the book detail
+          Marie wanted the container to stay put and only the icon to
+          change between modes; that's why the pill is rendered up here
+          instead of inside each child view. */}
       {view === 'home' && modeToggle}
+      {(view === 'bookDetail' || view === 'setup') && (
+        <HomeBackPill
+          icon="⌂"
+          usesCustomDragRegion={usesCustomDragRegion}
+          onClick={() => {
+            setReplacingProjectId(null);
+            setActiveProjectId(null);
+            setView('home');
+          }}
+        />
+      )}
+      {view === 'reader' && (
+        <HomeBackPill
+          icon="←"
+          usesCustomDragRegion={usesCustomDragRegion}
+          onClick={() => setView('bookDetail')}
+        />
+      )}
 
       {view === 'setup' && (
         <ImportFlow

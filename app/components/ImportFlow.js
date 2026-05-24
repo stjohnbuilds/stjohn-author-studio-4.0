@@ -252,6 +252,12 @@ export default function ImportFlow({
   const [chapters, setChapters] = useState([]);        // parsed chapter list (with `included`)
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  // When true, the chapter list expands each chapter to show its
+  // sub-headings as nested checkable rows. Marie can uncheck individual
+  // sub-sections (front-matter inside a chapter, alternate-POV scenes
+  // she doesn't want to tag, etc.) and the chapter's HTML is rebuilt
+  // on commit from only the included sub-sections.
+  const [showSubs, setShowSubs] = useState(false);
 
   const accentColor = accent || 'var(--accent)';
   const primaryBtn = {

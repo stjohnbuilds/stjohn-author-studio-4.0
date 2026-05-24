@@ -248,15 +248,21 @@ function findOrphanedOpens(blocks, wordOffsets, maxParagraphGap) {
 }
 
 function orphanIssue(openMark, wordOffsetAtBlock) {
-  return makeIssue({
-    type: 'missing-closing-quote',
-    message: 'A quote opened here is never closed within the next few paragraphs. Insert the missing close quote where it should be.',
-    quoteIndex: openMark.index,
-    wordStartIndex: wordOffsetAtBlock,
-    wordEndIndex: wordOffsetAtBlock,
-    severity: 'warning',
-    blocking: false
-  });
+  return {
+    ...makeIssue({
+      type: 'missing-closing-quote',
+      message: 'A quote opened here is never closed within the next few paragraphs. Insert the missing close quote where it should be.',
+      quoteIndex: openMark.index,
+      wordStartIndex: wordOffsetAtBlock,
+      wordEndIndex: wordOffsetAtBlock,
+      severity: 'warning',
+      blocking: false
+    }),
+    // Block index of the orphaned open. The reader UI uses this to
+    // jump straight into the offending paragraph when Marie clicks Fix,
+    // instead of dumping the entire section into the editor.
+    blockIndex: openMark.blockIndex
+  };
 }
 
 export function detectDialogueSpansInHtml(html = '', options = {}) {

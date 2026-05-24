@@ -705,10 +705,7 @@ function BookDetailView({
         subtitle={`${project.chapters.length} chapter${project.chapters.length === 1 ? '' : 's'} · ${counts.assigned}/${counts.total} assigned (${pct}%)`}
       >
         <SaveBadge status={saveStatus} />
-        <label style={topBtn()}>
-          Replace
-          <input type="file" accept=".docx" onChange={(e) => e.target.files?.[0] && onReplace(e.target.files[0])} style={{ display: 'none' }} />
-        </label>
+        <button type="button" onClick={onReplace} style={topBtn()}>Replace</button>
         {onDelete && <TrashButton onClick={onDelete} title="Delete this project" />}
       </StickyTopBar>
 

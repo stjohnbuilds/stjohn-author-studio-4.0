@@ -90,63 +90,31 @@ function makeIssue({
   };
 }
 
+// Builds a single dialogue span between an open quote and a close quote.
+// We deliberately don't emit "tiny / long / empty" warnings any more —
+// Marie only wants one warning, and that's a missing-close that has no
+// follow-up quote nearby (handled at the block level in detectDialogueSpansInHtml).
 function makeDialogueSpan({
   openQuote,
   closeQuote,
   text,
-  wordRanges,
-  longSpanWordLimit
+  wordRanges
 }) {
   const innerText = text.slice(openQuote.index + 1, closeQuote.index).trim();
   const afterText = cleanAfterText(text.slice(closeQuote.index + 1, closeQuote.index + 90));
   const speakerHint = extractSpeakerHint(afterText);
-  const wordCount = displayWordsFromText(innerText).length;
   const startIndex = wordIndexAfterOffset(wordRanges, openQuote.index + 1);
   const endIndex = wordIndexBeforeOffset(wordRanges, closeQuote.index - 1);
-  const issues = [];
-
-  if (wordCount <= 0) {
-    issues.push(makeIssue({
-      type: 'empty-dialogue-span',
-      message: 'Review this empty dialogue span.',
-      quoteIndex: openQuote.index,
-      wordStartIndex: startIndex,
-      wordEndIndex: endIndex,
-      blocking: false
-    }));
-  } else if (wordCount <= 1) {
-    issues.push(makeIssue({
-      type: 'tiny-dialogue-span',
-      message: 'Review this very short dialogue span.',
-      quoteIndex: openQuote.index,
-      wordStartIndex: startIndex,
-      wordEndIndex: endIndex,
-      blocking: false
-    }));
-  }
-
-  if (wordCount > longSpanWordLimit) {
-    issues.push(makeIssue({
-      type: 'long-dialogue-span',
-      message: `Review this dialogue span because it is over ${longSpanWordLimit} words.`,
-      quoteIndex: openQuote.index,
-      wordStartIndex: startIndex,
-      wordEndIndex: endIndex
-    }));
-  }
 
   return {
-    span: {
-      wordStartIndex: startIndex,
-      wordEndIndex: Math.max(startIndex, endIndex),
-      text: innerText,
-      afterText,
-      speakerHint,
-      startsWithFirstPerson: /^I\b/.test(innerText.trim()),
-      quoteStartIndex: openQuote.index,
-      quoteEndIndex: closeQuote.index
-    },
-    issues
+    wordStartIndex: startIndex,
+    wordEndIndex: Math.max(startIndex, endIndex),
+    text: innerText,
+    afterText,
+    speakerHint,
+    startsWithFirstPerson: /^I\b/.test(innerText.trim()),
+    quoteStartIndex: openQuote.index,
+    quoteEndIndex: closeQuote.index
   };
 }
 

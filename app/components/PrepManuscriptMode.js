@@ -755,7 +755,7 @@ function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }
 // ===========================================================================
 
 function BookDetailView({
-  project, saveStatus, onBack, onDelete, onOpenChapter, onReplace,
+  project, saveStatus, usesCustomDragRegion, onDelete, onOpenChapter, onReplace,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
   onExportDocx, onExportDialogueCsv, onExportNarratorCsv,
@@ -768,7 +768,7 @@ function BookDetailView({
   return (
     <>
       <StickyTopBar
-        onBack={onBack}
+        usesCustomDragRegion={usesCustomDragRegion}
         title={project.title}
         subtitle={`${project.chapters.length} chapter${project.chapters.length === 1 ? '' : 's'} · ${counts.assigned}/${counts.total} assigned (${pct}%)`}
       >

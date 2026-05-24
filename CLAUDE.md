@@ -200,8 +200,13 @@ npm run whisper:model
 ## Start here (in order)
 
 1. Read this file.
-2. Read `docs/BUILD_PLAN_V4.md`.
-3. Read `TODO.md`.
-4. Read the relevant truth tree under `docs/` if your task touches one
+2. Read `docs/SHARED_COMPONENTS.md` — the cheat sheet of shared UI
+   components every mode should import from. If you're tempted to
+   write an inline `function SomeModeBookDetail`, you almost certainly
+   shouldn't — `BookDetail` already exists. The post-edit
+   build-checker hook will warn if it sees a new inline duplicate.
+3. Read `docs/BUILD_PLAN_V4.md`.
+4. Read `TODO.md`.
+5. Read the relevant truth tree under `docs/` if your task touches one
    mode (`FRONT_FUNCTION_TREE.md`, `INTERNAL_FUNCTION_TREE.md`,
    `WIRING_MATRIX.md`).

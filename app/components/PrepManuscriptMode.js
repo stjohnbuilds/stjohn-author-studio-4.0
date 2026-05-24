@@ -234,7 +234,7 @@ function projectCounts(project) {
 
 export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion }) {
   const [allProjects, setAllProjects] = useState([]);   // PrepProject[]
-  const [view, setView] = useState('home');             // 'home' | 'bookDetail' | 'reader'
+  const [view, setView] = useState('home');             // 'home' | 'setup' | 'bookDetail' | 'reader'
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [selected, setSelected] = useState({ sectionIndex: 0, spanIndex: 0 });
@@ -243,6 +243,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   const [error, setError] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [pendingImport, setPendingImport] = useState(null); // { fileName, structure, projectName }
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
 
@@ -294,7 +295,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }));
   }, [activeProjectId]);
 
-  // ---- import ----
+  // ---- import (step 1: parse, then show setup screen) ----
   async function handleImport(file) {
     if (!file) return;
     setLoading(true);
@@ -307,13 +308,46 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       const result = await mammoth.convertToHtml({ arrayBuffer: ab });
       const html = result.value || '';
       const structure = applyChapterNumbers(parseManuscriptStructure(html, { chapterLevel: 1 }));
-      const shell = buildShellFromStructure(file, structure);
-      setAllProjects((all) => [...all, shell]);
-      setActiveProjectId(shell.id);
-      setView('bookDetail');
+      // Pre-shell so the setup screen can show counts + chapter list.
+      const previewShell = buildShellFromStructure(file, structure);
+      setPendingImport({
+        fileName: file.name,
+        projectName: file.name.replace(/\.docx$/i, ''),
+        structure,
+        previewShell,
+        includedChapterIds: new Set(previewShell.chapters.map((c) => c.id)),
+      });
+      setView('setup');
+      setProgress(null);
+    } catch (err) {
+      console.error('Prep import failed:', err);
+      setError(err?.message || 'Could not read this manuscript.');
+      setProgress(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      const totalSections = shell.chapters.reduce((n, ch) => n + ch.sections.length, 0);
-      let processed = 0;
+  // ---- import (step 2: user confirmed name + chapter selection) ----
+  async function commitImport({ projectName, includedChapterIds }) {
+    if (!pendingImport) return;
+    const includedSet = includedChapterIds instanceof Set ? includedChapterIds : new Set(includedChapterIds);
+    // Take the preview shell, drop unselected chapters, re-index.
+    const baseShell = pendingImport.previewShell;
+    const trimmedChapters = baseShell.chapters
+      .filter((c) => includedSet.has(c.id))
+      .map((c, i) => ({ ...c, chapterIndex: i, chapterNumber: i + 1 }));
+    const shell = { ...baseShell, title: projectName.trim() || baseShell.title, chapters: trimmedChapters };
+    setAllProjects((all) => [...all, shell]);
+    setActiveProjectId(shell.id);
+    setPendingImport(null);
+    setView('bookDetail');
+
+    setLoading(true);
+    setError('');
+    const totalSections = shell.chapters.reduce((n, ch) => n + ch.sections.length, 0);
+    let processed = 0;
+    try {
       for (const ch of shell.chapters) {
         for (const sec of ch.sections) {
           processed += 1;
@@ -347,14 +381,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           }));
         }
       }
-      setProgress(null);
-    } catch (err) {
-      console.error('Prep import failed:', err);
-      setError(err?.message || 'Could not read this manuscript.');
-      setProgress(null);
     } finally {
+      setProgress(null);
       setLoading(false);
     }
+  }
+
+  function cancelPendingImport() {
+    setPendingImport(null);
+    setView('home');
   }
 
   function replaceActiveManuscript(file) {
@@ -474,9 +509,23 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         id: c.id, name: c.name, narratorName: c.narratorName, colorHex: c.colorHex,
         sideVoices: (c.sideVoices || []).map((s) => ({ id: s.id, name: s.name, narratorName: s.narratorName, notes: s.notes, recurring: s.recurring })),
       })),
+      // Preserve the full chapter → section → html tree so the export
+      // can rebuild the manuscript with original paragraph structure
+      // and inline-highlight just the dialogue lines.
       chapters: (activeProject.chapters || []).map((ch) => ({
         chapterNumber: ch.chapterNumber,
         title: ch.title,
+        sections: (ch.sections || []).map((sec) => ({
+          title: sec.title,
+          html: sec.html || '',
+          dialogueSpans: (sec.dialogueSpans || []).map((sp) => ({
+            text: sp.text,
+            afterText: sp.afterText,
+            characterId: sp.characterId,
+            sideVoiceId: sp.sideVoiceId || '',
+          })),
+        })),
+        // Backwards-compat flat spans for the CSV exporters (unchanged).
         spans: ch.sections.flatMap((sec) => sec.dialogueSpans.map((sp) => {
           const char = sp.characterId ? charactersById.get(sp.characterId) : null;
           const sv = char && sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
@@ -511,7 +560,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           Inside a project, swap it for a "← Home" button so Marie has
           a single, obvious way back to the project list. */}
       {view === 'home' ? modeToggle : (
-        <HomePill onClick={() => { setView('home'); setActiveProjectId(null); }} usesCustomDragRegion={usesCustomDragRegion} />
+        <HomePill onClick={() => { setView('home'); setActiveProjectId(null); setPendingImport(null); }} usesCustomDragRegion={usesCustomDragRegion} />
+      )}
+
+      {view === 'setup' && pendingImport && (
+        <SetupView
+          pending={pendingImport}
+          onCancel={cancelPendingImport}
+          onConfirm={commitImport}
+        />
       )}
 
       {view === 'home' && (
@@ -592,6 +649,87 @@ function currentSpanFor(project, chapterIndex, selected) {
 }
 
 // ===========================================================================
+// Setup view — after import, before scanning. Let Marie rename the
+// project and check/uncheck which chapters to include.
+// ===========================================================================
+
+function SetupView({ pending, onCancel, onConfirm }) {
+  const allChapters = pending.previewShell.chapters;
+  const [name, setName] = useState(pending.projectName || '');
+  const [included, setIncluded] = useState(() => new Set(allChapters.map((c) => c.id)));
+
+  function toggle(id) {
+    setIncluded((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function allOn() { setIncluded(new Set(allChapters.map((c) => c.id))); }
+  function allOff() { setIncluded(new Set()); }
+
+  return (
+    <>
+      <StickyTopBar
+        onBack={onCancel}
+        title="New prep project"
+        subtitle={`${pending.fileName} · ${allChapters.length} chapters detected`}
+      >
+        <button type="button" onClick={onCancel} style={topBtnStyle(TONE, 'ghost')}>Cancel</button>
+        <button type="button" disabled={!name.trim() || included.size === 0}
+          onClick={() => onConfirm({ projectName: name.trim(), includedChapterIds: included })}
+          style={{ ...topBtnStyle(TONE, 'solid'), opacity: name.trim() && included.size > 0 ? 1 : 0.5, cursor: name.trim() && included.size > 0 ? 'pointer' : 'not-allowed' }}>
+          Save &amp; scan
+        </button>
+      </StickyTopBar>
+
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 24px 60px' }}>
+        <label style={{ display: 'block', marginBottom: 16 }}>
+          <div style={sectionHeading()}>Project name</div>
+          <input
+            type="text"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Project name"
+            style={{ width: '100%', padding: '10px 12px', fontSize: '0.95rem', fontWeight: 600, borderRadius: 10, border: '1px solid var(--border)', background: 'white' }}
+          />
+        </label>
+
+        <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={sectionHeading()}>Chapters to include</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={allOn} style={pillBtnStyle(TONE)}>All on</button>
+            <button type="button" onClick={allOff} style={pillBtnStyle(TONE)}>All off</button>
+          </div>
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+          Uncheck any front-matter or extras you don&apos;t need to tag.
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: '60vh', overflowY: 'auto', padding: 4 }}>
+          {allChapters.map((ch) => {
+            const wordCount = (ch.sections || []).reduce((n, s) => n + (stripTags(s.html || '').split(/\s+/).filter(Boolean).length), 0);
+            const on = included.has(ch.id);
+            return (
+              <label key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: on ? 'white' : '#f6f3ef', border: '1px solid ' + (on ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={on} onChange={() => toggle(ch.id)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: on ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {ch.title || `Chapter ${ch.chapterIndex + 1}`}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>{wordCount.toLocaleString()} words</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ===========================================================================
 // Home view — project library
 // ===========================================================================
 
@@ -643,7 +781,7 @@ function HomeView({ allProjects, onOpenProject, onDelete, onImport, loading, pro
                       {p.chapters.length} chapter{p.chapters.length === 1 ? '' : 's'} · {c.assigned}/{c.total} assigned ({pct}%){c.scanning ? ' · scanning…' : ''}
                     </div>
                   </button>
-                  <button type="button" onClick={() => { if (window.confirm(`Delete "${p.title}"? This can't be undone.`)) onDelete(p.id); }} title="Delete project" style={{ padding: '4px 10px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+                  <button type="button" onClick={() => { if (window.confirm(`Delete "${p.title}"? This can't be undone.`)) onDelete(p.id); }} title="Delete project" aria-label="Delete project" style={{ padding: '4px 8px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.84rem', cursor: 'pointer', lineHeight: 1 }}>🗑</button>
                   <span style={{ color: 'var(--text-light)', fontSize: '1.1rem' }}>›</span>
                 </div>
               );
@@ -683,7 +821,7 @@ function BookDetailView({
           <input type="file" accept=".docx" onChange={(e) => e.target.files?.[0] && onReplace(e.target.files[0])} style={{ display: 'none' }} />
         </label>
         {onDelete && (
-          <button type="button" onClick={onDelete} style={{ ...topBtn(), borderColor: 'var(--danger)', color: 'var(--danger)' }}>Delete</button>
+          <button type="button" onClick={onDelete} title="Delete this project" aria-label="Delete project" style={{ padding: '6px 9px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.86rem', cursor: 'pointer', lineHeight: 1 }}>🗑</button>
         )}
       </StickyTopBar>
 
@@ -992,7 +1130,7 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                     color: 'var(--text)', cursor: 'pointer',
                     boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
                   }}
-                >“{seg.text}”{hasWarning && <span aria-hidden="true" style={{ marginLeft: 3, fontSize: '0.7em', color: '#C47F2A', fontWeight: 700 }}>⚠</span>}</button>
+                >{seg.text}{hasWarning && <span aria-hidden="true" style={{ marginLeft: 3, fontSize: '0.7em', color: '#C47F2A', fontWeight: 700 }}>⚠</span>}</button>
               );
             })}
           </Tag>

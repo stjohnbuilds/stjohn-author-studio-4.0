@@ -285,6 +285,8 @@ export default function Home() {
   const [tutorialStartRequested, setTutorialStartRequested] = useState(false);
   const [tutorialMinimized, setTutorialMinimized] = useState(false);
   const [tutorialCompletedIds, setTutorialCompletedIds] = useState([]);
+  const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
+  const [authSession, setAuthSession] = useState(null);
   const bookDetailScrollRef = useRef(0);
   const clientPlatform = typeof navigator === 'undefined'
     ? 'unknown'

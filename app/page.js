@@ -5,6 +5,7 @@ import ProofingReader from './components/ProofingReader';
 import BookDetail from './components/SessionsView';
 import InfoTip from './components/InfoTip';
 import PrebuildMode from './components/PrebuildMode';
+import PrepManuscriptMode from './components/PrepManuscriptMode';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
 
 // Detect Electron
@@ -918,7 +919,16 @@ export default function Home() {
     );
   }
 
-  if (appMode === 'prep-manuscript' || appMode === 'quill') {
+  if (appMode === 'prep-manuscript') {
+    return (
+      <PrepManuscriptMode
+        modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
+        usesCustomDragRegion={usesCustomDragRegion}
+      />
+    );
+  }
+
+  if (appMode === 'quill') {
     return (
       <div style={{ minHeight:'100vh', background:'var(--cream)' }}>
         {usesCustomDragRegion && (
@@ -1012,7 +1022,7 @@ export default function Home() {
 // Quill = pink (Quill & Ink ❤️ stationery), Duet = blue.
 export const APP_MODES = [
   { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#E5DCEF', ink: '#5C4A78', enabled: true,  phase: null }, // pastel purple
-  { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: false, phase: 6    }, // pastel green
+  { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: true,  phase: null }, // pastel green
   { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#DCE6F0', ink: '#3F5772', enabled: true,  phase: null }, // pastel blue
   { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#F4DCE0', ink: '#834D5C', enabled: false, phase: 8    }, // pastel pink
 ];

@@ -778,8 +778,19 @@ function applyHighlightsInPlace(docXml, assignments) {
       const beforeRun = before
         ? `<w:r>${baseRPr}<w:t xml:space="preserve">${before}</w:t></w:r>`
         : '';
+      // If this dialogue has a side-voice comment, wrap the shaded run
+      // with comment-range markers and emit the comment-reference run
+      // right after. Word needs the range start + range end + the
+      // reference run all three present for the comment to show.
+      const hasComment = a.commentId != null;
+      const cStart = hasComment ? `<w:commentRangeStart w:id="${a.commentId}"/>` : '';
+      const cEnd = hasComment
+        ? `<w:commentRangeEnd w:id="${a.commentId}"/><w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="${a.commentId}"/></w:r>`
+        : '';
       const dialogueRun =
-        `<w:r>${shadedRPr}<w:t xml:space="preserve">${xmlDialogue}</w:t></w:r>`;
+        cStart +
+        `<w:r>${shadedRPr}<w:t xml:space="preserve">${xmlDialogue}</w:t></w:r>` +
+        cEnd;
       const afterRun = after
         ? `<w:r>${baseRPr}<w:t xml:space="preserve">${after}</w:t></w:r>`
         : '';

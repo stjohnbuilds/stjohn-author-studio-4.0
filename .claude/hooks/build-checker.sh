@@ -48,9 +48,33 @@ if [ "$CHECKED" -eq 0 ]; then
   exit 0
 fi
 
+# Duplication guard — Marie's #1 complaint is that mode files keep
+# growing their OWN inline BookDetail / HomeView / ChapterRow / sticky
+# bar instead of importing the shared components. Whenever a mode file
+# is edited, scan it for an inline `function *BookDetail` /
+# `function *HomeView` / `function *ChapterRow` definition. If one
+# exists, surface a hint so future sessions stop adding new ones.
+MODE_FILES_PATTERN='ProofingReader\.js|PrebuildMode\.js|PrepManuscriptMode\.js|QuillAndInkMode\.js|SessionsView\.js'
+DUP_WARNINGS=""
+while IFS= read -r FILE; do
+  [ -z "$FILE" ] && continue
+  BASENAME=$(basename "$FILE")
+  if echo "$BASENAME" | grep -Eq "$MODE_FILES_PATTERN"; then
+    if [ -f "$FILE" ]; then
+      INLINE_DUPS=$(grep -E '^[[:space:]]*function[[:space:]]+[A-Z][A-Za-z0-9_]*(BookDetail|HomeView|ChapterRow|StickyTopBar)[[:space:]]*\(' "$FILE" 2>/dev/null | head -3)
+      if [ -n "$INLINE_DUPS" ]; then
+        DUP_WARNINGS+="\\n$BASENAME defines its own inline components:\\n$INLINE_DUPS\\nConsider importing from app/components/BookDetail.js (BookDetail, ChapterRow) or ReaderChrome.js (StickyTopBar).\\n"
+      fi
+    fi
+  fi
+done <<< "$FILES"
+
 if [ -n "$ERRORS" ]; then
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "FAILED" "$CHECKED file(s) checked, syntax errors found"
   printf '{"systemMessage":"Build check FAILED on edited files:%s"}' "$ERRORS"
+elif [ -n "$DUP_WARNINGS" ]; then
+  bash "$SCRIPT_DIR/_log.sh" "build-checker" "WARN" "$CHECKED file(s) checked, inline-component duplication detected"
+  printf '{"systemMessage":"Build check passed (%d file(s) checked).\\nDUPLICATION HINT:%s"}' "$CHECKED" "$DUP_WARNINGS"
 else
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "PASSED" "$CHECKED file(s) checked"
   printf '{"systemMessage":"Build check passed (%d file(s) checked)."}' "$CHECKED"

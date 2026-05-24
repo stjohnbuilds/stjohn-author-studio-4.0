@@ -569,6 +569,11 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         sections: (ch.sections || []).map((sec) => ({
           title: sec.title,
           html: sec.html || '',
+          // Paragraph-level edits Marie made via the Fix button — these
+          // need to be replayed onto the source .docx during export so
+          // the inserted close-quotes (and any other paragraph tweaks)
+          // show up in the file she downloads.
+          manualEdits: (sec.manualEdits || []).map((e) => ({ oldText: e.oldText, newText: e.newText })),
           dialogueSpans: (sec.dialogueSpans || []).map((sp) => ({
             text: sp.text,
             afterText: sp.afterText,

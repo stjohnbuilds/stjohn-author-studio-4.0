@@ -106,6 +106,34 @@ Lives at `/phone` (`app/phone/page.js`). Web-only, deploy to Vercel.
 - `main.js` + `preload.js` got `read-quill-data` / `write-quill-data`
   IPC handlers and file paths next to the prep ones.
 
+### QoL pass — bugs caught and fixed
+- **Character markers no longer duplicate on edit.** Opening an existing
+  annotation now pre-ticks the character markers at the same range, and
+  saving filters out the old ones before re-adding. Without this, every
+  re-save left orphan duplicate markers in `project.annotations`.
+- **Cloud push now writes back the generated `cloudId`** to the local
+  project. Without this, every save inserted a brand-new row in
+  Supabase instead of upserting in place. The first save inserts +
+  captures the UUID; subsequent saves upsert.
+- **Annotation popover clamps to the viewport** — it used to be
+  positioned at `left: popoverPos.left - 120` with only a floor at
+  `12px`. Annotating words near the right edge or in a narrow window
+  could push it off-screen. Now also has a ceiling at
+  `window.innerWidth - 340`.
+- **Removed the "Re-import .docx" button on the Quill book detail.**
+  It looked like "replace the manuscript" but actually created a new
+  duplicate project, leaving the old one with all its annotations
+  orphaned. Marie can use "+ New project" on Quill home if she wants
+  another manuscript.
+- **Phone "Proof Listen" service tile is visibly disabled** (greyed,
+  not-allowed cursor, subtitle says "Coming next"). Used to look
+  clickable and `alert()` the user — bad UX.
+- **Phone account chip hides when no email** instead of rendering "?",
+  and the "Signed in as ..." line hides when empty.
+- **Removed dead `error` state from QuillAndInkMode** — was set to
+  empty string and never updated, but rendered a `<div>` that never
+  showed. Pure dead code.
+
 ---
 
 ## 3. State of the modes

@@ -174,6 +174,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const [saveStatus, setSaveStatus] = useState('idle');
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
+  // True for state changes that came from the cloud (initial hydrate
+  // + post-save cloudId backfill) — skips the cloud push side of the
+  // persist effect to avoid echo-loops.
+  const cameFromCloudRef = useRef(false);
 
   // hydrate — local first, render immediately, cloud merges in the
   // background. Previously `setHydrated(true)` lived in a `finally`

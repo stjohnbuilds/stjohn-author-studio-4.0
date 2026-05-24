@@ -1031,7 +1031,21 @@ function SectionBody({
       {blocks.map((block, bi) => {
         // If this block is being fixed, swap it for the paragraph editor
         // (in place — Marie keeps the rest of the section as context).
+        // We still need to walk spanCursor past any spans that live in
+        // this paragraph, otherwise the next paragraph's render starts
+        // searching for the wrong spans and nothing else lights up.
         if (fixingBlock === bi) {
+          const text = block.text;
+          let cur = 0;
+          while (spanCursor < spans.length) {
+            const sp = spans[spanCursor];
+            const needle = sp.text || '';
+            if (!needle) { spanCursor++; continue; }
+            const where = text.indexOf(needle, cur);
+            if (where === -1) break;
+            cur = where + needle.length;
+            spanCursor++;
+          }
           return (
             <ParagraphFixer
               key={`fix-${bi}`}
@@ -1040,12 +1054,12 @@ function SectionBody({
               onSave={(newParaText) => {
                 // Rebuild section.html by replacing just this block's text.
                 const newHtml = blocks.map((b, i) => {
-                  const text = i === bi ? newParaText : b.text;
+                  const t = i === bi ? newParaText : b.text;
                   if (b.isHeading) {
                     const tag = b.tag || 'h2';
-                    return `<${tag}>${escapeHtml(text)}</${tag}>`;
+                    return `<${tag}>${escapeHtml(t)}</${tag}>`;
                   }
-                  return `<p>${escapeHtml(text)}</p>`;
+                  return `<p>${escapeHtml(t)}</p>`;
                 }).join('');
                 if (onUpdateSectionHtml) onUpdateSectionHtml(chapterIndex, section.sectionIndex, newHtml);
                 setFixingBlock(null);

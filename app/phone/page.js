@@ -38,8 +38,8 @@ const QUILL_ACCENT = '#CB8AA0';
 const QUILL_PASTEL = '#F8E2E8';
 
 const SERVICE_OPTIONS = [
-  { id: 'quill', label: 'Quill & Ink', subtitle: 'Annotate the manuscript', ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL },
-  { id: 'script', label: 'Proof Listen', subtitle: 'Tap to flag while listening', ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6' },
+  { id: 'quill', label: 'Quill & Ink', subtitle: 'Annotate the manuscript', ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL, enabled: true },
+  { id: 'script', label: 'Proof Listen', subtitle: 'Coming next — tap to flag while listening', ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6', enabled: false },
 ];
 
 export default function PhoneShell() {

@@ -701,6 +701,30 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
     };
   }, []);
 
+  // Keep the floating action button (and any open popover) aligned to
+  // the selected word as the layout shifts (scroll, resize, content
+  // changes from edits). rAF gives React a tick to commit the new
+  // selectedRange to the DOM before we measure.
+  useEffect(() => {
+    if (!selectedRange) {
+      setSelectionActionPos(null);
+      return undefined;
+    }
+    function update() {
+      const wordEl = getQuillWordElement(selectedRange.start);
+      setSelectionActionPos(computeSelectionActionPos(wordEl));
+      if (popoverOpen) setPopoverPos(computePopoverPos(wordEl));
+    }
+    const raf = requestAnimationFrame(update);
+    window.addEventListener('scroll', update, { passive: true, capture: true });
+    window.addEventListener('resize', update);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [selectedRange?.start, selectedRange?.end, popoverOpen]);
+
   function openExistingAnnotation(ann, event) {
     const start = Number(ann.wordStart);
     const end = Number(ann.wordEnd ?? ann.wordStart);

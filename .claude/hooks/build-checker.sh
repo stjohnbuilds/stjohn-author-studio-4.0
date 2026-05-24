@@ -50,30 +50,43 @@ fi
 
 # Duplication guard — Marie's #1 complaint is that mode files keep
 # growing their OWN inline BookDetail / HomeView / ChapterRow / sticky
-# bar instead of importing the shared components. Wall, not nudge:
-# a mode file FAILS the check if it has any function named like a
-# shared component AND doesn't import from the shared module.
+# bar instead of importing the shared components.
 #
-# Wrappers are fine — a `function QuillBookDetail` that returns
-# `<BookDetail .../>` passes because the file imports BookDetail.
+# Strategy: only block when the CURRENT edit *added* a new function
+# whose name ends in BookDetail / HomeView / ChapterRow / StickyTopBar
+# / ProjectList AND the file doesn't import ./BookDetail or
+# ./ReaderChrome. This means:
+#   ✓ Wrappers pass — `function QuillBookDetail` that returns
+#     <BookDetail .../> is fine because the file imports BookDetail.
+#   ✓ Existing pre-edit duplicates don't block unrelated edits — only
+#     NEW additions are caught.
+#   ✗ Adding a fresh inline `function ProofBookDetail` to ProofingReader
+#     without importing the shared one HARD FAILS with exit 2.
 #
 # Prep is exempt: PrepManuscriptMode is intentionally separate
-# (characters + dialogue, no audio — different feature surface).
-# Remove it from EXEMPT_FILES when its book-detail is also unified.
-NON_PREP_MODE_FILES='^(ProofingReader|PrebuildMode|SessionsView|QuillAndInkMode)\.js$'
+# (characters + dialogue, no audio). Remove from EXEMPT when its
+# book-detail is also unified.
+GUARDED_MODE_FILES='^(ProofingReader|PrebuildMode|SessionsView|QuillAndInkMode)\.js$'
 EXEMPT_FILES='^(PrepManuscriptMode)\.js$'
 DUP_FAILURES=""
 while IFS= read -r FILE; do
   [ -z "$FILE" ] && continue
   BASENAME=$(basename "$FILE")
   if echo "$BASENAME" | grep -Eq "$EXEMPT_FILES"; then continue; fi
-  if echo "$BASENAME" | grep -Eq "$NON_PREP_MODE_FILES"; then
+  if echo "$BASENAME" | grep -Eq "$GUARDED_MODE_FILES"; then
     if [ -f "$FILE" ]; then
-      HAS_NAMED=$(grep -cE '(^|[[:space:]])function[[:space:]]+[A-Z][A-Za-z0-9_]*(BookDetail|HomeView|ChapterRow|StickyTopBar|ProjectList)[[:space:]]*\(' "$FILE" 2>/dev/null)
-      HAS_BOOKDETAIL_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./BookDetail['\"]" "$FILE" 2>/dev/null)
-      HAS_CHROME_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ReaderChrome['\"]" "$FILE" 2>/dev/null)
-      if [ "$HAS_NAMED" -gt 0 ] && [ "$HAS_BOOKDETAIL_IMPORT" -eq 0 ] && [ "$HAS_CHROME_IMPORT" -eq 0 ]; then
-        DUP_FAILURES+="\\n  • $BASENAME defines inline component(s) but imports neither ./BookDetail nor ./ReaderChrome.\\n    Import the shared component instead of writing a fresh copy.\\n    See docs/SHARED_COMPONENTS.md for what's available."
+      # Only look at lines added in this edit (vs the previous commit
+      # — the git-backup hook auto-commits before each edit so HEAD is
+      # the pre-edit state). Catches NEW duplicates without blocking
+      # unrelated edits to files that already have legacy inline copies.
+      ADDED_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
+        | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+[A-Za-z0-9_]*(BookDetail|HomeView|ChapterRow|StickyTopBar|ProjectList)[[:space:]]*\(')
+      if [ -n "$ADDED_DUPS" ]; then
+        HAS_BOOKDETAIL_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./BookDetail['\"]" "$FILE" 2>/dev/null)
+        HAS_CHROME_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ReaderChrome['\"]" "$FILE" 2>/dev/null)
+        if [ "$HAS_BOOKDETAIL_IMPORT" -eq 0 ] && [ "$HAS_CHROME_IMPORT" -eq 0 ]; then
+          DUP_FAILURES+="\\n  • $BASENAME added new inline component(s):\\n$(echo "$ADDED_DUPS" | sed 's/^/      /')\\n    ...but does not import ./BookDetail or ./ReaderChrome."
+        fi
       fi
     fi
   fi
@@ -84,9 +97,9 @@ if [ -n "$ERRORS" ]; then
   printf '{"systemMessage":"Build check FAILED on edited files:%s"}' "$ERRORS"
 elif [ -n "$DUP_FAILURES" ]; then
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "BLOCKED" "inline-component duplication"
-  # Record the blocked edit for Marie to inspect.
+  # Record the blocked edit so Marie can inspect: cat .claude/blocked-edits.log
   echo "$(date '+%Y-%m-%d %H:%M:%S')  blocked: duplication$DUP_FAILURES" >> "$SCRIPT_DIR/../blocked-edits.log"
-  printf '{"systemMessage":"BUILD-CHECKER BLOCK — shared-component duplication.%s\\n\\nFix the file to import the shared component (or use a wrapper that delegates to it). If this edit is part of a planned unification, update .claude/hooks/build-checker.sh to remove the file from the guard once the duplication is gone."}' "$DUP_FAILURES"
+  printf '{"systemMessage":"BUILD-CHECKER BLOCK — shared-component duplication.%s\\n\\n    → Import from app/components/BookDetail.js (BookDetail, ChapterRow)\\n    → Or app/components/ReaderChrome.js (StickyTopBar, MODE_TOKENS, etc.)\\n    → See docs/SHARED_COMPONENTS.md for the full list and extension pattern (props / slots — never fork)."}' "$DUP_FAILURES"
   exit 2
 else
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "PASSED" "$CHECKED file(s) checked"

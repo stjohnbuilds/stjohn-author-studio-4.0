@@ -754,17 +754,22 @@ function BookDetailView({
         <section>
           <h3 style={sectionHeading()}>Chapters</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {project.chapters.map((ch) => {
+            {project.chapters.map((ch, i) => {
               const c = chapterCounts(ch);
               const p = c.total === 0 ? 0 : Math.round((c.assigned / c.total) * 100);
+              const navPos = ch.chapterNumber || (i + 1);
+              const sourceTitle = ch.title || '';
+              const showSource = sourceTitle && sourceTitle.toLowerCase() !== `chapter ${navPos}`.toLowerCase();
               return (
                 <button key={ch.id} type="button" onClick={() => onOpenChapter(ch.chapterIndex)}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.title || `Chapter ${ch.chapterIndex + 1}`}</div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Chapter {navPos}{showSource ? <span style={{ color: 'var(--text-light)', fontWeight: 400, marginLeft: 8 }}>· {sourceTitle}</span> : null}
+                    </div>
                   </div>
                   {c.issues > 0 && (
-                    <span title={`${c.issues} dialogue warning${c.issues === 1 ? '' : 's'} (e.g. missing closing quote)`} style={{ padding: '2px 8px', background: '#FDF3E3', color: '#9A6A1F', border: '1px solid #E3CBA1', borderRadius: 999, fontSize: '0.66rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    <span title={`${c.issues} missing-quote warning${c.issues === 1 ? '' : 's'} to fix`} style={{ padding: '2px 8px', background: '#FDF3E3', color: '#9A6A1F', border: '1px solid #E3CBA1', borderRadius: 999, fontSize: '0.66rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
                       ⚠ {c.issues}
                     </span>
                   )}

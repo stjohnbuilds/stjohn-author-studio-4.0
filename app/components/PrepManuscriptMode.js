@@ -541,12 +541,11 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       {usesCustomDragRegion && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 38, WebkitAppRegion: 'drag', zIndex: 1100 }} />
       )}
-      {/* Top-left chrome: show the 4-mode pill only on the Prep home.
-          Inside a project, swap it for a "← Home" button so Marie has
-          a single, obvious way back to the project list. */}
-      {view === 'home' ? modeToggle : (
-        <HomePill onClick={() => { setView('home'); setActiveProjectId(null); setPendingImport(null); }} usesCustomDragRegion={usesCustomDragRegion} />
-      )}
+      {/* Top-left chrome: the 4-mode pill lives only on the Prep home.
+          Inside a project the StickyTopBar's Back button is the single
+          nav button — no more separate HomePill sitting behind the bar
+          eating clicks. */}
+      {view === 'home' && modeToggle}
 
       {view === 'setup' && (
         <ImportFlow

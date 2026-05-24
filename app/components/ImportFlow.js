@@ -478,9 +478,16 @@ export default function ImportFlow({
         {/* Step 3: Chapter picker */}
         {chapters.length > 0 && (
           <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <Badge n={3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                <button type="button" onClick={() => setShowSubs((v) => !v)} style={{
+                  padding: '5px 10px', borderRadius: 999,
+                  border: '1px solid ' + (showSubs ? accentColor : 'var(--border)'),
+                  background: showSubs ? accentColor : 'white',
+                  color: showSubs ? 'white' : 'var(--text-muted)',
+                  fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
+                }}>{showSubs ? 'Hide sub-headings' : 'Show sub-headings'}</button>
                 <button type="button" onClick={() => setAllIncluded(!allOn)} style={{
                   padding: '5px 10px', borderRadius: 999,
                   border: '1px solid var(--border)', background: 'white',
@@ -492,9 +499,10 @@ export default function ImportFlow({
               Uncheck front matter, copyright pages, or anything else you don&apos;t want to work with.
               {chapters.length > 1 && ' Use "Set as first" if the real Chapter 1 is further down.'}
             </div>
-            <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 10 }}>
+            <div style={{ maxHeight: 420, overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 10 }}>
               {chapters.map((ch) => {
                 const isGroupStart = ch.splitGroup != null && ch.splitIndex === 0;
+                const subs = ch.subSections || [];
                 return (
                   <React.Fragment key={ch.id}>
                     {isGroupStart && (
@@ -532,6 +540,28 @@ export default function ImportFlow({
                         cursor: 'pointer', fontSize: '0.66rem', fontWeight: 700,
                       }}>{ch.isFirst ? 'First' : 'Set first'}</button>
                     </label>
+                    {showSubs && subs.length > 0 && ch.included && subs.map((sub) => (
+                      <label key={sub.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '6px 12px',
+                        paddingLeft: 40,
+                        borderBottom: '1px solid var(--border-light)',
+                        background: sub.included ? '#fbfaf6' : '#f1ede5',
+                        opacity: sub.included ? 1 : 0.55,
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                      }}>
+                        <input type="checkbox" checked={sub.included} onChange={() => toggleSubIncluded(ch.id, sub.id)} style={{ accentColor: accentColor }} />
+                        <span style={{
+                          flex: 1, minWidth: 0,
+                          color: 'var(--text-muted)', fontWeight: 500,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>↳ {sub.title}</span>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-light)', whiteSpace: 'nowrap' }}>
+                          {sub.wordCount.toLocaleString()} words
+                        </span>
+                      </label>
+                    ))}
                   </React.Fragment>
                 );
               })}

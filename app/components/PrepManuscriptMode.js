@@ -57,7 +57,7 @@ const PREP_INK = MODE_TOKENS.prep.ink;
 const useDismissable = sharedUseDismissable;
 const SaveBadge = (props) => <SharedSaveBadge {...props} tone={TONE} />;
 const StickyTopBar = (props) => <SharedStickyTopBar {...props} tone={TONE} />;
-const HomePill = (props) => <SharedHomePill {...props} tone={TONE} />;
+const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 
 const CHARACTER_PALETTE = [
   '#F4DCE0', '#E5DCEF', '#DCE6F0', '#DCEBE0',

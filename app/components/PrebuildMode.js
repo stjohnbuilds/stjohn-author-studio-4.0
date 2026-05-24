@@ -324,7 +324,7 @@ export default function PrebuildMode({ modeToggle = null }) {
   if (view === 'newProject') {
     return (
       <ImportFlow
-        accent="#9069B0"
+        accent="#7FA1C9"
         heading="New duet audio prep"
         blurb="Upload the engineer manuscript. We'll detect chapters and the highlighted insertions."
         submitLabel="Create project"

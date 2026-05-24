@@ -79,6 +79,52 @@ Read them.
 
 ---
 
+## 2b. CRITICAL — these are PORTS, not greenfield
+
+Read this section twice. Marie has said this three times now and it
+needs to land.
+
+**Every remaining item on the roadmap has already shipped in a
+working form in an earlier attempt of this app.** The Studio login
+screen, Quill & Ink mode, the phone companion, the Supabase wiring —
+none of these are things you design from scratch. They exist. Marie
+has used them. She knows how she wants them to work because she's
+already worked with them.
+
+What this means for how you work:
+
+1. **Before you write any code for one of these items, read its
+   reference.** Open the archived app folder in §7. `ls`, `grep`,
+   `Read` every file that's relevant. Look at the data model, the
+   component structure, the UI patterns, the user flow. Understand
+   it completely. Only then start porting.
+2. **The reference is the spec.** If your instinct disagrees with
+   what the reference does, the reference wins. Don't redesign. Port.
+3. **Marie is not going to iterate on UI tweaks for these.** With
+   Prep we went through many rounds of "the button is too dark, the
+   header isn't centered, the back button is hiding" — that's because
+   Prep was new. These items are NOT new. If you give Marie a Quill
+   mode that doesn't match the alpha's layout, she's going to be
+   frustrated. Match the alpha. If the alpha has the audio player
+   bottom-docked, dock it. If the alpha's annotation list has
+   `+` and ✏️ icons in a specific spot, put them in that spot.
+4. **Use the SHARED engines we already built.** `ReaderChrome`,
+   `ImportFlow`, `manuscript-engine`, the pastel `MODE_TOKENS`. The
+   reference apps may have their own copies of some of these — port
+   the BEHAVIOUR through the shared engines, not the duplicate code.
+   This is the same "use the baseline, not extras" rule that drove
+   Prep's polish work.
+5. **If you cannot find a reference for something specific you're
+   building, ask Marie before inventing.** She'd rather point you at
+   the working version than discover later that you redesigned a
+   solved problem.
+
+The language to internalize: **port with fidelity, not creativity.**
+The creativity got spent in the original. Your job is to bring it
+forward into 4.0 with the shared engines and the pastel palette.
+
+---
+
 ## 3. Read these files, in this order
 
 | Order | Path | Why |

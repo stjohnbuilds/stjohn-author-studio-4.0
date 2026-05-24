@@ -412,6 +412,21 @@ const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </w:styles>`;
 
 export async function buildPrepHighlightedDocxBlob(project = {}) {
+  // Preferred path: if we kept the original .docx bytes on import, use
+  // them as the template and patch in just the narrator breakdown +
+  // highlight runs around the detected dialogue. That preserves EVERY
+  // bit of the user's original formatting (fonts, italics, page
+  // numbers, custom styles) instead of rebuilding.
+  if (project.sourceDocxBase64) {
+    try {
+      return await buildOriginalPlusHighlights(project);
+    } catch (err) {
+      // Fall back to the rebuilt path below so the user always gets
+      // SOMETHING out of the export.
+      console.warn('In-place .docx patch failed, falling back to rebuilt export:', err);
+    }
+  }
+
   const mod = await import('jszip');
   const JSZip = mod.default || mod;
   const zip = new JSZip();
@@ -424,6 +439,107 @@ export async function buildPrepHighlightedDocxBlob(project = {}) {
     type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
+}
+
+// In-place export: open the original .docx, inject highlight runs
+// where dialogue lives, prepend the narrator-breakdown paragraphs.
+async function buildOriginalPlusHighlights(project) {
+  const mod = await import('jszip');
+  const JSZip = mod.default || mod;
+  const bytes = base64ToUint8(project.sourceDocxBase64);
+  const zip = await JSZip.loadAsync(bytes);
+  const docFile = zip.file('word/document.xml');
+  if (!docFile) throw new Error('Original .docx has no word/document.xml');
+  let documentXml = await docFile.async('string');
+
+  // 1) Inject narrator-breakdown paragraphs at the very top of <w:body>
+  //    so they're the first thing the reader sees.
+  const breakdown = narratorBreakdownXml(project);
+  if (breakdown) {
+    documentXml = documentXml.replace('<w:body>', '<w:body>' + breakdown);
+  }
+
+  // 2) Patch in highlight runs around each assigned dialogue text.
+  //    Strategy: substring-replace inside <w:t>…</w:t> bodies. For each
+  //    occurrence in a single <w:t>, split that run into three: before
+  //    (original rPr), highlighted (rPr + shd), after (original rPr).
+  //    Multi-run dialogues (where the source has formatting changes
+  //    mid-quote, e.g. italic emphasis) are left un-highlighted in
+  //    place — they're rare and round-tripping them would risk
+  //    breaking the document.
+  const characters = project.characters || [];
+  const charsById = new Map(characters.map((c) => [c.id, c]));
+  const assignments = [];
+  (project.chapters || []).forEach((ch) => {
+    (ch.sections || []).forEach((sec) => {
+      (sec.dialogueSpans || []).forEach((sp) => {
+        if (!sp.characterId || !sp.text) return;
+        const char = charsById.get(sp.characterId);
+        if (!char) return;
+        const sv = sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
+        assignments.push({ text: sp.text, color: exportColorFor(char, sv) });
+      });
+    });
+  });
+
+  documentXml = applyHighlightsInPlace(documentXml, assignments);
+
+  zip.file('word/document.xml', documentXml);
+  return zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+function base64ToUint8(b64) {
+  const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function escapeForRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// For each assignment, find <w:r>[rPr]<w:t…>…DIALOGUE…</w:t></w:r>
+// occurrences and wrap the dialogue with a shaded sibling run. Skips
+// dialogues whose text doesn't fit in a single <w:t> (formatting
+// changes mid-quote).
+function applyHighlightsInPlace(docXml, assignments) {
+  let out = docXml;
+  for (const a of assignments) {
+    const xmlDialogue = xml(a.text);                  // escaped for XML
+    const fill = String(a.color || '').replace('#', '').toUpperCase();
+    if (!xmlDialogue || !fill) continue;
+    // Match a single <w:r> containing one <w:t> whose body has the
+    // dialogue text. Capture the optional <w:rPr>…</w:rPr> so the
+    // before/after runs keep the original formatting.
+    const re = new RegExp(
+      '<w:r\\b[^>]*>(\\s*<w:rPr>[\\s\\S]*?</w:rPr>)?\\s*<w:t([^>]*)>([^<]*?' + escapeForRegex(xmlDialogue) + '[^<]*?)</w:t>\\s*</w:r>',
+      'g'
+    );
+    out = out.replace(re, (match, rPr = '', wtAttrs = '', wtText = '') => {
+      const idx = wtText.indexOf(xmlDialogue);
+      if (idx === -1) return match;
+      const before = wtText.slice(0, idx);
+      const after = wtText.slice(idx + xmlDialogue.length);
+      const baseRPr = rPr || '';
+      const shadedRPr = baseRPr
+        ? baseRPr.replace('</w:rPr>', `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`)
+        : `<w:rPr><w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`;
+      const beforeRun = before
+        ? `<w:r>${baseRPr}<w:t xml:space="preserve">${before}</w:t></w:r>`
+        : '';
+      const dialogueRun =
+        `<w:r>${shadedRPr}<w:t xml:space="preserve">${xmlDialogue}</w:t></w:r>`;
+      const afterRun = after
+        ? `<w:r>${baseRPr}<w:t xml:space="preserve">${after}</w:t></w:r>`
+        : '';
+      return beforeRun + dialogueRun + afterRun;
+    });
+  }
+  return out;
 }
 
 export function downloadBlob(blob, filename) {

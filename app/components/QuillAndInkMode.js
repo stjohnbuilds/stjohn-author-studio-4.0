@@ -239,18 +239,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     }
   }
 
-  function mergeProjectLists(local, cloud) {
-    const byId = new Map();
-    for (const p of local) byId.set(p.id, p);
-    for (const p of cloud) {
-      const existing = byId.get(p.id);
-      if (!existing) { byId.set(p.id, p); continue; }
-      const newer = new Date(p.updatedAt || 0) > new Date(existing.updatedAt || 0);
-      byId.set(p.id, newer ? p : { ...existing, cloudId: p.cloudId || existing.cloudId });
-    }
-    return Array.from(byId.values());
-  }
-
   // ----- export from book detail -----
   function exportAll() {
     if (!activeProject) return;

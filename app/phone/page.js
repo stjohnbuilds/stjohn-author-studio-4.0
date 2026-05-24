@@ -152,15 +152,17 @@ function PhoneApp({ session, onSignOut }) {
             {SERVICE_OPTIONS.map((s) => (
               <button
                 key={s.id}
-                onClick={() => { if (s.id === 'quill') setService('quill'); else alert('Proof Listen on phone is coming next.'); }}
+                onClick={() => { if (s.enabled) setService(s.id); }}
+                disabled={!s.enabled}
                 style={{
                   padding: '20px 18px',
-                  background: 'white',
-                  border: '1px solid ' + s.ink + '33',
-                  borderLeft: '6px solid ' + s.accent,
+                  background: s.enabled ? 'white' : 'rgba(255,255,255,0.55)',
+                  border: '1px solid ' + s.ink + (s.enabled ? '33' : '22'),
+                  borderLeft: '6px solid ' + (s.enabled ? s.accent : s.ink + '55'),
                   borderRadius: 14,
                   textAlign: 'left',
-                  cursor: 'pointer',
+                  cursor: s.enabled ? 'pointer' : 'not-allowed',
+                  opacity: s.enabled ? 1 : 0.55,
                 }}
               >
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: s.ink, marginBottom: 4 }}>{s.label}</div>

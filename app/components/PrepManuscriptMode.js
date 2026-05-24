@@ -71,6 +71,13 @@ function nextPaletteColor(usedHexes = []) {
   return CHARACTER_PALETTE.find((c) => !used.has(c)) || CHARACTER_PALETTE[usedHexes.length % CHARACTER_PALETTE.length];
 }
 
+// True only for the v3+ shape (chapters[].sections[].dialogueSpans[]).
+// Older v2 saves had chapters[].spans[] flat and crash the new reducers.
+function isCompatiblePrepProject(p) {
+  if (!p || !Array.isArray(p.chapters)) return false;
+  return p.chapters.every((ch) => Array.isArray(ch?.sections));
+}
+
 function buildShellFromStructure(file, structure) {
   return {
     id: uid('prep'),
@@ -143,7 +150,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         if (!electron?.readPrepData) { setHydrated(true); return; }
         const list = await electron.readPrepData();
         if (cancelled) return;
-        if (Array.isArray(list) && list.length > 0) setProject(list[list.length - 1]);
+        if (Array.isArray(list) && list.length > 0) {
+          const last = list[list.length - 1];
+          if (isCompatiblePrepProject(last)) {
+            setProject(last);
+          }
+          // else: an older v2 shape; silently ignore so the empty state
+          // shows and the user can re-import cleanly. (We don't overwrite
+          // the saved file until they import something new.)
+        }
       } catch {} finally { if (!cancelled) setHydrated(true); }
     })();
     return () => { cancelled = true; };
@@ -177,8 +192,8 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   const dialogueIndex = useMemo(() => {
     const list = [];
     (project?.chapters || []).forEach((ch) => {
-      (ch.sections || []).forEach((sec) => {
-        (sec.dialogueSpans || []).forEach((_, si) => {
+      (ch?.sections || []).forEach((sec) => {
+        (sec?.dialogueSpans || []).forEach((_, si) => {
           list.push({ chapterIndex: ch.chapterIndex, sectionIndex: sec.sectionIndex, spanIndex: si });
         });
       });
@@ -191,7 +206,11 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   );
   const totalDialogue = dialogueIndex.length;
   const totalAssigned = useMemo(
-    () => (project?.chapters || []).reduce((n, ch) => n + ch.sections.reduce((m, sec) => m + sec.dialogueSpans.filter((s) => s.characterId).length, 0), 0),
+    () => (project?.chapters || []).reduce(
+      (n, ch) => n + (ch?.sections || []).reduce(
+        (m, sec) => m + (sec?.dialogueSpans || []).filter((s) => s.characterId).length, 0
+      ), 0
+    ),
     [project]
   );
 

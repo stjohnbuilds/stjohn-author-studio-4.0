@@ -1,0 +1,491 @@
+'use client';
+
+// Shared upload + chapter-picker for every mode that imports a manuscript.
+// Replaces the per-mode rewrites that used to live in PrepManuscriptMode's
+// SetupView and PrebuildManuscriptUpload. Proof's BookSetup still has its
+// own (it adds PDF paging + narrator colour mapping on top); this file is
+// the "core" both Prep and Duet share, with the same look as BookSetup so
+// Proof can migrate later without changing how things feel.
+//
+// Returns to its caller via onConfirm:
+//   {
+//     title, fileName,
+//     sourceDocxBytes (Uint8Array), sourceDocxBase64 (string),
+//     fullHtml,
+//     chapters: [
+//       { id, chapterIndex, chapterNumber, title, html, wordCount,
+//         included, isFirst,
+//         splitGroup?, splitIndex?, splitTotal?, parentTitle? }
+//     ],
+//   }
+
+import React, { useMemo, useState } from 'react';
+import {
+  STYLE_MAP,
+  convertShadingToHighlight,
+  applyHexColors,
+} from './ManuscriptSetup.js';
+
+const inp = {
+  width: '100%',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  padding: '8px 12px',
+  fontSize: '0.875rem',
+  fontFamily: 'inherit',
+  background: 'white',
+  color: 'var(--text)',
+  outline: 'none',
+};
+const lbl = {
+  display: 'block',
+  fontSize: '0.68rem',
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  marginBottom: 5,
+};
+const card = {
+  background: 'white',
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  padding: '1.15rem',
+  marginBottom: '0.75rem',
+};
+
+function Badge({ n, accent }) {
+  return (
+    <div style={{
+      width: 22, height: 22, borderRadius: '50%',
+      background: accent || 'var(--accent)', color: 'white',
+      fontSize: '0.68rem', fontWeight: 700,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>{n}</div>
+  );
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function stripTags(s = '') {
+  return String(s).replace(/<[^>]*>/g, '');
+}
+function countWords(text = '') {
+  const m = String(text).match(/[A-Za-z0-9']+/g);
+  return m ? m.length : 0;
+}
+
+// Walk the full HTML, group child nodes under their chapter heading
+// (h{level}). If splitOnSubheadings is true and a chapter has the
+// next level of headings (h{level+1}), each sub-heading becomes its
+// own row (with splitGroup metadata so the UI can group them).
+function parseChaptersFromHtml(html, chapterLevel, splitOnSubheadings) {
+  const chapterTag = `h${chapterLevel}`;
+  const subTag = splitOnSubheadings && chapterLevel < 6 ? `h${chapterLevel + 1}` : null;
+  const host = document.createElement('div');
+  host.innerHTML = html;
+
+  const raw = [];
+  let cur = null;
+  Array.from(host.childNodes).forEach((node) => {
+    const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
+    if (tag === chapterTag) {
+      if (cur) raw.push(cur);
+      cur = { title: (node.textContent || '').trim() || 'Untitled chapter', nodes: [] };
+    } else {
+      if (!cur) cur = { title: '(Before first chapter)', nodes: [] };
+      cur.nodes.push(node.cloneNode(true));
+    }
+  });
+  if (cur) raw.push(cur);
+
+  if (!raw.length) {
+    // No chapter headings detected — treat the whole document as one row.
+    return [{
+      id: uid(), title: 'Manuscript',
+      html, wordCount: countWords(stripTags(html)),
+      included: true, isFirst: true,
+    }];
+  }
+
+  const out = [];
+  let groupNum = 0;
+  for (const c of raw) {
+    groupNum += 1;
+    const fullHtml = c.nodes.map((n) => n.outerHTML || n.textContent || '').join('');
+    const fullWordCount = countWords(stripTags(fullHtml));
+
+    if (subTag) {
+      // Split by sub-headings inside this chapter.
+      const parts = [];
+      let curPart = null;
+      for (const node of c.nodes) {
+        if (node.nodeName && node.nodeName.toLowerCase() === subTag) {
+          if (curPart) parts.push(curPart);
+          curPart = { subTitle: (node.textContent || '').trim(), nodes: [] };
+        } else {
+          if (!curPart) curPart = { subTitle: null, nodes: [node] };
+          else curPart.nodes.push(node);
+        }
+      }
+      if (curPart) parts.push(curPart);
+      // Merge any preamble (content before the first sub-heading) into the
+      // first titled part so it isn't dropped.
+      if (parts.length > 1 && !parts[0].subTitle) {
+        parts[1].nodes = [...parts[0].nodes, ...parts[1].nodes];
+        parts.shift();
+      }
+      const titledParts = parts.filter((p) => p.subTitle);
+      if (titledParts.length >= 2) {
+        parts.forEach((part, pi) => {
+          const partHtml = part.nodes.map((n) => n.outerHTML || n.textContent || '').join('');
+          out.push({
+            id: uid(),
+            title: part.subTitle ? `${c.title} — ${part.subTitle}` : c.title,
+            html: partHtml,
+            wordCount: countWords(stripTags(partHtml)),
+            included: true,
+            isFirst: false,
+            splitGroup: groupNum,
+            splitIndex: pi,
+            splitTotal: parts.length,
+            parentTitle: c.title,
+          });
+        });
+        continue;
+      }
+    }
+
+    out.push({
+      id: uid(),
+      title: c.title,
+      html: fullHtml,
+      wordCount: fullWordCount,
+      included: true,
+      isFirst: out.length === 0,
+    });
+  }
+
+  // Mark the first chapter as "first" by default; the user can override.
+  if (out.length > 0 && !out.some((ch) => ch.isFirst)) out[0].isFirst = true;
+  return out;
+}
+
+// Browser-safe bytes → base64 (chunked so >1MB files don't blow the stack).
+function bytesToBase64(bytes) {
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
+}
+
+export default function ImportFlow({
+  onConfirm,
+  onCancel,
+  // visual:
+  accent,                       // e.g. PREP_INK or DUET_INK — used for badges + primary buttons
+  heading = 'Import a manuscript',
+  blurb = 'Upload the .docx, check the chapters you want to include, and continue.',
+  submitLabel = 'Save & continue',
+  // behaviour:
+  allowSceneSplitting = false,  // expose the H1+H2 split toggle
+  defaultSplitScenes = false,
+  defaultChapterLevel = 1,
+  initialTitle = '',
+}) {
+  const [bookTitle, setBookTitle] = useState(initialTitle);
+  const [fileName, setFileName] = useState('');
+  const [fullHtml, setFullHtml] = useState('');
+  const [bytes, setBytes] = useState(null);            // Uint8Array of the .docx
+  const [base64, setBase64] = useState('');            // base64 of the .docx
+  const [chapterLevel, setChapterLevel] = useState(defaultChapterLevel);
+  const [splitScenes, setSplitScenes] = useState(defaultSplitScenes);
+  const [chapters, setChapters] = useState([]);        // parsed chapter list (with `included`)
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const accentColor = accent || 'var(--accent)';
+  const primaryBtn = {
+    padding: '11px 18px',
+    background: accentColor, color: 'white',
+    border: 'none', borderRadius: 12,
+    fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer',
+  };
+  const ghostBtn = {
+    padding: '11px 18px',
+    background: 'white', color: 'var(--text-muted)',
+    border: '1px solid var(--border)', borderRadius: 12,
+    fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+  };
+
+  function reparse(htmlNow, levelNow, splitNow) {
+    if (!htmlNow) return;
+    setChapters(parseChaptersFromHtml(htmlNow, levelNow, splitNow));
+  }
+
+  async function handleDocx(file) {
+    setLoading(true);
+    setErr('');
+    try {
+      const mammoth = (await import('mammoth')).default;
+      const ab = await file.arrayBuffer();
+      const u8 = new Uint8Array(ab);
+      // Convert Google-Docs-style shading to Word highlights so colours
+      // we want to see in the reader actually show up.
+      const { buffer: processedAb, hexMap } = await convertShadingToHighlight(ab);
+      const result = await mammoth.convertToHtml({ arrayBuffer: processedAb }, { styleMap: STYLE_MAP });
+      const html = applyHexColors(result.value || '', hexMap || {});
+      setFullHtml(html);
+      setBytes(u8);
+      setBase64(bytesToBase64(u8));
+      setFileName(file.name);
+      if (!bookTitle) setBookTitle(file.name.replace(/\.docx$/i, ''));
+      setChapters(parseChaptersFromHtml(html, chapterLevel, splitScenes));
+    } catch (e) {
+      console.error('ImportFlow handleDocx failed:', e);
+      setErr(e?.message || 'Could not read that .docx.');
+    }
+    setLoading(false);
+  }
+
+  function toggleIncluded(id) {
+    setChapters((cs) => cs.map((c) => (c.id === id ? { ...c, included: !c.included } : c)));
+  }
+  function setAllIncluded(on) {
+    setChapters((cs) => cs.map((c) => ({ ...c, included: !!on })));
+  }
+  function toggleFirst(id) {
+    setChapters((cs) => cs.map((c) => ({ ...c, isFirst: c.id === id ? !c.isFirst : c.isFirst })));
+  }
+
+  const totalSelected = chapters.filter((c) => c.included).length;
+  const allOn = chapters.length > 0 && chapters.every((c) => c.included);
+  const anyOn = chapters.some((c) => c.included);
+
+  function commit() {
+    if (!fullHtml || totalSelected === 0) return;
+    // Re-number from "first" toggles so the user can keep front matter
+    // out of the chapter count. The first chapter (by document order)
+    // gets number 1 unless the user has explicitly set a different one
+    // as "first" — then everything before that is left unnumbered.
+    let chapterNumber = 0;
+    const numbered = chapters
+      .filter((c) => c.included)
+      .map((c, i, arr) => {
+        if (i === 0 || c.isFirst) chapterNumber = 1;
+        else chapterNumber += 1;
+        return {
+          ...c,
+          chapterIndex: i,
+          chapterNumber,
+        };
+      });
+    onConfirm({
+      title: (bookTitle || fileName.replace(/\.docx$/i, '') || 'Untitled').trim(),
+      fileName,
+      sourceDocxBytes: bytes,
+      sourceDocxBase64: base64,
+      fullHtml,
+      chapters: numbered,
+      splitScenes,
+      chapterLevel,
+    });
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '1.5rem 1.25rem 3.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text)' }}>{heading}</h2>
+          {onCancel && (
+            <button type="button" onClick={onCancel} style={ghostBtn}>Cancel</button>
+          )}
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1.2rem' }}>{blurb}</p>
+
+        {/* Step 1: Title */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+            <Badge n={1} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Project name</span>
+          </div>
+          <input
+            type="text"
+            value={bookTitle}
+            onChange={(e) => setBookTitle(e.target.value)}
+            placeholder="e.g. The Lincoln Pack"
+            style={inp}
+          />
+        </div>
+
+        {/* Step 2: Upload + heading-level choice */}
+        <div style={card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+            <Badge n={2} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Manuscript file</span>
+          </div>
+          <div style={{ marginBottom: '0.75rem' }}>
+            <label style={lbl}>Which heading level marks chapter starts?</label>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {[1, 2, 3].map((n) => (
+                <button key={n} type="button" onClick={() => {
+                  setChapterLevel(n);
+                  if (fullHtml) setTimeout(() => reparse(fullHtml, n, splitScenes), 0);
+                }} style={{
+                  padding: '6px 16px', borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: chapterLevel === n ? accentColor : 'white',
+                  color: chapterLevel === n ? 'white' : 'var(--text)',
+                  cursor: 'pointer', fontWeight: chapterLevel === n ? 700 : 500,
+                  fontSize: '0.875rem',
+                }}>H{n}</button>
+              ))}
+            </div>
+          </div>
+
+          {allowSceneSplitting && (
+            <div style={{ marginBottom: '0.75rem', padding: '10px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={lbl}>Split chapters on sub-headings</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {splitScenes ? `Each chapter will be split by H${Math.min(chapterLevel + 1, 6)} sub-headings.` : 'Each chapter stays as one row.'}
+                  </div>
+                </div>
+                <button type="button" onClick={() => {
+                  const next = !splitScenes;
+                  setSplitScenes(next);
+                  if (fullHtml) setTimeout(() => reparse(fullHtml, chapterLevel, next), 0);
+                }} style={{
+                  padding: '7px 14px', borderRadius: 999,
+                  border: '1px solid ' + (splitScenes ? accentColor : 'var(--border)'),
+                  background: splitScenes ? 'rgba(0,0,0,0.04)' : 'white',
+                  color: splitScenes ? accentColor : 'var(--text)',
+                  fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
+                }}>{splitScenes ? 'Splitting on' : 'Splitting off'}</button>
+              </div>
+            </div>
+          )}
+
+          {!fullHtml ? (
+            <label style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              border: '1.5px dashed var(--border)', borderRadius: 12,
+              padding: '2rem', cursor: 'pointer', background: 'var(--cream)',
+            }}>
+              <input type="file" accept=".docx" style={{ display: 'none' }}
+                onChange={(e) => e.target.files?.[0] && handleDocx(e.target.files[0])} />
+              {loading ? (
+                <>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Reading your manuscript…</p>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 10 }}>📄</div>
+                  <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)', marginBottom: 0 }}>Upload manuscript .docx</p>
+                </>
+              )}
+            </label>
+          ) : (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 14px', background: 'var(--success-light)', borderRadius: 10,
+              border: '1px solid #d3ddd6',
+            }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--success)', fontWeight: 500 }}>
+                ✓ {fileName} · {chapters.length} chapter{chapters.length === 1 ? '' : 's'} detected
+              </span>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                Re-upload
+                <input type="file" accept=".docx" style={{ display: 'none' }}
+                  onChange={(e) => e.target.files?.[0] && handleDocx(e.target.files[0])} />
+              </label>
+            </div>
+          )}
+          {err && (<div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--danger)' }}>{err}</div>)}
+        </div>
+
+        {/* Step 3: Chapter picker */}
+        {chapters.length > 0 && (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
+              <Badge n={3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                <button type="button" onClick={() => setAllIncluded(!allOn)} style={{
+                  padding: '5px 10px', borderRadius: 999,
+                  border: '1px solid var(--border)', background: 'white',
+                  fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
+                }}>{allOn ? 'Uncheck all' : 'Check all'}</button>
+              </div>
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10 }}>
+              Uncheck front matter, copyright pages, or anything else you don&apos;t want to work with.
+              {chapters.length > 1 && ' Use "Set as first" if the real Chapter 1 is further down.'}
+            </div>
+            <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border-light)', borderRadius: 10 }}>
+              {chapters.map((ch) => {
+                const isGroupStart = ch.splitGroup != null && ch.splitIndex === 0;
+                return (
+                  <React.Fragment key={ch.id}>
+                    {isGroupStart && (
+                      <div style={{
+                        padding: '6px 12px', background: 'rgba(0,0,0,0.03)',
+                        borderBottom: '1px solid var(--border-light)',
+                        fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)',
+                      }}>
+                        📂 {ch.parentTitle} <span style={{ fontWeight: 400 }}>({ch.splitTotal} parts)</span>
+                      </div>
+                    )}
+                    <label style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 12px',
+                      paddingLeft: ch.splitGroup != null ? 28 : 12,
+                      borderBottom: '1px solid var(--border-light)',
+                      background: ch.included ? 'white' : '#f6f3ef',
+                      opacity: ch.included ? 1 : 0.55,
+                      cursor: 'pointer',
+                    }}>
+                      <input type="checkbox" checked={ch.included} onChange={() => toggleIncluded(ch.id)} style={{ accentColor: accentColor }} />
+                      <span style={{
+                        flex: 1, minWidth: 0,
+                        fontSize: '0.86rem', fontWeight: 600, color: 'var(--text)',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{ch.title}</span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {ch.wordCount.toLocaleString()} words
+                      </span>
+                      <button type="button" onClick={(e) => { e.preventDefault(); toggleFirst(ch.id); }} style={{
+                        padding: '3px 8px', borderRadius: 8,
+                        border: '1px solid var(--border)',
+                        background: ch.isFirst ? accentColor : 'white',
+                        color: ch.isFirst ? 'white' : 'var(--text-muted)',
+                        cursor: 'pointer', fontSize: '0.66rem', fontWeight: 700,
+                      }}>{ch.isFirst ? 'First' : 'Set first'}</button>
+                    </label>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {chapters.length > 0 && (
+          <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim()} style={{
+            ...primaryBtn,
+            width: '100%',
+            opacity: (!anyOn || !bookTitle.trim()) ? 0.5 : 1,
+            cursor: (!anyOn || !bookTitle.trim()) ? 'not-allowed' : 'pointer',
+          }}>
+            {submitLabel} ({totalSelected} chapter{totalSelected === 1 ? '' : 's'})
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

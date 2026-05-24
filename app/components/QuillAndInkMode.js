@@ -427,7 +427,7 @@ function QuillHomeView({ projects, onOpen, onNew, error }) {
 // Book detail — chapter list + export bar
 // ===========================================================================
 
-function QuillBookDetail({ project, saveStatus, onOpenChapter, onDelete, onReimport, onExportCsv, onExportJsx, onExportAll }) {
+function QuillBookDetail({ project, saveStatus, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll }) {
   const chapters = project.chapters || [];
   const annotationsByChapter = useMemo(() => {
     const map = new Map();

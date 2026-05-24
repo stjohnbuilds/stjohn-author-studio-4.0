@@ -1488,7 +1488,7 @@ function SettingsCog({
   );
 }
 
-function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport }) {
+function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport, authEmail, onSignOut }) {
   const saveLocationText = formatSaveLocation(dataLocation);
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>

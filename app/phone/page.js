@@ -528,6 +528,7 @@ function BackButton({ onClick }) {
 
 function AccountChip({ email, onSignOut }) {
   const [open, setOpen] = useState(false);
+  if (!email) return null;
   return (
     <div style={{ position: 'relative' }}>
       <button
@@ -544,7 +545,7 @@ function AccountChip({ email, onSignOut }) {
           cursor: 'pointer',
         }}
       >
-        {(email || '?').charAt(0).toUpperCase()}
+        {email.charAt(0).toUpperCase()}
       </button>
       {open && (
         <div

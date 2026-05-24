@@ -195,3 +195,15 @@ Active and recently archived tasks. Rules for this file are in
       inline run-property styling (bold, centered, point size baked
       into each paragraph) so the breakdown looks right no matter what
       the source .docx's `styles.xml` looks like. — completed 2026-05-24
+- [x] **Side voice dialogues get inline Word comments in the export**
+      — for every dialogue assigned to a side voice (recurring or one-
+      time), the .docx now has a real Word comment on that line with
+      `Character: <name>, Narrator: <name>, Side voice of <character>,
+      Notes: <notes>, [Recurring]` (or `[One time]`). Main-character
+      lines stay clean — just the highlight, no comment noise.
+      Implementation: `word/comments.xml` added to the zip,
+      content-types and document rels patched to wire it up, and
+      `<w:commentRangeStart>` / `<w:commentRangeEnd>` /
+      `<w:commentReference>` markers wrapped around each side-voice
+      dialogue run during in-place highlighting. — completed
+      2026-05-24

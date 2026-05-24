@@ -994,13 +994,10 @@ export default function Home() {
 
   if (appMode === 'quill') {
     return (
-      <div style={{ minHeight:'100vh', background:'var(--cream)' }}>
-        {usesCustomDragRegion && (
-          <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
-        )}
-        <AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />
-        <ComingSoonScreen mode={appMode} />
-      </div>
+      <QuillAndInkMode
+        modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
+        usesCustomDragRegion={usesCustomDragRegion}
+      />
     );
   }
 

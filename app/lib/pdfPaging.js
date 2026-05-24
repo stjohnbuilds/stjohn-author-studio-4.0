@@ -1,0 +1,302 @@
+function normalizeSearchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/\u2026/g, '...')
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .trim();
+}
+
+function parsePrintedPageNumber(text) {
+  const raw = String(text || '').replace(/[\s\-–—]+/g, '').trim();
+  if (!/^\d{1,4}$/.test(raw)) return null;
+  const pageNumber = Number(raw);
+  return pageNumber > 0 ? pageNumber : null;
+}
+
+function buildLineText(items) {
+  return items
+    .slice()
+    .sort((a, b) => a.x - b.x)
+    .map(item => String(item.str || '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function groupTextItemsIntoLines(items) {
+  const sorted = items
+    .filter(item => String(item?.str || '').trim())
+    .map(item => ({
+      str: String(item.str || ''),
+      x: Number(item.transform?.[4]) || 0,
+      y: Number(item.transform?.[5]) || 0,
+    }))
+    .sort((a, b) => {
+      const dy = b.y - a.y;
+      if (Math.abs(dy) > 2.5) return dy;
+      return a.x - b.x;
+    });
+
+  const lines = [];
+  for (const item of sorted) {
+    const prev = lines[lines.length - 1];
+    if (!prev || Math.abs(prev.y - item.y) > 2.5) {
+      lines.push({ y: item.y, items: [item] });
+      continue;
+    }
+    prev.items.push(item);
+  }
+
+  return lines.map(line => ({
+    y: line.y,
+    text: buildLineText(line.items),
+  })).filter(line => line.text);
+}
+
+function detectPrintedPageNumber(lines) {
+  const bottomFirst = [...lines].sort((a, b) => a.y - b.y);
+  const topFirst = [...lines].sort((a, b) => b.y - a.y);
+  const candidates = [
+    ...bottomFirst.slice(0, 3).map(line => ({ ...line, position: 'bottom' })),
+    ...topFirst.slice(0, 2).map(line => ({ ...line, position: 'top' })),
+  ];
+
+  for (const line of candidates) {
+    const pageNumber = parsePrintedPageNumber(line.text);
+    if (pageNumber != null) {
+      return { pageNumber, position: line.position };
+    }
+  }
+
+  return null;
+}
+
+function extractQuotedChunks(rawText) {
+  const text = String(rawText || '');
+  const chunks = [];
+  const patterns = [/"([^\"]+)"/g, /'([^']+)'/g];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const chunk = normalizeSearchText(match[1]);
+      if (chunk.length >= 12) chunks.push(chunk);
+    }
+  }
+
+  return chunks;
+}
+
+function buildSearchKeys(rawQuote) {
+  const keys = [];
+  keys.push(...extractQuotedChunks(rawQuote));
+
+  const full = normalizeSearchText(rawQuote);
+  if (full.length >= 18) keys.push(full);
+
+  for (const length of [80, 60, 45, 30]) {
+    const key = full.slice(0, length).trim();
+    if (key.length >= 18) keys.push(key);
+  }
+
+  const deduped = [];
+  const seen = new Set();
+  for (const key of keys) {
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(key);
+    }
+  }
+  return deduped;
+}
+
+function getMedian(values) {
+  const sorted = values
+    .filter(v => Number.isFinite(v))
+    .slice()
+    .sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[mid];
+  return (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function inferPdfPageNumbers(rawPages) {
+  const pages = Array.isArray(rawPages) ? rawPages.slice() : [];
+  if (!pages.length) return pages;
+
+  const printedAnchors = pages.filter(p => p.pageNumberSource === 'printed');
+  if (!printedAnchors.length) return pages;
+
+  const rawOffsets = printedAnchors.map(p => Number(p.pageNumber) - Number(p.pageIndex));
+  const medianOffset = getMedian(rawOffsets);
+  const stableAnchors = printedAnchors.filter(p => {
+    const offset = Number(p.pageNumber) - Number(p.pageIndex);
+    return medianOffset == null ? true : Math.abs(offset - medianOffset) <= 8;
+  });
+  const anchors = stableAnchors.length >= 2 ? stableAnchors : printedAnchors;
+
+  const byIndex = new Map(anchors.map(a => [Number(a.pageIndex), a]));
+  const sortedAnchors = anchors.slice().sort((a, b) => Number(a.pageIndex) - Number(b.pageIndex));
+  const fallbackOffset = getMedian(anchors.map(a => Number(a.pageNumber) - Number(a.pageIndex))) ?? 0;
+
+  for (let i = 0; i < pages.length; i += 1) {
+    const current = pages[i];
+    if (current.pageNumberSource === 'printed') continue;
+
+    const pageIndex = Number(current.pageIndex) || i + 1;
+    let left = null;
+    let right = null;
+
+    for (let j = i - 1; j >= 0; j -= 1) {
+      const candidate = pages[j];
+      if (byIndex.has(Number(candidate.pageIndex))) {
+        left = byIndex.get(Number(candidate.pageIndex));
+        break;
+      }
+    }
+
+    for (let j = i + 1; j < pages.length; j += 1) {
+      const candidate = pages[j];
+      if (byIndex.has(Number(candidate.pageIndex))) {
+        right = byIndex.get(Number(candidate.pageIndex));
+        break;
+      }
+    }
+
+    let inferred;
+    if (left && right) {
+      const fromLeft = Number(left.pageNumber) + (pageIndex - Number(left.pageIndex));
+      const fromRight = Number(right.pageNumber) - (Number(right.pageIndex) - pageIndex);
+      inferred = Math.abs(fromLeft - fromRight) <= 2
+        ? Math.round((fromLeft + fromRight) / 2)
+        : Math.round(pageIndex + fallbackOffset);
+    } else if (left) {
+      inferred = Math.round(Number(left.pageNumber) + (pageIndex - Number(left.pageIndex)));
+    } else if (right) {
+      inferred = Math.round(Number(right.pageNumber) - (Number(right.pageIndex) - pageIndex));
+    } else {
+      inferred = Math.round(pageIndex + fallbackOffset);
+    }
+
+    current.pageNumber = Math.max(1, inferred);
+    current.pageNumberSource = 'inferred';
+  }
+
+  // Final monotonic cleanup for noisy anchors.
+  for (let i = 1; i < pages.length; i += 1) {
+    const prev = Number(pages[i - 1].pageNumber) || 1;
+    const curr = Number(pages[i].pageNumber) || prev;
+    if (curr < prev) pages[i].pageNumber = prev;
+  }
+
+  // Ensure anchors themselves stay trusted if they are stable.
+  for (const anchor of sortedAnchors) {
+    const idx = Number(anchor.pageIndex) - 1;
+    if (idx >= 0 && idx < pages.length) {
+      pages[idx].pageNumber = Number(anchor.pageNumber);
+      pages[idx].pageNumberSource = 'printed';
+    }
+  }
+
+  return pages;
+}
+
+let pdfWorkerConfigured = false;
+
+function ensurePdfWorkerConfigured(pdfjs) {
+  if (pdfWorkerConfigured) return;
+  try {
+    // In Electron we parse PDFs on the main thread, but pdf.js still expects
+    // workerSrc to be set in some code paths.
+    const workerSrc = 'data:application/javascript;base64,IA==';
+    if (pdfjs?.GlobalWorkerOptions) {
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+      pdfWorkerConfigured = true;
+    }
+  } catch {
+    // Keep going; getDocument may still succeed depending on runtime.
+  }
+}
+
+export async function extractPdfPagingFromFile(file, options = {}) {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  ensurePdfWorkerConfigured(pdfjs);
+  const data = new Uint8Array(await file.arrayBuffer());
+  const loadingTask = pdfjs.getDocument({ data, disableWorker: true });
+  const pdf = await loadingTask.promise;
+  const pages = [];
+  const normalizedOffset = Number.isFinite(Number(options?.pageOffset)) ? Number(options.pageOffset) : 0;
+
+  try {
+    for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex += 1) {
+      const page = await pdf.getPage(pageIndex);
+      const textContent = await page.getTextContent();
+      const lines = groupTextItemsIntoLines(textContent.items || []);
+      const fullText = lines.map(line => line.text).join(' ').replace(/\s+/g, ' ').trim();
+      const printed = detectPrintedPageNumber(lines);
+
+      pages.push({
+        pageIndex,
+        pageNumber: printed?.pageNumber || Math.max(1, pageIndex + normalizedOffset),
+        pageNumberSource: printed ? 'printed' : (normalizedOffset !== 0 ? 'offset' : 'index'),
+        normalizedText: normalizeSearchText(fullText),
+      });
+    }
+  } finally {
+    pdf.cleanup?.();
+    loadingTask.destroy?.();
+  }
+
+  const calibratedPages = inferPdfPageNumbers(pages);
+
+  return {
+    mode: 'pdf-text',
+    fileName: file.name,
+    pageOffset: normalizedOffset,
+    pageCount: pdf.numPages,
+    printedPageCount: calibratedPages.filter(page => page.pageNumberSource === 'printed').length,
+    pages: calibratedPages,
+  };
+}
+
+export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
+  const rawPages = Array.isArray(pdfPaging?.pages) ? pdfPaging.pages : [];
+  const pages = rawPages.map(page => ({ ...page }));
+  if (!pages.length) return null;
+  const pageCount = Math.max(1, Number(pdfPaging?.pageCount) || pages.length);
+  const offset = Number.isFinite(Number(pdfPaging?.pageOffset)) ? Number(pdfPaging.pageOffset) : -1;
+  const maxBound = Math.max(1, pageCount + Math.max(0, offset));
+
+  const keys = buildSearchKeys(quote);
+  if (!keys.length) return null;
+
+  for (const key of keys) {
+    const matches = pages.filter(page => String(page.normalizedText || '').includes(key));
+    if (!matches.length) continue;
+
+    const uniquePages = [...new Set(matches.map(match => Number(match.pageNumber) || Number(match.pageIndex) || 1))].sort((a, b) => a - b);
+    if (uniquePages.length === 1) {
+      const candidatePage = uniquePages[0];
+      if (candidatePage < 1 || candidatePage > maxBound) {
+        return null;
+      }
+      const only = matches.find(match => (Number(match.pageNumber) || Number(match.pageIndex) || 1) === uniquePages[0]) || matches[0];
+      return {
+        pageNumber: candidatePage,
+        pageIndex: Number(only.pageIndex) || 1,
+        score: 100,
+        distance: Number.isFinite(hintPageNumber) ? Math.abs(candidatePage - hintPageNumber) : 0,
+        source: only.pageNumberSource || 'index',
+      };
+    }
+
+    return null;
+  }
+
+  return null;
+}

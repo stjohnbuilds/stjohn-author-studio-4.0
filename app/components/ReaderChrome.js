@@ -29,10 +29,14 @@ export const HOME_CONTAINER = 640;
 //   accent — mid-tone button fill (replaces the old "ink" on solid
 //            buttons; ink itself was too wine-y for Marie's taste)
 //   ink    — dark text + border accent
-// Prep is yellow now per Marie's request — she didn't love the green.
+// Pastel palette per mode. The `accent` is the mid-tone used as the
+// primary-button fill — it MUST stay light enough that "pastel" still
+// reads when you see a wall of buttons in that color. Prep's accent
+// was originally a deeper mustard #D9BE4E that Marie called "horrible
+// mustard yellow" — softened to a creamier gold below.
 export const MODE_TOKENS = {
   proof: { ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6' },   // soft purple
-  prep:  { ink: '#7A6A1F', accent: '#D9BE4E', pastel: '#FBF1C8' },   // pastel yellow
+  prep:  { ink: '#8A7726', accent: '#E8D27A', pastel: '#FBF1C8' },   // pastel yellow
   duet:  { ink: '#3F5772', accent: '#7FA1C9', pastel: '#DEE9F5' },   // pastel blue
   quill: { ink: '#834D5C', accent: '#CB8AA0', pastel: '#F8E2E8' },   // pastel pink
 };

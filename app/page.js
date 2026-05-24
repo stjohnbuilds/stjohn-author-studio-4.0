@@ -5,7 +5,6 @@ import ProofingReader from './components/ProofingReader';
 import BookDetail from './components/SessionsView';
 import InfoTip from './components/InfoTip';
 import PrebuildMode from './components/PrebuildMode';
-import ModeSwitcher, { ComingSoonPanel } from './components/ModeSwitcher';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
 
 // Detect Electron
@@ -295,7 +294,7 @@ export default function Home() {
     });
     try {
       const storedMode = localStorage.getItem(APP_MODE_STORAGE_KEY);
-      if (storedMode === 'default' || storedMode === 'prebuild') setAppMode(storedMode);
+      if (['default','prep-manuscript','prebuild','quill'].includes(storedMode)) setAppMode(storedMode);
     } catch {}
     try {
       const stored = localStorage.getItem('ap-audio-upload-mode');
@@ -862,7 +861,8 @@ export default function Home() {
     : [];
 
   function handleAppModeChange(nextMode) {
-    if (nextMode !== 'default' && nextMode !== 'prebuild') return;
+    const allowed = APP_MODES.some((m) => m.id === nextMode);
+    if (!allowed) return;
     setAppMode(nextMode);
     setSettingsOpen(false);
     try {
@@ -914,6 +914,18 @@ export default function Home() {
           <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
         )}
         <PrebuildMode modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />} />
+      </div>
+    );
+  }
+
+  if (appMode === 'prep-manuscript' || appMode === 'quill') {
+    return (
+      <div style={{ minHeight:'100vh', background:'var(--cream)' }}>
+        {usesCustomDragRegion && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
+        )}
+        <AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />
+        <ComingSoonScreen mode={appMode} />
       </div>
     );
   }
@@ -992,12 +1004,23 @@ export default function Home() {
   );
 }
 
+// 4.0 mode taxonomy. Internal IDs stay backwards-compatible with the SaS
+// 3.0 base ('default' = Proof Listen, 'prebuild' = Duet Prep) so existing
+// localStorage values keep working. Two new IDs (prep-manuscript, quill)
+// are added for the future modes.
+export const APP_MODES = [
+  { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#DCE6F0', ink: '#3F5772', enabled: true,  phase: null },
+  { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: false, phase: 6    },
+  { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#F4DCE0', ink: '#834D5C', enabled: true,  phase: null },
+  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#EFE3D4', ink: '#7A5A3B', enabled: false, phase: 8    },
+];
+
 function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
-  const pillButton = (active) => ({
+  const pillButton = (active, m) => ({
     flex: 1,
     border: 'none',
-    background: active ? 'var(--accent)' : 'transparent',
-    color: active ? 'white' : 'var(--text-muted)',
+    background: active ? m.pastel : 'transparent',
+    color: active ? m.ink : (m.enabled ? 'var(--text-muted)' : 'var(--text-light)'),
     fontSize: '0.72rem',
     fontWeight: active ? 700 : 600,
     letterSpacing: '0.04em',
@@ -1005,8 +1028,10 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
     borderRadius: 999,
     padding: '8px 12px',
     cursor: 'pointer',
+    opacity: m.enabled ? 1 : 0.7,
     transition: 'all 0.16s ease',
     WebkitAppRegion: 'no-drag',
+    whiteSpace: 'nowrap',
   });
 
   return (
@@ -1017,7 +1042,6 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
         left: 16,
         zIndex: 1300,
         padding: 5,
-        width: 198,
         borderRadius: 999,
         border: '1px solid var(--accent-border)',
         background: 'rgba(255,255,255,0.92)',
@@ -1027,13 +1051,51 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
       }}
     >
       <div style={{ display:'flex', gap: 4 }}>
-        <button type="button" onClick={() => onChange('default')} style={pillButton(mode === 'default')}>
-          Default
-        </button>
-        <button type="button" onClick={() => onChange('prebuild')} style={pillButton(mode === 'prebuild')}>
-          Duet Audio Prep
-        </button>
+        {APP_MODES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onChange(m.id)}
+            title={m.enabled ? m.label : `${m.label} — Coming in Phase ${m.phase}`}
+            style={pillButton(mode === m.id, m)}
+          >
+            {m.short}
+          </button>
+        ))}
       </div>
+    </div>
+  );
+}
+
+// Pastel "coming in phase X" panel shown when Prep or Quill is selected.
+function ComingSoonScreen({ mode }) {
+  const found = APP_MODES.find((m) => m.id === mode);
+  if (!found) return null;
+  return (
+    <div style={{ maxWidth:640, margin:'0 auto', padding:'5.2rem 1.25rem 4rem' }}>
+      <section
+        style={{
+          padding: '24px 22px',
+          background: found.pastel,
+          border: '1px solid ' + found.ink,
+          borderRadius: 22,
+          color: 'var(--text)',
+        }}
+      >
+        <div style={{ fontSize:'0.74rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:found.ink, marginBottom:6 }}>
+          Coming in Phase {found.phase}
+        </div>
+        <div style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text)', marginBottom:10 }}>
+          {found.label}
+        </div>
+        <div style={{ fontSize:'0.86rem', lineHeight:1.55, color:'var(--text-muted)' }}>
+          {found.id === 'prep-manuscript' && 'Assign dialogue to characters/narrators. Export a highlighted Word doc + narrator chapter list.'}
+          {found.id === 'quill' && 'Add annotations to a manuscript for special-edition print design. Export to InDesign.'}
+        </div>
+        <div style={{ marginTop:14, fontSize:'0.74rem', color:'var(--text-light)' }}>
+          Not built yet. Use Proof Listen or Duet Prep for now.
+        </div>
+      </section>
     </div>
   );
 }
@@ -1353,7 +1415,6 @@ function SettingsCog({
 
 function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport }) {
   const saveLocationText = formatSaveLocation(dataLocation);
-  const [activeMode, setActiveMode] = useState('proof-listen');
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>
       <div style={{ marginBottom:'1.4rem', textAlign:'center' }}>
@@ -1361,9 +1422,6 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
         <div style={{ fontSize:'0.78rem',color:'var(--text-muted)',marginTop:4 }}>Proof Listen · Prep Manuscript · Duet Prep · Quill &amp; Ink</div>
         <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>StJohn Author Studio</h1>
       </div>
-      <ModeSwitcher activeMode={activeMode} onChange={setActiveMode} />
-      {activeMode !== 'proof-listen' && <ComingSoonPanel mode={activeMode} />}
-      {activeMode === 'proof-listen' && (
       <div style={{ display:'grid', gap:14 }}>
         <section style={{ background:'rgba(255,255,255,0.78)', border:'1px solid var(--border)', borderRadius:22, padding:'1rem' }}>
           <button data-tutorial="create-book" onClick={onNew} style={{ display:'block',width:'100%',padding:'14px 18px',background:'var(--accent)',color:'white',border:'none',borderRadius:16,fontSize:'0.96rem',fontWeight:600,cursor:'pointer',textAlign:'left',marginBottom:12 }}
@@ -1404,7 +1462,6 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
           )}
         </section>
       </div>
-      )}
       {isElectron && (
         <div style={{ marginTop:'1.4rem',background:'var(--success-light)',border:'1px solid #d3ddd6',borderRadius:12,padding:'9px 11px',color:'var(--success)' }}>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10 }}>

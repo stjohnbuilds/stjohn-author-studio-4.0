@@ -952,7 +952,9 @@ export default function Home() {
     };
   }, [tutorialActive, tutorialStep, currentTutorialStep, view, settingsOpen, activeBook, tutorialCompletedIds]);
 
-  if (hasSupabaseConfig && !authReady) {
+  const bypassAuth = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
+  if (hasSupabaseConfig && !bypassAuth && !authReady) {
     return (
       <div style={{ minHeight:'100vh', background:'var(--cream)', display:'flex', alignItems:'center', justifyContent:'center' }}>
         {usesCustomDragRegion && (
@@ -963,7 +965,7 @@ export default function Home() {
     );
   }
 
-  if (hasSupabaseConfig && !authSession) {
+  if (hasSupabaseConfig && !bypassAuth && !authSession) {
     return (
       <LoginScreen
         onSignedIn={(session) => setAuthSession(session)}

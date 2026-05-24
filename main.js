@@ -212,6 +212,7 @@ function getPrimaryDataDir() {
 const primaryDataPath = () => path.join(getPrimaryDataDir(), 'books.json');
 const prebuildDataPath = () => path.join(getPrimaryDataDir(), 'prebuild-projects.json');
 const prepDataPath = () => path.join(getPrimaryDataDir(), 'prep-manuscript-projects.json');
+const quillDataPath = () => path.join(getPrimaryDataDir(), 'quill-projects.json');
 
 const mirrorDataPath = () =>
   isDev

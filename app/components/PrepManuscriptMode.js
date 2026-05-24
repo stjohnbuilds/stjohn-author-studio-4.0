@@ -918,7 +918,7 @@ function BookDetailView({
                     {c.scanning ? 'scanning…' : `${c.assigned}/${c.total}`}
                   </div>
                   <div style={{ width: 80, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-                    <div style={{ width: `${p}%`, height: '100%', background: PREP_INK, transition: 'width 0.2s' }} />
+                    <div style={{ width: `${p}%`, height: '100%', background: PREP_ACCENT, transition: 'width 0.2s' }} />
                   </div>
                 </>
               );

@@ -1,12 +1,20 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import PrebuildManuscriptUpload, {
+// Shared upload + chapter picker. Same component every mode uses, so a
+// fix to the chapter-checkbox list lands everywhere at once.
+import ImportFlow, { parseChaptersFromHtml } from './ImportFlow';
+import {
   STYLE_MAP,
   convertShadingToHighlight,
   applyHexColors,
-  parseStructure as parseChapters,
-  countWordsInHtml as countWords,
-} from './PrebuildManuscriptUpload';
+} from './ManuscriptSetup';
+
+function parseChapters(html, chapterTag) {
+  // Duet always splits chapters on sub-headings — that's how engineers
+  // mark the multi-part rows the audio gets aligned against.
+  const level = Math.max(1, Math.min(6, Number(String(chapterTag).replace(/[^0-9]/g, '')) || 1));
+  return parseChaptersFromHtml(html, level, true);
+}
 
 const el = () => typeof window !== 'undefined' && window.electron;
 const PREBUILD_STORAGE_KEY = 'ap-prebuild-projects';

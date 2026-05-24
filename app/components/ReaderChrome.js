@@ -139,28 +139,27 @@ export function pillBtnStyle(tone = 'prep') {
 // screens. Leaves room on the left for the Home pill.
 // ---------------------------------------------------------------------------
 
-export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad = 16, children }) {
-  // Title is absolutely positioned at 50% of the viewport so it stays
-  // truly centered no matter how wide the right-side controls are
-  // (Marie noticed the reader title sat off-centre while the home title
-  // looked right — that was the grid's middle column shrinking).
-  // WebkitAppRegion: 'no-drag' opts the whole bar out of Electron's
-  // draggable title-strip, so the Back button keeps registering clicks
-  // even when the user has scrolled — the top 38px drag region was
-  // eating clicks on the back button after scroll.
+export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', usesCustomDragRegion = false, children }) {
+  // The bar sticks DOWN to the same vertical level the home-view's
+  // 4-mode pill sits at, so the eye sees one continuous nav row.
+  // top:40 leaves room for the macOS traffic-light buttons + the
+  // custom drag region; without that the back button hid under the
+  // window's red/yellow/green dots (Marie's complaint).
+  // Left padding leaves room for the HomeBackPill that floats at
+  // left:16 — they share the same row so the pill looks built-in.
+  const topOffset = usesCustomDragRegion ? 40 : 16;
   return (
     <div style={{
-      position: 'sticky', top: 0, zIndex: 1400,
+      position: 'sticky', top: topOffset, zIndex: 1400,
       background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-light)',
-      padding: `10px 16px 10px ${leftPad}px`,
+      padding: '10px 16px 10px 92px',
       display: 'flex',
       alignItems: 'center',
       gap: 10,
       minHeight: 54,
       WebkitAppRegion: 'no-drag',
     }}>
-      <button type="button" onClick={onBack} style={{ ...topBtnStyle(tone, 'ghost'), WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 2 }}>← Back</button>
       <div style={{
         position: 'absolute',
         left: '50%', top: '50%',
@@ -178,6 +177,51 @@ export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad =
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 2, WebkitAppRegion: 'no-drag' }}>
         {children}
       </div>
+    </div>
+  );
+}
+
+// HomeBackPill — the single nav pill on the top-left that morphs based
+// on where you are. On home view we don't render it (the 4-mode toggle
+// occupies the same spot). Inside a project it shows ⌂ and goes home.
+// Inside the reader it shows ← and goes back to the book detail. Marie
+// wanted the *same container* — same position, same shape — between
+// these states so the UI doesn't appear to jump when you navigate.
+export function HomeBackPill({ icon = '⌂', onClick, usesCustomDragRegion = false, tone = 'prep' }) {
+  const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
+  return (
+    <div style={{
+      position: 'fixed',
+      top: usesCustomDragRegion ? 40 : 16,
+      left: 16,
+      zIndex: 1500,
+      padding: 5,
+      borderRadius: 999,
+      border: '1px solid var(--accent-border)',
+      background: 'rgba(255,255,255,0.92)',
+      boxShadow: '0 10px 26px var(--accent-shadow)',
+      backdropFilter: 'blur(12px)',
+      WebkitAppRegion: 'no-drag',
+    }}>
+      <button
+        type="button"
+        onClick={onClick}
+        title={icon === '⌂' ? 'Back to your projects' : 'Back to the book'}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          padding: '8px 16px',
+          borderRadius: 999,
+          cursor: 'pointer',
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: token.ink,
+          lineHeight: 1,
+          WebkitAppRegion: 'no-drag',
+        }}
+      >
+        {icon}
+      </button>
     </div>
   );
 }

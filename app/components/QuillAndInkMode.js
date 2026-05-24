@@ -875,9 +875,9 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   // -- render content -------------------------------------------------------
 
   const renderedContent = useMemo(
-    () => renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, draggingRef, onWordPointerDown, onWordPointerEnter, onSelectionPlusClick: openPopover, editingAnnotationId, popoverOpen, popoverPos }),
+    () => renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, onWordPointerDown, onWordPointerEnter }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chapter?.id, chapter?.textHtml, selectedRange?.start, selectedRange?.end, wordToAnnotation, editingAnnotationId, popoverOpen, popoverPos]
+    [chapter?.id, chapter?.textHtml, selectedRange?.start, selectedRange?.end, wordToAnnotation]
   );
 
   if (!chapter) {

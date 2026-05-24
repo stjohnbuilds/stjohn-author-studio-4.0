@@ -120,7 +120,9 @@ export function topBtnStyle(tone = 'prep', variant = 'outline') {
   };
   if (variant === 'ghost') return { ...base, background: 'transparent', border: '1px solid transparent', color: 'var(--text-muted)' };
   if (variant === 'danger') return { ...base, background: 'white', border: '1px solid var(--danger)', color: 'var(--danger)' };
-  if (variant === 'solid') return { ...base, background: token.ink, border: '1px solid ' + token.ink, color: 'white' };
+  // Solid buttons use the mid-tone accent, not the dark ink — softer
+  // pastel feel, still high enough contrast against white text.
+  if (variant === 'solid') return { ...base, background: token.accent || token.ink, border: '1px solid ' + (token.accent || token.ink), color: 'white' };
   return { ...base, background: 'white', border: '1px solid ' + token.ink, color: token.ink };
 }
 

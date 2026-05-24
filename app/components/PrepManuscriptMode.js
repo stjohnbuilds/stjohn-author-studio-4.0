@@ -624,91 +624,10 @@ function currentSpanFor(project, chapterIndex, selected) {
 }
 
 // ===========================================================================
-// Setup view — after import, before scanning. Let Marie rename the
-// project and check/uncheck which chapters to include.
-// ===========================================================================
-
-function SetupView({ pending, onCancel, onConfirm }) {
-  const allChapters = pending.previewShell.chapters;
-  const [name, setName] = useState(pending.projectName || '');
-  const [included, setIncluded] = useState(() => new Set(allChapters.map((c) => c.id)));
-
-  function toggle(id) {
-    setIncluded((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-  function allOn() { setIncluded(new Set(allChapters.map((c) => c.id))); }
-  function allOff() { setIncluded(new Set()); }
-
-  return (
-    <>
-      <StickyTopBar
-        onBack={onCancel}
-        title="New prep project"
-        subtitle={`${pending.fileName} · ${allChapters.length} chapters detected`}
-      >
-        <button type="button" onClick={onCancel} style={topBtnStyle(TONE, 'ghost')}>Cancel</button>
-        <button type="button" disabled={!name.trim() || included.size === 0}
-          onClick={() => onConfirm({ projectName: name.trim(), includedChapterIds: included })}
-          style={{ ...topBtnStyle(TONE, 'solid'), opacity: name.trim() && included.size > 0 ? 1 : 0.5, cursor: name.trim() && included.size > 0 ? 'pointer' : 'not-allowed' }}>
-          Save &amp; scan
-        </button>
-      </StickyTopBar>
-
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 24px 60px' }}>
-        <label style={{ display: 'block', marginBottom: 16 }}>
-          <div style={sectionHeading()}>Project name</div>
-          <input
-            type="text"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Project name"
-            style={{ width: '100%', padding: '10px 12px', fontSize: '0.95rem', fontWeight: 600, borderRadius: 10, border: '1px solid var(--border)', background: 'white' }}
-          />
-        </label>
-
-        <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={sectionHeading()}>Chapters to include</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" onClick={allOn} style={pillBtnStyle(TONE)}>All on</button>
-            <button type="button" onClick={allOff} style={pillBtnStyle(TONE)}>All off</button>
-          </div>
-        </div>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 10 }}>
-          Uncheck any front-matter or extras you don&apos;t need to tag.
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: '60vh', overflowY: 'auto', padding: 4 }}>
-          {allChapters.map((ch) => {
-            const wordCount = (ch.sections || []).reduce((n, s) => n + (stripTags(s.html || '').split(/\s+/).filter(Boolean).length), 0);
-            const on = included.has(ch.id);
-            return (
-              <label key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: on ? 'white' : '#f6f3ef', border: '1px solid ' + (on ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 10, cursor: 'pointer' }}>
-                <input type="checkbox" checked={on} onChange={() => toggle(ch.id)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: on ? 'var(--text)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {ch.title || `Chapter ${ch.chapterIndex + 1}`}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>{wordCount.toLocaleString()} words</div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ===========================================================================
 // Home view — project library
 // ===========================================================================
 
-function HomeView({ allProjects, onOpenProject, onDelete, onImport, loading, progress, error }) {
+function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }) {
   const sorted = [...allProjects].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   return (
     <div style={{ maxWidth: HOME_CONTAINER, margin: '0 auto', padding: '4.7rem 1.25rem 4.25rem' }}>

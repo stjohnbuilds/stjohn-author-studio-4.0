@@ -74,11 +74,25 @@ function snippet(text = '', max = 70) {
   return t.slice(0, max - 1).trim() + '…';
 }
 
-function buildProjectFromImport(file, html) {
-  const chapters = splitHtmlIntoChapters(html).map((part, ci) => {
-    const detect = detectDialogueSpansInHtml(part.html) || {};
-    const rawSpans = Array.isArray(detect.dialogueSpans) ? detect.dialogueSpans : (Array.isArray(detect) ? detect : []);
-    return {
+async function buildProjectFromImport(file, html, onProgress) {
+  const parts = splitHtmlIntoChapters(html);
+  const total = parts.length;
+  const chapters = [];
+  for (let ci = 0; ci < total; ci++) {
+    const part = parts[ci];
+    if (onProgress) onProgress(ci + 1, total, part.title || `Chapter ${ci + 1}`);
+    // Yield to the UI so the spinner can repaint and we don't freeze
+    // the renderer on a big book.
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setTimeout(r, 0));
+    let rawSpans = [];
+    try {
+      const detect = detectDialogueSpansInHtml(part.html) || {};
+      rawSpans = Array.isArray(detect.dialogueSpans) ? detect.dialogueSpans : (Array.isArray(detect) ? detect : []);
+    } catch {
+      rawSpans = [];
+    }
+    chapters.push({
       title: part.title || `Chapter ${ci + 1}`,
       spans: rawSpans.map((s, si) => ({
         id: `span-${ci}-${si}`,
@@ -87,8 +101,8 @@ function buildProjectFromImport(file, html) {
         characterId: null,
         narratorOverride: '',
       })),
-    };
-  });
+    });
+  }
   return {
     id: uid('prep'),
     title: file.name.replace(/\.docx$/i, ''),
@@ -135,6 +149,7 @@ function nextPaletteColor(usedHexes = []) {
 export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion }) {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const saveTimerRef = useRef(null);
@@ -197,14 +212,22 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     if (!file) return;
     setLoading(true);
     setError('');
+    setProgress('Reading file…');
     try {
       const mammoth = (await import('mammoth')).default;
+      setProgress('Parsing manuscript…');
       const ab = await file.arrayBuffer();
       const result = await mammoth.convertToHtml({ arrayBuffer: ab });
-      const fresh = buildProjectFromImport(file, result.value || '');
+      setProgress('Scanning chapters…');
+      const fresh = await buildProjectFromImport(file, result.value || '', (cur, total, title) => {
+        setProgress(`Reading chapter ${cur} of ${total}${title ? ' — ' + title : ''}…`);
+      });
       setProject((prev) => mergeReimportPreservingAssignments(prev, fresh));
+      setProgress('');
     } catch (err) {
+      console.error('Prep import failed:', err);
       setError(err?.message || 'Could not read this manuscript.');
+      setProgress('');
     } finally {
       setLoading(false);
     }
@@ -292,7 +315,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         </header>
 
         {!project && (
-          <ImportEmptyState onPick={handleFile} loading={loading} error={error} />
+          <ImportEmptyState onPick={handleFile} loading={loading} progress={progress} error={error} />
         )}
 
         {project && (
@@ -340,7 +363,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   );
 }
 
-function ImportEmptyState({ onPick, loading, error }) {
+function ImportEmptyState({ onPick, loading, progress, error }) {
   return (
     <section
       style={{
@@ -369,7 +392,7 @@ function ImportEmptyState({ onPick, loading, error }) {
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? 'Reading…' : 'Import manuscript (.docx)'}
+        {loading ? (progress || 'Reading…') : 'Import manuscript (.docx)'}
         <input
           type="file"
           accept=".docx"
@@ -378,6 +401,9 @@ function ImportEmptyState({ onPick, loading, error }) {
           style={{ display: 'none' }}
         />
       </label>
+      {loading && progress && (
+        <div style={{ marginTop: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{progress}</div>
+      )}
       {error && (
         <div style={{ marginTop: 14, fontSize: '0.78rem', color: 'var(--danger)' }}>{error}</div>
       )}

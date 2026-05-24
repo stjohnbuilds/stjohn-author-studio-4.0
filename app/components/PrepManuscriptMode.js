@@ -830,7 +830,36 @@ function BookDetailView({
         </section>
 
         <section>
-          <h3 style={sectionHeading()}>Chapters</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <h3 style={{ ...sectionHeading(), margin: 0 }}>Chapters</h3>
+            {onRemoveChapter && (
+              <button
+                type="button"
+                onClick={() => setEditingChapters((v) => !v)}
+                title={editingChapters ? 'Done editing' : 'Edit chapter list'}
+                style={{
+                  background: editingChapters ? PREP_INK : 'white',
+                  color: editingChapters ? 'white' : PREP_INK,
+                  border: '1px solid ' + PREP_INK + '55',
+                  borderRadius: 999,
+                  padding: '4px 10px',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                {editingChapters ? 'Done' : '⚙ Edit'}
+              </button>
+            )}
+          </div>
+          {editingChapters && (
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 8 }}>
+              Tap the trash to remove a chapter you didn&apos;t mean to include. To add a chapter back, re-import the manuscript.
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {project.chapters.map((ch, i) => {
               const c = chapterCounts(ch);
@@ -838,9 +867,9 @@ function BookDetailView({
               const navPos = ch.chapterNumber || (i + 1);
               const sourceTitle = ch.title || '';
               const showSource = sourceTitle && sourceTitle.toLowerCase() !== `chapter ${navPos}`.toLowerCase();
-              return (
-                <button key={ch.id} type="button" onClick={() => onOpenChapter(ch.chapterIndex)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
+              const rowStyle = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'left' };
+              const inner = (
+                <>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Chapter {navPos}{showSource ? <span style={{ color: 'var(--text-light)', fontWeight: 400, marginLeft: 8 }}>· {sourceTitle}</span> : null}
@@ -857,6 +886,27 @@ function BookDetailView({
                   <div style={{ width: 80, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 999, overflow: 'hidden' }}>
                     <div style={{ width: `${p}%`, height: '100%', background: PREP_INK, transition: 'width 0.2s' }} />
                   </div>
+                </>
+              );
+              if (editingChapters) {
+                return (
+                  <div key={ch.id} style={rowStyle}>
+                    {inner}
+                    <TrashButton
+                      onClick={() => {
+                        if (window.confirm(`Remove Chapter ${navPos}${showSource ? ` (${sourceTitle})` : ''}? You can re-import to add it back.`)) {
+                          onRemoveChapter(ch.chapterIndex);
+                        }
+                      }}
+                      title="Remove this chapter from the project"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <button key={ch.id} type="button" onClick={() => onOpenChapter(ch.chapterIndex)}
+                  style={{ ...rowStyle, cursor: 'pointer' }}>
+                  {inner}
                   <span style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>›</span>
                 </button>
               );

@@ -188,18 +188,89 @@ export function detectDialogueSpansInText(text = '') {
   };
 }
 
+// Default: a quote is "orphaned" only when no other quote mark shows up
+// within this many paragraphs after it. Below that we trust the writer —
+// short missing closes within the same paragraph are usually intentional
+// (apostrophes, scare-quotes inside a longer block, etc.) and Marie
+// explicitly does not want them flagged.
+const DEFAULT_MAX_PARAGRAPH_GAP = 3;
+
+// Walk every quote mark in document order and pair them up. Any open
+// quote whose pair is more than `maxParagraphGap` paragraphs away — or
+// has no pair at all — is what Marie wants flagged. Everything else
+// (tiny spans, headings that contain quotes, nested dialogue) is silent.
+function findOrphanedOpens(blocks, wordOffsets, maxParagraphGap) {
+  const marks = [];
+  blocks.forEach((block, blockIndex) => {
+    const blockText = stripHtml(block.html || block.text || '');
+    const cleaned = cleanText(blockText);
+    const blockMarks = collectDialogueQuoteMarks(cleaned);
+    blockMarks.forEach((mark) => {
+      marks.push({ ...mark, blockIndex, blockText: cleaned });
+    });
+  });
+
+  const issues = [];
+  const stack = [];
+
+  for (const mark of marks) {
+    if (mark.kind === 'open') {
+      stack.push(mark);
+      continue;
+    }
+    if (mark.kind === 'close') {
+      if (stack.length === 0) continue;   // orphan close — quiet
+      const open = stack.pop();
+      const gap = mark.blockIndex - open.blockIndex;
+      if (gap > maxParagraphGap) {
+        issues.push(orphanIssue(open, wordOffsets[open.blockIndex] || 0));
+      }
+      continue;
+    }
+    // straight quote — pair with last open if any, else open
+    if (stack.length > 0) {
+      const open = stack.pop();
+      const gap = mark.blockIndex - open.blockIndex;
+      if (gap > maxParagraphGap) {
+        issues.push(orphanIssue(open, wordOffsets[open.blockIndex] || 0));
+      }
+    } else {
+      stack.push(mark);
+    }
+  }
+
+  // Anything still open at the end has no closer at all.
+  for (const open of stack) {
+    issues.push(orphanIssue(open, wordOffsets[open.blockIndex] || 0));
+  }
+
+  return issues;
+}
+
+function orphanIssue(openMark, wordOffsetAtBlock) {
+  return makeIssue({
+    type: 'missing-closing-quote',
+    message: 'A quote opened here is never closed within the next few paragraphs. Insert the missing close quote where it should be.',
+    quoteIndex: openMark.index,
+    wordStartIndex: wordOffsetAtBlock,
+    wordEndIndex: wordOffsetAtBlock,
+    severity: 'warning',
+    blocking: false
+  });
+}
+
 export function detectDialogueSpansInHtml(html = '', options = {}) {
   const blocks = parseHtmlBlocks(html);
   const dialogueSpans = [];
-  const issues = [];
   let totalQuoteMarks = 0;
   let wordOffset = 0;
+  const wordOffsets = [];
 
   for (const block of blocks) {
+    wordOffsets.push(wordOffset);
     const blockText = stripHtml(block.html || block.text || '');
-    const result = detectDialogueSpansInText(blockText, options);
+    const result = detectDialogueSpansInText(blockText);
     const blockWordCount = displayWordsFromText(blockText).length;
-    const isReviewContext = REVIEW_CONTEXT_TAGS.has(block.tag);
 
     totalQuoteMarks += result.totalQuoteMarks;
 
@@ -212,27 +283,11 @@ export function detectDialogueSpansInHtml(html = '', options = {}) {
       });
     }
 
-    for (const issue of result.issues) {
-      issues.push({
-        ...issue,
-        wordStartIndex: issue.wordStartIndex + wordOffset,
-        wordEndIndex: issue.wordEndIndex + wordOffset,
-        sourceTag: block.tag
-      });
-    }
-
-    if (isReviewContext && result.totalQuoteMarks > 0) {
-      issues.push(makeIssue({
-        type: 'quote-context-review',
-        message: 'Review quote marks in a heading, epigraph, or quoted block before assigning dialogue.',
-        wordStartIndex: wordOffset,
-        wordEndIndex: Math.max(wordOffset, wordOffset + blockWordCount - 1),
-        blocking: false
-      }));
-    }
-
     wordOffset += blockWordCount;
   }
+
+  const maxParagraphGap = Number(options.maxParagraphGap || DEFAULT_MAX_PARAGRAPH_GAP);
+  const issues = findOrphanedOpens(blocks, wordOffsets, maxParagraphGap);
 
   return {
     totalQuoteMarks,

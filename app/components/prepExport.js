@@ -190,30 +190,38 @@ function buildNarratorBreakdown(project = {}) {
   }));
 }
 
+// Inline-styled run/paragraph helpers so the narrator breakdown renders
+// the same when we inject it into the user's original .docx — that doc's
+// styles.xml may not define Heading1/Heading2, so we set the bold +
+// centering + size directly on each run/paragraph.
+function centeredBoldParagraph(text, halfPtSize) {
+  const rPr = `<w:rPr><w:b/><w:sz w:val="${halfPtSize}"/><w:szCs w:val="${halfPtSize}"/></w:rPr>`;
+  return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="240" w:after="120"/></w:pPr><w:r>${rPr}<w:t xml:space="preserve">${xml(text)}</w:t></w:r></w:p>`;
+}
+function labeledParagraph(label, body) {
+  const bold = `<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${xml(label)}</w:t></w:r>`;
+  const rest = `<w:r><w:t xml:space="preserve">${xml(body)}</w:t></w:r>`;
+  return `<w:p>${bold}${rest}</w:p>`;
+}
+
 function narratorBreakdownXml(project = {}) {
   const breakdown = buildNarratorBreakdown(project);
   if (!breakdown.length) return '';
-  const heading = headingParagraph('Narrator breakdown', 'Heading1');
+  const heading = centeredBoldParagraph('Narrator breakdown', 36); // 18pt
   const blocks = breakdown.map((entry) => {
-    const lines = [
-      paragraph(textRun(entry.narrator || '(no narrator assigned)') + textRun(':', '')),
-      // (narrator name as a Heading2)
-    ];
-    // Replace the first line with a proper Heading2 so it stands out.
-    lines.length = 0;
-    lines.push(headingParagraph(entry.narrator || '(no narrator assigned)', 'Heading2'));
-    lines.push(paragraph(textRun('Characters: ') + textRun(entry.characters.length ? entry.characters.join(', ') : '—')));
+    const lines = [];
+    lines.push(centeredBoldParagraph(entry.narrator || '(no narrator assigned)', 28)); // 14pt
+    lines.push(labeledParagraph('Characters: ', entry.characters.length ? entry.characters.join(', ') : '—'));
     if (entry.sideVoices.length) {
       const svText = entry.sideVoices.map((sv) => `${sv.sideName} (side voice of ${sv.characterName})`).join('; ');
-      lines.push(paragraph(textRun('Side characters: ') + textRun(svText)));
+      lines.push(labeledParagraph('Side characters: ', svText));
     } else {
-      lines.push(paragraph(textRun('Side characters: ') + textRun('—')));
+      lines.push(labeledParagraph('Side characters: ', '—'));
     }
-    lines.push(paragraph(textRun('Chapters: ') + textRun(entry.chapters.length ? entry.chapters.join(', ') : '—')));
+    lines.push(labeledParagraph('Chapters: ', entry.chapters.length ? entry.chapters.join(', ') : '—'));
     lines.push(paragraph(textRun(' ')));
     return lines.join('');
   }).join('');
-  // Page break after the breakdown so the chapter text starts fresh.
   const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
   return heading + blocks + pageBreak;
 }

@@ -454,7 +454,6 @@ function QuillBookDetail({ project, saveStatus, onOpenChapter, onDelete, onReimp
         <button onClick={onExportAll} style={topBtnStyle('quill', 'solid')}>Export CSV + InDesign</button>
         <button onClick={onExportCsv} style={topBtnStyle('quill', 'outline')}>CSV only</button>
         <button onClick={onExportJsx} style={topBtnStyle('quill', 'outline')}>InDesign .jsx only</button>
-        <button onClick={onReimport} style={topBtnStyle('quill', 'ghost')}>Re-import .docx</button>
       </div>
 
       <section style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid var(--border)', borderRadius: 22, padding: '1rem', marginBottom: 14 }}>

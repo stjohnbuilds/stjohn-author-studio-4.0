@@ -520,6 +520,39 @@ async function buildOriginalPlusHighlights(project) {
   });
 }
 
+// If the source .docx already contains a "Narrator breakdown" block we
+// previously injected (Marie ran an earlier export, then re-imported
+// the result), remove it before adding a new one. Otherwise breakdowns
+// pile up on top of each other every time she re-exports.
+function stripPreviousNarratorBreakdown(documentXml) {
+  const marker = 'Narrator breakdown';
+  // Only scan the head of the document so we don't accidentally match
+  // real prose deep in the book that happens to contain those words.
+  const SCAN_LIMIT = 80_000;
+  const head = documentXml.slice(0, Math.min(documentXml.length, SCAN_LIMIT));
+  const markerIdx = head.indexOf(marker);
+  if (markerIdx === -1) return documentXml;
+
+  // Walk back to the start of the paragraph that contains the marker.
+  const before = documentXml.slice(0, markerIdx);
+  const pStart = before.lastIndexOf('<w:p');
+  if (pStart === -1) return documentXml;
+
+  // Walk forward to the end of the paragraph that contains our page
+  // break. The breakdown block always ends with a page-break paragraph.
+  const after = documentXml.slice(markerIdx);
+  const pageBreakMatch = after.match(/<w:br[^>]*\bw:type=["']page["'][^>]*\/?>/);
+  if (!pageBreakMatch) return documentXml;
+  const pageBreakAbsoluteIdx = markerIdx + pageBreakMatch.index;
+  // Find the closing </w:p> after the page-break tag.
+  const afterPB = documentXml.slice(pageBreakAbsoluteIdx);
+  const closeMatch = afterPB.match(/<\/w:p>/);
+  if (!closeMatch) return documentXml;
+  const removeEnd = pageBreakAbsoluteIdx + closeMatch.index + closeMatch[0].length;
+
+  return documentXml.slice(0, pStart) + documentXml.slice(removeEnd);
+}
+
 function base64ToUint8(b64) {
   const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
   const out = new Uint8Array(binary.length);

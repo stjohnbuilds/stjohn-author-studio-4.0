@@ -511,7 +511,14 @@ async function buildOriginalPlusHighlights(project) {
   //    followed (somewhere shortly after) by our page break.
   documentXml = stripPreviousNarratorBreakdown(documentXml);
 
-  // 2) Inject the fresh narrator-breakdown at the very top of <w:body>.
+  // 2) Replay any in-app paragraph edits Marie made via the Fix button
+  //    (e.g. inserting a missing close quote). Without this the export
+  //    still has the original missing quote. Done BEFORE the breakdown
+  //    is injected and BEFORE highlights, so the paragraph text matches
+  //    the dialogue spans the engine detected against the edited text.
+  documentXml = applyManualEdits(documentXml, project);
+
+  // 3) Inject the fresh narrator-breakdown at the very top of <w:body>.
   const breakdown = narratorBreakdownXml(project);
   if (breakdown) {
     documentXml = documentXml.replace('<w:body>', '<w:body>' + breakdown);

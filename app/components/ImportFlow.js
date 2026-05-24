@@ -312,6 +312,15 @@ export default function ImportFlow({
   function toggleFirst(id) {
     setChapters((cs) => cs.map((c) => ({ ...c, isFirst: c.id === id ? !c.isFirst : c.isFirst })));
   }
+  function toggleSubIncluded(chapterId, subId) {
+    setChapters((cs) => cs.map((c) => {
+      if (c.id !== chapterId) return c;
+      return {
+        ...c,
+        subSections: (c.subSections || []).map((s) => (s.id === subId ? { ...s, included: !s.included } : s)),
+      };
+    }));
+  }
 
   const totalSelected = chapters.filter((c) => c.included).length;
   const allOn = chapters.length > 0 && chapters.every((c) => c.included);
@@ -329,8 +338,15 @@ export default function ImportFlow({
       .map((c, i, arr) => {
         if (i === 0 || c.isFirst) chapterNumber = 1;
         else chapterNumber += 1;
+        // If the user is reviewing sub-headings and excluded any, rebuild
+        // the chapter's html from only the included sub-sections.
+        let html = c.html;
+        if (showSubs && (c.subSections || []).length > 0) {
+          html = c.subSections.filter((s) => s.included).map((s) => s.html).join('');
+        }
         return {
           ...c,
+          html,
           chapterIndex: i,
           chapterNumber,
         };

@@ -1047,6 +1047,13 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   );
 }
 
+function clampPopoverLeft(left, width) {
+  if (typeof window === 'undefined') return Math.max(12, left);
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 800;
+  const maxLeft = Math.max(12, viewportWidth - width - 12);
+  return Math.max(12, Math.min(left, maxLeft));
+}
+
 function miniCircleBtn(color) {
   return {
     width: 26,

@@ -37,6 +37,12 @@ import {
   buildAnnotationsCsv,
   buildInDesignJsx,
 } from '../../packages/quill-engine';
+import {
+  getSupabaseClient,
+  pushQuillProject,
+  pullQuillProjects,
+  deleteQuillProject,
+} from '../../packages/cloud-sync';
 
 const QUILL = MODE_TOKENS.quill;
 const STORAGE_KEY = 'quill-projects-v1';

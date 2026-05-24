@@ -939,11 +939,13 @@ function ReaderView({
             <SectionBody
               key={sec.id}
               section={sec}
+              chapterIndex={activeChapterIndex}
               charactersById={new Map((project.characters || []).map((c) => [c.id, c]))}
               selected={selected}
               onSelectDialogue={(sectionIndex, spanIndex) => setSelected({ sectionIndex, spanIndex })}
               dialogueRefs={dialogueRefs}
               onDialogueButtonMounted={onDialogueButtonMounted}
+              onUpdateSectionHtml={onUpdateSectionHtml}
             />
           ))}
         </div>

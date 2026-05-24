@@ -32,3 +32,4 @@ Save Data/
 # Claude Code hooks (per Marie's bible Step 2.5)
 .claude/hook-activity.log
 .claude/edit-log.txt
+.claude/blocked-edits.log

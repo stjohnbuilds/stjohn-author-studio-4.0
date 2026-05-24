@@ -74,6 +74,18 @@ function uid(prefix = 'id') {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36).slice(-3)}`;
 }
 function stripTags(s = '') { return String(s).replace(/<[^>]*>/g, ''); }
+
+// Browser-safe ArrayBuffer → base64. Chunked so a 1MB+ .docx doesn't
+// blow the call stack with String.fromCharCode(...bytes).
+async function arrayBufferToBase64(ab) {
+  const bytes = new Uint8Array(ab);
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
+}
 function nextPaletteColor(usedHexes = []) {
   const used = new Set(usedHexes);
   return CHARACTER_PALETTE.find((c) => !used.has(c)) || CHARACTER_PALETTE[usedHexes.length % CHARACTER_PALETTE.length];
@@ -120,6 +132,17 @@ function paragraphsFromHtml(html = '') {
   return blocks;
 }
 
+// Only the warnings Marie actually wants to see (orphan / missing /
+// uneven quotes + multi-paragraph dialogue). The "tiny/long/empty
+// dialogue span" warnings and the soft "quote-context-review" are
+// noise for her workflow and were explicitly asked to be removed.
+const MEANINGFUL_ISSUE_TYPES = new Set([
+  'missing-closing-quote',
+  'closing-quote-without-opening',
+  'uneven-quotes',
+  'nested-or-multi-paragraph-dialogue',
+]);
+
 function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
   let raw = [];
   let issues = [];
@@ -128,7 +151,7 @@ function detectSectionSpans(sectionHtml = '', chapterIdx = 0, sectionIdx = 0) {
   try {
     const result = detectDialogueSpansInHtml(sectionHtml) || {};
     raw = Array.isArray(result.dialogueSpans) ? result.dialogueSpans : (Array.isArray(result) ? result : []);
-    issues = Array.isArray(result.issues) ? result.issues : [];
+    issues = (Array.isArray(result.issues) ? result.issues : []).filter((iss) => MEANINGFUL_ISSUE_TYPES.has(iss.type));
     totalQuoteMarks = Number(result.totalQuoteMarks || 0);
     quoteMarksEven = result.quoteMarksEven !== false;
   } catch {
@@ -310,12 +333,18 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       const structure = applyChapterNumbers(parseManuscriptStructure(html, { chapterLevel: 1 }));
       // Pre-shell so the setup screen can show counts + chapter list.
       const previewShell = buildShellFromStructure(file, structure);
+      // Stash the ORIGINAL .docx bytes (as base64 so they survive
+      // JSON persistence). The export reuses these to emit the user's
+      // exact document with just dialogue highlights added, instead of
+      // rebuilding the file from our HTML view.
+      const base64 = await arrayBufferToBase64(ab);
       setPendingImport({
         fileName: file.name,
         projectName: file.name.replace(/\.docx$/i, ''),
         structure,
         previewShell,
         includedChapterIds: new Set(previewShell.chapters.map((c) => c.id)),
+        sourceDocxBase64: base64,
       });
       setView('setup');
       setProgress(null);
@@ -337,7 +366,12 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     const trimmedChapters = baseShell.chapters
       .filter((c) => includedSet.has(c.id))
       .map((c, i) => ({ ...c, chapterIndex: i, chapterNumber: i + 1 }));
-    const shell = { ...baseShell, title: projectName.trim() || baseShell.title, chapters: trimmedChapters };
+    const shell = {
+      ...baseShell,
+      title: projectName.trim() || baseShell.title,
+      chapters: trimmedChapters,
+      sourceDocxBase64: pendingImport.sourceDocxBase64 || '',
+    };
     setAllProjects((all) => [...all, shell]);
     setActiveProjectId(shell.id);
     setPendingImport(null);
@@ -898,37 +932,44 @@ function ReaderView({
 }) {
   const chapter = project.chapters.find((c) => c.chapterIndex === activeChapterIndex) || project.chapters[0];
   const dialogueRefs = useRef({});
-  const [scrollTick, setScrollTick] = useState(0);
-  const requestScroll = useCallback(() => setScrollTick((t) => t + 1), []);
+  // pendingScrollKey is the refKey ("sectionIdx|spanIdx") we want to
+  // bring into view next. The button itself triggers the scroll in
+  // its ref callback the moment it's in the DOM — no polling needed.
+  // The useEffect below handles the "already mounted" case (in-chapter
+  // navigation).
+  const [pendingScrollKey, setPendingScrollKey] = useState(null);
+  const requestScroll = useCallback((key) => setPendingScrollKey(key), []);
 
-  // When the chapter itself changes, jump scroll position to the top
-  // of the page so the user sees they're in a new chapter. The polled
-  // scroll-to-selected-dialogue then runs on top of that.
+  // Already-mounted case: if the target button exists right now, scroll
+  // immediately on the next frame.
+  useEffect(() => {
+    if (!pendingScrollKey) return undefined;
+    const node = dialogueRefs.current[pendingScrollKey];
+    if (!node) return undefined;   // not mounted yet; ref callback will handle
+    const id = requestAnimationFrame(() => {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setPendingScrollKey(null);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pendingScrollKey]);
+
+  // When the chapter changes (cross-chapter hop or dropdown jump),
+  // snap to top so the user sees the new chapter starting fresh.
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
   }, [activeChapterIndex]);
 
-  // Scroll the currently selected dialogue into view whenever someone
-  // requests it (Next / Prev / chapter change). Polls the refs map a
-  // few times because the new chapter may not have mounted yet when
-  // the tick fires.
-  useEffect(() => {
-    if (scrollTick === 0) return undefined;
-    let cancelled = false;
-    let attempts = 0;
-    function tryScroll() {
-      if (cancelled) return;
-      attempts += 1;
-      const key = `${selected.sectionIndex}|${selected.spanIndex}`;
-      const node = dialogueRefs.current[key];
-      if (node) { node.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-      // The new chapter's dialogue buttons may not have mounted yet
-      // after a cross-chapter hop. Poll for up to ~1 second.
-      if (attempts < 20) setTimeout(tryScroll, 50);
+  // Expose a callback the button's ref callback can call when it mounts
+  // and matches the pending key.
+  const onDialogueButtonMounted = useCallback((key, el) => {
+    if (!el) return;
+    if (pendingScrollKey === key) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setPendingScrollKey(null);
+      });
     }
-    tryScroll();
-    return () => { cancelled = true; };
-  }, [scrollTick, selected, activeChapterIndex]);
+  }, [pendingScrollKey]);
 
   // flat dialogue list within this chapter only
   const flatList = useMemo(() => {
@@ -954,8 +995,6 @@ function ReaderView({
     const cur = Math.max(0, flatPos);
     const next = cur + step;
     const orderedIdxLocal = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
-    // If we'd step off the end / start of this chapter, hop to the
-    // next / previous chapter and land on its first / last dialogue.
     if (next < 0) {
       const idx = orderedIdxLocal.indexOf(activeChapterIndex);
       if (idx > 0) {
@@ -963,9 +1002,10 @@ function ReaderView({
         const prevCh = project.chapters.find((c) => c.chapterIndex === prevChapterIdx);
         const lastSec = (prevCh?.sections || []).slice().reverse().find((s) => (s.dialogueSpans || []).length > 0);
         if (lastSec) {
+          const target = { sectionIndex: lastSec.sectionIndex, spanIndex: lastSec.dialogueSpans.length - 1 };
           setActiveChapterIndex(prevChapterIdx);
-          setSelected({ sectionIndex: lastSec.sectionIndex, spanIndex: lastSec.dialogueSpans.length - 1 });
-          requestScroll();
+          setSelected(target);
+          requestScroll(`${target.sectionIndex}|${target.spanIndex}`);
         }
       }
       return;
@@ -977,16 +1017,17 @@ function ReaderView({
         const nextCh = project.chapters.find((c) => c.chapterIndex === nextChapterIdx);
         const firstSec = (nextCh?.sections || []).find((s) => (s.dialogueSpans || []).length > 0);
         if (firstSec) {
+          const target = { sectionIndex: firstSec.sectionIndex, spanIndex: 0 };
           setActiveChapterIndex(nextChapterIdx);
-          setSelected({ sectionIndex: firstSec.sectionIndex, spanIndex: 0 });
-          requestScroll();
+          setSelected(target);
+          requestScroll(`${target.sectionIndex}|${target.spanIndex}`);
         }
       }
       return;
     }
     const target = flatList[next];
     setSelected(target);
-    requestScroll();
+    requestScroll(`${target.sectionIndex}|${target.spanIndex}`);
   }
 
   const canPrevChapter = activeChapterIndex > Math.min(...project.chapters.map((c) => c.chapterIndex));
@@ -1035,6 +1076,7 @@ function ReaderView({
               selected={selected}
               onSelectDialogue={(sectionIndex, spanIndex) => setSelected({ sectionIndex, spanIndex })}
               dialogueRefs={dialogueRefs}
+              onDialogueButtonMounted={onDialogueButtonMounted}
             />
           ))}
         </div>
@@ -1060,7 +1102,7 @@ function ReaderView({
   );
 }
 
-function SectionBody({ section, charactersById, selected, onSelectDialogue, dialogueRefs }) {
+function SectionBody({ section, charactersById, selected, onSelectDialogue, dialogueRefs, onDialogueButtonMounted }) {
   if (!section.html && section.scanning) return <p style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>(scanning…)</p>;
   if (!section.html) return null;
 
@@ -1125,7 +1167,14 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
               return (
                 <button
                   key={i}
-                  ref={(el) => { if (el) dialogueRefs.current[refKey] = el; else delete dialogueRefs.current[refKey]; }}
+                  ref={(el) => {
+                    if (el) {
+                      dialogueRefs.current[refKey] = el;
+                      if (onDialogueButtonMounted) onDialogueButtonMounted(refKey, el);
+                    } else {
+                      delete dialogueRefs.current[refKey];
+                    }
+                  }}
                   type="button"
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
                   title={(char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned') + (hasWarning ? ` · ⚠ ${spanIssueMsg}` : '')}

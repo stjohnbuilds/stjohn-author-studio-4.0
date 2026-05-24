@@ -603,6 +603,11 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   const draggingRef = useRef(false);
   const dragAnchorRef = useRef(null);
 
+  // Floating action-button position (viewport coords). Rendered at the
+  // top level — not inline — so it sits in the line's left margin
+  // instead of above the first selected word.
+  const [selectionActionPos, setSelectionActionPos] = useState(null);
+
   const projectAnnotations = project.annotations || [];
   const annotationsForChapter = useMemo(
     () => projectAnnotations.filter((a) => a.sectionId === chapter?.id),

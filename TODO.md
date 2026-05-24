@@ -21,34 +21,42 @@ Active and recently archived tasks. Rules for this file are in
 
 ### Phase 2 — Git + GitHub
 
-- [ ] `git init`, first commit "4.0 bootstrap from Script and Sync 3.0"
-- [ ] Create GitHub repo `stjohn-author-studio-4.0`, push main
-- [ ] Confirm hooks fire after the push (one entry in
-      `.claude/hook-activity.log` for the next prompt cycle)
+- [x] `git init`, first commit "4.0 bootstrap from Script and Sync 3.0"
+      — completed 2026-05-23
+- [x] Create GitHub repo `stjohn-author-studio-4.0`, push main —
+      completed 2026-05-23
+      → https://github.com/stjohnbuilds/stjohn-author-studio-4.0
+- [x] Confirm hooks fire after the push — log entry present —
+      completed 2026-05-23
 
 ### Phase 3 — Archive the dead
 
-(Marie has already said yes to all these.)
-
-- [ ] Rename in Google Drive (add `-ARCHIVED-2026-05-23` suffix):
-      - `StJohn Author Studio 2.0` (the failed rebuild)
-      - `Script and Sync` (the older proofer — NOT the 3.0)
-      - `Quill and Ink` (the alpha — port the parts we need first, then
-        archive the standalone)
-      - `Phone` (the standalone phone — port into 4.0 first)
-- [ ] Archive matching GitHub repos (use `gh repo archive`).
-- [ ] **Leave `Script and Sync 3.0` alone** — it's still our reference.
+- [x] Rename in Google Drive (added `-ARCHIVED-2026-05-23` suffix):
+      `StJohn Author Apps/apps/phone`,
+      `StJohn Author Apps/apps/quill-and-ink`,
+      `StJohn Author Apps/apps/script-and-sync`,
+      `Script and Sync` (older proofer) — completed 2026-05-23
+      (`StJohn Author Studio 2.0` was already archived in Google Drive.)
+- [x] Archive `stjohnbuilds/stjohn-author-studio-2.0` on GitHub —
+      completed 2026-05-23
+- [ ] Confirm with Marie which other GitHub repos to archive (likely
+      candidates: `Audioproofer`, `Audioproofer-Electron`,
+      `loveworn-design-studio`). Skipped until she confirms.
 
 ### Phase 4 — Rebrand the base
 
-- [ ] Rename package: `script-and-sync` → `stjohn-author-studio-4.0` in
-      `package.json` and any user-visible strings.
-- [ ] Update Electron `productName`, app id, window title.
-- [ ] Update the "READ ME FIRST" + build-script names.
-- [ ] Update the home-screen mode switcher: today Script and Sync only
-      shows one mode (Proof Listen). 4.0 needs the four-mode segmented
-      switcher (we liked the colored tabs from the 2.0 rebuild).
+- [x] Renamed npm package, app id, productName, window title, Save Data
+      folder, AppUserModelId, layout metadata — completed 2026-05-23
+- [x] Home-screen 4-mode segmented switcher added
+      (`app/components/ModeSwitcher.js`). Proof Listen active; Prep,
+      Duet, Quill show ComingSoonPanel with phase number — completed
+      2026-05-23
+- [ ] Marie opens the new 4.0 app, sees the 4-mode switcher, clicks
+      each tab, confirms it looks right. (Run `npm install` first, then
+      `npm start`.)
 - [ ] First Mac packaged build to confirm rebrand works end-to-end.
+- [ ] Migrate (optional): point Save Folder at the old `Script and Sync`
+      data location if Marie wants her existing books in 4.0.
 
 ### Phase 5 — Mode 1: Proof Listen working on real file
 

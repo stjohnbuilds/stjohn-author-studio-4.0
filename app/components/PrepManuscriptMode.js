@@ -586,10 +586,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         <HomePill onClick={() => { setView('home'); setActiveProjectId(null); setPendingImport(null); }} usesCustomDragRegion={usesCustomDragRegion} />
       )}
 
-      {view === 'setup' && pendingImport && (
-        <SetupView
-          pending={pendingImport}
-          onCancel={cancelPendingImport}
+      {view === 'setup' && (
+        <ImportFlow
+          accent={PREP_INK}
+          heading={replacingProjectId ? 'Replace manuscript' : 'New prep project'}
+          blurb={replacingProjectId
+            ? 'Upload the corrected .docx. Your characters and assignments stay; dialogue is rescanned.'
+            : 'Upload your .docx, check the chapters you want, and we\'ll scan dialogue.'}
+          submitLabel={replacingProjectId ? 'Replace & rescan' : 'Save & scan'}
+          onCancel={cancelImport}
           onConfirm={commitImport}
         />
       )}
@@ -599,9 +604,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           allProjects={allProjects}
           onOpenProject={(id) => { setActiveProjectId(id); setView('bookDetail'); }}
           onDelete={deleteProject}
-          onImport={handleImport}
-          loading={loading}
-          progress={progress}
+          onStartImport={() => { setReplacingProjectId(null); setView('setup'); }}
           error={error}
         />
       )}

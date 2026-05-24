@@ -223,7 +223,13 @@ function narratorBreakdownXml(project = {}) {
     lines.push(centeredBoldParagraph(entry.narrator || '(no narrator assigned)', 28)); // 14pt
     lines.push(labeledParagraph('Characters: ', entry.characters.length ? entry.characters.join(', ') : '—'));
     if (entry.sideVoices.length) {
-      const svText = entry.sideVoices.map((sv) => `${sv.sideName} (side voice of ${sv.characterName})`).join('; ');
+      // "Mom (side voice of Alyssa)" — Alyssa is who actually voices Mom
+      // in the booth. The character whose side voice this is (Crescent)
+      // is implied by which narrator block we're in.
+      const svText = entry.sideVoices.map((sv) => {
+        const parent = sv.parentNarrator || entry.narrator || '';
+        return parent ? `${sv.sideName} (side voice of ${parent})` : sv.sideName;
+      }).join('; ');
       lines.push(labeledParagraph('Side characters: ', svText));
     } else {
       lines.push(labeledParagraph('Side characters: ', '—'));

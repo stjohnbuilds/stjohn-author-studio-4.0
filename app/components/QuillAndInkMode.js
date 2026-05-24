@@ -22,8 +22,13 @@ import {
   MODE_TOKENS,
   HomeBackPill,
   SaveBadge,
+  StickyTopBar,
   topBtnStyle,
   useDismissable,
+  READER_WIDTH,
+  READER_PAGE_BG,
+  READER_FONT_SIZE,
+  READER_LINE_HEIGHT,
 } from './ReaderChrome';
 import {
   htmlToPlainText,

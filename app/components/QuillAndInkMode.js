@@ -425,9 +425,6 @@ function QuillHomeView({ projects, onOpen, onNew }) {
           </div>
         )}
       </section>
-      {error && (
-        <div style={{ marginTop: 12, color: 'var(--danger)', fontSize: '0.82rem' }}>{error}</div>
-      )}
     </div>
   );
 }

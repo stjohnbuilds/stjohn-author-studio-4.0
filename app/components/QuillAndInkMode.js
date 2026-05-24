@@ -230,7 +230,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     setActiveProjectId(project.id);
     setActiveChapterId(chapters[0]?.id || null);
     setView('bookDetail');
-    setError('');
   }
 
   function deleteProject(id) {

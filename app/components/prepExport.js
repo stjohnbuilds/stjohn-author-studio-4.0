@@ -51,23 +51,33 @@ function stripTags(s = '') {
   return String(s).replace(/<[^>]*>/g, '');
 }
 
-function decodeHtmlEntities(s = '') {
-  return String(s).replace(
-    /&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
-    (_, dec, hex, named) => {
-      if (dec) return String.fromCodePoint(Number(dec));
-      if (hex) return String.fromCodePoint(parseInt(hex, 16));
-      switch (named) {
-        case 'amp': return '&';
-        case 'lt': return '<';
-        case 'gt': return '>';
-        case 'quot': return '"';
-        case 'apos': return "'";
-        case 'nbsp': return ' ';
-        default: return _;
-      }
-    }
-  );
+// Match the engine's stripHtml exactly: replace each tag with a SPACE
+// (not an empty string), then decode XML entities and collapse runs of
+// whitespace. The reader and the engine both need to see the same text
+// for span.text indexOf lookups to succeed — when an inline `<em>` or
+// `<span>` splits a word, the engine includes a space between the parts
+// and the reader has to as well.
+function stripHtmlForText(s = '') {
+  return String(s)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|blockquote|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
+      (_, dec, hex, named) => {
+        if (dec) return String.fromCodePoint(Number(dec));
+        if (hex) return String.fromCodePoint(parseInt(hex, 16));
+        switch (named) {
+          case 'amp': return '&';
+          case 'lt': return '<';
+          case 'gt': return '>';
+          case 'quot': return '"';
+          case 'apos': return "'";
+          case 'nbsp': return ' ';
+          default: return _;
+        }
+      })
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // Walk an HTML string and return paragraph-level blocks in document
@@ -79,12 +89,12 @@ function paragraphsFromHtml(html = '') {
   let m;
   while ((m = re.exec(html)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = decodeHtmlEntities(stripTags(m[2])).replace(/\s+/g, ' ').trim();
+    const text = stripHtmlForText(m[2]);
     if (!text) continue;
     blocks.push({ tag, text });
   }
   if (blocks.length === 0) {
-    const fallback = decodeHtmlEntities(stripTags(html)).replace(/\s+/g, ' ').trim();
+    const fallback = stripHtmlForText(html);
     if (fallback) blocks.push({ tag: 'p', text: fallback });
   }
   return blocks;

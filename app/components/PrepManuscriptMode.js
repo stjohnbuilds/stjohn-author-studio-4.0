@@ -993,7 +993,7 @@ function SectionBody({
   onSelectDialogue, dialogueRefs, onDialogueButtonMounted,
   onUpdateSectionHtml,
 }) {
-  const [fixing, setFixing] = useState(false);
+  const [fixingBlock, setFixingBlock] = useState(null); // block index being fixed, or null
 
   if (!section.html && section.scanning) return <p style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>(scanning…)</p>;
   if (!section.html) return null;
@@ -1002,19 +1002,16 @@ function SectionBody({
   const spans = section.dialogueSpans || [];
   const safetyIssues = section.safetyIssues || [];
 
-  if (fixing) {
-    return (
-      <SectionFixer
-        section={section}
-        blocks={blocks}
-        onCancel={() => setFixing(false)}
-        onSave={(newHtml) => {
-          if (onUpdateSectionHtml) onUpdateSectionHtml(chapterIndex, section.sectionIndex, newHtml);
-          setFixing(false);
-        }}
-      />
-    );
-  }
+  // The engine now tags each orphan warning with the block (paragraph)
+  // index it lives in. We use that to put the Fix editor right on the
+  // problematic paragraph instead of dumping the whole section into a
+  // textarea like the first version did.
+  const warningBlockIndex = (() => {
+    const issue = safetyIssues[0];
+    if (!issue) return -1;
+    const idx = Number(issue.blockIndex);
+    return Number.isFinite(idx) ? idx : -1;
+  })();
 
   let spanCursor = 0;
   return (
@@ -1022,16 +1019,41 @@ function SectionBody({
       {safetyIssues.length > 0 && (
         <div style={{ margin: '8px 0 14px', padding: '8px 12px', background: '#FDF3E3', border: '1px solid #E3CBA1', borderRadius: 8, fontSize: '0.78rem', color: '#7A4F11', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ flex: 1 }}>⚠ {safetyIssues[0].message}</span>
-          {onUpdateSectionHtml && (
+          {onUpdateSectionHtml && fixingBlock === null && (
             <button
               type="button"
-              onClick={() => setFixing(true)}
+              onClick={() => setFixingBlock(warningBlockIndex >= 0 ? warningBlockIndex : 0)}
               style={{ padding: '4px 10px', background: '#C47F2A', color: 'white', border: 'none', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
             >Fix</button>
           )}
         </div>
       )}
       {blocks.map((block, bi) => {
+        // If this block is being fixed, swap it for the paragraph editor
+        // (in place — Marie keeps the rest of the section as context).
+        if (fixingBlock === bi) {
+          return (
+            <ParagraphFixer
+              key={`fix-${bi}`}
+              block={block}
+              onCancel={() => setFixingBlock(null)}
+              onSave={(newParaText) => {
+                // Rebuild section.html by replacing just this block's text.
+                const newHtml = blocks.map((b, i) => {
+                  const text = i === bi ? newParaText : b.text;
+                  if (b.isHeading) {
+                    const tag = b.tag || 'h2';
+                    return `<${tag}>${escapeHtml(text)}</${tag}>`;
+                  }
+                  return `<p>${escapeHtml(text)}</p>`;
+                }).join('');
+                if (onUpdateSectionHtml) onUpdateSectionHtml(chapterIndex, section.sectionIndex, newHtml);
+                setFixingBlock(null);
+              }}
+            />
+          );
+        }
+
         const segments = [];
         let cursor = 0;
         const text = block.text;
@@ -1050,9 +1072,13 @@ function SectionBody({
         if (segments.length === 0) segments.push({ kind: 'plain', text });
 
         const Tag = block.isHeading ? 'h3' : 'p';
+        // Use left alignment instead of justify — justify combined with
+        // inline-block dialogue buttons caused huge gaps in the
+        // surrounding text and made long dialogues balloon onto their
+        // own line (the screenshot Marie sent in 05-25 testing).
         const style = block.isHeading
           ? { fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-muted)', margin: '24px 0 12px 0', textAlign: 'center', fontStyle: 'italic' }
-          : { margin: '0 0 0.6em 0', textIndent: '1.6em', textAlign: 'justify' };
+          : { margin: '0 0 0.6em 0', textIndent: '1.6em', textAlign: 'left' };
         return (
           <Tag key={bi} style={style}>
             {segments.map((seg, i) => {
@@ -1063,8 +1089,11 @@ function SectionBody({
               const isSelected = selected.sectionIndex === section.sectionIndex && selected.spanIndex === seg.spanIndex;
               const bg = char ? colorForAssignment(char, sv) : (isSelected ? '#FFF6CC' : 'transparent');
               const refKey = `${section.sectionIndex}|${seg.spanIndex}`;
+              // Render dialogue as an inline span (not a <button>) so
+              // text flows through the paragraph naturally — long
+              // dialogue wraps mid-line, no inline-block ballooning.
               return (
-                <button
+                <span
                   key={i}
                   ref={(el) => {
                     if (el) {
@@ -1074,25 +1103,93 @@ function SectionBody({
                       delete dialogueRefs.current[refKey];
                     }
                   }}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectDialogue(section.sectionIndex, seg.spanIndex);
+                    }
+                  }}
                   title={char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned'}
                   style={{
                     background: bg,
-                    border: '1px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
-                    borderRadius: 6,
-                    padding: '0 6px', margin: '0 1px',
-                    fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit',
-                    color: 'var(--text)', cursor: 'pointer',
-                    boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
+                    borderBottom: '2px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
+                    padding: '0 3px',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? 'inset 0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
+                    borderRadius: 3,
                   }}
-                >{seg.text}</button>
+                >{seg.text}</span>
               );
             })}
           </Tag>
         );
       })}
     </>
+  );
+}
+
+// One-paragraph editor that pops up where the warning paragraph used
+// to be. Marie types the missing close quote (or any other fix) and
+// hits Save. We keep the rest of the section's text intact.
+function ParagraphFixer({ block, onCancel, onSave }) {
+  const [text, setText] = useState(block.text);
+  const ref = useRef(null);
+
+  function insertCloseQuote() {
+    const el = ref.current;
+    if (!el) return;
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? start;
+    const next = text.slice(0, start) + '”' + text.slice(end);
+    setText(next);
+    setTimeout(() => {
+      el.focus();
+      const pos = start + 1;
+      el.selectionStart = pos;
+      el.selectionEnd = pos;
+    }, 0);
+  }
+
+  return (
+    <div style={{ margin: '0 0 0.8em 0', padding: '10px 12px', background: 'white', border: '1px solid ' + PREP_INK + '55', borderRadius: 10, boxShadow: '0 6px 22px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Fix this paragraph
+        </div>
+        <button type="button" onClick={insertCloseQuote}
+          title={'Insert a closing curly quote at the cursor'}
+          style={{ padding: '4px 10px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+          Insert &rdquo; here
+        </button>
+      </div>
+      <textarea
+        ref={ref}
+        value={text}
+        autoFocus
+        onChange={(e) => setText(e.target.value)}
+        spellCheck={false}
+        style={{
+          width: '100%', minHeight: 120,
+          padding: '8px 10px',
+          fontFamily: 'Georgia, serif',
+          fontSize: '0.95rem',
+          lineHeight: 1.55,
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          background: '#FBF8F2',
+          color: 'var(--text)',
+          outline: 'none',
+          resize: 'vertical',
+        }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
+        <button type="button" onClick={onCancel} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+        <button type="button" onClick={() => onSave(text)} style={{ padding: '6px 12px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>Save &amp; rescan</button>
+      </div>
+    </div>
   );
 }
 

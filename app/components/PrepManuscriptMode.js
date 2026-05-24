@@ -20,11 +20,7 @@
 //     survives a reload, not just the last one.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  detectDialogueSpansInHtml,
-  parseManuscriptStructure,
-  applyChapterNumbers,
-} from '../../packages/manuscript-engine/index.js';
+import { detectDialogueSpansInHtml } from '../../packages/manuscript-engine/index.js';
 import {
   buildPrepHighlightedDocxBlob,
   buildPrepCsv,

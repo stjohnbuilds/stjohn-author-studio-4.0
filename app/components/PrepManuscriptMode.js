@@ -769,7 +769,7 @@ function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }
         <button
           type="button"
           onClick={onStartImport}
-          style={{ display: 'block', width: '100%', padding: '14px 18px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 16, fontSize: '0.96rem', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
+          style={{ display: 'block', width: '100%', padding: '14px 18px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 16, fontSize: '0.96rem', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
         >
           + Import new manuscript (.docx)
         </button>
@@ -1345,7 +1345,7 @@ function ParagraphFixer({ block, onCancel, onSave }) {
         </div>
         <button type="button" onClick={insertCloseQuote}
           title={'Insert a closing curly quote at the cursor'}
-          style={{ padding: '4px 10px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+          style={{ padding: '4px 10px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
           Insert &rdquo; here
         </button>
       </div>
@@ -1371,7 +1371,7 @@ function ParagraphFixer({ block, onCancel, onSave }) {
       />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }}>
         <button type="button" onClick={onCancel} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-        <button type="button" onClick={() => onSave(text)} style={{ padding: '6px 12px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>Save &amp; rescan</button>
+        <button type="button" onClick={() => onSave(text)} style={{ padding: '6px 12px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>Save &amp; rescan</button>
       </div>
     </div>
   );
@@ -1572,7 +1572,7 @@ function AddCharacterInline({ existingCount, onSave, onCancel }) {
       <input type="color" value={color} onChange={(e) => setColor(e.target.value)} style={{ width: 22, height: 22, padding: 0, border: '1px solid var(--border)', borderRadius: 4, background: 'white', cursor: 'pointer' }} />
       <button type="button" onClick={onCancel} style={{ padding: '2px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
       <button type="button" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), narratorName: narrator.trim(), colorHex: color })}
-        style={{ padding: '2px 10px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>Save</button>
+        style={{ padding: '2px 10px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>Save</button>
     </div>
   );
 }
@@ -1597,7 +1597,7 @@ function CharacterChip({
           style={{ width: 90, padding: '2px 6px', fontSize: '0.7rem', borderRadius: 4, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.85)' }} />
         <input type="color" value={character.colorHex} onChange={(e) => onEdit({ colorHex: e.target.value })} style={{ width: 22, height: 22, padding: 0, border: '1px solid var(--border)', borderRadius: 4, background: 'white', cursor: 'pointer' }} />
         <button type="button" onClick={onRemove} style={{ padding: '2px 8px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.66rem', fontWeight: 600, cursor: 'pointer' }}>Remove</button>
-        <button type="button" onClick={onEndEdit} style={{ padding: '2px 10px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>Done</button>
+        <button type="button" onClick={onEndEdit} style={{ padding: '2px 10px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>Done</button>
       </div>
     );
   }
@@ -1643,7 +1643,7 @@ function CharacterChip({
           {sideAdding ? (
             <AddSideVoiceInline characterNarrator={character.narratorName} saveLabel={mode === 'assign' ? 'Save & assign' : 'Save'} onSave={onSaveSideVoice} onCancel={onClosePopover} />
           ) : (
-            <button type="button" onClick={onStartAddSideVoice} style={{ padding: '7px 8px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>+ Add side voice…</button>
+            <button type="button" onClick={onStartAddSideVoice} style={{ padding: '7px 8px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>+ Add side voice…</button>
           )}
         </div>
       )}
@@ -1672,7 +1672,7 @@ function AddSideVoiceInline({ characterNarrator, saveLabel = 'Save', onSave, onC
       <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
         <button type="button" onClick={onCancel} style={{ flex: 1, padding: '5px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
         <button type="button" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), narratorName: narrator.trim(), notes: notes.trim(), recurring })}
-          style={{ flex: 1, padding: '5px 8px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>{saveLabel}</button>
+          style={{ flex: 1, padding: '5px 8px', background: PREP_ACCENT, color: 'white', border: 'none', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>{saveLabel}</button>
       </div>
     </div>
   );

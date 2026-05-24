@@ -903,22 +903,34 @@ function ReaderView({
   const chapterCount = chapterCounts(chapter || {});
   const chapterPct = chapterCount.total === 0 ? 0 : Math.round((chapterCount.assigned / chapterCount.total) * 100);
   const orderedIdx = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
+  const navPos = orderedIdx.indexOf(activeChapterIndex) + 1;
+  // The source heading (e.g. "Chapter 2" because she deselected the
+  // original first chapter on import) only goes in the subtitle if it
+  // would tell us something different from the navigation number.
+  // Otherwise we'd be showing "Chapter 1 · Chapter 2", which is the
+  // exact thing she said confused her.
+  const sourceTitle = chapter?.title || '';
+  const navTitle = `Chapter ${navPos} of ${orderedIdx.length}`;
+  const showSourceTitle = sourceTitle && sourceTitle.toLowerCase() !== `chapter ${navPos}`.toLowerCase();
 
   return (
     <>
       <StickyTopBar
         onBack={onBack}
-        title={`Chapter ${(orderedIdx.indexOf(activeChapterIndex)) + 1} of ${orderedIdx.length} · ${chapter?.title || ''}`}
-        subtitle={`${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)${chapterCount.issues > 0 ? ` · ⚠ ${chapterCount.issues} warning${chapterCount.issues === 1 ? '' : 's'}` : ''} · ${project.title}`}
+        title={navTitle}
+        subtitle={`${showSourceTitle ? sourceTitle + ' · ' : ''}${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)${chapterCount.issues > 0 ? ` · ⚠ ${chapterCount.issues} to fix` : ''} · ${project.title}`}
       >
         <select
           value={activeChapterIndex}
           onChange={(e) => (onJumpToChapter || setActiveChapterIndex)(Number(e.target.value))}
           style={{ padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'white', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', maxWidth: 220 }}
         >
-          {project.chapters.map((ch) => (
-            <option key={ch.id} value={ch.chapterIndex}>{ch.title || `Chapter ${ch.chapterIndex + 1}`}</option>
-          ))}
+          {project.chapters.map((ch) => {
+            const pos = orderedIdx.indexOf(ch.chapterIndex) + 1;
+            return (
+              <option key={ch.id} value={ch.chapterIndex}>Chapter {pos}</option>
+            );
+          })}
         </select>
         <button type="button" disabled={!canPrevChapter} onClick={() => {
           const idx = orderedIdx.indexOf(activeChapterIndex);

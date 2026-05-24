@@ -4,6 +4,52 @@ If you're a fresh Claude session opening this folder: **read this file first**, 
 
 ---
 
+## 0. Files to read, in order
+
+Open these and actually read them before writing any code:
+
+| Order | File | Why |
+|---|---|---|
+| 1 | `HANDOFF.md` (this file) | Current state, Marie's open requests, things I got wrong |
+| 2 | `CLAUDE.md` | App purpose, data tables, hard rules, commands |
+| 3 | `docs/BUILD_PLAN_V4.md` | Phase order + definitions of done |
+| 4 | `TODO.md` | Active backlog (Phase 6 follow-ups, Studio landing, export polish, etc.) |
+| 5 | `docs/FRONT_FUNCTION_TREE.md` | Skeleton of every UI button per mode |
+| 6 | `docs/INTERNAL_FUNCTION_TREE.md` | Engines / IPC / data flow inventory |
+| 7 | `docs/WIRING_MATRIX.md` | Button → bridge → handler → engine, with the "Verified live" column |
+| 8 | `dev/active/phase-6-prep-manuscript/phase-6-{plan,context,tasks}.md` | The plan that drove Prep Manuscript work |
+| 9 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/feedback_plain_speak.md` | Marie's tone preference |
+| 10 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/feedback_just_build.md` | Marie's "stop checking in" rule |
+| 11 | `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-2-0/memory/reference_bible_location.md` | Where the bible lives |
+| 12 | `~/Library/CloudStorage/.../my-claude-setup-bible.md` | Marie's master setup bible (read-only) |
+
+Code files most likely to touch:
+
+| File | Role |
+|---|---|
+| `app/page.js` | Root. Owns `APP_MODES`, `appMode` state, routes to per-mode views. Home pill / 4-mode pill chrome. |
+| `app/components/ReaderChrome.js` | Shared chrome primitives (chapter pill, save badge, sticky bar, home pill, button factories, useDismissable). Edit here to affect every mode. |
+| `app/components/PrepManuscriptMode.js` | Prep mode end-to-end (home/setup/bookDetail/reader views, dock, character chips, side voice popovers). |
+| `app/components/prepExport.js` | Prep export — narrator breakdown + in-place .docx patching from the stored source bytes. |
+| `app/components/ProofingReader.js` | SaS 3.0 proofer reader (2600 lines). Still has its own copies of ReaderChrome-style components. Migrate later. |
+| `app/components/SessionsView.js` | SaS 3.0 book detail (chapters list + audio + transcription queue). |
+| `app/components/ManuscriptSetup.js` | SaS 3.0 import flow (the one Marie wants shared with Prep). |
+| `app/components/PrebuildMode.js` | "Duet Audio Prep" — already-built component used when `appMode === 'prebuild'`. |
+| `packages/manuscript-engine/` | Pure JS engine: text-normalize, word-import (incl. `parseManuscriptStructure`), dialogue-detection (curly + straight quotes), dialogue-safety-check. |
+| `main.js` | Electron main process. IPC handlers including `read-prep-data` / `write-prep-data`. |
+| `preload.js` | Electron bridge. Exposes `window.electron.readPrepData` / `writePrepData` and the SaS 3.0 surface. |
+| `tests/manuscript-engine.test.mjs` | Smoke tests for dialogue detection (4 passing). Run with `npm test`. |
+
+Other useful spots:
+
+- `.claude/hooks/` — scope-locked hooks (per bible Step 2.5). `_log.sh` is the shared logger.
+- `.claude/hook-activity.log` — verify hooks are firing with `cat`.
+- `.claude/settings.json` — hook wiring.
+- `Save Data/` — local user data folder (gitignored). `prep-manuscript-projects.json` lives here when the app has run.
+- `TODAY-CHANGES-2026-05-23.md` — inherited from SaS 3.0; safe to ignore unless you're touching Proof.
+
+---
+
 ## 1. Read Marie first, code second
 
 Marie is the user. She is **non-technical**, she is **exhausted** with this app (it's her fourth attempt — three previous attempts ended in disasters), and she has been giving the previous Claude session very clear feedback that kept getting half-fixed. She has explicitly said:
@@ -113,7 +159,7 @@ so Marie isn't forced to re-import when the schema bumps.
 
 These are direct asks. Don't drop any of them.
 
-### A. Dialogue safety warnings — too aggressive / wrong
+### A. Dialogue safety warnings — too aggressive / wrong (LATEST)
 
 > "The only time there should be a fucking flag is when there is an unfinished quotation mark, within a reasonable amount of space. So if there's one quotation mark and there isn't another one in a couple of paragraphs, flag it for it to be checked."
 
@@ -124,11 +170,12 @@ The engine currently emits these warning types (and Prep filters to a meaningful
 - `uneven-quotes`
 - `nested-or-multi-paragraph-dialogue`
 
-What Marie actually wants: only flag an UNTERMINATED quote where the next quote mark is "more than a couple of paragraphs away." Right now even short un-closed quotes within a paragraph get flagged. Tighten this:
+What Marie actually wants: **only** flag an UNTERMINATED quote where the next quote mark is "more than a couple of paragraphs away." Right now even short un-closed quotes within a paragraph get flagged. Tighten this:
 - In the detector (or as a post-filter): only keep `missing-closing-quote` / `uneven-quotes` if the gap to the next quote is > N paragraphs (~2-3).
 - Drop `nested-or-multi-paragraph-dialogue` entirely unless she asks for it back.
+- Probably also drop `closing-quote-without-opening` unless she specifically asks — same noise category in practice.
 
-### B. Need a way to INSERT a quote mark inline
+### B. Need a way to INSERT a quote mark inline (LATEST)
 
 > "I need a way to insert the quotation mark so that it doesn't, like, get fucked up. You know? Like, I'm not reuploading the whole thing. Just be like, insert quotation mark here or something, wherever I wanna click."
 
@@ -146,7 +193,7 @@ The trickier part: the source .docx is the original (preserved bytes). Inserting
 
 Option 1 keeps the "preserve original" promise intact but is more code. Lean toward option 1.
 
-### C. Sticky header inconsistency — what number is being shown?
+### C. Sticky header inconsistency — what number is being shown? (LATEST)
 
 > "The header in the main area, and then when you click into chapter one of sixty one, chapter two, why does why does it say that chapter one of sixty two, chapter two, like, I removed the first chapter, therefore, it's naming it chapter two instead of using the fucking navigation system?"
 
@@ -159,7 +206,7 @@ Marie sees `Chapter 1 of 61 · Chapter 2` and reads it as a bug. Pick ONE source
 
 Apply the same logic to the book-detail chapter list, the chapter dropdown options, and the docx exports' chapter headings.
 
-### D. Centering inconsistency
+### D. Centering inconsistency (LATEST)
 
 > "Why is it centered sometimes and not others?"
 

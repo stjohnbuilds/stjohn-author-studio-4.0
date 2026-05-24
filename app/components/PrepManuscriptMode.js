@@ -627,6 +627,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           onRemoveCharacter={removeCharacter}
           onAddSideVoice={addSideVoice}
           onRemoveSideVoice={removeSideVoice}
+          onUpdateSectionHtml={updateSectionHtml}
         />
       )}
     </div>

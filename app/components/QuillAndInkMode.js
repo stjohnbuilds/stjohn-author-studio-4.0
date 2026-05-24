@@ -350,7 +350,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 // Home — project list
 // ===========================================================================
 
-function QuillHomeView({ projects, onOpen, onNew, error }) {
+function QuillHomeView({ projects, onOpen, onNew }) {
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '5.2rem 1.25rem 4rem' }}>
       <div style={{ textAlign: 'center', marginBottom: '1.4rem' }}>

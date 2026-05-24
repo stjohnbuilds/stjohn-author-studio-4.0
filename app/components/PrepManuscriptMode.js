@@ -42,7 +42,7 @@ import {
   ChapterContextPill,
   SaveBadge as SharedSaveBadge,
   StickyTopBar as SharedStickyTopBar,
-  HomePill as SharedHomePill,
+  HomeBackPill as SharedHomeBackPill,
   topBtnStyle,
   pillBtnStyle,
   useDismissable as sharedUseDismissable,

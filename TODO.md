@@ -1,10 +1,11 @@
 # TODO — StJohn Author Studio 4.0
 
-Active and archived tasks. Cleaned up 2026-05-24. New work goes under
-**Active**. Completed work moves to **Archived** with a date.
+Active and archived tasks. Cleaned up after the overnight 2026-05-24
+session. New work goes under **Active**. Completed work moves to
+**Archived** with a date.
 
-Format: `- [x] Task name — completed YYYY-MM-DD`. Never leave a task
-as 2–3 words. Add context.
+Format: `- [x] Task name — completed YYYY-MM-DD`. Never leave a task as
+2–3 words. Add context.
 
 Always read `HANDOFF.md` first, then this file.
 
@@ -12,70 +13,83 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
-### Next up (in priority order)
+### Marie's morning testing checklist (do these in order)
 
-- [ ] **Studio landing page + Supabase login** — first screen on
-      launch is a login (email + password, show/hide password eye
-      icon, "forgot password" link), then the 4-mode picker. NOT
-      dropping straight into Proof like it does now. Match Marie's
-      pastel aesthetic — no dark/wine colors. A similar login UI
-      existed in a previous attempt (look in `Manuscript Prepper 1.0`
-      or the archived apps before designing from scratch). Marie's
-      Supabase project is `evcusovtjfypfyfvnooy`. URL + anon key:
-      ask Marie or find in any archived `.env` / `supabase.js`. Do
-      NOT commit credentials.
+- [ ] **Create a real Supabase account.** Launch the app, click "Don't
+      have an account? Create one", use a real email. Confirm via the
+      email Supabase sends. Sign back in.
+- [ ] **Try Quill on a real .docx.** Top-left mode toggle → Quill. New
+      project → upload a manuscript. Open a chapter. Drag across a few
+      words, tap the pink + button, pick a class, save. Verify the
+      pink underline appears + the annotation shows in the sidebar.
+- [ ] **Test the InDesign export.** Book detail → Export CSV +
+      InDesign. Open the .jsx in InDesign and run it against the
+      matching layout. Eyes-on check: are character styles created?
+      Are highlights underlined? Marie is the only one who knows what
+      "right" looks like for her print workflow.
+- [ ] **Test the phone scaffold.** Browser to `http://localhost:3000/phone`
+      while `npm run dev` is running. Sign in with the same account.
+      Quill project from the desktop should appear. Open a chapter,
+      tap a word, add an annotation. Reload the desktop — annotation
+      should appear there too. (Cloud round-trip confirmation.)
 
-- [ ] **Quill & Ink mode** — port from the alpha at
-      `~/Library/CloudStorage/.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/`.
-      Use the shared `ReaderChrome` + `ImportFlow` so it looks like
-      Prep. Annotation list with `+` and ✏️ icons (Marie liked these
-      from the alpha). Drag across text to highlight a range,
-      double-click a word to jump. Tables already exist:
-      `quill_projects`, `quill_chapters`, `quill_annotations` — all
-      with RLS. Audio player from Proof gets reused. InDesign-friendly
-      export (see the alpha's export code).
+### Next up after Marie's checklist
 
-- [ ] **Supabase cloud-sync wiring** — single shared package every
-      mode talks to. Per-table CRUD helpers, not per-mode duplicates.
-      Audio NEVER goes to Supabase — the shared sync must have guards
-      that strip audio paths before any upload. CLAUDE.md emphasizes
-      this three times.
+- [ ] **Cloud sync for Proof Listen.** Wire `script_sync_projects`,
+      `script_sync_section_transcriptions`, `script_sync_flags`. Same
+      pattern as `packages/cloud-sync/quill-sync.js`. Audio paths
+      stripped per the guard. Flags from the phone (when Script-mode
+      flag-tapping is built) write here.
 
-- [ ] **Phone companion** — port from
-      `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/`
-      (also check `Manuscript Prepper 1.0/` for an even earlier
-      attempt Marie thinks was solid). Login (Supabase), project list,
-      open chapter, local audio picker (audio stays on phone),
-      tap-to-flag (Script) or tap-to-annotate (Quill), CSV export. No
-      transcribing on phone. No manuscript editing. Deploy to Vercel.
+- [ ] **Phone Script mode (Proof Listen on phone).** Phone scaffold
+      has the Quill flow only. Script mode needs: project list from
+      `script_sync_projects`, chapter view with transcript text, local
+      audio picker (audio stays on phone — only the filename goes to
+      the cloud), tap-to-flag with a timestamp from the audio
+      position, save to `script_sync_flags`. Reference:
+      `/Users/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/app/script-and-sync-service.js`.
+
+- [ ] **Phone CSV export.** Button on the phone that downloads the
+      flags or annotations for the current project as a CSV. The
+      desktop has `packages/quill-engine/exporters.js` →
+      `buildAnnotationsCsv` already; phone can call it directly.
+
+- [ ] **Phone audio playback in Quill mode.** Tap the music icon, pick
+      a local audio file, listen while annotating. Audio stays on the
+      phone. Reference: alpha `phone/app/phone-audio-dock.jsx` and
+      `phone-audio-library.js`.
+
+- [ ] **Deploy phone to Vercel.** Once the phone is feature-complete
+      enough for Marie to use, push it live. `vercel.json` may need a
+      route rewrite so `/phone` is the root for the deployed phone
+      project (or use a separate Vercel project pointing at the same
+      Next.js build).
+
+- [ ] **Audio sync in Quill desktop reader.** Optional. Quill works
+      without audio. If Marie wants audio while annotating on the
+      desktop, port the audio dock from the alpha reader.
+
+- [ ] **Search inside chapter in Quill desktop.** Optional. ProofingReader
+      has search; port it over.
 
 ### Smaller cleanup (low priority, low risk)
 
 - [ ] **Migrate `ProofingReader.js` to use `ReaderChrome.js`** — Prep
-      already uses the shared `ChapterContextPill`, `StickyTopBar`,
-      `SaveBadge`, `HomeBackPill`, button-style factories, and the
-      `useDismissable` popover-close hook. ProofingReader still has
-      its own copies of all of these. When that 2600-line component
-      is refactored, swap them out so a single visual edit propagates
-      to every mode. No behaviour change required.
+      already does. Pure refactor, no behaviour change.
 
-- [ ] **Same for Duet `PrebuildMode.js`** — uses its own AppModeToggle
-      placement; no shared chrome yet.
+- [ ] **Migrate Duet `PrebuildMode.js` to use `ReaderChrome.js`** —
+      uses its own AppModeToggle placement; no shared chrome yet.
 
-- [ ] **Migrate Proof's `BookSetup` to use `ImportFlow`** — Prep + Duet
-      now share `app/components/ImportFlow.js` for the upload +
-      chapter checkbox list. Proof's `ManuscriptSetup.js` still has
-      its own copy because it layers PDF paging + narrator colour
-      mapping on top. The goal is for BookSetup to use `ImportFlow`
-      for the upload/chapter piece and add the Proof-only steps as
-      panels around it. This is the LAST duplicate of the upload
-      flow.
+- [ ] **Migrate Proof's `BookSetup` to use `ImportFlow`** — Last
+      duplicate of the upload flow. Layered with PDF paging + narrator
+      colour mapping, so the goal is for BookSetup to render
+      `ImportFlow` plus the Proof-only panels.
 
 ### Phase 10 — real-file end-to-end pass
 
 - [ ] Marie runs every minimum-release check on her actual books +
-      audiobooks. Every row in `WIRING_MATRIX.md` flips to
-      `verified live`.
+      audiobooks. Every row in `WIRING_MATRIX.md` flips to `verified
+      live`.
 - [ ] Phone signed-in proof: real flag + real annotation saved from
       phone, seen on desktop.
 
@@ -90,7 +104,49 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Archived
 
-### 2026-05-24 session — Prep polish + export pass
+### 2026-05-24 overnight session — login + Quill + cloud-sync + phone
+
+- [x] **Studio landing page + Supabase login** — Sign in, create
+      account, forgot password, show/hide eye icon. Pastel mauve
+      aesthetic to match the home. Sign-out lives at the bottom of the
+      home page. Auth gate sits in front of the whole app via a
+      session check in `app/page.js`. Files: new
+      `app/components/LoginScreen.js`, new
+      `packages/cloud-sync/account.js`, new
+      `packages/cloud-sync/client.js`, gated in `app/page.js`. —
+      completed 2026-05-24 (overnight)
+
+- [x] **Shared cloud-sync package** —
+      `packages/cloud-sync/` is now the single place every mode talks
+      to Supabase. `client.js`, `account.js`, `audio-guard.js`
+      (strips audio paths before any upload — CLAUDE.md emphasizes
+      this), `quill-sync.js` (push/pull/delete for the three Quill
+      tables). Re-exported from `index.js`. — completed 2026-05-24
+      (overnight)
+
+- [x] **Quill & Ink desktop mode** — Full port from the alpha.
+      4-mode toggle now has Quill enabled. Home → project list →
+      ImportFlow → book detail → reader. Reader has word-by-word
+      rendering, drag-to-highlight, annotation popover with Image /
+      Highlight / Emotion + custom emotions + custom characters,
+      inline note, save with delete option. Annotation sidebar with
+      jump-to. Local persistence via Electron file system
+      (`read-quill-data` / `write-quill-data` handlers in `main.js`
+      + `preload.js`, written to `quill-projects.json`). CSV + full
+      InDesign JSX exporter ported byte-for-byte. Cloud sync fires
+      after every save when signed in. Files: new
+      `app/components/QuillAndInkMode.js`, new
+      `packages/quill-engine/` (normalize, annotations, exporters,
+      index). — completed 2026-05-24 (overnight)
+
+- [x] **Phone scaffold** — `app/phone/page.js`. Login (reused
+      LoginScreen), service picker (Quill + Proof placeholder),
+      project list pulled from cloud, chapter list, chapter reader
+      with tap-to-annotate. Mobile-first layout (max-width 480, sticky
+      header). Annotations save to Supabase via the shared cloud-sync
+      helpers. — completed 2026-05-24 (overnight)
+
+### 2026-05-24 day session — Prep polish + export pass
 
 - [x] **Header refactor — single nav button on the top-left** —
       previously the Back button and HomePill were fighting for the

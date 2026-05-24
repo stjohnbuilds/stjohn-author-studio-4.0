@@ -188,6 +188,12 @@ the repo.
 
 ### B. Quill & Ink mode
 
+**This is a PORT. A working alpha already exists. Read every relevant
+file in the alpha first; only then start writing 4.0 code. See §2b.**
+Match the alpha's layout, interaction patterns, annotation list,
+double-click-to-jump, drag-to-extend, export. Marie does not want to
+iterate on UI choices that were already solved in the alpha.
+
 There's a near-complete alpha to port from:
 `/Users/mariemackay/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/`
 

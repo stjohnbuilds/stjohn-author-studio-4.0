@@ -6,7 +6,13 @@ import BookDetail from './components/SessionsView';
 import InfoTip from './components/InfoTip';
 import PrebuildMode from './components/PrebuildMode';
 import PrepManuscriptMode from './components/PrepManuscriptMode';
+import LoginScreen from './components/LoginScreen';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
+import {
+  hasSupabaseConfig,
+  getSupabaseClient,
+  signOutSupabaseAccount,
+} from '../packages/cloud-sync';
 
 // Detect Electron
 const el = () => typeof window !== 'undefined' && window.electron;

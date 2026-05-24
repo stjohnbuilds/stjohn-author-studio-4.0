@@ -592,13 +592,25 @@ async function attachCommentsPart(zip, comments) {
   const author = 'StJohn Studio';
   const initials = 'SS';
   const date = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
-  const items = comments.map((c) => (
-    `<w:comment w:id="${c.id}" w:author="${xml(author)}" w:date="${date}" w:initials="${xml(initials)}">` +
-      `<w:p><w:r><w:t xml:space="preserve">${xml(c.text)}</w:t></w:r></w:p>` +
-    `</w:comment>`
-  )).join('');
+  const items = comments.map((c) => {
+    // One <w:p> per line so Word lays each field on its own line in
+    // the comment pane — Marie said the comma-joined single-line
+    // version was hard to read.
+    const paras = (c.lines || []).map((line) => (
+      `<w:p><w:r><w:t xml:space="preserve">${xml(line)}</w:t></w:r></w:p>`
+    )).join('');
+    return (
+      `<w:comment w:id="${c.id}" w:author="${xml(author)}" w:date="${date}" w:initials="${xml(initials)}">` +
+        paras +
+      `</w:comment>`
+    );
+  }).join('');
+  // Include the Markup-Compatibility + w14 namespaces Word emits in
+  // its own comments.xml. Without these, Word repair flags the file
+  // as "unreadable" and shows a dialog before opening — even though
+  // the comments still render once accepted.
   const commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${items}</w:comments>`;
+<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">${items}</w:comments>`;
   zip.file('word/comments.xml', commentsXml);
 
   // Content types: declare the comments part if not already there.

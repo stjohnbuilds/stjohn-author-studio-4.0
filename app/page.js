@@ -951,6 +951,26 @@ export default function Home() {
     };
   }, [tutorialActive, tutorialStep, currentTutorialStep, view, settingsOpen, activeBook, tutorialCompletedIds]);
 
+  if (hasSupabaseConfig && !authReady) {
+    return (
+      <div style={{ minHeight:'100vh', background:'var(--cream)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        {usesCustomDragRegion && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
+        )}
+        <div style={{ fontSize:'0.86rem', color:'var(--text-muted)' }}>Checking your account…</div>
+      </div>
+    );
+  }
+
+  if (hasSupabaseConfig && !authSession) {
+    return (
+      <LoginScreen
+        onSignedIn={(session) => setAuthSession(session)}
+        usesCustomDragRegion={usesCustomDragRegion}
+      />
+    );
+  }
+
   if (appMode === 'prebuild') {
     return (
       <div style={{ minHeight:'100vh', background:'var(--cream)' }}>

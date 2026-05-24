@@ -103,18 +103,43 @@ function colorForAssignment(character, sideVoice) {
   return darkenHex(character.colorHex, Math.min(0.45, 0.12 * step));
 }
 
+// Decode the XML/HTML entities mammoth leaves in the chapter HTML
+// (mostly &amp;, &lt;, &gt;, &quot;, plus &#NNNN; numeric refs for
+// smart quotes and ellipses). The dialogue engine decodes these on
+// its side, so without matching decoding here the indexOf fails and
+// affected dialogues never render — that's the bug that made Next
+// "lose connection" mid-chapter for Marie.
+function decodeHtmlEntities(s = '') {
+  return String(s).replace(
+    /&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
+    (_, dec, hex, named) => {
+      if (dec) return String.fromCodePoint(Number(dec));
+      if (hex) return String.fromCodePoint(parseInt(hex, 16));
+      switch (named) {
+        case 'amp': return '&';
+        case 'lt': return '<';
+        case 'gt': return '>';
+        case 'quot': return '"';
+        case 'apos': return "'";
+        case 'nbsp': return ' ';
+        default: return _;
+      }
+    }
+  );
+}
+
 function paragraphsFromHtml(html = '') {
   const blocks = [];
   const re = /<(p|h1|h2|h3|h4|h5|h6|blockquote|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let m;
   while ((m = re.exec(html)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = stripTags(m[2]).replace(/\s+/g, ' ').trim();
+    const text = decodeHtmlEntities(stripTags(m[2])).replace(/\s+/g, ' ').trim();
     if (!text) continue;
     blocks.push({ tag, text, isHeading: /^h\d$/.test(tag) });
   }
   if (blocks.length === 0) {
-    const fallback = stripTags(html).replace(/\s+/g, ' ').trim();
+    const fallback = decodeHtmlEntities(stripTags(html)).replace(/\s+/g, ' ').trim();
     if (fallback) blocks.push({ tag: 'p', text: fallback, isHeading: false });
   }
   return blocks;

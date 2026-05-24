@@ -51,6 +51,25 @@ function stripTags(s = '') {
   return String(s).replace(/<[^>]*>/g, '');
 }
 
+function decodeHtmlEntities(s = '') {
+  return String(s).replace(
+    /&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
+    (_, dec, hex, named) => {
+      if (dec) return String.fromCodePoint(Number(dec));
+      if (hex) return String.fromCodePoint(parseInt(hex, 16));
+      switch (named) {
+        case 'amp': return '&';
+        case 'lt': return '<';
+        case 'gt': return '>';
+        case 'quot': return '"';
+        case 'apos': return "'";
+        case 'nbsp': return ' ';
+        default: return _;
+      }
+    }
+  );
+}
+
 // Walk an HTML string and return paragraph-level blocks in document
 // order, with their tag and a plain-text representation. Used to
 // rebuild the manuscript's paragraph structure in the export.
@@ -60,12 +79,12 @@ function paragraphsFromHtml(html = '') {
   let m;
   while ((m = re.exec(html)) !== null) {
     const tag = m[1].toLowerCase();
-    const text = stripTags(m[2]).replace(/\s+/g, ' ').trim();
+    const text = decodeHtmlEntities(stripTags(m[2])).replace(/\s+/g, ' ').trim();
     if (!text) continue;
     blocks.push({ tag, text });
   }
   if (blocks.length === 0) {
-    const fallback = stripTags(html).replace(/\s+/g, ' ').trim();
+    const fallback = decodeHtmlEntities(stripTags(html)).replace(/\s+/g, ' ').trim();
     if (fallback) blocks.push({ tag: 'p', text: fallback });
   }
   return blocks;

@@ -82,6 +82,82 @@ export function buildPrepNarratorChapterCsv(project = {}) {
   return rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
 }
 
+function buildNarratorBreakdown(project = {}) {
+  // Group characters + side voices by narrator. For each narrator,
+  // collect the chapters they appear in (any of their characters or
+  // side voices speaking counts).
+  const characters = project.characters || [];
+  const chapters = project.chapters || [];
+
+  // narratorName -> { characters: Set<name>, sideVoices: [{ char, sideName }], chapterNums: Set<num> }
+  const narratorMap = new Map();
+  function ensure(narrator) {
+    const key = narrator || '(no narrator assigned)';
+    if (!narratorMap.has(key)) {
+      narratorMap.set(key, { characters: new Set(), sideVoices: [], chapterNums: new Set() });
+    }
+    return narratorMap.get(key);
+  }
+
+  // Seed from characters list (so a character with no lines yet still shows).
+  characters.forEach((c) => {
+    const main = ensure(c.narratorName || '');
+    if (c.name) main.characters.add(c.name);
+    (c.sideVoices || []).forEach((sv) => {
+      const sn = ensure(sv.narratorName || c.narratorName || '');
+      sn.sideVoices.push({ characterName: c.name, sideName: sv.name });
+    });
+  });
+
+  // Walk dialogue lines, attribute chapter numbers.
+  chapters.forEach((ch, ci) => {
+    const chapterNum = ch.chapterNumber || (ci + 1);
+    (ch.spans || []).forEach((sp) => {
+      const char = sp.characterId ? characters.find((c) => c.id === sp.characterId) : null;
+      if (!char) return;
+      const sv = sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
+      const narrator = sv?.narratorName || char.narratorName || '';
+      const entry = ensure(narrator);
+      entry.chapterNums.add(chapterNum);
+    });
+  });
+
+  return Array.from(narratorMap.entries()).map(([narrator, info]) => ({
+    narrator,
+    characters: Array.from(info.characters).sort(),
+    sideVoices: info.sideVoices,
+    chapters: Array.from(info.chapterNums).sort((a, b) => a - b),
+  }));
+}
+
+function narratorBreakdownXml(project = {}) {
+  const breakdown = buildNarratorBreakdown(project);
+  if (!breakdown.length) return '';
+  const heading = headingParagraph('Narrator breakdown', 'Heading1');
+  const blocks = breakdown.map((entry) => {
+    const lines = [
+      paragraph(textRun(entry.narrator || '(no narrator assigned)') + textRun(':', '')),
+      // (narrator name as a Heading2)
+    ];
+    // Replace the first line with a proper Heading2 so it stands out.
+    lines.length = 0;
+    lines.push(headingParagraph(entry.narrator || '(no narrator assigned)', 'Heading2'));
+    lines.push(paragraph(textRun('Characters: ') + textRun(entry.characters.length ? entry.characters.join(', ') : '—')));
+    if (entry.sideVoices.length) {
+      const svText = entry.sideVoices.map((sv) => `${sv.sideName} (side voice of ${sv.characterName})`).join('; ');
+      lines.push(paragraph(textRun('Side characters: ') + textRun(svText)));
+    } else {
+      lines.push(paragraph(textRun('Side characters: ') + textRun('—')));
+    }
+    lines.push(paragraph(textRun('Chapters: ') + textRun(entry.chapters.length ? entry.chapters.join(', ') : '—')));
+    lines.push(paragraph(textRun(' ')));
+    return lines.join('');
+  }).join('');
+  // Page break after the breakdown so the chapter text starts fresh.
+  const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  return heading + blocks + pageBreak;
+}
+
 function buildDocumentXml(project = {}) {
   const characters = project.characters || [];
   const charactersById = new Map(characters.map((c) => [c.id, c]));
@@ -90,23 +166,19 @@ function buildDocumentXml(project = {}) {
   const subtitle = paragraph(textRun(`Source file: ${project.fileName || ''}`));
   const blank = paragraph(textRun(' '));
 
-  const characterListParagraphs = characters.length
-    ? [
-        headingParagraph('Characters and narrators', 'Heading1'),
-        ...characters.map((c) =>
-          paragraph(textRun(`${c.name || 'Unnamed'} — narrated by ${c.narratorName || '?'}`, c.colorHex))
-        ),
-        blank,
-      ].join('')
-    : '';
+  const breakdownXml = narratorBreakdownXml(project);
 
   const chapterXml = (project.chapters || []).map((ch) => {
     const heading = headingParagraph(ch.title || 'Untitled chapter', 'Heading1');
     const lines = (ch.spans || []).map((sp) => {
       const char = sp.characterId ? charactersById.get(sp.characterId) : null;
+      const sv = char && sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
       const highlight = char?.colorHex || '';
       const narrator = sp.narratorOverride || char?.narratorName || '';
-      const label = char ? `[${char.name || 'Unnamed'}${narrator ? ' / ' + narrator : ''}] ` : '[Unassigned] ';
+      const charLabel = char ? char.name || 'Unnamed' : 'Unassigned';
+      const svLabel = sv ? ` — ${sv.name}` : '';
+      const narLabel = narrator ? ' / ' + narrator : '';
+      const label = char ? `[${charLabel}${svLabel}${narLabel}] ` : '[Unassigned] ';
       return paragraph(textRun(`${label}"${sp.text}"`, highlight));
     }).join('');
     return heading + (lines || paragraph(textRun('(No dialogue detected.)')));
@@ -118,7 +190,7 @@ function buildDocumentXml(project = {}) {
     ${title}
     ${subtitle}
     ${blank}
-    ${characterListParagraphs}
+    ${breakdownXml}
     ${chapterXml}
     <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>
   </w:body>

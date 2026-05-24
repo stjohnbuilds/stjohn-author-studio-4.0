@@ -106,13 +106,29 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
 
-  // hydrate
+  // hydrate — local first, then merge in cloud if signed in.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const list = await loadProjects();
-        if (!cancelled) setAllProjects(list);
+        const local = await loadProjects();
+        if (cancelled) return;
+        setAllProjects(local);
+
+        // Try cloud pull. If signed in and any cloud rows exist, merge
+        // them in (cloud wins on conflicting project ids). If not
+        // signed in, the call throws and we silently keep local.
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+        const { data } = await supabase.auth.getSession();
+        if (!data?.session?.user) return;
+        try {
+          const cloudProjects = await pullQuillProjects(supabase);
+          if (cancelled || !cloudProjects.length) return;
+          setAllProjects((current) => mergeProjectLists(current, cloudProjects));
+        } catch (e) {
+          console.warn('[Quill] cloud pull failed:', e?.message || e);
+        }
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -120,7 +136,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     return () => { cancelled = true; };
   }, []);
 
-  // persist on change (debounced)
+  // persist on change (debounced). Writes local AND attempts cloud push.
   useEffect(() => {
     if (!hydrated) return;
     setSaveStatus('saving');
@@ -128,6 +144,19 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     saveTimerRef.current = setTimeout(async () => {
       try {
         await persistProjects(allProjects);
+        // Fire-and-forget cloud push for each project. Failures are
+        // logged but don't disrupt the local save.
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          const ownerId = data?.session?.user?.id;
+          if (ownerId) {
+            for (const project of allProjects) {
+              try { await pushQuillProject(supabase, project, ownerId); }
+              catch (e) { console.warn('[Quill] cloud push failed for', project.title, e?.message || e); }
+            }
+          }
+        }
         setSaveStatus('saved');
         if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
         savedFlashRef.current = setTimeout(() => setSaveStatus('idle'), 1400);

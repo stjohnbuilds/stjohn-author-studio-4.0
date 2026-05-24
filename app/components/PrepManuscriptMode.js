@@ -783,9 +783,11 @@ function BookDetailView({
   project, saveStatus, usesCustomDragRegion, onDelete, onOpenChapter, onReplace,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
+  onRemoveChapter,
   onExportDocx, onExportDialogueCsv, onExportNarratorCsv,
   progress,
 }) {
+  const [editingChapters, setEditingChapters] = useState(false);
   const counts = projectCounts(project);
   const pct = counts.total === 0 ? 0 : Math.round((counts.assigned / counts.total) * 100);
   const scanning = progress && progress.total > 0 && progress.current < progress.total;

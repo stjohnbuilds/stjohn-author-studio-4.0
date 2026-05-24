@@ -342,6 +342,41 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!hasSupabaseConfig) {
+      setAuthReady(true);
+      return undefined;
+    }
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setAuthReady(true);
+      return undefined;
+    }
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setAuthSession(data?.session || null);
+      setAuthReady(true);
+    }).catch(() => {
+      if (cancelled) return;
+      setAuthReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthSession(session || null);
+    });
+    return () => {
+      cancelled = true;
+      sub?.subscription?.unsubscribe?.();
+    };
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    await signOutSupabaseAccount(supabase);
+    setAuthSession(null);
+  }
+
+  useEffect(() => {
     if (!el() || !window.electron?.onTransferProgress) return undefined;
     return window.electron.onTransferProgress((progress) => {
       setTransferProgress(prev => ({

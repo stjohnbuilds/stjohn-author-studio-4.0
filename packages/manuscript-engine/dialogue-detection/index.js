@@ -136,26 +136,22 @@ export function collectDialogueQuoteMarks(text = '') {
   return marks;
 }
 
-export function detectDialogueSpansInText(text = '', options = {}) {
+// Find the dialogue spans within a chunk of text. Spans are returned
+// every time we see an open + close pair. We deliberately do NOT emit
+// any per-paragraph issues here — the only warning Marie wants
+// ("you forgot a close quote and the next one is far away") is a
+// block-level check done in detectDialogueSpansInHtml.
+export function detectDialogueSpansInText(text = '') {
   const normalized = cleanText(text);
-  const longSpanWordLimit = Number(options.longSpanWordLimit || 250);
   const quoteMarks = collectDialogueQuoteMarks(normalized);
   const wordRanges = displayWordRangesFromText(normalized);
   const spans = [];
-  const issues = [];
   let openQuote = null;
 
   for (const quote of quoteMarks) {
     if (openQuote?.kind === 'open' && quote.kind === 'straight') {
-      const issueWord = wordIndexAfterOffset(wordRanges, quote.index);
-      issues.push(makeIssue({
-        type: 'nested-or-multi-paragraph-dialogue',
-        message: 'Review this quote. It may be nested dialogue or a multi-paragraph quote.',
-        quoteIndex: quote.index,
-        wordStartIndex: issueWord,
-        wordEndIndex: issueWord,
-        blocking: false
-      }));
+      // Treat nested straight quote inside curly-opened dialogue as decorative;
+      // skip it without ending the span or flagging.
       continue;
     }
 
@@ -163,68 +159,23 @@ export function detectDialogueSpansInText(text = '', options = {}) {
     const shouldClose = quote.kind === 'close' || (quote.kind === 'straight' && openQuote);
 
     if (shouldOpen) {
-      if (openQuote) {
-        const issueWord = wordIndexAfterOffset(wordRanges, quote.index);
-        issues.push(makeIssue({
-          type: 'nested-or-multi-paragraph-dialogue',
-          message: 'Review this quote. It may be nested dialogue or a multi-paragraph quote.',
-          quoteIndex: quote.index,
-          wordStartIndex: issueWord,
-          wordEndIndex: issueWord,
-          blocking: false
-        }));
-      }
-
+      // If we were already open, just replace the marker (the previous
+      // open will be picked up by the block-level orphan check if it
+      // really was missing a close).
       openQuote = quote;
       continue;
     }
 
     if (shouldClose) {
-      if (!openQuote) {
-        const issueWord = wordIndexAfterOffset(wordRanges, quote.index);
-        issues.push(makeIssue({
-          type: 'closing-quote-without-opening',
-          message: 'Review this closing quote because no opening quote was found first.',
-          quoteIndex: quote.index,
-          wordStartIndex: issueWord,
-          wordEndIndex: issueWord
-        }));
-        continue;
-      }
-
-      const result = makeDialogueSpan({
+      if (!openQuote) continue;
+      spans.push(makeDialogueSpan({
         openQuote,
         closeQuote: quote,
         text: normalized,
-        wordRanges,
-        longSpanWordLimit
-      });
-
-      spans.push(result.span);
-      issues.push(...result.issues);
+        wordRanges
+      }));
       openQuote = null;
     }
-  }
-
-  if (openQuote) {
-    const issueWord = wordIndexAfterOffset(wordRanges, openQuote.index);
-    issues.push(makeIssue({
-      type: 'missing-closing-quote',
-      message: 'Review this dialogue because it appears to be missing a closing quote.',
-      quoteIndex: openQuote.index,
-      wordStartIndex: issueWord,
-      wordEndIndex: Math.max(issueWord, wordRanges.length - 1)
-    }));
-  }
-
-  if (quoteMarks.length % 2 !== 0) {
-    issues.push(makeIssue({
-      type: 'uneven-quotes',
-      message: 'The dialogue quote mark count is uneven.',
-      quoteIndex: quoteMarks.at(-1)?.index ?? null,
-      wordStartIndex: 0,
-      wordEndIndex: Math.max(0, wordRanges.length - 1)
-    }));
   }
 
   return {
@@ -233,7 +184,7 @@ export function detectDialogueSpansInText(text = '', options = {}) {
     totalQuoteMarks: quoteMarks.length,
     quoteMarksEven: quoteMarks.length % 2 === 0,
     dialogueSpans: spans,
-    issues
+    issues: []
   };
 }
 

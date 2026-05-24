@@ -425,6 +425,24 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       })),
     }));
   }
+
+  // Remove a chapter from the active project. Re-numbers everything
+  // afterwards so the remaining chapters become 1..N. Used by the
+  // "Edit chapters" cog in the book detail — Marie accidentally left
+  // a chapter in on import and didn't want to re-import to fix it.
+  function removeChapter(chapterIndex) {
+    updateActive((p) => {
+      const filtered = (p.chapters || []).filter((ch) => ch.chapterIndex !== chapterIndex);
+      const reindexed = filtered.map((ch, i) => ({
+        ...ch,
+        chapterIndex: i,
+        chapterNumber: i + 1,
+      }));
+      return { ...p, chapters: reindexed };
+    });
+    // If the active chapter was the one we just removed, clamp to a valid one.
+    if (activeChapterIndex === chapterIndex) setActiveChapterIndex(0);
+  }
   function addSideVoice(characterId, prefill = {}) {
     // Generate id sync so the caller can immediately assign current
     // dialogue to it (otherwise we'd race React state).

@@ -108,14 +108,15 @@ Active and recently archived tasks. Rules for this file are in
       piece and add the Proof-only steps as panels around it. Marie's
       "use the baseline" rule applies here too; this is the last
       duplicate of the upload flow.
-- [ ] **Quote-insert fixes should patch the original .docx export too**
-      — the SectionFixer in Prep now rewrites `section.html` so the
-      dialogue detector reruns and the warning clears, but the saved
-      `sourceDocxBase64` (used by the in-place export) isn't touched.
-      For most fixes this is fine because the dialogue text doesn't
-      change. But if Marie actually adds new text (not just a close
-      quote), the export will not reflect it. Track manual edits as a
-      side list and replay them into the source XML during export.
+- [ ] **Side voice annotations as Word comments in the export** —
+      Marie wants each assigned dialogue to carry an inline Word
+      comment with the character/narrator info and `[Recurring]` or
+      `[One time]` tag, so the engineer reading the .docx sees the
+      voice notes in context. Right now the breakdown page lists side
+      voices but the dialogues themselves only get the highlight.
+      Needs: emit `word/comments.xml`, declare it in content-types +
+      document rels, and inject `<w:commentRangeStart>` /
+      `<w:commentReference>` around each dialogue run.
 
 ### Phase 5 — Mode 1: Proof Listen working on real file
 

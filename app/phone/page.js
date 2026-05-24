@@ -146,9 +146,11 @@ function PhoneApp({ session, onSignOut }) {
         <section style={{ padding: '1.2rem 1rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '1.4rem' }}>
             <div style={{ fontSize: '1.4rem', fontWeight: 600, color: '#4C4846' }}>Choose a service</div>
-            <div style={{ fontSize: '0.78rem', color: '#6D6663', marginTop: 4 }}>
-              Signed in as <strong>{session?.user?.email || ''}</strong>
-            </div>
+            {session?.user?.email && (
+              <div style={{ fontSize: '0.78rem', color: '#6D6663', marginTop: 4 }}>
+                Signed in as <strong>{session.user.email}</strong>
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {SERVICE_OPTIONS.map((s) => (

@@ -535,6 +535,8 @@ async function buildOriginalPlusHighlights(project) {
   const characters = project.characters || [];
   const charsById = new Map(characters.map((c) => [c.id, c]));
   const assignments = [];
+  const comments = [];
+  let nextCommentId = 0;
   (project.chapters || []).forEach((ch) => {
     (ch.sections || []).forEach((sec) => {
       (sec.dialogueSpans || []).forEach((sp) => {
@@ -542,7 +544,15 @@ async function buildOriginalPlusHighlights(project) {
         const char = charsById.get(sp.characterId);
         if (!char) return;
         const sv = sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
-        assignments.push({ text: sp.text, color: exportColorFor(char, sv) });
+        // Side voices get an inline Word comment so the engineer reading
+        // the .docx sees who voices each variant + recurring/one-time.
+        // Main-character lines just get the highlight (no comment noise).
+        let commentId = null;
+        if (sv) {
+          commentId = nextCommentId++;
+          comments.push({ id: commentId, text: formatSideVoiceComment(char, sv) });
+        }
+        assignments.push({ text: sp.text, color: exportColorFor(char, sv), commentId });
       });
     });
   });
@@ -550,10 +560,74 @@ async function buildOriginalPlusHighlights(project) {
   documentXml = applyHighlightsInPlace(documentXml, assignments);
 
   zip.file('word/document.xml', documentXml);
+
+  if (comments.length > 0) {
+    await attachCommentsPart(zip, comments);
+  }
   return zip.generateAsync({
     type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   });
+}
+
+// Format the per-dialogue side-voice note Marie wants in the exported
+// .docx, as an inline Word comment. Example output:
+//   "Character: Jim, Narrator: Mark, Notes: happy, [Recurring]"
+function formatSideVoiceComment(char, sv) {
+  const parts = [];
+  parts.push(`Character: ${sv.name || '(unnamed)'}`);
+  const narrator = sv.narratorName || char.narratorName || '';
+  if (narrator) parts.push(`Narrator: ${narrator}`);
+  if (char.name) parts.push(`Side voice of ${char.name}`);
+  if (sv.notes) parts.push(`Notes: ${sv.notes}`);
+  parts.push(sv.recurring ? '[Recurring]' : '[One time]');
+  return parts.join(', ');
+}
+
+// Add a word/comments.xml part to the .docx zip and wire it into the
+// content-types + document relationships. Word needs all three pieces
+// or it ignores the comments entirely.
+async function attachCommentsPart(zip, comments) {
+  const author = 'StJohn Studio';
+  const initials = 'SS';
+  const date = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+  const items = comments.map((c) => (
+    `<w:comment w:id="${c.id}" w:author="${xml(author)}" w:date="${date}" w:initials="${xml(initials)}">` +
+      `<w:p><w:r><w:t xml:space="preserve">${xml(c.text)}</w:t></w:r></w:p>` +
+    `</w:comment>`
+  )).join('');
+  const commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${items}</w:comments>`;
+  zip.file('word/comments.xml', commentsXml);
+
+  // Content types: declare the comments part if not already there.
+  const ctFile = zip.file('[Content_Types].xml');
+  if (ctFile) {
+    let ct = await ctFile.async('string');
+    if (!/PartName="\/word\/comments\.xml"/.test(ct)) {
+      ct = ct.replace(
+        '</Types>',
+        '<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/></Types>'
+      );
+      zip.file('[Content_Types].xml', ct);
+    }
+  }
+
+  // Document relationships: point to comments.xml from document.xml.
+  const relsFile = zip.file('word/_rels/document.xml.rels');
+  if (relsFile) {
+    let rels = await relsFile.async('string');
+    if (!/Target="comments\.xml"/.test(rels)) {
+      // Use a high, unlikely-to-clash id so we don't collide with the
+      // source doc's existing relationships.
+      const relId = 'rIdComments' + Math.floor(Date.now() % 100000);
+      rels = rels.replace(
+        '</Relationships>',
+        `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/></Relationships>`
+      );
+      zip.file('word/_rels/document.xml.rels', rels);
+    }
+  }
 }
 
 // If the source .docx already contains a "Narrator breakdown" block we

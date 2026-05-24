@@ -639,18 +639,13 @@ function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }
       </header>
 
       <section style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid var(--border)', borderRadius: 22, padding: '1rem', marginBottom: 14 }}>
-        <label style={{ display: 'block', width: '100%', padding: '14px 18px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 16, fontSize: '0.96rem', fontWeight: 600, cursor: loading ? 'wait' : 'pointer', textAlign: 'left', opacity: loading ? 0.7 : 1 }}>
-          {loading ? (progress?.title || 'Importing…') : '+ Import new manuscript (.docx)'}
-          <input type="file" accept=".docx" disabled={loading} onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} style={{ display: 'none' }} />
-        </label>
-        {loading && progress && progress.total > 0 && (
-          <div style={{ marginTop: 10 }}>
-            <div style={{ height: 6, borderRadius: 999, background: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${(progress.current / progress.total) * 100}%`, background: PREP_INK, transition: 'width 0.2s' }} />
-            </div>
-            <div style={{ marginTop: 6, fontSize: '0.74rem', color: 'var(--text-muted)' }}>{progress.title} — {progress.current}/{progress.total}</div>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={onStartImport}
+          style={{ display: 'block', width: '100%', padding: '14px 18px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 16, fontSize: '0.96rem', fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
+        >
+          + Import new manuscript (.docx)
+        </button>
         {error && (<div style={{ marginTop: 10, fontSize: '0.78rem', color: 'var(--danger)' }}>{error}</div>)}
       </section>
 

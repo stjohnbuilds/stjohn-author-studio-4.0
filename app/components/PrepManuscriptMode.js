@@ -33,16 +33,32 @@ import {
   downloadText,
   exportFileNames,
 } from './prepExport.js';
+// Shared reader chrome. Universal across every mode. If Marie wants to
+// change the chapter pill / save badge / sticky bar everywhere, this is
+// the one file to edit.
+import {
+  READER_WIDTH,
+  READER_PAGE_BG,
+  READER_FONT_SIZE,
+  READER_LINE_HEIGHT,
+  HOME_CONTAINER,
+  MODE_TOKENS,
+  ChapterContextPill,
+  SaveBadge as SharedSaveBadge,
+  StickyTopBar as SharedStickyTopBar,
+  HomePill as SharedHomePill,
+  topBtnStyle,
+  pillBtnStyle,
+  useDismissable as sharedUseDismissable,
+} from './ReaderChrome.js';
 
-// Visual language locked to ProofingReader.
-const READER_WIDTH = 'min(740px, calc(100vw - 40px))';
-const READER_PAGE_BG = 'linear-gradient(180deg, #fbfaf7 0%, #ffffff 16%, #ffffff 100%)';
-const READER_FONT_SIZE = '16.5px';
-const READER_LINE_HEIGHT = 1.92;
-const HOME_CONTAINER = 640;
-
-const PASTEL_PREP = '#DCEBE0';
-const PREP_INK = '#3F6A52';
+const TONE = 'prep';
+const PASTEL_PREP = MODE_TOKENS.prep.pastel;
+const PREP_INK = MODE_TOKENS.prep.ink;
+const useDismissable = sharedUseDismissable;
+const SaveBadge = (props) => <SharedSaveBadge {...props} tone={TONE} />;
+const StickyTopBar = (props) => <SharedStickyTopBar {...props} tone={TONE} />;
+const HomePill = (props) => <SharedHomePill {...props} tone={TONE} />;
 
 const CHARACTER_PALETTE = [
   '#F4DCE0', '#E5DCEF', '#DCE6F0', '#DCEBE0',
@@ -159,27 +175,6 @@ function projectCounts(project) {
     if (c.scanning) scanning = true;
   });
   return { total, assigned, scanning };
-}
-
-// ===========================================================================
-// Click-outside hook + ESC handler — used for the side-voice popover.
-// ===========================================================================
-
-function useDismissable(open, onClose, ignoreRef) {
-  useEffect(() => {
-    if (!open) return undefined;
-    function onMouseDown(e) {
-      if (ignoreRef?.current && ignoreRef.current.contains(e.target)) return;
-      onClose();
-    }
-    function onKey(e) { if (e.key === 'Escape') onClose(); }
-    document.addEventListener('mousedown', onMouseDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose, ignoreRef]);
 }
 
 // ===========================================================================
@@ -620,18 +615,16 @@ function BookDetailView({
         )}
       </StickyTopBar>
 
-      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 80px' }}>
-        <section style={{ marginBottom: 18, padding: '14px 16px', background: PASTEL_PREP, border: '1px solid ' + PREP_INK + '33', borderRadius: 14 }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text)' }}>{project.fileName}</div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            {project.chapters.length} chapter{project.chapters.length === 1 ? '' : 's'} · {counts.assigned}/{counts.total} dialogue assigned ({pct}%)
-            {scanning && <> · <span style={{ color: PREP_INK, fontWeight: 600 }}>scanning {progress.current}/{progress.total}…</span></>}
-          </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-            {onExportDocx && <button type="button" onClick={onExportDocx} style={pillBtn()}>Export highlighted .docx</button>}
-            {onExportDialogueCsv && <button type="button" onClick={onExportDialogueCsv} style={pillBtn()}>Dialogue CSV</button>}
-            {onExportNarratorCsv && <button type="button" onClick={onExportNarratorCsv} style={pillBtn()}>Narrators CSV</button>}
-          </div>
+      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '18px 0 60px' }}>
+        {/* Slim file + export strip. Counts live in the sticky top bar. */}
+        <section style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          <span style={{ flex: '1 1 auto', minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text)' }}>{project.fileName}</span>
+            {scanning && <span style={{ color: PREP_INK, fontWeight: 600 }}> · scanning {progress.current}/{progress.total}…</span>}
+          </span>
+          {onExportDocx && <button type="button" onClick={onExportDocx} style={pillBtn()}>.docx</button>}
+          {onExportDialogueCsv && <button type="button" onClick={onExportDialogueCsv} style={pillBtn()}>Dialogue CSV</button>}
+          {onExportNarratorCsv && <button type="button" onClick={onExportNarratorCsv} style={pillBtn()}>Narrators CSV</button>}
         </section>
 
         <section style={{ marginBottom: 18 }}>
@@ -649,23 +642,23 @@ function BookDetailView({
 
         <section>
           <h3 style={sectionHeading()}>Chapters</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {project.chapters.map((ch) => {
               const c = chapterCounts(ch);
               const p = c.total === 0 ? 0 : Math.round((c.assigned / c.total) * 100);
               return (
                 <button key={ch.id} type="button" onClick={() => onOpenChapter(ch.chapterIndex)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: 10, cursor: 'pointer', textAlign: 'left' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text)' }}>{ch.title || `Chapter ${ch.chapterIndex + 1}`}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {c.scanning ? 'scanning…' : `${c.total} dialogue · ${c.assigned}/${c.total} assigned (${p}%)`}
-                    </div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ch.title || `Chapter ${ch.chapterIndex + 1}`}</div>
                   </div>
-                  <div style={{ width: 100, height: 4, background: 'rgba(0,0,0,0.06)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {c.scanning ? 'scanning…' : `${c.assigned}/${c.total}`}
+                  </div>
+                  <div style={{ width: 80, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 999, overflow: 'hidden' }}>
                     <div style={{ width: `${p}%`, height: '100%', background: PREP_INK, transition: 'width 0.2s' }} />
                   </div>
-                  <span style={{ color: 'var(--text-light)', fontSize: '1.1rem' }}>›</span>
+                  <span style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>›</span>
                 </button>
               );
             })}
@@ -784,10 +777,17 @@ function ReaderView({
         <SaveBadge status={saveStatus} />
       </StickyTopBar>
 
-      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 200px' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: PREP_INK, textAlign: 'center', margin: '0 0 22px 0' }}>
-          {chapter?.title || `Chapter ${activeChapterIndex + 1}`}
-        </h2>
+      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '16px 0 150px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+          <ChapterContextPill
+            tone={TONE}
+            chapterLabel={`Chapter ${(orderedIdx.indexOf(activeChapterIndex)) + 1} of ${orderedIdx.length}`}
+            sectionLabel={chapter?.title || ''}
+            extraLabels={[
+              `${chapterCount.assigned}/${chapterCount.total} assigned`,
+            ]}
+          />
+        </div>
         <div style={{ fontSize: READER_FONT_SIZE, lineHeight: READER_LINE_HEIGHT, color: 'var(--text)' }}>
           {(chapter?.sections || []).map((sec) => (
             <SectionBody
@@ -910,38 +910,37 @@ function ReaderDock({
   const currentSV = currentChar && selectedSpan?.sideVoiceId ? (currentChar.sideVoices || []).find((s) => s.id === selectedSpan.sideVoiceId) : null;
 
   return (
-    <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.94)', borderTop: '1px solid var(--border-light)', backdropFilter: 'blur(8px)', boxShadow: '0 -8px 28px rgba(0,0,0,0.05)', zIndex: 1200, padding: '8px 16px 12px' }}>
-      <div style={{ width: READER_WIDTH, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" onClick={onPrev} style={dockBtn(false)}>←</button>
-            <button type="button" onClick={onNext} style={dockBtn(true)}>Next →</button>
+    <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'rgba(255,255,255,0.96)', borderTop: '1px solid var(--border-light)', backdropFilter: 'blur(10px)', boxShadow: '0 -6px 22px rgba(0,0,0,0.04)', zIndex: 1200, padding: '6px 16px 8px' }}>
+      <div style={{ width: READER_WIDTH, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Single row: nav + selected dialogue + current assignment. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button type="button" onClick={onPrev} style={dockBtn(false)} title="Previous dialogue">←</button>
+          <button type="button" onClick={onNext} style={dockBtn(true)} title="Next dialogue">Next →</button>
+          <span style={{ fontSize: '0.66rem', fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{positionLabel}</span>
+          <div style={{ flex: 1, minWidth: 0, padding: '4px 9px', background: currentChar?.colorHex || 'white', border: '1px solid ' + (currentChar ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 7, fontSize: '0.76rem', fontFamily: 'Georgia, serif', lineHeight: 1.4, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {selectedSpan ? <>“{selectedSpan.text}”</> : <span style={{ color: 'var(--text-light)' }}>Click a dialogue.</span>}
           </div>
-          <div style={{ flex: 1, minWidth: 0, fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            <span style={{ fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{positionLabel}</span>
-            {chapter && <span> · {chapter.title}{selectedSection && selectedSection.title !== chapter.title ? ' · ' + selectedSection.title : ''}</span>}
-          </div>
-          <div style={{ fontSize: '0.68rem', fontWeight: 600, color: currentChar ? PREP_INK : 'var(--text-light)', whiteSpace: 'nowrap' }}>
-            {currentChar ? <>→ {currentChar.name}{currentSV ? ' / ' + currentSV.name : (currentChar.narratorName ? ' / ' + currentChar.narratorName : '')}</> : 'Unassigned'}
-          </div>
+          <span style={{ fontSize: '0.66rem', fontWeight: 600, color: currentChar ? PREP_INK : 'var(--text-light)', whiteSpace: 'nowrap' }}>
+            {currentChar ? <>{currentChar.name}{currentSV ? ' / ' + currentSV.name : ''}</> : 'Unassigned'}
+          </span>
         </div>
 
-        <div style={{ padding: '6px 10px', background: currentChar?.colorHex || 'white', border: '1px solid ' + (currentChar ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 8, fontSize: '0.82rem', fontFamily: 'Georgia, serif', lineHeight: 1.45, color: 'var(--text)', maxHeight: 56, overflow: 'auto' }}>
-          {selectedSpan ? <>“{selectedSpan.text}”</> : <span style={{ color: 'var(--text-light)' }}>Click a dialogue in the manuscript.</span>}
+        {/* Character chips below — wraps, gets a max height so a 50-char
+            list doesn't shove the manuscript half off-screen. */}
+        <div style={{ maxHeight: 88, overflowY: 'auto', paddingTop: 2 }}>
+          <CharacterGrid
+            characters={characters}
+            mode="assign"
+            selectedSpan={selectedSpan}
+            onAdd={onAddCharacter}
+            onUpdate={onUpdateCharacter}
+            onRemove={onRemoveCharacter}
+            onAddSideVoice={onAddSideVoice}
+            onRemoveSideVoice={onRemoveSideVoice}
+            onAssignCharacter={onAssignCharacter}
+            onAssignSideVoice={onAssignSideVoice}
+          />
         </div>
-
-        <CharacterGrid
-          characters={characters}
-          mode="assign"
-          selectedSpan={selectedSpan}
-          onAdd={onAddCharacter}
-          onUpdate={onUpdateCharacter}
-          onRemove={onRemoveCharacter}
-          onAddSideVoice={onAddSideVoice}
-          onRemoveSideVoice={onRemoveSideVoice}
-          onAssignCharacter={onAssignCharacter}
-          onAssignSideVoice={onAssignSideVoice}
-        />
       </div>
     </div>
   );
@@ -951,83 +950,13 @@ function ReaderDock({
 // Shared: top bar + character grid + character chip + popovers
 // ===========================================================================
 
-function StickyTopBar({ onBack, title, subtitle, children }) {
-  return (
-    <div style={{
-      position: 'sticky', top: 0, zIndex: 1100,
-      background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(10px)',
-      borderBottom: '1px solid var(--border-light)',
-      padding: '10px 16px 10px 130px',  // clears the "← Home" pill
-      display: 'flex', alignItems: 'center', gap: 10,
-    }}>
-      <button type="button" onClick={onBack} style={{ ...topBtn(), background: 'transparent', borderColor: 'transparent', color: 'var(--text-muted)' }}>← Back</button>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
-        {subtitle && (
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</div>
-        )}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function HomePill({ onClick, usesCustomDragRegion }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title="Back to Prep home"
-      style={{
-        position: 'fixed',
-        top: usesCustomDragRegion ? 44 : 18,
-        left: 16,
-        zIndex: 1300,
-        padding: '9px 16px',
-        borderRadius: 999,
-        border: '1px solid ' + PREP_INK,
-        background: 'white',
-        color: PREP_INK,
-        fontSize: '0.74rem',
-        fontWeight: 700,
-        letterSpacing: '0.04em',
-        textTransform: 'uppercase',
-        cursor: 'pointer',
-        boxShadow: '0 10px 26px var(--accent-shadow)',
-        WebkitAppRegion: 'no-drag',
-      }}
-    >
-      ⌂ Home
-    </button>
-  );
-}
-
-function topBtn() {
-  return { padding: '6px 12px', background: 'white', color: PREP_INK, border: '1px solid ' + PREP_INK, borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
-}
-function pillBtn() {
-  return { padding: '5px 11px', background: 'white', color: PREP_INK, border: '1px solid ' + PREP_INK, borderRadius: 999, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
-}
+function topBtn() { return topBtnStyle(TONE, 'outline'); }
+function pillBtn() { return pillBtnStyle(TONE); }
 function dockBtn(primary) {
   return { padding: '5px 12px', background: primary ? PREP_INK : 'white', color: primary ? 'white' : PREP_INK, border: '1px solid ' + PREP_INK, borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' };
 }
 function sectionHeading() {
   return { fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: PREP_INK, margin: '0 0 8px 0' };
-}
-
-function SaveBadge({ status }) {
-  const map = {
-    idle: { label: 'Saved', color: 'var(--text-light)', dot: '#b5cbb9' },
-    saving: { label: 'Saving…', color: PREP_INK, dot: '#f3c93a' },
-    saved: { label: 'Saved', color: PREP_INK, dot: '#3F8F65' },
-  };
-  const m = map[status] || map.idle;
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.66rem', fontWeight: 600, color: m.color }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: m.dot }} />
-      {m.label}
-    </div>
-  );
 }
 
 function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemove, onAddSideVoice, onRemoveSideVoice, onAssignCharacter, onAssignSideVoice }) {

@@ -58,6 +58,23 @@ Active and recently archived tasks. Rules for this file are in
 - [ ] Migrate (optional): point Save Folder at the old `Script and Sync`
       data location if Marie wants her existing books in 4.0.
 
+### UI / architecture follow-ups discovered during Phase 6
+
+- [ ] **Studio landing page (4-mode picker)** — first screen on launch
+      should be a small picker for Proof / Prep / Duet / Quill, not
+      dropping the user straight into Proof. Marie flagged this; lives
+      in `app/page.js` `HomePage`. Keep the existing in-mode home pages
+      as the second screen.
+- [ ] **Migrate ProofingReader to use `app/components/ReaderChrome.js`**
+      — Prep now uses the shared `ChapterContextPill`, `StickyTopBar`,
+      `SaveBadge`, `HomePill`, button-style factories, and the
+      `useDismissable` popover-close hook. ProofingReader still has its
+      own copies of all of these. When that 2600-line component is
+      refactored, swap them out so a single visual edit propagates to
+      every mode.
+- [ ] **Same for Duet `PrebuildMode`** — uses its own AppModeToggle
+      placement, no shared chrome yet.
+
 ### Phase 5 — Mode 1: Proof Listen working on real file
 
 - [ ] Mark every Proof Listen button as `verified live` in

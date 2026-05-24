@@ -674,7 +674,18 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
     const textContext = buildSelectionTextContext(plainText, wordSpans, start, end);
 
     const updatedAnnotations = [];
-    const previousAnnotations = (project.annotations || []).filter((a) => a.id !== editingAnnotationId);
+    // When editing, also drop any character markers that shared this
+    // range — they'll be re-added from characterIds below. Without
+    // this, re-saving an edited annotation duplicates the markers.
+    const previousAnnotations = (project.annotations || []).filter((a) => {
+      if (a.id === editingAnnotationId) return false;
+      if (editingAnnotationId && (a.classId === 'character' || a.markerOnly) &&
+          a.sectionId === chapter.id &&
+          Number(a.wordStart) === start && Number(a.wordEnd ?? a.wordStart) === end) {
+        return false;
+      }
+      return true;
+    });
 
     // Primary annotation (the class chosen in the popover)
     const primarySelection = resolveAnnotationSelection({

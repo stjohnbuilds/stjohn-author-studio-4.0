@@ -972,7 +972,7 @@ function ReaderView({
   return (
     <>
       <StickyTopBar
-        onBack={onBack}
+        usesCustomDragRegion={usesCustomDragRegion}
         title={navTitle}
         subtitle={`${showSourceTitle ? sourceTitle + ' · ' : ''}${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)${chapterCount.issues > 0 ? ` · ⚠ ${chapterCount.issues} to fix` : ''} · ${project.title}`}
       >

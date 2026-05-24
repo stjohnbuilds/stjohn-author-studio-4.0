@@ -634,12 +634,22 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   }, []);
 
   function openExistingAnnotation(ann, event) {
-    setSelectedRange({ start: Number(ann.wordStart), end: Number(ann.wordEnd ?? ann.wordStart) });
+    const start = Number(ann.wordStart);
+    const end = Number(ann.wordEnd ?? ann.wordStart);
+    setSelectedRange({ start, end });
     setEditingAnnotationId(ann.id);
     setClassId(ann.classId || 'highlight');
     setOptionId(ann.optionId || '');
     setNote(ann.note || '');
-    setCharacterIds([]);
+    // Pre-tick any character markers that share this same range, so the
+    // user sees them and can untick to remove. Without this they'd be
+    // invisible in the popover and saving would duplicate them.
+    const charsAtRange = (project.annotations || [])
+      .filter((a) => (a.classId === 'character' || a.markerOnly) &&
+        Number(a.wordStart) === start && Number(a.wordEnd ?? a.wordStart) === end)
+      .map((a) => a.optionId)
+      .filter(Boolean);
+    setCharacterIds(charsAtRange);
     setPopoverOpen(true);
     setPopoverPos(positionFromEvent(event));
   }

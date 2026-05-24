@@ -847,7 +847,7 @@ function BookDetailView({
 
 function ReaderView({
   project, activeChapterIndex, setActiveChapterIndex, onJumpToChapter,
-  selected, setSelected, saveStatus, onBack,
+  selected, setSelected, saveStatus, usesCustomDragRegion,
   onAssignCharacter, onAssignSideVoice,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,

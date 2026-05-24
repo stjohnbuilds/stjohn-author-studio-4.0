@@ -311,7 +311,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           saveStatus={saveStatus}
           onOpenChapter={(chId) => { setActiveChapterId(chId); setView('reader'); }}
           onDelete={() => deleteProject(activeProject.id)}
-          onReimport={() => setView('setup')}
           onExportCsv={exportCsv}
           onExportJsx={exportJsx}
           onExportAll={exportAll}

@@ -1,0 +1,13 @@
+Audioproofer future TODOs
+
+- Keep the small Whisper model unless real-world testing shows a chapter where sync is poor.
+- Make active transcription continue safely if the proofing/editor screen opens, without changing the proven alignment path.
+- Preserve/verify double-click word jump in the proofing text: double-click any word and audio should jump to that point.
+- Consider a small in-app note when transcription is running: "Stay on this screen until transcription finishes."
+- Later distribution polish: Mac signing/notarization and a friend-friendly installer/readme.
+- Fix double-click word jump in proofing reader: double-click any manuscript word should seek the audio to that word timestamp. Current attempt still does not work reliably in the packaged app; debug event targeting/audio seeking in `app/components/ProofingReader.js` before rebuilding.
+
+
+Reubens request:
+-Drag and drop for all uploads
+-Bigger back button lmao

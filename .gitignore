@@ -1,0 +1,30 @@
+node_modules
+.DS_Store
+.vscode/
+
+# Next / Electron build outputs
+.next/
+out/
+dist/
+.next.bak-*/
+out.bak-*/
+dist.bak-*/
+releases/
+Script and Sync Releases/
+
+# Packaged apps & staging (never commit)
+*.dmg
+*.blockmap
+.Proofer_contents_temp/
+*.app/
+
+# Whisper model is downloaded on demand for builds/releases
+bin/ggml-base.en.bin
+bin/ggml-base.en.bin.download
+
+# Local user library (keep out of git)
+Save Data/
+
+# Claude Code hooks (per Marie's bible Step 2.5)
+.claude/hook-activity.log
+.claude/edit-log.txt

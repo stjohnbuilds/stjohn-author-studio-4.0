@@ -1,0 +1,11 @@
+{
+  "allowed": [
+    "app/components/ProofingReader.js",
+    "app/components/SessionsView.js",
+    "scripts/**",
+    "package.json",
+    "package-lock.json",
+    "READ ME FIRST - OPEN THIS.txt",
+    ".github/copilot-instructions.md"
+  ]
+}

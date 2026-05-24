@@ -1,0 +1,112 @@
+AUDIoproofer: DEVELOPER ONLY NOTES
+
+Regular users should open:
+  READ ME FIRST - OPEN THIS.txt
+
+NON-NEGOTIABLE RELEASE RULE
+
+- Edit source only in this Script and Sync 3.0 folder
+- The only real release/handoff folder is:
+    Script and Sync Releases
+- dist, .next, out, and similar folders are temporary build output only
+- Never tell anyone to use an app from dist
+- Never make extra duplicate release folders
+- When rebuilding, archive the previous release into:
+    Script and Sync Releases/Old
+  and add the date and time to the archived name
+- Then place the fresh Mac app and Windows release files back into:
+    Script and Sync Releases
+
+WHY THIS CONFUSES PEOPLE
+
+- electron-builder writes temporary packaged files into dist while building
+- that staging output can look like a finished app, but it is not the official handoff copy
+- the only app copies regular users should open are the ones in Script and Sync Releases
+
+THIS FOLDER IS THE MASTER SOURCE FOLDER
+
+ORDER OF WORK FOR FIXES
+
+1. Make every code fix here in this master source folder first.
+2. Test the fix here.
+3. Rebuild from this same folder.
+4. The rebuilt shareable apps are then copied into:
+     Script and Sync Releases/
+5. Give regular users only the files inside Script and Sync Releases.
+
+Edit the source here once.
+Then rebuild Windows or Mac from this same folder.
+
+MAIN SOURCE LOCATIONS
+
+  app/
+  main.js
+  preload.js
+
+DO NOT EDIT BUILD OUTPUT FOLDERS
+
+  Script and Sync Releases
+  dist
+  .next
+
+DO NOT HAND OFF BUILD OUTPUT FOLDERS
+
+  dist
+  .next
+  out
+
+SOURCE VS PACKAGED APP
+
+The files in this folder are the source.
+The Windows .exe and Mac .app are packaged snapshots of that source.
+
+That means:
+  - changing source files does NOT change an old .exe or .app automatically
+  - after any source change, you must rebuild
+  - always open the newly rebuilt app, not some older copy from another folder
+
+DEVELOPER LAUNCHERS IN THIS FOLDER
+
+Mac build:
+  MAC - Build Proofer.command
+
+Mac open:
+  MAC - Open Proofer.command
+
+Windows build:
+  WINDOWS - Build Proofer.cmd
+
+Windows open:
+  WINDOWS - Open Proofer.cmd
+
+Developer live-edit mode:
+  DEV - Start Editable App.command
+
+SAFE RULE
+
+Always launch from these locations only:
+
+  Windows:
+    Script and Sync Releases/Script and Sync (Windows).exe
+
+  Mac:
+    Script and Sync Releases/Script and Sync.app
+
+BIG FOLDERS YOU CAN DELETE IF NEEDED
+
+  dist
+  .next
+  node_modules
+
+If node_modules is deleted, the build launchers reinstall it next time.
+
+LOCALHOST TROUBLESHOOTING
+
+If localhost:3000 loads but nothing feels clickable, check the dev server first.
+
+Best first fix:
+  1. kill the old next dev process
+  2. restart npm run dev cleanly
+  3. refresh the localhost page
+
+We have seen localhost previews get into a bad state even when the UI looks fine.

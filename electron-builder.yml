@@ -1,0 +1,54 @@
+appId: com.scriptandsync.app
+productName: Script and Sync
+copyright: Copyright © 2025
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - build/icon.ico
+  - main.js
+  - preload.js
+  - node_modules/**/*
+  - package.json
+
+extraResources:
+  - from: bin/
+    to: bin/
+    filter:
+      - "ggml-base.en.bin"
+      - "whisper-cli-*"
+      - "*.dll"
+      - "!ggml-large-v3-turbo.bin"
+  - from: build/icon.ico
+    to: build/icon.ico
+
+mac:
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  target:
+    - target: dir
+      arch: [arm64]
+
+win:
+  icon: build/icon.ico
+  signAndEditExecutable: false
+  target:
+    - target: portable
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+
+portable:
+  artifactName: Script and Sync (Portable).exe
+
+nsis:
+  artifactName: Script and Sync Setup.exe
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+
+publish: null

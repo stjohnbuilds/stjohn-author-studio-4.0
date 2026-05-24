@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+node scripts/check-sync-scope.js
+node scripts/check-protected-changes.js

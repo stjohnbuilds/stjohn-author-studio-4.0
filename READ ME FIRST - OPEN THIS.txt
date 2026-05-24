@@ -1,0 +1,79 @@
+AUDIoproofer 5.0
+READ ME FIRST
+
+NON-NEGOTIABLE RELEASE RULE
+
+- The code lives in this main folder: Script and Sync 3.0
+- The only user-facing release apps live here: Script and Sync Releases
+- dist, .next, out, and similar folders are temporary build/staging output only
+- Do not tell anyone to open an app from dist
+- Do not make extra duplicate release folders
+- When making a new release, move the old release app/files into Script and Sync Releases/Old and add the date and time to the old name
+- Then put the fresh Mac app and Windows release files back into Script and Sync Releases
+
+WHY dist EXISTS
+
+- dist is just where Electron builds temporary packaged output during the build
+- It is not the final handoff folder
+- The real shareable app location is always Script and Sync Releases
+
+IF YOU JUST WANT TO USE THE APP
+
+1. Open the folder called:
+   Script and Sync Releases
+2. That folder contains the actual app files regular users need.
+
+IF YOU ARE ON A MAC
+
+1. Open Script and Sync Releases.
+2. Double-click Script and Sync.app
+3. If Mac blocks it, right-click Script and Sync.app and choose Open
+4. If Mac still blocks it, go to System Settings > Privacy & Security > Open Anyway
+
+IF YOU ARE ON WINDOWS
+
+1. Open Script and Sync Releases
+2. Double-click Script and Sync (Windows).exe
+3. If you want the installer instead, use Script and Sync Setup.exe
+4. Windows may briefly extract the portable app to Temp while it opens.
+   That is normal. Your books should still save to the Save Data location shown on the home screen.
+
+IMPORTANT
+
+- You do NOT need Terminal
+- You do NOT need npm
+- You do NOT need the build files unless the app is missing or broken
+- The app files are:
+  Mac: Script and Sync Releases/Script and Sync.app
+  Windows: Script and Sync Releases/Script and Sync (Windows).exe
+  Windows installer: Script and Sync Releases/Script and Sync Setup.exe
+
+FIRST THING TO CHECK INSIDE THE APP
+
+On the home screen, look at Save location.
+Make sure it is using the Save Data folder inside this main Script and Sync folder.
+That is where your books and progress are saved.
+
+HOW TO USE IT
+
+1. Click Create new book
+2. Type the book title
+3. Upload the Word manuscript (.docx)
+4. Check the character and narrator names
+5. Check the chapter and section list
+6. Click Save book
+7. Add audio
+8. Click Transcribe audio, or Transcribe All Chapters
+9. Click Proof
+10. Export flags to CSV if needed
+
+GOOD TO KNOW
+
+- Your work saves as you go into Save Data
+- If audio is missing on another computer, pick that machine's copy once
+- If your books seem missing, check Save location first
+
+FOR THE PERSON WHO SENT YOU THIS FOLDER
+
+- Developer tools are in the other files with names like MAC - Build, WINDOWS - Build, or DEV - Start Editable App
+- Regular users should ignore those and just open the app

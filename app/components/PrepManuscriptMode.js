@@ -872,7 +872,7 @@ function BookDetailView({
                 onClick={() => setEditingChapters((v) => !v)}
                 title={editingChapters ? 'Done editing' : 'Edit chapter list'}
                 style={{
-                  background: editingChapters ? PREP_INK : 'white',
+                  background: editingChapters ? PREP_ACCENT : 'white',
                   color: editingChapters ? 'white' : PREP_INK,
                   border: '1px solid ' + PREP_INK + '55',
                   borderRadius: 999,

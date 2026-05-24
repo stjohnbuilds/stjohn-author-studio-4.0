@@ -797,8 +797,12 @@ function applyHighlightsInPlace(docXml, assignments) {
       // reference run all three present for the comment to show.
       const hasComment = a.commentId != null;
       const cStart = hasComment ? `<w:commentRangeStart w:id="${a.commentId}"/>` : '';
+      // Drop the <w:rStyle w:val="CommentReference"/> — user docs
+      // typically don't define that style and Word's repair dialog
+      // flags the file as "unreadable" before opening. The reference
+      // run renders fine without it.
       const cEnd = hasComment
-        ? `<w:commentRangeEnd w:id="${a.commentId}"/><w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="${a.commentId}"/></w:r>`
+        ? `<w:commentRangeEnd w:id="${a.commentId}"/><w:r><w:commentReference w:id="${a.commentId}"/></w:r>`
         : '';
       const dialogueRun =
         cStart +

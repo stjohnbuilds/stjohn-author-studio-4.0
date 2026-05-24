@@ -391,10 +391,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
 
   // ---- character + side voice mutations (on active project) ----
   function addCharacter(prefill = {}) {
+    // Generate the id synchronously so the caller can immediately
+    // assign the currently-selected dialogue to the new character —
+    // Marie expects "add character" inside the reader to assign that
+    // character to the selected line in one step.
+    const newId = uid('char');
     updateActive((p) => {
       const used = (p.characters || []).map((c) => c.colorHex);
       const newChar = {
-        id: uid('char'),
+        id: newId,
         name: prefill.name || 'New character',
         narratorName: prefill.narratorName || '',
         colorHex: prefill.colorHex || nextPaletteColor(used),
@@ -402,6 +407,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       };
       return { ...p, characters: [...(p.characters || []), newChar] };
     });
+    return newId;
   }
   function updateCharacter(id, patch) {
     updateActive((p) => ({ ...p, characters: (p.characters || []).map((c) => (c.id === id ? { ...c, ...patch } : c)) }));

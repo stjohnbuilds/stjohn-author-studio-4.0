@@ -436,13 +436,23 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     const charactersById = new Map((activeProject.characters || []).map((c) => [c.id, c]));
     const flat = {
       ...activeProject,
-      characters: (activeProject.characters || []).map((c) => ({ id: c.id, name: c.name, narratorName: c.narratorName, colorHex: c.colorHex })),
+      characters: (activeProject.characters || []).map((c) => ({
+        id: c.id, name: c.name, narratorName: c.narratorName, colorHex: c.colorHex,
+        sideVoices: (c.sideVoices || []).map((s) => ({ id: s.id, name: s.name, narratorName: s.narratorName, notes: s.notes, recurring: s.recurring })),
+      })),
       chapters: (activeProject.chapters || []).map((ch) => ({
+        chapterNumber: ch.chapterNumber,
         title: ch.title,
         spans: ch.sections.flatMap((sec) => sec.dialogueSpans.map((sp) => {
           const char = sp.characterId ? charactersById.get(sp.characterId) : null;
           const sv = char && sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
-          return { text: sp.text, afterText: sp.afterText, characterId: sp.characterId, narratorOverride: sv?.narratorName || '' };
+          return {
+            text: sp.text,
+            afterText: sp.afterText,
+            characterId: sp.characterId,
+            sideVoiceId: sp.sideVoiceId || '',
+            narratorOverride: sv?.narratorName || '',
+          };
         })),
       })),
     };
@@ -720,14 +730,19 @@ function ReaderView({
   useEffect(() => {
     if (scrollTick === 0) return undefined;
     let cancelled = false;
-    function tryScroll(retries) {
+    let attempts = 0;
+    function tryScroll() {
       if (cancelled) return;
-      const node = dialogueRefs.current[`${selected.sectionIndex}|${selected.spanIndex}`];
+      attempts += 1;
+      const key = `${selected.sectionIndex}|${selected.spanIndex}`;
+      const node = dialogueRefs.current[key];
       if (node) { node.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-      if (retries > 0) setTimeout(() => tryScroll(retries - 1), 40);
+      // The new chapter's dialogue buttons may not have mounted yet
+      // after a cross-chapter hop. Poll for up to ~1 second.
+      if (attempts < 20) setTimeout(tryScroll, 50);
     }
-    const id = setTimeout(() => tryScroll(6), 30);
-    return () => { cancelled = true; clearTimeout(id); };
+    tryScroll();
+    return () => { cancelled = true; };
   }, [scrollTick, selected, activeChapterIndex]);
 
   // flat dialogue list within this chapter only
@@ -961,9 +976,9 @@ function ReaderDock({
           </span>
         </div>
 
-        {/* Character chips below — wraps, gets a max height so a 50-char
-            list doesn't shove the manuscript half off-screen. */}
-        <div style={{ maxHeight: 88, overflowY: 'auto', paddingTop: 2 }}>
+        {/* Character chips below. Let it wrap freely so the Add form
+            doesn't get clipped. */}
+        <div style={{ paddingTop: 2 }}>
           <CharacterGrid
             characters={characters}
             mode="assign"
@@ -1004,8 +1019,17 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
   function closePopover() { setPopoverFor(null); setAddingSideFor(null); }
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
-      {characters.map((c) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* When adding a character, show the inline form on its OWN row
+          above the chips so it can't be clipped by the dock's
+          scrollable strip. */}
+      {adding && (
+        <div>
+          <AddCharacterInline existingCount={characters.length} onSave={(payload) => { onAdd(payload); setAdding(false); }} onCancel={() => setAdding(false)} />
+        </div>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
+        {characters.map((c) => (
         <CharacterChip
           key={c.id}
           character={c}
@@ -1049,9 +1073,7 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
           + Add character
         </button>
       )}
-      {adding && (
-        <AddCharacterInline existingCount={characters.length} onSave={(payload) => { onAdd(payload); setAdding(false); }} onCancel={() => setAdding(false)} />
-      )}
+      </div>
     </div>
   );
 }

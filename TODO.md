@@ -58,6 +58,22 @@ Active and recently archived tasks. Rules for this file are in
 - [ ] Migrate (optional): point Save Folder at the old `Script and Sync`
       data location if Marie wants her existing books in 4.0.
 
+### Prep export — preserve original manuscript layout
+
+- [ ] **Highlighted .docx should preserve the original manuscript
+      formatting** — Marie wants the exported Word doc to be the EXACT
+      original manuscript layout (paragraphs, headings, italics, etc.)
+      with the dialogue lines highlighted in their character's color
+      and side-voice dialogues carrying a Word comment with the side-
+      voice name + notes. Current export reconstructs a simplified
+      document with `[Character] "text"` lines + colored highlights —
+      acceptable as a v1 but not the final goal.
+      Approach: keep the section HTML from mammoth, re-emit it as
+      OOXML preserving block-level structure, and only wrap the
+      dialogue spans with `<w:shd>` (highlight) + `<w:commentReference>`
+      where applicable. Likely needs `mammoth -> docx`-style round-trip
+      or a custom HTML→OOXML walker.
+
 ### UI / architecture follow-ups discovered during Phase 6
 
 - [ ] **Studio landing page (4-mode picker)** — first screen on launch

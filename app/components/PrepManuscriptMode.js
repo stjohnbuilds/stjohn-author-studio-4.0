@@ -1441,7 +1441,7 @@ function ReaderDock({
 function topBtn() { return topBtnStyle(TONE, 'outline'); }
 function pillBtn() { return pillBtnStyle(TONE); }
 function dockBtn(primary) {
-  return { padding: '5px 12px', background: primary ? PREP_INK : 'white', color: primary ? 'white' : PREP_INK, border: '1px solid ' + PREP_INK, borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' };
+  return { padding: '5px 12px', background: primary ? PREP_ACCENT : 'white', color: primary ? 'white' : PREP_INK, border: '1px solid ' + (primary ? PREP_ACCENT : PREP_INK), borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' };
 }
 function sectionHeading() {
   return { fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: PREP_INK, margin: '0 0 8px 0' };

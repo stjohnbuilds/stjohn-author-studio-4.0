@@ -38,8 +38,68 @@ function paragraph(runs = '') {
   return `<w:p>${runs}</w:p>`;
 }
 
+function styledParagraph(style = '', runs = '') {
+  if (!style) return `<w:p>${runs}</w:p>`;
+  return `<w:p><w:pPr><w:pStyle w:val="${style}"/></w:pPr>${runs}</w:p>`;
+}
+
 function headingParagraph(text = '', level = 'Heading1') {
   return `<w:p><w:pPr><w:pStyle w:val="${level}"/></w:pPr>${textRun(text)}</w:p>`;
+}
+
+function stripTags(s = '') {
+  return String(s).replace(/<[^>]*>/g, '');
+}
+
+// Walk an HTML string and return paragraph-level blocks in document
+// order, with their tag and a plain-text representation. Used to
+// rebuild the manuscript's paragraph structure in the export.
+function paragraphsFromHtml(html = '') {
+  const blocks = [];
+  const re = /<(p|h1|h2|h3|h4|h5|h6|blockquote|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const tag = m[1].toLowerCase();
+    const text = stripTags(m[2]).replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    blocks.push({ tag, text });
+  }
+  if (blocks.length === 0) {
+    const fallback = stripTags(html).replace(/\s+/g, ' ').trim();
+    if (fallback) blocks.push({ tag: 'p', text: fallback });
+  }
+  return blocks;
+}
+
+function ooxmlStyleForTag(tag) {
+  switch (tag) {
+    case 'h1': return 'Heading1';
+    case 'h2': return 'Heading2';
+    case 'h3': return 'Heading3';
+    case 'h4': return 'Heading4';
+    case 'h5': return 'Heading5';
+    case 'h6': return 'Heading6';
+    case 'blockquote': return 'Quote';
+    default: return '';   // body paragraph
+  }
+}
+
+function darkenHexExport(hex, amount = 0.15) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length !== 6) return hex;
+  const r = Math.max(0, parseInt(h.slice(0, 2), 16) - Math.round(255 * amount));
+  const g = Math.max(0, parseInt(h.slice(2, 4), 16) - Math.round(255 * amount));
+  const b = Math.max(0, parseInt(h.slice(4, 6), 16) - Math.round(255 * amount));
+  const px = (n) => n.toString(16).padStart(2, '0');
+  return '#' + px(r) + px(g) + px(b);
+}
+
+function exportColorFor(char, sv) {
+  if (!char) return '';
+  if (!sv) return char.colorHex;
+  const idx = (char.sideVoices || []).findIndex((s) => s.id === sv.id);
+  const step = Math.max(1, idx + 1);
+  return darkenHexExport(char.colorHex, Math.min(0.45, 0.12 * step));
 }
 
 function escapeCsv(value = '') {
@@ -158,27 +218,69 @@ function narratorBreakdownXml(project = {}) {
   return heading + blocks + pageBreak;
 }
 
+// Build the OOXML body for a single section: walk the source HTML
+// paragraph-by-paragraph and inject highlighted runs where dialogue
+// spans appear. Paragraph structure + headings are preserved so the
+// exported .docx is the user's original manuscript with just the
+// dialogue tinted.
+function sectionXmlPreservingLayout(section, characters) {
+  const blocks = paragraphsFromHtml(section.html || '');
+  const spans = section.dialogueSpans || [];
+  // Span cursor advances across paragraphs — the engine returns spans
+  // in document order, so a given span lives in exactly one paragraph.
+  let spanCursor = 0;
+  return blocks.map((block) => {
+    const segments = [];
+    let cursor = 0;
+    const text = block.text;
+    while (spanCursor < spans.length) {
+      const sp = spans[spanCursor];
+      const needle = sp.text || '';
+      if (!needle) { spanCursor++; continue; }
+      const where = text.indexOf(needle, cursor);
+      if (where === -1) break;   // span isn't in this paragraph
+      if (where > cursor) segments.push({ kind: 'plain', text: text.slice(cursor, where) });
+      segments.push({ kind: 'dialogue', text: needle, span: sp });
+      cursor = where + needle.length;
+      spanCursor++;
+    }
+    if (cursor < text.length) segments.push({ kind: 'plain', text: text.slice(cursor) });
+    if (segments.length === 0) segments.push({ kind: 'plain', text });
+
+    const runs = segments.map((seg) => {
+      if (seg.kind === 'plain') return textRun(seg.text);
+      const char = seg.span.characterId ? characters.find((c) => c.id === seg.span.characterId) : null;
+      const sv = char && seg.span.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === seg.span.sideVoiceId) : null;
+      const fill = exportColorFor(char, sv);
+      return textRun(seg.text, fill);
+    }).join('');
+
+    return styledParagraph(ooxmlStyleForTag(block.tag), runs);
+  }).join('');
+}
+
 function buildDocumentXml(project = {}) {
   const characters = project.characters || [];
-  const charactersById = new Map(characters.map((c) => [c.id, c]));
-
   const title = headingParagraph(project.title || 'Prep Manuscript', 'Title');
   const subtitle = paragraph(textRun(`Source file: ${project.fileName || ''}`));
   const blank = paragraph(textRun(' '));
-
   const breakdownXml = narratorBreakdownXml(project);
 
+  // The manuscript body — preserves original paragraph structure +
+  // headings; highlights only the dialogue runs. If a chapter has no
+  // section data (legacy shape) we fall back to the old simple
+  // "[Character] text" line emission so old exports still work.
   const chapterXml = (project.chapters || []).map((ch) => {
     const heading = headingParagraph(ch.title || 'Untitled chapter', 'Heading1');
+    if (Array.isArray(ch.sections) && ch.sections.length > 0) {
+      const body = ch.sections.map((sec) => sectionXmlPreservingLayout(sec, characters)).join('');
+      return heading + (body || paragraph(textRun('(Empty chapter.)')));
+    }
+    // Legacy / fallback path
     const lines = (ch.spans || []).map((sp) => {
-      const char = sp.characterId ? charactersById.get(sp.characterId) : null;
-      const sv = char && sp.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === sp.sideVoiceId) : null;
+      const char = sp.characterId ? characters.find((c) => c.id === sp.characterId) : null;
       const highlight = char?.colorHex || '';
-      const narrator = sp.narratorOverride || char?.narratorName || '';
-      const charLabel = char ? char.name || 'Unnamed' : 'Unassigned';
-      const svLabel = sv ? ` — ${sv.name}` : '';
-      const narLabel = narrator ? ' / ' + narrator : '';
-      const label = char ? `[${charLabel}${svLabel}${narLabel}] ` : '[Unassigned] ';
+      const label = char ? `[${char.name || 'Unnamed'}${sp.narratorOverride ? ' / ' + sp.narratorOverride : ''}] ` : '[Unassigned] ';
       return paragraph(textRun(`${label}"${sp.text}"`, highlight));
     }).join('');
     return heading + (lines || paragraph(textRun('(No dialogue detected.)')));

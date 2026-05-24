@@ -1283,7 +1283,6 @@ function renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, onWord
 
   function renderWord(word, after, idx, key) {
     const inSelection = !!selectedRange && idx >= selectedRange.start && idx <= selectedRange.end;
-    const isSelectionStart = !!selectedRange && idx === selectedRange.start;
     const ann = wordToAnnotation.get(idx);
 
     const style = {
@@ -1309,42 +1308,14 @@ function renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, onWord
     }
 
     return (
-      <span key={key} style={{ position: 'relative', display: 'inline' }}>
-        {isSelectionStart && (
-          <span style={{ position: 'absolute', top: -20, left: 0, zIndex: 1500 }}>
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => onSelectionPlusClick(e)}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                background: QUILL.accent,
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                lineHeight: 1,
-                boxShadow: '0 4px 10px rgba(76,72,70,0.2)',
-              }}
-              aria-label={ann ? 'Edit annotation' : 'Add annotation'}
-              title={ann ? 'Edit annotation' : 'Add annotation'}
-            >
-              {ann ? '✎' : '+'}
-            </button>
-          </span>
-        )}
-        <span
-          data-quill-word-index={idx}
-          onPointerDown={(e) => onWordPointerDown(idx, e)}
-          onPointerEnter={() => onWordPointerEnter(idx)}
-          style={style}
-        >
-          {word}
-        </span>
-        {after}
+      <span
+        key={key}
+        data-quill-word-index={idx}
+        onPointerDown={(e) => onWordPointerDown(idx, e)}
+        onPointerEnter={() => onWordPointerEnter(idx)}
+        style={style}
+      >
+        {word}{after}
       </span>
     );
   }

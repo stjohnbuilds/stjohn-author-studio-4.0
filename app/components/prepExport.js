@@ -550,7 +550,7 @@ async function buildOriginalPlusHighlights(project) {
         let commentId = null;
         if (sv) {
           commentId = nextCommentId++;
-          comments.push({ id: commentId, text: formatSideVoiceComment(char, sv) });
+          comments.push({ id: commentId, lines: formatSideVoiceCommentLines(char, sv) });
         }
         assignments.push({ text: sp.text, color: exportColorFor(char, sv), commentId });
       });

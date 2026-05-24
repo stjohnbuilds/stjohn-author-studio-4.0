@@ -1107,6 +1107,98 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
           </div>
         </div>
       )}
+
+      {/* Bottom annotation dock — Marie wanted the list at the BOTTOM,
+          not in a right-hand sidebar. Chips scroll horizontally so a
+          chapter with lots of annotations still fits in a single row. */}
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255,255,255,0.96)',
+          borderTop: '1px solid var(--border-light)',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 -6px 22px rgba(0,0,0,0.04)',
+          zIndex: 1200,
+          padding: '8px 16px 12px',
+          WebkitAppRegion: 'no-drag',
+        }}
+      >
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL.ink }}>
+              Annotations · {annotationsForChapter.length}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>
+              {annotationsForChapter.length === 0
+                ? 'Drag across text to start.'
+                : 'Click a chip to jump back to it.'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+            {annotationsForChapter.map((ann) => (
+              <div
+                key={ann.id}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 8px 5px 10px',
+                  background: 'white',
+                  border: '1px solid var(--border)',
+                  borderRadius: 999,
+                  flexShrink: 0,
+                  maxWidth: 340,
+                }}
+                title={ann.note ? `${ann.label || ann.classLabel || 'Annotation'} — ${ann.note}` : (ann.label || ann.classLabel || 'Annotation')}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: ann.color || QUILL.accent, flexShrink: 0 }} />
+                <button
+                  type="button"
+                  onClick={() => jumpToAnnotation(ann)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    fontSize: '0.74rem',
+                    textAlign: 'left',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: 260,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: QUILL.ink }}>{ann.label || ann.classLabel || 'Annotation'}</span>
+                  <span style={{ marginLeft: 6, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    &ldquo;{(ann.selectedText || '').slice(0, 32)}{(ann.selectedText || '').length > 32 ? '…' : ''}&rdquo;
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteAnnotation(ann.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-light)',
+                    fontSize: '0.92rem',
+                    lineHeight: 1,
+                    padding: '0 2px',
+                  }}
+                  title="Delete annotation"
+                  aria-label="Delete annotation"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

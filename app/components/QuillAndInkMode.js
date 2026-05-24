@@ -1231,7 +1231,7 @@ function miniCircleBtn(color) {
 // with a clickable button, preserving block formatting.
 // ===========================================================================
 
-function renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, draggingRef, onWordPointerDown, onWordPointerEnter, onSelectionPlusClick, editingAnnotationId, popoverOpen, popoverPos }) {
+function renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, onWordPointerDown, onWordPointerEnter }) {
   if (!chapter || typeof document === 'undefined') return null;
   const html = chapter.textHtml || '';
   const host = document.createElement('div');

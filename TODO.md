@@ -169,4 +169,36 @@ Active and recently archived tasks. Rules for this file are in
 
 ## Archived
 
-(empty — Phase 1 still in progress)
+- [x] **Shared `ImportFlow` for Prep + Duet (and reusable for Proof later)**
+      — built `app/components/ImportFlow.js` with the upload card, H1/H2/H3
+      selector, chapter checkbox list, "Set first" toggle, and shared
+      Google-Docs-shading conversion (re-exported from `ManuscriptSetup`).
+      Prep's old inline `SetupView` and Duet's `PrebuildManuscriptUpload`
+      both deleted; both now render `<ImportFlow ... />`. — completed
+      2026-05-24
+- [x] **Strip dialogue warnings down to one rule** — engine used to emit
+      seven kinds of issues (tiny / long / empty span, nested, orphan
+      close, missing close, uneven, quote-in-heading). Marie said too
+      noisy. Now emits one: `missing-closing-quote`, only when an open
+      quote has no follow-up quote within ~3 paragraphs. All per-span
+      ⚠ icons removed from the reader. — completed 2026-05-24
+- [x] **Inline quote-insert (section fixer)** — each amber warning strip
+      now has a "Fix" button. Clicking it opens a textarea pre-filled
+      with the section's paragraphs; an "Insert "" here" button drops a
+      closing curly quote at the cursor. Save & rescan reruns dialogue
+      detection so the warning either clears or moves to the next gap.
+      — completed 2026-05-24
+- [x] **Header confusion fix** — the reader top bar used to read
+      "Chapter 1 of 61 · Chapter 2" because it concatenated the
+      navigation position with the source heading. Now the title shows
+      only the navigation position ("Chapter 1 of 61") and the source
+      heading goes into the subtitle (and only when it differs from the
+      nav number). Dropdown options were updated to show "Chapter N"
+      from the navigation system, not the source title. Same fix
+      applied to the book-detail chapter list. — completed 2026-05-24
+- [x] **Narrator breakdown styling** — the in-place .docx export's
+      narrator page used `<w:pStyle>` references that depend on the
+      source doc having `Heading1` / `Heading2` defined. Switched to
+      inline run-property styling (bold, centered, point size baked
+      into each paragraph) so the breakdown looks right no matter what
+      the source .docx's `styles.xml` looks like. — completed 2026-05-24

@@ -324,63 +324,51 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }));
   }, [activeProjectId]);
 
-  // ---- import (step 1: parse, then show setup screen) ----
-  async function handleImport(file) {
-    if (!file) return;
-    setLoading(true);
-    setError('');
-    setProgress({ current: 0, total: 0, title: 'Reading file…' });
-    try {
-      const mammoth = (await import('mammoth')).default;
-      setProgress({ current: 0, total: 0, title: 'Parsing manuscript…' });
-      const ab = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer: ab });
-      const html = result.value || '';
-      const structure = applyChapterNumbers(parseManuscriptStructure(html, { chapterLevel: 1 }));
-      // Pre-shell so the setup screen can show counts + chapter list.
-      const previewShell = buildShellFromStructure(file, structure);
-      // Stash the ORIGINAL .docx bytes (as base64 so they survive
-      // JSON persistence). The export reuses these to emit the user's
-      // exact document with just dialogue highlights added, instead of
-      // rebuilding the file from our HTML view.
-      const base64 = await arrayBufferToBase64(ab);
-      setPendingImport({
-        fileName: file.name,
-        projectName: file.name.replace(/\.docx$/i, ''),
-        structure,
-        previewShell,
-        includedChapterIds: new Set(previewShell.chapters.map((c) => c.id)),
-        sourceDocxBase64: base64,
-      });
-      setView('setup');
-      setProgress(null);
-    } catch (err) {
-      console.error('Prep import failed:', err);
-      setError(err?.message || 'Could not read this manuscript.');
-      setProgress(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // ---- import: ImportFlow drives the upload + chapter picker. This
+  // commit step turns its payload into a Prep project (one section per
+  // chapter — Prep doesn't sub-split) and runs dialogue detection in
+  // the background so Marie can already be poking around the book
+  // detail screen while it scans.
+  async function commitImport(payload) {
+    const sourceDocxBase64 = payload.sourceDocxBase64 || '';
+    const chapters = (payload.chapters || []).map((ch, i) => ({
+      id: uid('ch'),
+      chapterIndex: i,
+      chapterNumber: ch.chapterNumber || i + 1,
+      title: ch.title || `Chapter ${i + 1}`,
+      sections: [{
+        id: uid('sec'),
+        sectionIndex: 0,
+        title: ch.title || `Chapter ${i + 1}`,
+        html: ch.html || '',
+        dialogueSpans: [],
+        scanning: true,
+      }],
+    }));
 
-  // ---- import (step 2: user confirmed name + chapter selection) ----
-  async function commitImport({ projectName, includedChapterIds }) {
-    if (!pendingImport) return;
-    const includedSet = includedChapterIds instanceof Set ? includedChapterIds : new Set(includedChapterIds);
-    // Take the preview shell, drop unselected chapters, re-index.
-    const baseShell = pendingImport.previewShell;
-    const trimmedChapters = baseShell.chapters
-      .filter((c) => includedSet.has(c.id))
-      .map((c, i) => ({ ...c, chapterIndex: i, chapterNumber: i + 1 }));
+    const replacing = replacingProjectId
+      ? allProjects.find((p) => p.id === replacingProjectId)
+      : null;
+
     const shell = {
-      ...baseShell,
-      title: projectName.trim() || baseShell.title,
-      chapters: trimmedChapters,
-      sourceDocxBase64: pendingImport.sourceDocxBase64 || '',
+      id: replacing ? replacing.id : uid('prep'),
+      title: payload.title || 'Untitled',
+      fileName: payload.fileName || '',
+      importedAt: replacing ? replacing.importedAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // Preserve characters across a replace so Marie doesn't lose her
+      // cast when she swaps a corrected manuscript in.
+      characters: replacing ? (replacing.characters || []) : [],
+      chapters,
+      sourceDocxBase64,
     };
-    setAllProjects((all) => [...all, shell]);
+
+    setAllProjects((all) => {
+      if (replacing) return all.map((p) => (p.id === replacing.id ? shell : p));
+      return [...all, shell];
+    });
     setActiveProjectId(shell.id);
-    setPendingImport(null);
+    setReplacingProjectId(null);
     setView('bookDetail');
 
     setLoading(true);
@@ -394,14 +382,14 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           setProgress({
             current: processed,
             total: totalSections,
-            title: `${ch.title || 'Chapter ' + (ch.chapterIndex + 1)} — ${sec.title || 'Section ' + (sec.sectionIndex + 1)}`,
+            title: ch.title || `Chapter ${ch.chapterIndex + 1}`,
           });
           // eslint-disable-next-line no-await-in-loop
           await new Promise((r) => setTimeout(r, 0));
           const { dialogueSpans, issues, totalQuoteMarks, quoteMarksEven } = detectSectionSpans(sec.html || '', ch.chapterIndex, sec.sectionIndex);
           setAllProjects((all) => all.map((p) => {
             if (p.id !== shell.id) return p;
-            const chapters = p.chapters.map((cch) => {
+            const newChapters = p.chapters.map((cch) => {
               if (cch.chapterIndex !== ch.chapterIndex) return cch;
               return {
                 ...cch,
@@ -417,7 +405,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
                 ),
               };
             });
-            return { ...p, chapters };
+            return { ...p, chapters: newChapters };
           }));
         }
       }
@@ -427,20 +415,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }
   }
 
-  function cancelPendingImport() {
-    setPendingImport(null);
-    setView('home');
+  function cancelImport() {
+    setReplacingProjectId(null);
+    setView(activeProjectId ? 'bookDetail' : 'home');
   }
 
-  function replaceActiveManuscript(file) {
-    // Treat as a fresh import that takes over the active project id.
-    if (!activeProject) return handleImport(file);
-    handleImport(file).then(() => {
-      // remove the now-orphaned old project (we created a fresh shell)
-      // Actually handleImport already appends a NEW shell with a new id —
-      // and switches activeProjectId to it. We should clean up the old.
-    });
-    setAllProjects((all) => all.filter((p) => p.id !== activeProject.id));
+  function startReplaceManuscript() {
+    if (!activeProject) return;
+    setReplacingProjectId(activeProject.id);
+    setView('setup');
   }
 
   function deleteProject(id) {

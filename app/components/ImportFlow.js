@@ -80,6 +80,40 @@ function countWords(text = '') {
   return m ? m.length : 0;
 }
 
+// Given a chapter's HTML, return its sub-headings (h{N+1}) as a flat list
+// of editable sub-sections. Each sub-section gets the chunk of HTML from
+// its heading until the next sub-heading. Content BEFORE the first
+// sub-heading becomes an unnamed "intro" entry so it can be unchecked
+// independently (front-matter inside a chapter, for example).
+function extractSubSections(chapterHtml, chapterLevel) {
+  const subTag = chapterLevel < 6 ? `h${chapterLevel + 1}` : null;
+  if (!subTag || !chapterHtml) return [];
+  const host = document.createElement('div');
+  host.innerHTML = chapterHtml;
+  const out = [];
+  let cur = { title: '', nodes: [] };
+  Array.from(host.childNodes).forEach((node) => {
+    const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
+    if (tag === subTag) {
+      if (cur.nodes.length || cur.title) out.push(cur);
+      cur = { title: (node.textContent || '').trim() || 'Untitled section', nodes: [node.cloneNode(true)] };
+    } else {
+      cur.nodes.push(node.cloneNode(true));
+    }
+  });
+  if (cur.nodes.length || cur.title) out.push(cur);
+  // Only return sub-sections if there are at least 2 — a chapter with
+  // no sub-headings or a single sub-heading isn't worth nesting.
+  if (out.filter((s) => s.title).length < 2) return [];
+  return out.map((s, i) => ({
+    id: uid(),
+    title: s.title || '(intro)',
+    html: s.nodes.map((n) => n.outerHTML || n.textContent || '').join(''),
+    wordCount: countWords(stripTags(s.nodes.map((n) => n.outerHTML || n.textContent || '').join(''))),
+    included: true,
+  }));
+}
+
 // Walk the full HTML, group child nodes under their chapter heading
 // (h{level}). If splitOnSubheadings is true and a chapter has the
 // next level of headings (h{level+1}), each sub-heading becomes its

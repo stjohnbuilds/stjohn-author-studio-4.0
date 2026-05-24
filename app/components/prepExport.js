@@ -160,12 +160,22 @@ function buildNarratorBreakdown(project = {}) {
   }
 
   // Seed from characters list (so a character with no lines yet still shows).
+  // Side voices belong to a NARRATOR (the voice actor), not the character.
+  // A "side voice of Crescent" reads wrong to the engineer reading the
+  // breakdown — what they need to know is that Alyssa (the narrator
+  // voicing Crescent) ALSO does the side voice. So we attribute the
+  // side voice to the parent character's narrator.
   characters.forEach((c) => {
     const main = ensure(c.narratorName || '');
     if (c.name) main.characters.add(c.name);
     (c.sideVoices || []).forEach((sv) => {
-      const sn = ensure(sv.narratorName || c.narratorName || '');
-      sn.sideVoices.push({ characterName: c.name, sideName: sv.name });
+      const parentNarrator = c.narratorName || '';
+      const sn = ensure(sv.narratorName || parentNarrator);
+      sn.sideVoices.push({
+        characterName: c.name,
+        parentNarrator,                   // who actually voices this side voice
+        sideName: sv.name,
+      });
     });
   });
 

@@ -589,6 +589,70 @@ function stripPreviousNarratorBreakdown(documentXml) {
   return documentXml.slice(0, pStart) + documentXml.slice(removeEnd);
 }
 
+// Replay Marie's in-app paragraph edits into the original docx body.
+// For each (oldText, newText) edit on each section, find the <w:p>
+// whose concatenated <w:t> text equals oldText and replace its inner
+// content with a single <w:r><w:t>newText</w:t></w:r>. The paragraph
+// keeps its <w:pPr> (so spacing/alignment is preserved) but loses any
+// per-run formatting inside — that's the trade-off for being able to
+// surgically inject text without reauthoring the whole .docx.
+function applyManualEdits(documentXml, project) {
+  const edits = [];
+  (project.chapters || []).forEach((ch) => {
+    (ch.sections || []).forEach((sec) => {
+      (sec.manualEdits || []).forEach((e) => {
+        if (e && e.oldText && e.newText && e.oldText !== e.newText) {
+          edits.push(e);
+        }
+      });
+    });
+  });
+  if (edits.length === 0) return documentXml;
+
+  let out = documentXml;
+  for (const edit of edits) {
+    out = replaceParagraphByText(out, edit.oldText, edit.newText);
+  }
+  return out;
+}
+
+function replaceParagraphByText(documentXml, oldText, newText) {
+  const pRegex = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+  return documentXml.replace(pRegex, (match, inner) => {
+    // Collect the concatenated <w:t> text in this paragraph and
+    // collapse whitespace so it matches what the reader sees.
+    const textParts = [];
+    const tRegex = /<w:t[^>]*>([^<]*)<\/w:t>/g;
+    let tm;
+    while ((tm = tRegex.exec(inner)) !== null) textParts.push(tm[1]);
+    const pText = decodeXmlText(textParts.join('')).replace(/\s+/g, ' ').trim();
+    if (pText !== oldText) return match;
+    // Keep the original pPr (paragraph properties) if any.
+    const pprMatch = inner.match(/<w:pPr>[\s\S]*?<\/w:pPr>/);
+    const pPr = pprMatch ? pprMatch[0] : '';
+    return `<w:p>${pPr}<w:r><w:t xml:space="preserve">${xml(newText)}</w:t></w:r></w:p>`;
+  });
+}
+
+function decodeXmlText(s = '') {
+  return String(s).replace(
+    /&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
+    (_, dec, hex, named) => {
+      if (dec) return String.fromCodePoint(Number(dec));
+      if (hex) return String.fromCodePoint(parseInt(hex, 16));
+      switch (named) {
+        case 'amp': return '&';
+        case 'lt': return '<';
+        case 'gt': return '>';
+        case 'quot': return '"';
+        case 'apos': return "'";
+        case 'nbsp': return ' ';
+        default: return _;
+      }
+    }
+  );
+}
+
 function base64ToUint8(b64) {
   const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
   const out = new Uint8Array(binary.length);

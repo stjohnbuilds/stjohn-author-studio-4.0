@@ -114,7 +114,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
-  const [error, setError] = useState('');
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
 

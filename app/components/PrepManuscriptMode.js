@@ -1191,6 +1191,7 @@ function SectionBody({
               block={block}
               onCancel={() => setFixingBlock(null)}
               onSave={(newParaText) => {
+                const oldText = block.text;
                 // Rebuild section.html by replacing just this block's text.
                 const newHtml = blocks.map((b, i) => {
                   const t = i === bi ? newParaText : b.text;
@@ -1200,7 +1201,14 @@ function SectionBody({
                   }
                   return `<p>${escapeHtml(t)}</p>`;
                 }).join('');
-                if (onUpdateSectionHtml) onUpdateSectionHtml(chapterIndex, section.sectionIndex, newHtml);
+                if (onUpdateSectionHtml) {
+                  onUpdateSectionHtml(
+                    chapterIndex,
+                    section.sectionIndex,
+                    newHtml,
+                    { oldText, newText: newParaText },
+                  );
+                }
                 setFixingBlock(null);
               }}
             />

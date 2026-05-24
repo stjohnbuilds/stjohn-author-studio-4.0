@@ -72,7 +72,9 @@ export default function PhoneShell() {
     setAuthSession(null);
   }
 
-  if (!authReady) {
+  const bypassAuth = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
+  if (hasSupabaseConfig && !bypassAuth && !authReady) {
     return (
       <main style={{ minHeight: '100vh', background: PHONE_BG, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ fontSize: '0.86rem', color: '#6D6663' }}>Checking your account…</div>
@@ -80,7 +82,7 @@ export default function PhoneShell() {
     );
   }
 
-  if (hasSupabaseConfig && !authSession) {
+  if (hasSupabaseConfig && !bypassAuth && !authSession) {
     return <LoginScreen onSignedIn={(s) => setAuthSession(s)} />;
   }
 

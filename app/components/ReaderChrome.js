@@ -143,22 +143,29 @@ export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', leftPad =
   // zIndex 1400 puts the bar above the HomePill (1300) + bottom dock
   // (1200) + any inline popovers, so the Back button + chapter
   // dropdown stay clickable when the user has scrolled down the page.
+  // Title block is centered (flex spacer left, controls right) so the
+  // chapter context reads symmetrically.
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 1400,
       background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-light)',
       padding: `10px 16px 10px ${leftPad}px`,
-      display: 'flex', alignItems: 'center', gap: 10,
+      display: 'grid',
+      gridTemplateColumns: 'auto 1fr auto',
+      alignItems: 'center',
+      gap: 10,
     }}>
       <button type="button" onClick={onBack} style={topBtnStyle(tone, 'ghost')}>← Back</button>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+      <div style={{ minWidth: 0, textAlign: 'center' }}>
+        <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
         {subtitle && (
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>{subtitle}</div>
         )}
       </div>
-      {children}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'end' }}>
+        {children}
+      </div>
     </div>
   );
 }

@@ -615,10 +615,13 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         <ReaderView
           project={activeProject}
           activeChapterIndex={activeChapterIndex}
-          setActiveChapterIndex={(i) => {
+          setActiveChapterIndex={setActiveChapterIndex}
+          onJumpToChapter={(i) => {
+            // Used by the top-bar chapter dropdown: jump to the chapter
+            // AND select its first dialogue-bearing section/span.
             setActiveChapterIndex(i);
             const ch = activeProject.chapters.find((c) => c.chapterIndex === i);
-            const firstSec = ch?.sections?.[0];
+            const firstSec = (ch?.sections || []).find((s) => (s.dialogueSpans || []).length > 0) || ch?.sections?.[0];
             setSelected({ sectionIndex: firstSec?.sectionIndex ?? 0, spanIndex: 0 });
           }}
           selected={selected}
@@ -781,7 +784,7 @@ function HomeView({ allProjects, onOpenProject, onDelete, onImport, loading, pro
                       {p.chapters.length} chapter{p.chapters.length === 1 ? '' : 's'} · {c.assigned}/{c.total} assigned ({pct}%){c.scanning ? ' · scanning…' : ''}
                     </div>
                   </button>
-                  <button type="button" onClick={() => { if (window.confirm(`Delete "${p.title}"? This can't be undone.`)) onDelete(p.id); }} title="Delete project" aria-label="Delete project" style={{ padding: '4px 8px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.84rem', cursor: 'pointer', lineHeight: 1 }}>🗑</button>
+                  <TrashButton onClick={() => { if (window.confirm(`Delete "${p.title}"? This can't be undone.`)) onDelete(p.id); }} title="Delete project" />
                   <span style={{ color: 'var(--text-light)', fontSize: '1.1rem' }}>›</span>
                 </div>
               );
@@ -820,9 +823,7 @@ function BookDetailView({
           Replace
           <input type="file" accept=".docx" onChange={(e) => e.target.files?.[0] && onReplace(e.target.files[0])} style={{ display: 'none' }} />
         </label>
-        {onDelete && (
-          <button type="button" onClick={onDelete} title="Delete this project" aria-label="Delete project" style={{ padding: '6px 9px', background: 'white', color: 'var(--danger)', border: '1px solid var(--border)', borderRadius: 999, fontSize: '0.86rem', cursor: 'pointer', lineHeight: 1 }}>🗑</button>
-        )}
+        {onDelete && <TrashButton onClick={onDelete} title="Delete this project" />}
       </StickyTopBar>
 
       <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '18px 0 60px' }}>
@@ -889,7 +890,7 @@ function BookDetailView({
 // ===========================================================================
 
 function ReaderView({
-  project, activeChapterIndex, setActiveChapterIndex,
+  project, activeChapterIndex, setActiveChapterIndex, onJumpToChapter,
   selected, setSelected, saveStatus, onBack,
   onAssignCharacter, onAssignSideVoice,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
@@ -899,6 +900,13 @@ function ReaderView({
   const dialogueRefs = useRef({});
   const [scrollTick, setScrollTick] = useState(0);
   const requestScroll = useCallback(() => setScrollTick((t) => t + 1), []);
+
+  // When the chapter itself changes, jump scroll position to the top
+  // of the page so the user sees they're in a new chapter. The polled
+  // scroll-to-selected-dialogue then runs on top of that.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [activeChapterIndex]);
 
   // Scroll the currently selected dialogue into view whenever someone
   // requests it (Next / Prev / chapter change). Polls the refs map a
@@ -997,7 +1005,7 @@ function ReaderView({
       >
         <select
           value={activeChapterIndex}
-          onChange={(e) => setActiveChapterIndex(Number(e.target.value))}
+          onChange={(e) => (onJumpToChapter || setActiveChapterIndex)(Number(e.target.value))}
           style={{ padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'white', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', maxWidth: 220 }}
         >
           {project.chapters.map((ch) => (
@@ -1006,11 +1014,11 @@ function ReaderView({
         </select>
         <button type="button" disabled={!canPrevChapter} onClick={() => {
           const idx = orderedIdx.indexOf(activeChapterIndex);
-          if (idx > 0) setActiveChapterIndex(orderedIdx[idx - 1]);
+          if (idx > 0) (onJumpToChapter || setActiveChapterIndex)(orderedIdx[idx - 1]);
         }} style={{ ...topBtn(), opacity: canPrevChapter ? 1 : 0.35 }}>← Chapter</button>
         <button type="button" disabled={!canNextChapter} onClick={() => {
           const idx = orderedIdx.indexOf(activeChapterIndex);
-          if (idx >= 0 && idx < orderedIdx.length - 1) setActiveChapterIndex(orderedIdx[idx + 1]);
+          if (idx >= 0 && idx < orderedIdx.length - 1) (onJumpToChapter || setActiveChapterIndex)(orderedIdx[idx + 1]);
         }} style={{ ...topBtn(), opacity: canNextChapter ? 1 : 0.35 }}>Chapter →</button>
         <SaveBadge status={saveStatus} />
       </StickyTopBar>
@@ -1206,6 +1214,36 @@ function sectionHeading() {
   return { fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: PREP_INK, margin: '0 0 8px 0' };
 }
 
+// Small red trash-can button used in places where a destructive
+// action should be unmistakable but unobtrusive.
+function TrashButton({ onClick, title = 'Delete' }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }}
+      title={title}
+      aria-label={title}
+      style={{
+        padding: '5px 7px',
+        background: 'white',
+        color: 'var(--danger)',
+        border: '1px solid #f0b8b8',
+        borderRadius: 8,
+        cursor: 'pointer',
+        lineHeight: 0,
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+      </svg>
+    </button>
+  );
+}
+
 function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemove, onAddSideVoice, onRemoveSideVoice, onAssignCharacter, onAssignSideVoice }) {
   const [adding, setAdding] = useState(false);
   const [popoverFor, setPopoverFor] = useState(null);    // characterId
@@ -1340,7 +1378,7 @@ function CharacterChip({
       </div>
 
       {popoverOpen && (
-        <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, zIndex: 1300, background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.12)', padding: 8, minWidth: 240, maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', zIndex: 1500, background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.16)', padding: 8, minWidth: 240, maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: '0.64rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-light)' }}>
               Side voices · {character.name || 'Unnamed'}

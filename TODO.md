@@ -60,19 +60,29 @@ Active and recently archived tasks. Rules for this file are in
 
 ### Prep export — preserve original manuscript layout
 
-- [ ] **Highlighted .docx should preserve the original manuscript
-      formatting** — Marie wants the exported Word doc to be the EXACT
-      original manuscript layout (paragraphs, headings, italics, etc.)
-      with the dialogue lines highlighted in their character's color
-      and side-voice dialogues carrying a Word comment with the side-
-      voice name + notes. Current export reconstructs a simplified
-      document with `[Character] "text"` lines + colored highlights —
-      acceptable as a v1 but not the final goal.
-      Approach: keep the section HTML from mammoth, re-emit it as
-      OOXML preserving block-level structure, and only wrap the
-      dialogue spans with `<w:shd>` (highlight) + `<w:commentReference>`
-      where applicable. Likely needs `mammoth -> docx`-style round-trip
-      or a custom HTML→OOXML walker.
+- [ ] **Highlighted .docx — preserve the ORIGINAL .docx exactly**
+      v6.4 reproduces the paragraph + heading structure of the
+      manuscript and highlights only the dialogue runs. v6.5 added a
+      Garamond-based styles.xml so the result reads like a novel
+      manuscript instead of Calibri. But it still loses italics,
+      bold, the user's actual fonts, page numbers, and any custom
+      formatting from the source .docx.
+      The proper fix is to store the imported .docx bytes alongside
+      the project and, on export, patch THAT document's
+      `word/document.xml` to wrap the detected dialogue spans with
+      highlight runs (and side voices with `<w:commentReference>`).
+      That keeps 100% of the source formatting because we never
+      rebuild — we only inject. Approach:
+        1. Save `fileBytes` (Uint8Array) on the project at import.
+        2. On export: JSZip.loadAsync the bytes, parse document.xml,
+           map our (sectionIndex, spanIndex) to XML positions
+           (need to walk paragraphs in document order and match by
+           text content), wrap the matched runs.
+        3. Prepend our narrator-breakdown paragraphs to the body.
+        4. Add comments.xml + content-type + commentReference for
+           side voices.
+      Probably ~300-400 lines of focused code; biggest risk is
+      position-mapping between our HTML view and OOXML.
 
 ### UI / architecture follow-ups discovered during Phase 6
 

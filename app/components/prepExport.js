@@ -306,6 +306,7 @@ const RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 const DOC_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId10" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 
 const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -313,7 +314,102 @@ const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`;
+
+// A book-style styles.xml so the exported .docx opens in Word looking
+// like a novel manuscript instead of generic Calibri body. Defaults to
+// Garamond 12pt body with proper Heading 1/2/3 + Title styles. Marie
+// can still re-format in Word — but at least the starting point is
+// readable.
+const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond" w:cs="Garamond"/>
+        <w:sz w:val="24"/>
+        <w:szCs w:val="24"/>
+        <w:lang w:val="en-US"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:spacing w:line="360" w:lineRule="auto"/>
+        <w:ind w:firstLine="360"/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title"/>
+    <w:pPr>
+      <w:spacing w:before="360" w:after="240"/>
+      <w:jc w:val="center"/>
+      <w:ind w:firstLine="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
+      <w:b/>
+      <w:sz w:val="44"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:spacing w:before="480" w:after="240"/>
+      <w:jc w:val="center"/>
+      <w:ind w:firstLine="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
+      <w:b/>
+      <w:sz w:val="32"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:spacing w:before="320" w:after="160"/>
+      <w:jc w:val="center"/>
+      <w:ind w:firstLine="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
+      <w:b/>
+      <w:sz w:val="26"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading3">
+    <w:name w:val="heading 3"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:spacing w:before="240" w:after="120"/>
+      <w:ind w:firstLine="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
+      <w:b/>
+      <w:i/>
+      <w:sz w:val="24"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Quote">
+    <w:name w:val="Quote"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:ind w:left="720" w:right="720" w:firstLine="0"/>
+      <w:spacing w:before="120" w:after="120"/>
+    </w:pPr>
+    <w:rPr>
+      <w:i/>
+    </w:rPr>
+  </w:style>
+</w:styles>`;
 
 export async function buildPrepHighlightedDocxBlob(project = {}) {
   const mod = await import('jszip');
@@ -322,6 +418,7 @@ export async function buildPrepHighlightedDocxBlob(project = {}) {
   zip.file('[Content_Types].xml', CONTENT_TYPES_XML);
   zip.folder('_rels').file('.rels', RELS_XML);
   zip.folder('word').file('document.xml', buildDocumentXml(project));
+  zip.folder('word').file('styles.xml', STYLES_XML);
   zip.folder('word').folder('_rels').file('document.xml.rels', DOC_RELS_XML);
   return zip.generateAsync({
     type: 'blob',

@@ -385,21 +385,22 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 
   if (view === 'bookDetail' && activeProject) {
     return (
-      <>
+      <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
         {usesCustomDragRegion && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 38, WebkitAppRegion: 'drag', zIndex: 1100 }} />
         )}
-        <HomeBackPill icon="⌂" onClick={() => { setView('home'); setActiveProjectId(null); }} usesCustomDragRegion={usesCustomDragRegion} tone="quill" />
         <QuillBookDetail
           project={activeProject}
           saveStatus={saveStatus}
+          usesCustomDragRegion={usesCustomDragRegion}
+          onBackHome={() => { setView('home'); setActiveProjectId(null); }}
           onOpenChapter={(chId) => { setActiveChapterId(chId); setView('reader'); }}
           onDelete={() => deleteProject(activeProject.id)}
           onExportCsv={exportCsv}
           onExportJsx={exportJsx}
           onExportAll={exportAll}
         />
-      </>
+      </div>
     );
   }
 

@@ -211,6 +211,7 @@ function getPrimaryDataDir() {
 
 const primaryDataPath = () => path.join(getPrimaryDataDir(), 'books.json');
 const prebuildDataPath = () => path.join(getPrimaryDataDir(), 'prebuild-projects.json');
+const prepDataPath = () => path.join(getPrimaryDataDir(), 'prep-manuscript-projects.json');
 
 const mirrorDataPath = () =>
   isDev
@@ -221,6 +222,11 @@ const prebuildMirrorDataPath = () =>
   isDev
     ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'prebuild-projects.json')
     : path.join(app.getPath('userData'), 'prebuild-projects.json');
+
+const prepMirrorDataPath = () =>
+  isDev
+    ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'prep-manuscript-projects.json')
+    : path.join(app.getPath('userData'), 'prep-manuscript-projects.json');
 
 function legacyDataPaths() {
   const paths = [];
@@ -998,6 +1004,24 @@ ipcMain.handle('write-prebuild-data', (_, projects) => {
   const normalizedProjects = Array.isArray(projects) ? projects : [];
   const ok = writeToPath(prebuildDataPath(), normalizedProjects);
   writeToPath(prebuildMirrorDataPath(), normalizedProjects);
+  return ok;
+});
+
+ipcMain.handle('read-prep-data', () => {
+  const primary = readFromPath(prepDataPath());
+  if (primary !== null) return primary;
+  const mirror = readFromPath(prepMirrorDataPath());
+  if (mirror !== null) {
+    writeToPath(prepDataPath(), mirror);
+    return mirror;
+  }
+  return [];
+});
+
+ipcMain.handle('write-prep-data', (_, projects) => {
+  const normalizedProjects = Array.isArray(projects) ? projects : [];
+  const ok = writeToPath(prepDataPath(), normalizedProjects);
+  writeToPath(prepMirrorDataPath(), normalizedProjects);
   return ok;
 });
 

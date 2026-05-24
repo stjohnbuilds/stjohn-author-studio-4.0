@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('electron', {
   writeData:      (books)    => ipcRenderer.invoke('write-data', books),
   readPrebuildData: ()       => ipcRenderer.invoke('read-prebuild-data'),
   writePrebuildData: (projects) => ipcRenderer.invoke('write-prebuild-data', projects),
+  readPrepData:   ()         => ipcRenderer.invoke('read-prep-data'),
+  writePrepData:  (projects) => ipcRenderer.invoke('write-prep-data', projects),
   getDataLocation:()         => ipcRenderer.invoke('get-data-location'),
   chooseDataLocation:()      => ipcRenderer.invoke('choose-data-location'),
   openAudioDialog:(options)  => ipcRenderer.invoke('open-audio-dialog', options),

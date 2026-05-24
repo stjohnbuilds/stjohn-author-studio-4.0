@@ -206,6 +206,10 @@ export function parseChaptersFromHtml(html, chapterLevel, splitOnSubheadings) {
       wordCount: fullWordCount,
       included: true,
       isFirst: out.length === 0,
+      // Sub-sections are pre-computed so the "Show sub-headings" toggle
+      // can expand/collapse them instantly. If a chapter has fewer than
+      // two h{N+1} headings, subSections is an empty array.
+      subSections: extractSubSections(fullHtml, chapterLevel),
     });
   }
 

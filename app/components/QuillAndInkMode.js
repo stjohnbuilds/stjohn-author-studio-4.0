@@ -175,73 +175,83 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
 
-  // hydrate — local first, then merge in cloud if signed in.
+  // hydrate — local first, render immediately, cloud merges in the
+  // background. Previously `setHydrated(true)` lived in a `finally`
+  // that waited for the cloud pull to finish, so the user saw a blank
+  // screen for as long as Supabase took to respond. With N projects
+  // and a slow connection this was the "Quill takes forever to load"
+  // bug Marie reported.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const local = await loadProjects();
+      if (cancelled) return;
+      setAllProjects(local);
+      setHydrated(true);                     // ← render now, don't wait for cloud
+      cameFromCloudRef.current = true;       // suppress the first persist round-trip
+      const supabase = getSupabaseClient();
+      if (!supabase) return;
       try {
-        const local = await loadProjects();
-        if (cancelled) return;
-        setAllProjects(local);
-
-        // Try cloud pull. If signed in and any cloud rows exist, merge
-        // them in (cloud wins on conflicting project ids). If not
-        // signed in, the call throws and we silently keep local.
-        const supabase = getSupabaseClient();
-        if (!supabase) return;
         const { data } = await supabase.auth.getSession();
         if (!data?.session?.user) return;
-        try {
-          const cloudProjects = await pullQuillProjects(supabase);
-          if (cancelled || !cloudProjects.length) return;
-          setAllProjects((current) => mergeProjectLists(current, cloudProjects));
-        } catch (e) {
-          console.warn('[Quill] cloud pull failed:', e?.message || e);
-        }
-      } finally {
-        if (!cancelled) setHydrated(true);
+        const cloudProjects = await pullQuillProjects(supabase);
+        if (cancelled || !cloudProjects.length) return;
+        cameFromCloudRef.current = true;     // the merge isn't a user edit
+        setAllProjects((current) => mergeProjectLists(current, cloudProjects));
+      } catch (e) {
+        console.warn('[Quill] cloud pull failed:', e?.message || e);
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // persist on change (debounced). Writes local AND attempts cloud push.
-  // After cloud push we write the generated cloudId back onto the project
-  // so the next save upserts in place instead of inserting a new row.
+  // persist on change. Local save is awaited (gates the "Saved" badge);
+  // cloud push fires-and-forgets in parallel with Promise.all so a save
+  // with N projects no longer waits for N × ~4 sequential Supabase
+  // round-trips. Local-only hydrate-time changes skip the cloud push
+  // entirely so we don't echo every cloud pull back as a write.
   useEffect(() => {
     if (!hydrated) return;
+    if (cameFromCloudRef.current) {
+      cameFromCloudRef.current = false;
+      persistProjects(allProjects).catch(() => {});
+      return;
+    }
     setSaveStatus('saving');
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       try {
         await persistProjects(allProjects);
-        const supabase = getSupabaseClient();
-        if (supabase) {
-          const { data } = await supabase.auth.getSession();
-          const ownerId = data?.session?.user?.id;
-          if (ownerId) {
-            const cloudIdUpdates = [];
-            for (const project of allProjects) {
-              try {
-                const cloudId = await pushQuillProject(supabase, project, ownerId);
-                if (cloudId && cloudId !== project.cloudId) {
-                  cloudIdUpdates.push({ projectId: project.id, cloudId });
-                }
-              } catch (e) {
-                console.warn('[Quill] cloud push failed for', project.title, e?.message || e);
-              }
-            }
-            if (cloudIdUpdates.length) {
-              setAllProjects((all) => all.map((p) => {
-                const update = cloudIdUpdates.find((u) => u.projectId === p.id);
-                return update ? { ...p, cloudId: update.cloudId } : p;
-              }));
-            }
-          }
-        }
         setSaveStatus('saved');
         if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
         savedFlashRef.current = setTimeout(() => setSaveStatus('idle'), 1400);
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+        // Background cloud push — does not block the saved badge.
+        (async () => {
+          try {
+            const { data } = await supabase.auth.getSession();
+            const ownerId = data?.session?.user?.id;
+            if (!ownerId) return;
+            const results = await Promise.all(allProjects.map(async (p) => {
+              try {
+                const cloudId = await pushQuillProject(supabase, p, ownerId);
+                return cloudId && cloudId !== p.cloudId ? { projectId: p.id, cloudId } : null;
+              } catch (e) {
+                console.warn('[Quill] cloud push failed for', p.title, e?.message || e);
+                return null;
+              }
+            }));
+            const updates = results.filter(Boolean);
+            if (updates.length) {
+              cameFromCloudRef.current = true;
+              setAllProjects((all) => all.map((p) => {
+                const u = updates.find((x) => x.projectId === p.id);
+                return u ? { ...p, cloudId: u.cloudId } : p;
+              }));
+            }
+          } catch {}
+        })();
       } catch {
         setSaveStatus('idle');
       }

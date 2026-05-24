@@ -568,17 +568,28 @@ function escapeForRegex(s) {
 // occurrences and wrap the dialogue with a shaded sibling run. Skips
 // dialogues whose text doesn't fit in a single <w:t> (formatting
 // changes mid-quote).
+//
+// The rPr capture is constrained so it cannot include `<w:r ` / `<w:r>` /
+// `</w:r>` — without this, when a dialogue text only appears in a later
+// paragraph, the regex would back-track its rPr across run boundaries
+// (and across the narrator-breakdown we just injected at the top of the
+// body) until it found a `</w:rPr>` deep in the document. The fallout
+// was matched spans that swallowed the whole breakdown and pasted
+// fragments of it back into the export wherever the regex landed — Marie
+// saw the narrator-breakdown heading copied 6 times into chapter 1.
 function applyHighlightsInPlace(docXml, assignments) {
+  // Matches rPr content but not characters that would cross a run
+  // boundary. `(?!</?w:r[\s>])` blocks `<w:r `, `<w:r>`, `</w:r>` —
+  // `</w:rPr>` is fine because the character after `</w:r` is `P`, not
+  // whitespace or `>`.
+  const rPrInner = '(?:(?!<\\/?w:r[\\s>])[\\s\\S])*?';
   let out = docXml;
   for (const a of assignments) {
-    const xmlDialogue = xml(a.text);                  // escaped for XML
+    const xmlDialogue = xml(a.text);
     const fill = String(a.color || '').replace('#', '').toUpperCase();
     if (!xmlDialogue || !fill) continue;
-    // Match a single <w:r> containing one <w:t> whose body has the
-    // dialogue text. Capture the optional <w:rPr>…</w:rPr> so the
-    // before/after runs keep the original formatting.
     const re = new RegExp(
-      '<w:r\\b[^>]*>(\\s*<w:rPr>[\\s\\S]*?</w:rPr>)?\\s*<w:t([^>]*)>([^<]*?' + escapeForRegex(xmlDialogue) + '[^<]*?)</w:t>\\s*</w:r>',
+      '<w:r\\b[^>]*>(\\s*<w:rPr>' + rPrInner + '<\\/w:rPr>)?\\s*<w:t([^>]*)>([^<]*?' + escapeForRegex(xmlDialogue) + '[^<]*?)</w:t>\\s*</w:r>',
       'g'
     );
     out = out.replace(re, (match, rPr = '', wtAttrs = '', wtText = '') => {

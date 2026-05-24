@@ -507,7 +507,7 @@ function QuillHomeView({ projects, onOpen, onNew }) {
 // Book detail — chapter list + export bar
 // ===========================================================================
 
-function QuillBookDetail({ project, saveStatus, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll }) {
+function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll }) {
   const chapters = project.chapters || [];
   const annotationsByChapter = useMemo(() => {
     const map = new Map();
@@ -518,72 +518,47 @@ function QuillBookDetail({ project, saveStatus, onOpenChapter, onDelete, onExpor
     return map;
   }, [project.annotations]);
 
+  const annCount = project.annotations?.length || 0;
+  const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}`;
+
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '5.2rem 1.25rem 4rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '1.4rem' }}>
-        <div style={{ fontSize: '1.4rem', fontWeight: 600, color: QUILL.ink }}>{project.title}</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
-          {chapters.length} chapter{chapters.length === 1 ? '' : 's'} · {project.annotations?.length || 0} annotation{project.annotations?.length === 1 ? '' : 's'}
+    <BookDetail
+      tone="quill"
+      title={project.title}
+      subtitle={subtitle}
+      saveStatus={saveStatus}
+      usesCustomDragRegion={usesCustomDragRegion}
+      onBackHome={onBackHome}
+      actionButtons={
+        <>
+          <button type="button" onClick={onExportAll} style={topBtnStyle('quill', 'solid')}>Export CSV + InDesign</button>
+          <button type="button" onClick={onExportCsv} style={topBtnStyle('quill', 'outline')}>CSV only</button>
+          <button type="button" onClick={onExportJsx} style={topBtnStyle('quill', 'outline')}>InDesign .jsx only</button>
+        </>
+      }
+      onDelete={onDelete}
+      deleteLabel={`Delete "${project.title}"`}
+    >
+      {chapters.length === 0 && (
+        <div style={{ textAlign: 'center', color: 'var(--text-light)', fontSize: '0.82rem', padding: '1.2rem 0 0.35rem' }}>
+          No chapters imported yet.
         </div>
-        <div style={{ marginTop: 8 }}>
-          <SaveBadge status={saveStatus} tone="quill" />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        <button onClick={onExportAll} style={topBtnStyle('quill', 'solid')}>Export CSV + InDesign</button>
-        <button onClick={onExportCsv} style={topBtnStyle('quill', 'outline')}>CSV only</button>
-        <button onClick={onExportJsx} style={topBtnStyle('quill', 'outline')}>InDesign .jsx only</button>
-      </div>
-
-      <section style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid var(--border)', borderRadius: 22, padding: '1rem', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL.ink }}>Chapters</div>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Click a chapter to annotate</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: '60vh', overflowY: 'auto' }}>
-          {chapters.map((ch) => {
-            const count = annotationsByChapter.get(ch.id) || 0;
-            return (
-              <button
-                key={ch.id}
-                onClick={() => onOpenChapter(ch.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  background: 'white',
-                  border: '1px solid var(--border)',
-                  borderRadius: 14,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {ch.chapterNumber}. {ch.title}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {count} annotation{count === 1 ? '' : 's'}
-                  </div>
-                </div>
-                <span style={{ color: 'var(--text-light)', fontSize: '1.2rem', paddingLeft: 10 }}>›</span>
-              </button>
-            );
-          })}
-          {!chapters.length && (
-            <div style={{ textAlign: 'center', color: 'var(--text-light)', fontSize: '0.82rem', padding: '1.2rem 0 0.35rem' }}>
-              No chapters imported yet.
-            </div>
-          )}
-        </div>
-      </section>
-
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button onClick={() => { if (confirm(`Delete "${project.title}"? This cannot be undone.`)) onDelete(); }} style={topBtnStyle('quill', 'danger')}>
-          Delete project
-        </button>
+      )}
+      {chapters.map((ch) => {
+        const count = annotationsByChapter.get(ch.id) || 0;
+        return (
+          <ChapterRow
+            key={ch.id}
+            tone="quill"
+            number={ch.chapterNumber}
+            title={ch.title}
+            meta={`${count} annotation${count === 1 ? '' : 's'}`}
+            onClick={() => onOpenChapter(ch.id)}
+          />
+        );
+      })}
+      {/* fallback for empty annCount block */}
+      <span style={{ display: 'none' }}>
       </div>
     </div>
   );

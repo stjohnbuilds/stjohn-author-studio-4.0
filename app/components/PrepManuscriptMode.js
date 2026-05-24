@@ -174,45 +174,6 @@ function isCompatiblePrepProject(p) {
   return p.chapters.every((ch) => Array.isArray(ch?.sections));
 }
 
-function buildShellFromStructure(file, structure) {
-  const chapters = structure
-    .map((ch) => ({
-      id: ch.id,
-      chapterIndex: ch.chapterIndex,
-      chapterNumber: ch.chapterNumber,
-      title: ch.title,
-      sections: (ch.sections || []).map((sec) => ({
-        id: sec.id,
-        sectionIndex: sec.sectionIndex,
-        title: sec.title,
-        html: sec.html || '',
-        dialogueSpans: [],
-        scanning: true,
-      })),
-    }))
-    .filter((ch) => {
-      // Drop the "Before first chapter" placeholder + any chapter whose
-      // title looks like front matter (copyright, dedication, etc.) or
-      // is just very short (under ~300 chars usually means no real body).
-      const title = String(ch.title || '').toLowerCase();
-      if (/^before first chapter$/i.test(ch.title || '')) return false;
-      if (/copyright|dedication|trigger warning|acknowledg|epigraph|table of contents|content warning/.test(title)) return false;
-      const totalText = ch.sections.map((s) => stripTags(s.html)).join(' ').replace(/\s+/g, ' ').trim();
-      return totalText.length > 300;
-    })
-    // Re-index so the surviving chapters are 0..N-1 (gives clean labels).
-    .map((ch, i) => ({ ...ch, chapterIndex: i, chapterNumber: i + 1 }));
-  return {
-    id: uid('prep'),
-    title: file.name.replace(/\.docx$/i, ''),
-    fileName: file.name,
-    importedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    characters: [],
-    chapters,
-  };
-}
-
 function chapterCounts(chapter) {
   const sections = chapter.sections || [];
   const all = sections.flatMap((s) => s.dialogueSpans || []);

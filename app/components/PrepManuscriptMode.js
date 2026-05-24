@@ -119,9 +119,17 @@ function buildShellFromStructure(file, structure) {
       })),
     }))
     .filter((ch) => {
+      // Drop the "Before first chapter" placeholder + any chapter whose
+      // title looks like front matter (copyright, dedication, etc.) or
+      // is just very short (under ~300 chars usually means no real body).
+      const title = String(ch.title || '').toLowerCase();
+      if (/^before first chapter$/i.test(ch.title || '')) return false;
+      if (/copyright|dedication|trigger warning|acknowledg|epigraph|table of contents|content warning/.test(title)) return false;
       const totalText = ch.sections.map((s) => stripTags(s.html)).join(' ').replace(/\s+/g, ' ').trim();
-      return totalText.length > 60;
-    });
+      return totalText.length > 300;
+    })
+    // Re-index so the surviving chapters are 0..N-1 (gives clean labels).
+    .map((ch, i) => ({ ...ch, chapterIndex: i, chapterNumber: i + 1 }));
   return {
     id: uid('prep'),
     title: file.name.replace(/\.docx$/i, ''),
@@ -432,7 +440,12 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       {usesCustomDragRegion && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 38, WebkitAppRegion: 'drag', zIndex: 1100 }} />
       )}
-      {modeToggle}
+      {/* Top-left chrome: show the 4-mode pill only on the Prep home.
+          Inside a project, swap it for a "← Home" button so Marie has
+          a single, obvious way back to the project list. */}
+      {view === 'home' ? modeToggle : (
+        <HomePill onClick={() => { setView('home'); setActiveProjectId(null); }} usesCustomDragRegion={usesCustomDragRegion} />
+      )}
 
       {view === 'home' && (
         <HomeView
@@ -451,10 +464,13 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           project={activeProject}
           saveStatus={saveStatus}
           onBack={() => { setView('home'); }}
+          onDelete={() => {
+            if (window.confirm(`Delete "${activeProject.title}"? This can't be undone.`)) deleteProject(activeProject.id);
+          }}
           onOpenChapter={(chapterIndex) => {
             setActiveChapterIndex(chapterIndex);
             const ch = activeProject.chapters.find((c) => c.chapterIndex === chapterIndex);
-            const firstSec = ch?.sections?.[0];
+            const firstSec = ch?.sections?.find((s) => (s.dialogueSpans || []).length > 0) || ch?.sections?.[0];
             setSelected({ sectionIndex: firstSec?.sectionIndex ?? 0, spanIndex: 0 });
             setView('reader');
           }}
@@ -577,7 +593,7 @@ function HomeView({ allProjects, onOpenProject, onDelete, onImport, loading, pro
 // ===========================================================================
 
 function BookDetailView({
-  project, saveStatus, onBack, onOpenChapter, onReplace,
+  project, saveStatus, onBack, onDelete, onOpenChapter, onReplace,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
   onExportDocx, onExportDialogueCsv, onExportNarratorCsv,
@@ -589,12 +605,19 @@ function BookDetailView({
 
   return (
     <>
-      <StickyTopBar onBack={onBack} title={project.title}>
+      <StickyTopBar
+        onBack={onBack}
+        title={project.title}
+        subtitle={`${project.chapters.length} chapter${project.chapters.length === 1 ? '' : 's'} · ${counts.assigned}/${counts.total} assigned (${pct}%)`}
+      >
         <SaveBadge status={saveStatus} />
         <label style={topBtn()}>
-          Replace manuscript
+          Replace
           <input type="file" accept=".docx" onChange={(e) => e.target.files?.[0] && onReplace(e.target.files[0])} style={{ display: 'none' }} />
         </label>
+        {onDelete && (
+          <button type="button" onClick={onDelete} style={{ ...topBtn(), borderColor: 'var(--danger)', color: 'var(--danger)' }}>Delete</button>
+        )}
       </StickyTopBar>
 
       <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 80px' }}>
@@ -689,7 +712,36 @@ function ReaderView({
   function moveDialogue(step) {
     if (flatList.length === 0) return;
     const cur = Math.max(0, flatPos);
-    const next = Math.max(0, Math.min(flatList.length - 1, cur + step));
+    const next = cur + step;
+    const orderedIdxLocal = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
+    // If we'd step off the end / start of this chapter, hop to the
+    // next / previous chapter and land on its first / last dialogue.
+    if (next < 0) {
+      const idx = orderedIdxLocal.indexOf(activeChapterIndex);
+      if (idx > 0) {
+        const prevChapterIdx = orderedIdxLocal[idx - 1];
+        const prevCh = project.chapters.find((c) => c.chapterIndex === prevChapterIdx);
+        const lastSec = (prevCh?.sections || []).slice().reverse().find((s) => (s.dialogueSpans || []).length > 0);
+        if (lastSec) {
+          setActiveChapterIndex(prevChapterIdx);
+          setSelected({ sectionIndex: lastSec.sectionIndex, spanIndex: lastSec.dialogueSpans.length - 1 });
+        }
+      }
+      return;
+    }
+    if (next >= flatList.length) {
+      const idx = orderedIdxLocal.indexOf(activeChapterIndex);
+      if (idx >= 0 && idx < orderedIdxLocal.length - 1) {
+        const nextChapterIdx = orderedIdxLocal[idx + 1];
+        const nextCh = project.chapters.find((c) => c.chapterIndex === nextChapterIdx);
+        const firstSec = (nextCh?.sections || []).find((s) => (s.dialogueSpans || []).length > 0);
+        if (firstSec) {
+          setActiveChapterIndex(nextChapterIdx);
+          setSelected({ sectionIndex: firstSec.sectionIndex, spanIndex: 0 });
+        }
+      }
+      return;
+    }
     const target = flatList[next];
     setSelected(target);
     requestAnimationFrame(() => {
@@ -701,9 +753,17 @@ function ReaderView({
   const canPrevChapter = activeChapterIndex > Math.min(...project.chapters.map((c) => c.chapterIndex));
   const canNextChapter = activeChapterIndex < Math.max(...project.chapters.map((c) => c.chapterIndex));
 
+  const chapterCount = chapterCounts(chapter || {});
+  const chapterPct = chapterCount.total === 0 ? 0 : Math.round((chapterCount.assigned / chapterCount.total) * 100);
+  const orderedIdx = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
+
   return (
     <>
-      <StickyTopBar onBack={onBack} title={project.title}>
+      <StickyTopBar
+        onBack={onBack}
+        title={chapter?.title || `Chapter ${activeChapterIndex + 1}`}
+        subtitle={`${project.title} · ${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)`}
+      >
         <select
           value={activeChapterIndex}
           onChange={(e) => setActiveChapterIndex(Number(e.target.value))}
@@ -714,15 +774,13 @@ function ReaderView({
           ))}
         </select>
         <button type="button" disabled={!canPrevChapter} onClick={() => {
-          const ordered = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
-          const idx = ordered.indexOf(activeChapterIndex);
-          if (idx > 0) setActiveChapterIndex(ordered[idx - 1]);
-        }} style={{ ...topBtn(), opacity: canPrevChapter ? 1 : 0.35 }}>← Prev chapter</button>
+          const idx = orderedIdx.indexOf(activeChapterIndex);
+          if (idx > 0) setActiveChapterIndex(orderedIdx[idx - 1]);
+        }} style={{ ...topBtn(), opacity: canPrevChapter ? 1 : 0.35 }}>← Chapter</button>
         <button type="button" disabled={!canNextChapter} onClick={() => {
-          const ordered = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
-          const idx = ordered.indexOf(activeChapterIndex);
-          if (idx >= 0 && idx < ordered.length - 1) setActiveChapterIndex(ordered[idx + 1]);
-        }} style={{ ...topBtn(), opacity: canNextChapter ? 1 : 0.35 }}>Next chapter →</button>
+          const idx = orderedIdx.indexOf(activeChapterIndex);
+          if (idx >= 0 && idx < orderedIdx.length - 1) setActiveChapterIndex(orderedIdx[idx + 1]);
+        }} style={{ ...topBtn(), opacity: canNextChapter ? 1 : 0.35 }}>Chapter →</button>
         <SaveBadge status={saveStatus} />
       </StickyTopBar>
 
@@ -811,7 +869,7 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                   ref={(el) => { if (el) dialogueRefs.current[refKey] = el; else delete dialogueRefs.current[refKey]; }}
                   type="button"
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
-                  title={char ? `${char.name}${sv ? ' / ' + sv.name : ''}` : 'Unassigned'}
+                  title={char ? `${char.name}${sv ? ' (side voice: ' + sv.name + ')' : ''}` : 'Unassigned'}
                   style={{
                     background: bg,
                     border: '1px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
@@ -820,8 +878,12 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                     fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit',
                     color: 'var(--text)', cursor: 'pointer',
                     boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
+                    // Side-voice mark: dashed underline so it reads as
+                    // "still this character, but a variant voice".
+                    textDecoration: sv ? 'underline dashed ' + PREP_INK : 'none',
+                    textUnderlineOffset: '3px',
                   }}
-                >“{seg.text}”</button>
+                >“{seg.text}”{sv ? <span aria-hidden="true" style={{ marginLeft: 4, fontSize: '0.7em', color: PREP_INK, fontWeight: 700 }}>◇</span> : null}</button>
               );
             })}
           </Tag>
@@ -889,19 +951,54 @@ function ReaderDock({
 // Shared: top bar + character grid + character chip + popovers
 // ===========================================================================
 
-function StickyTopBar({ onBack, title, children }) {
+function StickyTopBar({ onBack, title, subtitle, children }) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 1100,
       background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border-light)',
-      padding: '10px 16px 10px 240px',  // left pad clears the mode pill
+      padding: '10px 16px 10px 130px',  // clears the "← Home" pill
       display: 'flex', alignItems: 'center', gap: 10,
     }}>
       <button type="button" onClick={onBack} style={{ ...topBtn(), background: 'transparent', borderColor: 'transparent', color: 'var(--text-muted)' }}>← Back</button>
-      <div style={{ flex: 1, minWidth: 0, fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+        {subtitle && (
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</div>
+        )}
+      </div>
       {children}
     </div>
+  );
+}
+
+function HomePill({ onClick, usesCustomDragRegion }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Back to Prep home"
+      style={{
+        position: 'fixed',
+        top: usesCustomDragRegion ? 44 : 18,
+        left: 16,
+        zIndex: 1300,
+        padding: '9px 16px',
+        borderRadius: 999,
+        border: '1px solid ' + PREP_INK,
+        background: 'white',
+        color: PREP_INK,
+        fontSize: '0.74rem',
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        cursor: 'pointer',
+        boxShadow: '0 10px 26px var(--accent-shadow)',
+        WebkitAppRegion: 'no-drag',
+      }}
+    >
+      ⌂ Home
+    </button>
   );
 }
 

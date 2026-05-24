@@ -978,18 +978,19 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
         <div
           ref={popoverRef}
           style={{
-            position: 'absolute',
-            top: popoverPos.top + 22,
-            // Clamp to viewport so the popover never falls off-screen
-            // when annotating near the right edge or in a narrow window.
-            left: clampPopoverLeft(popoverPos.left - 120, 320),
+            // Viewport coords — computePopoverPos already clamps to the
+            // visible area and flips above/below the selected word
+            // depending on which side has room.
+            position: 'fixed',
+            top: popoverPos.top,
+            left: popoverPos.left,
+            width: popoverPos.width,
             zIndex: 1600,
             background: 'white',
             border: '1px solid ' + QUILL.ink + '55',
             borderRadius: 14,
             boxShadow: '0 14px 34px rgba(76, 72, 70, 0.18)',
             padding: 12,
-            width: 320,
           }}
         >
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>

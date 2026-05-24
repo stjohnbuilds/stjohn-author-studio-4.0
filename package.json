@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "test": "node --test tests/",
     "start": "node scripts/start-electron-dev.js",
     "sandbox:pac3": "node scripts/seed-pac3-sandbox.js",
     "sandbox:pac3:start": "node scripts/seed-pac3-sandbox.js && node scripts/start-electron-dev.js",

@@ -30,16 +30,39 @@ export const HOME_CONTAINER = 640;
 //            buttons; ink itself was too wine-y for Marie's taste)
 //   ink    — dark text + border accent
 // Pastel palette per mode. The `accent` is the mid-tone used as the
-// primary-button fill — it MUST stay light enough that "pastel" still
-// reads when you see a wall of buttons in that color. Prep's accent
-// was originally a deeper mustard #D9BE4E that Marie called "horrible
-// mustard yellow" — softened to a creamier gold below.
+// primary-button fill — it MUST stay light/desaturated enough that
+// "pastel" still reads when you see a wall of buttons in that color.
+//
+// History of palette pain Marie has flagged:
+//   • Prep was a deep mustard (#D9BE4E) — "horrible mustard yellow."
+//   • Then a lighter cream-mustard (#E8D27A) — still yellow, still bad.
+//   • Now: sage green, no yellow anywhere.
+//   • Quill pink read as red on solid buttons — lightened the accent.
+//
+// Rule of thumb: keep accent at L > 70% in HSL so white-on-accent reads
+// as pastel, not as a strong colored chip. If a future accent needs to
+// be darker, switch the button to pastel-bg + ink-text via pickContrast.
 export const MODE_TOKENS = {
-  proof: { ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6' },   // soft purple
-  prep:  { ink: '#8A7726', accent: '#E8D27A', pastel: '#FBF1C8' },   // pastel yellow
-  duet:  { ink: '#3F5772', accent: '#7FA1C9', pastel: '#DEE9F5' },   // pastel blue
-  quill: { ink: '#834D5C', accent: '#CB8AA0', pastel: '#F8E2E8' },   // pastel pink
+  proof: { ink: '#5C4A78', accent: '#B8A0D4', pastel: '#EBDEF6' },   // pastel lilac
+  prep:  { ink: '#5D7548', accent: '#B5D3A4', pastel: '#E4F0D8' },   // pastel sage (was yellow)
+  duet:  { ink: '#3F5772', accent: '#A6BFD9', pastel: '#DEE9F5' },   // pastel blue
+  quill: { ink: '#834D5C', accent: '#E2B4C5', pastel: '#F8E2E8' },   // pastel pink (lightened)
 };
+
+// Pick black/white text for a given hex background so contrast holds
+// when the accent gets pushed lighter. Uses WCAG relative luminance.
+// Returns a hex string usable as a CSS color.
+export function pickContrastText(hex) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length !== 6) return '#1a1a1a';
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const lin = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  // Lighter accent → use the mode's dark ink; darker accent → white.
+  return L > 0.6 ? '#3a2f33' : '#ffffff';
+}
 
 // ---------------------------------------------------------------------------
 // ChapterContextPill — small uppercase pill that sits at the top of

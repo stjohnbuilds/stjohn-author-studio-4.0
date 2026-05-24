@@ -1085,7 +1085,7 @@ export const APP_MODES = [
   { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#E5DCEF', ink: '#5C4A78', enabled: true,  phase: null }, // pastel purple
   { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: true,  phase: null }, // pastel green
   { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#DCE6F0', ink: '#3F5772', enabled: true,  phase: null }, // pastel blue
-  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#F4DCE0', ink: '#834D5C', enabled: false, phase: 8    }, // pastel pink
+  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#F4DCE0', ink: '#834D5C', enabled: true,  phase: null }, // pastel pink
 ];
 
 function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {

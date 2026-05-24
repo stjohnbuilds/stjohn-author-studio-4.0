@@ -1,152 +1,77 @@
 # TODO — StJohn Author Studio 4.0
 
-Active and recently archived tasks. Rules for this file are in
-`CLAUDE.md` under "TODO.md rules".
+Active and archived tasks. Cleaned up 2026-05-24. New work goes under
+**Active**. Completed work moves to **Archived** with a date.
 
-## Active Tasks
+Format: `- [x] Task name — completed YYYY-MM-DD`. Never leave a task
+as 2–3 words. Add context.
 
-### Phase 1 — Bootstrap (in progress)
+Always read `HANDOFF.md` first, then this file.
 
-- [x] Create `~/Dev/StJohn-Author-Studio-4.0/` and copy Script and Sync
-      3.0 in as the base — completed 2026-05-23
-- [x] Set up `.claude/` with scope-locked hooks per bible Step 2.5 —
-      completed 2026-05-23
-- [x] Write `CLAUDE.md` — completed 2026-05-23
-- [ ] Write `docs/BUILD_PLAN_V4.md` — phased plan, definition of done
-      per phase, shared-reader rule baked in.
-- [ ] Write truth tree skeletons (`docs/FRONT_FUNCTION_TREE.md`,
-      `docs/INTERNAL_FUNCTION_TREE.md`, `docs/WIRING_MATRIX.md`)
-      populated from Script and Sync 3.0 as the baseline, with empty
-      rows for Prep / Duet / Quill / Phone to fill in as each is added.
+---
 
-### Phase 2 — Git + GitHub
+## Active
 
-- [x] `git init`, first commit "4.0 bootstrap from Script and Sync 3.0"
-      — completed 2026-05-23
-- [x] Create GitHub repo `stjohn-author-studio-4.0`, push main —
-      completed 2026-05-23
-      → https://github.com/stjohnbuilds/stjohn-author-studio-4.0
-- [x] Confirm hooks fire after the push — log entry present —
-      completed 2026-05-23
+### Next up (in priority order)
 
-### Phase 3 — Archive the dead
+- [ ] **Studio landing page + Supabase login** — first screen on
+      launch is a login (email + password, show/hide password eye
+      icon, "forgot password" link), then the 4-mode picker. NOT
+      dropping straight into Proof like it does now. Match Marie's
+      pastel aesthetic — no dark/wine colors. A similar login UI
+      existed in a previous attempt (look in `Manuscript Prepper 1.0`
+      or the archived apps before designing from scratch). Marie's
+      Supabase project is `evcusovtjfypfyfvnooy`. URL + anon key:
+      ask Marie or find in any archived `.env` / `supabase.js`. Do
+      NOT commit credentials.
 
-- [x] Rename in Google Drive (added `-ARCHIVED-2026-05-23` suffix):
-      `StJohn Author Apps/apps/phone`,
-      `StJohn Author Apps/apps/quill-and-ink`,
-      `StJohn Author Apps/apps/script-and-sync`,
-      `Script and Sync` (older proofer) — completed 2026-05-23
-      (`StJohn Author Studio 2.0` was already archived in Google Drive.)
-- [x] Archive `stjohnbuilds/stjohn-author-studio-2.0` on GitHub —
-      completed 2026-05-23
-- [ ] Confirm with Marie which other GitHub repos to archive (likely
-      candidates: `Audioproofer`, `Audioproofer-Electron`,
-      `loveworn-design-studio`). Skipped until she confirms.
+- [ ] **Quill & Ink mode** — port from the alpha at
+      `~/Library/CloudStorage/.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/`.
+      Use the shared `ReaderChrome` + `ImportFlow` so it looks like
+      Prep. Annotation list with `+` and ✏️ icons (Marie liked these
+      from the alpha). Drag across text to highlight a range,
+      double-click a word to jump. Tables already exist:
+      `quill_projects`, `quill_chapters`, `quill_annotations` — all
+      with RLS. Audio player from Proof gets reused. InDesign-friendly
+      export (see the alpha's export code).
 
-### Phase 4 — Rebrand the base
+- [ ] **Supabase cloud-sync wiring** — single shared package every
+      mode talks to. Per-table CRUD helpers, not per-mode duplicates.
+      Audio NEVER goes to Supabase — the shared sync must have guards
+      that strip audio paths before any upload. CLAUDE.md emphasizes
+      this three times.
 
-- [x] Renamed npm package, app id, productName, window title, Save Data
-      folder, AppUserModelId, layout metadata — completed 2026-05-23
-- [x] Home-screen 4-mode segmented switcher added
-      (`app/components/ModeSwitcher.js`). Proof Listen active; Prep,
-      Duet, Quill show ComingSoonPanel with phase number — completed
-      2026-05-23
-- [ ] Marie opens the new 4.0 app, sees the 4-mode switcher, clicks
-      each tab, confirms it looks right. (Run `npm install` first, then
-      `npm start`.)
-- [ ] First Mac packaged build to confirm rebrand works end-to-end.
-- [ ] Migrate (optional): point Save Folder at the old `Script and Sync`
-      data location if Marie wants her existing books in 4.0.
+- [ ] **Phone companion** — port from
+      `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/`
+      (also check `Manuscript Prepper 1.0/` for an even earlier
+      attempt Marie thinks was solid). Login (Supabase), project list,
+      open chapter, local audio picker (audio stays on phone),
+      tap-to-flag (Script) or tap-to-annotate (Quill), CSV export. No
+      transcribing on phone. No manuscript editing. Deploy to Vercel.
 
-### Prep export — preserve original manuscript layout
+### Smaller cleanup (low priority, low risk)
 
-- [ ] **Highlighted .docx — preserve the ORIGINAL .docx exactly**
-      v6.4 reproduces the paragraph + heading structure of the
-      manuscript and highlights only the dialogue runs. v6.5 added a
-      Garamond-based styles.xml so the result reads like a novel
-      manuscript instead of Calibri. But it still loses italics,
-      bold, the user's actual fonts, page numbers, and any custom
-      formatting from the source .docx.
-      The proper fix is to store the imported .docx bytes alongside
-      the project and, on export, patch THAT document's
-      `word/document.xml` to wrap the detected dialogue spans with
-      highlight runs (and side voices with `<w:commentReference>`).
-      That keeps 100% of the source formatting because we never
-      rebuild — we only inject. Approach:
-        1. Save `fileBytes` (Uint8Array) on the project at import.
-        2. On export: JSZip.loadAsync the bytes, parse document.xml,
-           map our (sectionIndex, spanIndex) to XML positions
-           (need to walk paragraphs in document order and match by
-           text content), wrap the matched runs.
-        3. Prepend our narrator-breakdown paragraphs to the body.
-        4. Add comments.xml + content-type + commentReference for
-           side voices.
-      Probably ~300-400 lines of focused code; biggest risk is
-      position-mapping between our HTML view and OOXML.
+- [ ] **Migrate `ProofingReader.js` to use `ReaderChrome.js`** — Prep
+      already uses the shared `ChapterContextPill`, `StickyTopBar`,
+      `SaveBadge`, `HomeBackPill`, button-style factories, and the
+      `useDismissable` popover-close hook. ProofingReader still has
+      its own copies of all of these. When that 2600-line component
+      is refactored, swap them out so a single visual edit propagates
+      to every mode. No behaviour change required.
 
-### UI / architecture follow-ups discovered during Phase 6
+- [ ] **Same for Duet `PrebuildMode.js`** — uses its own AppModeToggle
+      placement; no shared chrome yet.
 
-- [ ] **Studio landing page (4-mode picker)** — first screen on launch
-      should be a small picker for Proof / Prep / Duet / Quill, not
-      dropping the user straight into Proof. Marie flagged this; lives
-      in `app/page.js` `HomePage`. Keep the existing in-mode home pages
-      as the second screen.
-- [ ] **Migrate ProofingReader to use `app/components/ReaderChrome.js`**
-      — Prep now uses the shared `ChapterContextPill`, `StickyTopBar`,
-      `SaveBadge`, `HomePill`, button-style factories, and the
-      `useDismissable` popover-close hook. ProofingReader still has its
-      own copies of all of these. When that 2600-line component is
-      refactored, swap them out so a single visual edit propagates to
-      every mode.
-- [ ] **Same for Duet `PrebuildMode`** — uses its own AppModeToggle
-      placement, no shared chrome yet.
 - [ ] **Migrate Proof's `BookSetup` to use `ImportFlow`** — Prep + Duet
-      now share `app/components/ImportFlow.js` for the upload + chapter
-      checkbox list. Proof's `ManuscriptSetup.js` still has its own copy
-      because it layers PDF paging + narrator colour mapping on top. The
-      goal is for BookSetup to use `ImportFlow` for the upload/chapter
-      piece and add the Proof-only steps as panels around it. Marie's
-      "use the baseline" rule applies here too; this is the last
-      duplicate of the upload flow.
-(Side-voice Word comments shipped 2026-05-24 — see Archived.)
+      now share `app/components/ImportFlow.js` for the upload +
+      chapter checkbox list. Proof's `ManuscriptSetup.js` still has
+      its own copy because it layers PDF paging + narrator colour
+      mapping on top. The goal is for BookSetup to use `ImportFlow`
+      for the upload/chapter piece and add the Proof-only steps as
+      panels around it. This is the LAST duplicate of the upload
+      flow.
 
-### Phase 5 — Mode 1: Proof Listen working on real file
-
-- [ ] Mark every Proof Listen button as `verified live` in
-      `WIRING_MATRIX.md` after Marie clicks it on her real audiobook.
-- [ ] Confirm Save Data lands in the right folder.
-
-### Phase 6 — Mode 2: Prep Manuscript
-
-- [ ] Port from current `packages/manuscript-engine/` (real, working).
-- [ ] Build the dialogue-assignment UI on top of the shared reader.
-- [ ] Export highlighted DOCX + narrator chapter list.
-
-### Phase 7 — Mode 3: Duet Prep
-
-- [ ] Port marker logic from `Timestamp Finder Duet Edition 2.0`
-      reference.
-- [ ] Reuse shared reader + audio engine.
-
-### Phase 8 — Mode 4: Quill & Ink
-
-- [ ] Port annotation list UI (the + and edit icons Marie liked) from
-      the alpha Quill reference.
-- [ ] Reuse shared reader.
-- [ ] Wire InDesign export.
-
-### Phase 9 — Phone companion
-
-- [ ] Port phone Next.js scaffold from
-      `StJohn Author Apps/apps/phone` reference.
-- [ ] Login (Supabase auth).
-- [ ] Project list + chapter open + transcript text.
-- [ ] Local audio picker + matching.
-- [ ] Script flags + Quill annotations save to cloud.
-- [ ] CSV export from phone.
-- [ ] Deploy to Vercel.
-
-### Phase 10 — Real-file end-to-end pass
+### Phase 10 — real-file end-to-end pass
 
 - [ ] Marie runs every minimum-release check on her actual books +
       audiobooks. Every row in `WIRING_MATRIX.md` flips to
@@ -154,56 +79,128 @@ Active and recently archived tasks. Rules for this file are in
 - [ ] Phone signed-in proof: real flag + real annotation saved from
       phone, seen on desktop.
 
-### Phase 11 — Release
+### Phase 11 — release
 
-- [ ] Mac + Windows packaged builds.
-- [ ] Phone deploy live.
+- [ ] Mac packaged build.
+- [ ] Windows packaged build.
+- [ ] Phone deploy live on Vercel.
 - [ ] First user release.
+
+---
 
 ## Archived
 
-- [x] **Shared `ImportFlow` for Prep + Duet (and reusable for Proof later)**
-      — built `app/components/ImportFlow.js` with the upload card, H1/H2/H3
-      selector, chapter checkbox list, "Set first" toggle, and shared
-      Google-Docs-shading conversion (re-exported from `ManuscriptSetup`).
-      Prep's old inline `SetupView` and Duet's `PrebuildManuscriptUpload`
-      both deleted; both now render `<ImportFlow ... />`. — completed
+### 2026-05-24 session — Prep polish + export pass
+
+- [x] **Header refactor — single nav button on the top-left** —
+      previously the Back button and HomePill were fighting for the
+      same screen position and the back button hid under the Mac
+      traffic lights. Now there's ONE `HomeBackPill` that morphs:
+      ⌂ in book detail (goes home), ← in reader (goes back to book
+      detail). It sits at top:40 with custom drag region, same level
+      as the 4-mode toggle on home. The `StickyTopBar` aligns to that
+      row so the eye sees one continuous nav. — completed 2026-05-24
+
+- [x] **One dialogue warning rule** — engine used to emit 7 issue
+      types. Now emits one: `missing-closing-quote`, only when no
+      follow-up quote within ~3 paragraphs. Marie can't see the noise
+      she didn't want. — completed 2026-05-24
+
+- [x] **Section Fixer (per-paragraph editor)** — Fix button on each
+      amber warning opens just that paragraph in a textarea with an
+      "Insert " here" button at the cursor. Save reruns dialogue
+      detection. Edits also recorded so the export replays them. —
+      completed 2026-05-24
+
+- [x] **Header confusion fix** — reader top bar title was "Chapter 1
+      of 61 · Chapter 2" because it concatenated nav position with
+      source heading. Now title is just nav position; source heading
+      moves to subtitle and only when it differs. Same fix applied to
+      the chapter dropdown and book-detail chapter list. — completed
       2026-05-24
-- [x] **Strip dialogue warnings down to one rule** — engine used to emit
-      seven kinds of issues (tiny / long / empty span, nested, orphan
-      close, missing close, uneven, quote-in-heading). Marie said too
-      noisy. Now emits one: `missing-closing-quote`, only when an open
-      quote has no follow-up quote within ~3 paragraphs. All per-span
-      ⚠ icons removed from the reader. — completed 2026-05-24
-- [x] **Inline quote-insert (section fixer)** — each amber warning strip
-      now has a "Fix" button. Clicking it opens a textarea pre-filled
-      with the section's paragraphs; an "Insert "" here" button drops a
-      closing curly quote at the cursor. Save & rescan reruns dialogue
-      detection so the warning either clears or moves to the next gap.
-      — completed 2026-05-24
-- [x] **Header confusion fix** — the reader top bar used to read
-      "Chapter 1 of 61 · Chapter 2" because it concatenated the
-      navigation position with the source heading. Now the title shows
-      only the navigation position ("Chapter 1 of 61") and the source
-      heading goes into the subtitle (and only when it differs from the
-      nav number). Dropdown options were updated to show "Chapter N"
-      from the navigation system, not the source title. Same fix
-      applied to the book-detail chapter list. — completed 2026-05-24
-- [x] **Narrator breakdown styling** — the in-place .docx export's
-      narrator page used `<w:pStyle>` references that depend on the
-      source doc having `Heading1` / `Heading2` defined. Switched to
-      inline run-property styling (bold, centered, point size baked
-      into each paragraph) so the breakdown looks right no matter what
-      the source .docx's `styles.xml` looks like. — completed 2026-05-24
-- [x] **Side voice dialogues get inline Word comments in the export**
-      — for every dialogue assigned to a side voice (recurring or one-
-      time), the .docx now has a real Word comment on that line with
-      `Character: <name>, Narrator: <name>, Side voice of <character>,
-      Notes: <notes>, [Recurring]` (or `[One time]`). Main-character
-      lines stay clean — just the highlight, no comment noise.
-      Implementation: `word/comments.xml` added to the zip,
-      content-types and document rels patched to wire it up, and
-      `<w:commentRangeStart>` / `<w:commentRangeEnd>` /
-      `<w:commentReference>` markers wrapped around each side-voice
-      dialogue run during in-place highlighting. — completed
+
+- [x] **Edit chapters cog** — gear button next to Chapters header.
+      Toggles edit mode where each chapter row gets a trash X to
+      remove it. Chapter numbers re-flow automatically. Marie can fix
+      "I accidentally left a chapter in" without re-importing. —
+      completed 2026-05-24
+
+- [x] **Auto-assign on character add (in reader)** — when a dialogue
+      is selected and Marie adds a new character via the chip, the
+      new character is immediately assigned to that dialogue.
+      `addCharacter` mints the id synchronously so the caller can
+      chain. — completed 2026-05-24
+
+- [x] **Side-voice dialogues carry inline Word comments** — for every
+      dialogue assigned to a side voice, the exported .docx has a
+      real Word comment with each piece of info on its own line:
+      Character, Narrator, Side voice of <character>, Notes,
+      [Recurring]/[One time]. Main-character lines stay clean.
+      `word/comments.xml` with proper namespaces, content-types +
+      rels patched, `<w:commentRangeStart>`/`<w:commentRangeEnd>`/
+      `<w:commentReference>` wrapped around each dialogue run. Word
+      no longer flags the file as "unreadable". — completed 2026-05-24
+
+- [x] **Pastel palette + Prep is yellow** — `MODE_TOKENS` now has
+      `pastel` (very light) + `accent` (mid-tone) + `ink` (dark) per
+      mode. Solid buttons use `accent` so the UI reads as pastel-y
+      instead of wine. Prep switched from green to yellow. 10-colour
+      `CHARACTER_PALETTE` in Marie's preferred order. — completed
       2026-05-24
+
+- [x] **Show sub-headings toggle in ImportFlow** — `allowSceneSplitting`
+      prop. When on, Duet sees split groups; Prep keeps it off by
+      default. — completed 2026-05-24
+
+- [x] **Duplicate narrator breakdown fix** — `stripPreviousNarratorBreakdown`
+      removes any previously-injected breakdown before adding the new
+      one. Re-importing an exported file no longer piles up six
+      copies. — completed 2026-05-24
+
+- [x] **Fix-quote replays into the exported .docx** — paragraph edits
+      from the Section Fixer are recorded on `section.manualEdits`
+      and replayed onto the source XML at export time. The missing
+      close-quote Marie typed in actually shows up in the downloaded
+      file. — completed 2026-05-24
+
+- [x] **`applyHighlightsInPlace` regex constrained** — the `rPr`
+      capture used to backtrack across `<w:r>` boundaries when a
+      dialogue text only appeared in a later paragraph, which made
+      the export inject the narrator breakdown six times. Now the
+      capture refuses to cross run boundaries. — completed 2026-05-24
+
+- [x] **Next button bug — actual root cause found** — italic-mid-quote
+      dialogues like `"<em>Really</em>?"` made the engine's stripHtml
+      produce "Really ?" (with a space) while the reader's stripTags
+      produced "Really?" (no space). indexOf returned -1, the span
+      didn't render, the cursor got stuck on it, and every dialogue
+      AFTER also failed to render. Fixed by importing the engine's
+      `stripHtml` into the reader's `paragraphsFromHtml`. — completed
+      2026-05-24
+
+### 2026-05-23 session — Prep refactor + shared upload
+
+- [x] **Shared `ImportFlow` for Prep + Duet** — built
+      `app/components/ImportFlow.js`. Prep's old inline `SetupView`
+      and Duet's `PrebuildManuscriptUpload` both deleted; both now
+      render `<ImportFlow ... />`. — completed 2026-05-23
+
+- [x] **Narrator breakdown styling** — switched from `<w:pStyle>`
+      references to inline run-property styling so it renders the
+      same in any source .docx. — completed 2026-05-23
+
+### Phase 1–4 (bootstrap + base)
+
+- [x] Create `~/Dev/StJohn-Author-Studio-4.0/` and copy Script and
+      Sync 3.0 in as the base — completed 2026-05-23
+- [x] Set up `.claude/` with scope-locked hooks per bible Step 2.5 —
+      completed 2026-05-23
+- [x] Write `CLAUDE.md` — completed 2026-05-23
+- [x] `git init`, first commit, push to GitHub
+      (`stjohnbuilds/stjohn-author-studio-4.0`) — completed 2026-05-23
+- [x] Archive old GitHub repos + Google Drive folders — completed
+      2026-05-23
+- [x] Rebrand npm package, app id, productName, window title, Save
+      Data folder — completed 2026-05-23
+- [x] Home-screen 4-mode segmented switcher (`AppModeToggle` in
+      `app/page.js`) — completed 2026-05-23

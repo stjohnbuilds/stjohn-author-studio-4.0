@@ -570,18 +570,19 @@ async function buildOriginalPlusHighlights(project) {
   });
 }
 
-// Format the per-dialogue side-voice note Marie wants in the exported
-// .docx, as an inline Word comment. Example output:
-//   "Character: Jim, Narrator: Mark, Notes: happy, [Recurring]"
-function formatSideVoiceComment(char, sv) {
-  const parts = [];
-  parts.push(`Character: ${sv.name || '(unnamed)'}`);
+// Build the per-dialogue side-voice note that lands inside an inline
+// Word comment. Returns an array of LINES — each line becomes its own
+// <w:p> inside the comment so Word lays them out top-to-bottom instead
+// of jamming everything on one line.
+function formatSideVoiceCommentLines(char, sv) {
+  const lines = [];
+  lines.push(`Character: ${sv.name || '(unnamed)'}`);
   const narrator = sv.narratorName || char.narratorName || '';
-  if (narrator) parts.push(`Narrator: ${narrator}`);
-  if (char.name) parts.push(`Side voice of ${char.name}`);
-  if (sv.notes) parts.push(`Notes: ${sv.notes}`);
-  parts.push(sv.recurring ? '[Recurring]' : '[One time]');
-  return parts.join(', ');
+  if (narrator) lines.push(`Narrator: ${narrator}`);
+  if (char.name) lines.push(`Side voice of ${char.name}`);
+  if (sv.notes) lines.push(`Notes: ${sv.notes}`);
+  lines.push(sv.recurring ? '[Recurring]' : '[One time]');
+  return lines;
 }
 
 // Add a word/comments.xml part to the .docx zip and wire it into the

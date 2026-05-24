@@ -79,6 +79,30 @@ function nextPaletteColor(usedHexes = []) {
   return CHARACTER_PALETTE.find((c) => !used.has(c)) || CHARACTER_PALETTE[usedHexes.length % CHARACTER_PALETTE.length];
 }
 
+// Darken a pastel by `amount` (0-1). Used for side-voice tint so a
+// side voice of "Crescent (light pink)" reads as a deeper pink than
+// Crescent herself.
+function darkenHex(hex, amount = 0.15) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length !== 6) return hex;
+  const r = Math.max(0, parseInt(h.slice(0, 2), 16) - Math.round(255 * amount));
+  const g = Math.max(0, parseInt(h.slice(2, 4), 16) - Math.round(255 * amount));
+  const b = Math.max(0, parseInt(h.slice(4, 6), 16) - Math.round(255 * amount));
+  const px = (n) => n.toString(16).padStart(2, '0');
+  return '#' + px(r) + px(g) + px(b);
+}
+
+// Pick the right tint for a dialogue/chip given a character + optional
+// side voice. Each side voice gets progressively darker so multiple
+// side voices on one character are visually distinguishable.
+function colorForAssignment(character, sideVoice) {
+  if (!character) return null;
+  if (!sideVoice) return character.colorHex;
+  const idx = (character.sideVoices || []).findIndex((s) => s.id === sideVoice.id);
+  const step = Math.max(1, idx + 1);  // 1, 2, 3...
+  return darkenHex(character.colorHex, Math.min(0.45, 0.12 * step));
+}
+
 function paragraphsFromHtml(html = '') {
   const blocks = [];
   const re = /<(p|h1|h2|h3|h4|h5|h6|blockquote|li)\b[^>]*>([\s\S]*?)<\/\1>/gi;
@@ -349,12 +373,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }));
   }
   function addSideVoice(characterId, prefill = {}) {
+    // Generate id sync so the caller can immediately assign current
+    // dialogue to it (otherwise we'd race React state).
+    const sideVoiceId = prefill.id || uid('side');
     updateActive((p) => ({
       ...p,
       characters: (p.characters || []).map((c) => {
         if (c.id !== characterId) return c;
         const sv = {
-          id: uid('side'),
+          id: sideVoiceId,
           name: prefill.name || 'Side voice',
           narratorName: prefill.narratorName || c.narratorName || '',
           notes: prefill.notes || '',
@@ -363,6 +390,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         return { ...c, sideVoices: [...(c.sideVoices || []), sv] };
       }),
     }));
+    return sideVoiceId;
   }
   function removeSideVoice(characterId, sideVoiceId) {
     updateActive((p) => ({
@@ -682,6 +710,25 @@ function ReaderView({
 }) {
   const chapter = project.chapters.find((c) => c.chapterIndex === activeChapterIndex) || project.chapters[0];
   const dialogueRefs = useRef({});
+  const [scrollTick, setScrollTick] = useState(0);
+  const requestScroll = useCallback(() => setScrollTick((t) => t + 1), []);
+
+  // Scroll the currently selected dialogue into view whenever someone
+  // requests it (Next / Prev / chapter change). Polls the refs map a
+  // few times because the new chapter may not have mounted yet when
+  // the tick fires.
+  useEffect(() => {
+    if (scrollTick === 0) return undefined;
+    let cancelled = false;
+    function tryScroll(retries) {
+      if (cancelled) return;
+      const node = dialogueRefs.current[`${selected.sectionIndex}|${selected.spanIndex}`];
+      if (node) { node.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (retries > 0) setTimeout(() => tryScroll(retries - 1), 40);
+    }
+    const id = setTimeout(() => tryScroll(6), 30);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [scrollTick, selected, activeChapterIndex]);
 
   // flat dialogue list within this chapter only
   const flatList = useMemo(() => {
@@ -718,6 +765,7 @@ function ReaderView({
         if (lastSec) {
           setActiveChapterIndex(prevChapterIdx);
           setSelected({ sectionIndex: lastSec.sectionIndex, spanIndex: lastSec.dialogueSpans.length - 1 });
+          requestScroll();
         }
       }
       return;
@@ -731,16 +779,14 @@ function ReaderView({
         if (firstSec) {
           setActiveChapterIndex(nextChapterIdx);
           setSelected({ sectionIndex: firstSec.sectionIndex, spanIndex: 0 });
+          requestScroll();
         }
       }
       return;
     }
     const target = flatList[next];
     setSelected(target);
-    requestAnimationFrame(() => {
-      const node = dialogueRefs.current[spanKey(target.sectionIndex, target.spanIndex)];
-      if (node) node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    requestScroll();
   }
 
   const canPrevChapter = activeChapterIndex > Math.min(...project.chapters.map((c) => c.chapterIndex));
@@ -754,8 +800,8 @@ function ReaderView({
     <>
       <StickyTopBar
         onBack={onBack}
-        title={chapter?.title || `Chapter ${activeChapterIndex + 1}`}
-        subtitle={`${project.title} · ${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%)`}
+        title={`Chapter ${(orderedIdx.indexOf(activeChapterIndex)) + 1} of ${orderedIdx.length} · ${chapter?.title || ''}`}
+        subtitle={`${chapterCount.assigned}/${chapterCount.total} assigned (${chapterPct}%) · ${project.title}`}
       >
         <select
           value={activeChapterIndex}
@@ -777,17 +823,9 @@ function ReaderView({
         <SaveBadge status={saveStatus} />
       </StickyTopBar>
 
-      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '16px 0 150px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-          <ChapterContextPill
-            tone={TONE}
-            chapterLabel={`Chapter ${(orderedIdx.indexOf(activeChapterIndex)) + 1} of ${orderedIdx.length}`}
-            sectionLabel={chapter?.title || ''}
-            extraLabels={[
-              `${chapterCount.assigned}/${chapterCount.total} assigned`,
-            ]}
-          />
-        </div>
+      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 150px' }}>
+        {/* No in-page chapter pill — the sticky top bar already shows
+            chapter title + N of M + assignment progress. */}
         <div style={{ fontSize: READER_FONT_SIZE, lineHeight: READER_LINE_HEIGHT, color: 'var(--text)' }}>
           {(chapter?.sections || []).map((sec) => (
             <SectionBody
@@ -861,7 +899,9 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
               const char = span?.characterId ? charactersById.get(span.characterId) : null;
               const sv = char && span?.sideVoiceId ? (char.sideVoices || []).find((s) => s.id === span.sideVoiceId) : null;
               const isSelected = selected.sectionIndex === section.sectionIndex && selected.spanIndex === seg.spanIndex;
-              const bg = char ? char.colorHex : (isSelected ? '#FFF6CC' : 'transparent');
+              // Main character → its pastel. Side voice → progressively
+              // darker shades of that pastel so they read as variants.
+              const bg = char ? colorForAssignment(char, sv) : (isSelected ? '#FFF6CC' : 'transparent');
               const refKey = `${section.sectionIndex}|${seg.spanIndex}`;
               return (
                 <button
@@ -869,7 +909,7 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                   ref={(el) => { if (el) dialogueRefs.current[refKey] = el; else delete dialogueRefs.current[refKey]; }}
                   type="button"
                   onClick={() => onSelectDialogue(section.sectionIndex, seg.spanIndex)}
-                  title={char ? `${char.name}${sv ? ' (side voice: ' + sv.name + ')' : ''}` : 'Unassigned'}
+                  title={char ? `${char.name}${sv ? ' — ' + sv.name : ''}` : 'Unassigned'}
                   style={{
                     background: bg,
                     border: '1px solid ' + (isSelected ? PREP_INK : (char ? PREP_INK + '66' : '#e3d8b0')),
@@ -878,12 +918,8 @@ function SectionBody({ section, charactersById, selected, onSelectDialogue, dial
                     fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit',
                     color: 'var(--text)', cursor: 'pointer',
                     boxShadow: isSelected ? '0 0 0 2px rgba(63, 106, 82, 0.25)' : 'none',
-                    // Side-voice mark: dashed underline so it reads as
-                    // "still this character, but a variant voice".
-                    textDecoration: sv ? 'underline dashed ' + PREP_INK : 'none',
-                    textUnderlineOffset: '3px',
                   }}
-                >“{seg.text}”{sv ? <span aria-hidden="true" style={{ marginLeft: 4, fontSize: '0.7em', color: PREP_INK, fontWeight: 700 }}>◇</span> : null}</button>
+                >“{seg.text}”</button>
               );
             })}
           </Tag>
@@ -917,7 +953,7 @@ function ReaderDock({
           <button type="button" onClick={onPrev} style={dockBtn(false)} title="Previous dialogue">←</button>
           <button type="button" onClick={onNext} style={dockBtn(true)} title="Next dialogue">Next →</button>
           <span style={{ fontSize: '0.66rem', fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{positionLabel}</span>
-          <div style={{ flex: 1, minWidth: 0, padding: '4px 9px', background: currentChar?.colorHex || 'white', border: '1px solid ' + (currentChar ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 7, fontSize: '0.76rem', fontFamily: 'Georgia, serif', lineHeight: 1.4, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ flex: 1, minWidth: 0, padding: '4px 9px', background: colorForAssignment(currentChar, currentSV) || 'white', border: '1px solid ' + (currentChar ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 7, fontSize: '0.76rem', fontFamily: 'Georgia, serif', lineHeight: 1.4, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selectedSpan ? <>“{selectedSpan.text}”</> : <span style={{ color: 'var(--text-light)' }}>Click a dialogue.</span>}
           </div>
           <span style={{ fontSize: '0.66rem', fontWeight: 600, color: currentChar ? PREP_INK : 'var(--text-light)', whiteSpace: 'nowrap' }}>
@@ -991,7 +1027,20 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
           onClickAssign={() => onAssignCharacter && onAssignCharacter(c.id)}
           onPickSideVoice={(sv) => { onAssignSideVoice && onAssignSideVoice(c.id, sv.id); closePopover(); }}
           onStartAddSideVoice={() => setAddingSideFor(c.id)}
-          onSaveSideVoice={(payload) => { onAddSideVoice(c.id, payload); closePopover(); }}
+          onSaveSideVoice={(payload) => {
+            const newId = onAddSideVoice(c.id, payload);
+            // In the reader dock we also assign the brand-new side
+            // voice to the currently selected dialogue (that's what
+            // "Save & assign" means). In the book-detail "manage"
+            // view we just save and keep the popover open so the
+            // user sees the new entry appear in the list.
+            if (mode === 'assign' && onAssignSideVoice && newId) {
+              onAssignSideVoice(c.id, newId);
+              closePopover();
+            } else {
+              setAddingSideFor(null);
+            }
+          }}
           onRemoveSideVoice={(sv) => onRemoveSideVoice(c.id, sv.id)}
         />
       ))}
@@ -1094,7 +1143,7 @@ function CharacterChip({
             </div>
           ))}
           {sideAdding ? (
-            <AddSideVoiceInline characterNarrator={character.narratorName} onSave={onSaveSideVoice} onCancel={onClosePopover} />
+            <AddSideVoiceInline characterNarrator={character.narratorName} saveLabel={mode === 'assign' ? 'Save & assign' : 'Save'} onSave={onSaveSideVoice} onCancel={onClosePopover} />
           ) : (
             <button type="button" onClick={onStartAddSideVoice} style={{ padding: '7px 8px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>+ Add side voice…</button>
           )}
@@ -1104,7 +1153,7 @@ function CharacterChip({
   );
 }
 
-function AddSideVoiceInline({ characterNarrator, onSave, onCancel }) {
+function AddSideVoiceInline({ characterNarrator, saveLabel = 'Save', onSave, onCancel }) {
   const [name, setName] = useState('');
   const [narrator, setNarrator] = useState(characterNarrator || '');
   const [notes, setNotes] = useState('');
@@ -1125,7 +1174,7 @@ function AddSideVoiceInline({ characterNarrator, onSave, onCancel }) {
       <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
         <button type="button" onClick={onCancel} style={{ flex: 1, padding: '5px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
         <button type="button" disabled={!name.trim()} onClick={() => onSave({ name: name.trim(), narratorName: narrator.trim(), notes: notes.trim(), recurring })}
-          style={{ flex: 1, padding: '5px 8px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>Save & assign</button>
+          style={{ flex: 1, padding: '5px 8px', background: PREP_INK, color: 'white', border: 'none', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>{saveLabel}</button>
       </div>
     </div>
   );

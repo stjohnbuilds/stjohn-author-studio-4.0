@@ -1008,11 +1008,12 @@ export default function Home() {
 // 3.0 base ('default' = Proof Listen, 'prebuild' = Duet Prep) so existing
 // localStorage values keep working. Two new IDs (prep-manuscript, quill)
 // are added for the future modes.
+// Pastel palette per Marie's preference: pink / purple / blue / green only.
 export const APP_MODES = [
-  { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#DCE6F0', ink: '#3F5772', enabled: true,  phase: null },
-  { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: false, phase: 6    },
-  { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#F4DCE0', ink: '#834D5C', enabled: true,  phase: null },
-  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#EFE3D4', ink: '#7A5A3B', enabled: false, phase: 8    },
+  { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#E5DCEF', ink: '#5C4A78', enabled: true,  phase: null }, // pastel purple
+  { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: false, phase: 6    }, // pastel green
+  { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#F4DCE0', ink: '#834D5C', enabled: true,  phase: null }, // pastel pink
+  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#DCE6F0', ink: '#3F5772', enabled: false, phase: 8    }, // pastel blue
 ];
 
 function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
@@ -1021,12 +1022,12 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
     border: 'none',
     background: active ? m.pastel : 'transparent',
     color: active ? m.ink : (m.enabled ? 'var(--text-muted)' : 'var(--text-light)'),
-    fontSize: '0.72rem',
+    fontSize: '0.74rem',
     fontWeight: active ? 700 : 600,
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
     borderRadius: 999,
-    padding: '8px 12px',
+    padding: '13px 16px',
     cursor: 'pointer',
     opacity: m.enabled ? 1 : 0.7,
     transition: 'all 0.16s ease',

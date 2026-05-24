@@ -481,9 +481,11 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
 
   // ---- in-place section edit (used by the "Fix missing quote" affordance).
   // Marie clicks Fix on a warning, edits the paragraphs to insert the
-  // missing close quote, hits Save. We update section.html and rerun
-  // dialogue detection so the warning either clears or moves.
-  function updateSectionHtml(chapterIndex, sectionIndex, newHtml) {
+  // missing close quote, hits Save. We update section.html, rerun
+  // dialogue detection, and ALSO log the edit on the section so the
+  // export can replay it into the source .docx — without that the
+  // exported file still has the original missing quote.
+  function updateSectionHtml(chapterIndex, sectionIndex, newHtml, edit) {
     const { dialogueSpans: nextSpans, issues, totalQuoteMarks, quoteMarksEven } = detectSectionSpans(newHtml, chapterIndex, sectionIndex);
     updateActive((p) => ({
       ...p,
@@ -502,6 +504,14 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
               const prior = oldByText.get(sp.text);
               return prior ? { ...sp, characterId: prior.characterId || null, sideVoiceId: prior.sideVoiceId || null } : sp;
             });
+            // Append the paragraph edit to a side-list so the export can
+            // replay it onto the original .docx. We dedupe by oldText to
+            // keep the list small if Marie edits the same paragraph
+            // repeatedly.
+            const existingEdits = (sec.manualEdits || []).filter((e) => e.oldText !== edit?.oldText);
+            const nextEdits = edit && edit.oldText && edit.newText && edit.oldText !== edit.newText
+              ? [...existingEdits, { oldText: edit.oldText, newText: edit.newText }]
+              : existingEdits;
             return {
               ...sec,
               html: newHtml,
@@ -510,6 +520,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
               totalQuoteMarks,
               quoteMarksEven,
               scanning: false,
+              manualEdits: nextEdits,
             };
           }),
         };

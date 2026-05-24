@@ -341,7 +341,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         projects={allProjects}
         onOpen={(p) => { setActiveProjectId(p.id); setActiveChapterId(p.chapters?.[0]?.id || null); setView('bookDetail'); }}
         onNew={() => setView('setup')}
-        error={error}
       />
     </div>
   );

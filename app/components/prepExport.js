@@ -476,8 +476,13 @@ async function buildOriginalPlusHighlights(project) {
   if (!docFile) throw new Error('Original .docx has no word/document.xml');
   let documentXml = await docFile.async('string');
 
-  // 1) Inject narrator-breakdown paragraphs at the very top of <w:body>
-  //    so they're the first thing the reader sees.
+  // 1) If the source .docx already has a narrator-breakdown block from
+  //    a previous export, strip it so we don't pile a new one on top.
+  //    The marker is the "Narrator breakdown" heading we always emit,
+  //    followed (somewhere shortly after) by our page break.
+  documentXml = stripPreviousNarratorBreakdown(documentXml);
+
+  // 2) Inject the fresh narrator-breakdown at the very top of <w:body>.
   const breakdown = narratorBreakdownXml(project);
   if (breakdown) {
     documentXml = documentXml.replace('<w:body>', '<w:body>' + breakdown);

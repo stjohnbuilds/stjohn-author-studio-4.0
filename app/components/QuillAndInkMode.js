@@ -210,12 +210,33 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }
 
   function deleteProject(id) {
+    const target = allProjects.find((p) => p.id === id);
     setAllProjects((all) => all.filter((p) => p.id !== id));
     if (activeProjectId === id) {
       setActiveProjectId(null);
       setActiveChapterId(null);
       setView('home');
     }
+    // Cloud delete is fire-and-forget.
+    if (target?.cloudId) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        deleteQuillProject(supabase, target.cloudId).catch((e) =>
+          console.warn('[Quill] cloud delete failed:', e?.message || e));
+      }
+    }
+  }
+
+  function mergeProjectLists(local, cloud) {
+    const byId = new Map();
+    for (const p of local) byId.set(p.id, p);
+    for (const p of cloud) {
+      const existing = byId.get(p.id);
+      if (!existing) { byId.set(p.id, p); continue; }
+      const newer = new Date(p.updatedAt || 0) > new Date(existing.updatedAt || 0);
+      byId.set(p.id, newer ? p : { ...existing, cloudId: p.cloudId || existing.cloudId });
+    }
+    return Array.from(byId.values());
   }
 
   // ----- export from book detail -----

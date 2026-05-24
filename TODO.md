@@ -85,6 +85,49 @@ Always read `HANDOFF.md` first, then this file.
       colour mapping, so the goal is for BookSetup to render
       `ImportFlow` plus the Proof-only panels.
 
+### Same-source consolidation pass (Marie's "fix once, fixed everywhere")
+
+These came out of the 2026-05-24 session where Marie said every mode's
+"click into a book" page looks different and pointed at the same root
+cause every time: each mode has its own copy. The shared
+`app/components/BookDetail.js` + `ChapterRow` now exists (Quill uses
+it). The rest of the consolidation:
+
+- [ ] **Refactor Duet's view==='project' to render shared
+      `BookDetail`.** `PrebuildMode.js` lines ~490-1480 are ~1000
+      lines of audio/scan/merge UI. Strategy: keep chapter-row
+      rendering custom (audio status + scan buttons), move the outer
+      title bar, action row and delete button into `<BookDetail
+      tone="duet" actionButtons={...} prePanels={ReadyNavigator} />`.
+
+- [ ] **Refactor Proof's `SessionsView.js` to render shared
+      `BookDetail`.** SessionsView is 2385 lines — biggest single
+      component. Audio dock, transcription queue, narrator color
+      picker, reupload preview all live in there. Strategy: same
+      as Duet — keep audio/queue panels in the prePanels slot, swap
+      outer chrome to `<BookDetail tone="proof" />`. Higher risk
+      because Proof is the anchor mode that works. Test pass on a
+      real book required after.
+
+- [ ] **Unify the reader.** Four files render manuscript text their
+      own way: `ProofingReader.js`, `SectionBody` inside
+      `PrepManuscriptMode.js`, inline reader in `PrebuildMode.js`,
+      `QuillReaderView` inside `QuillAndInkMode.js`. Plan: extract a
+      shared `ChapterPaper` (sticky bar + paper container at
+      `READER_WIDTH`) and a shared word-render primitive that takes
+      per-mode `renderWord` + interaction callbacks. Modes pass their
+      own selection / highlight / annotation logic as props. This is
+      the single highest-leverage refactor left in the project.
+
+- [ ] **Extract shared `ModeHome` (project library) component.** Each
+      mode has its own home view (project cards + "+ New" button).
+      Quill's is the simplest baseline. Same pattern as BookDetail:
+      take title + accent + project list + onNew/onOpen handlers.
+
+- [ ] **Replace `window.confirm()` with a shared `<ConfirmDialog />`.**
+      Every mode uses native confirm. A shared themed dialog would
+      look consistent and not look like a browser alert.
+
 ### Phase 10 — real-file end-to-end pass
 
 - [ ] Marie runs every minimum-release check on her actual books +

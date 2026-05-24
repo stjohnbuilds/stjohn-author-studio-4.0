@@ -570,7 +570,6 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   const selectedOptions = selectedClass?.options || [];
   const characterClass = classTree.find((c) => c.id === 'character');
   const characterOptions = characterClass?.options || [];
-  const emotionClass = classTree.find((c) => c.id === 'emotion');
 
   // Ensure optionId is valid whenever classId changes.
   useEffect(() => {

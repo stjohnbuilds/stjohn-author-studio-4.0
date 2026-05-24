@@ -1009,11 +1009,12 @@ export default function Home() {
 // localStorage values keep working. Two new IDs (prep-manuscript, quill)
 // are added for the future modes.
 // Pastel palette per Marie's preference: pink / purple / blue / green only.
+// Quill = pink (Quill & Ink ❤️ stationery), Duet = blue.
 export const APP_MODES = [
   { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#E5DCEF', ink: '#5C4A78', enabled: true,  phase: null }, // pastel purple
   { id: 'prep-manuscript', label: 'Prep Manuscript', short: 'Prep',  pastel: '#DCEBE0', ink: '#3F6A52', enabled: false, phase: 6    }, // pastel green
-  { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#F4DCE0', ink: '#834D5C', enabled: true,  phase: null }, // pastel pink
-  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#DCE6F0', ink: '#3F5772', enabled: false, phase: 8    }, // pastel blue
+  { id: 'prebuild',        label: 'Duet Prep',       short: 'Duet',  pastel: '#DCE6F0', ink: '#3F5772', enabled: true,  phase: null }, // pastel blue
+  { id: 'quill',           label: 'Quill & Ink',     short: 'Quill', pastel: '#F4DCE0', ink: '#834D5C', enabled: false, phase: 8    }, // pastel pink
 ];
 
 function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {

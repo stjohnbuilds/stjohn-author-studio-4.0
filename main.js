@@ -229,6 +229,11 @@ const prepMirrorDataPath = () =>
     ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'prep-manuscript-projects.json')
     : path.join(app.getPath('userData'), 'prep-manuscript-projects.json');
 
+const quillMirrorDataPath = () =>
+  isDev
+    ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'quill-projects.json')
+    : path.join(app.getPath('userData'), 'quill-projects.json');
+
 function legacyDataPaths() {
   const paths = [];
   if (isDev) {

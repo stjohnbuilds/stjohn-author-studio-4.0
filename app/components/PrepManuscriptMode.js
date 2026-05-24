@@ -16,6 +16,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   detectDialogueSpansInHtml,
 } from '../../packages/manuscript-engine/index.js';
+import {
+  buildPrepHighlightedDocxBlob,
+  buildPrepCsv,
+  buildPrepNarratorChapterCsv,
+  downloadBlob,
+  downloadText,
+  exportFileNames,
+} from './prepExport.js';
 
 const PASTEL_PREP = '#DCEBE0';
 const PREP_INK = '#3F6A52';
@@ -247,6 +255,26 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     }));
   }
 
+  async function exportHighlightedDocx() {
+    if (!project) return;
+    try {
+      const blob = await buildPrepHighlightedDocxBlob(project);
+      downloadBlob(blob, exportFileNames.docx(project));
+    } catch (e) {
+      setError(e?.message || 'Could not export highlighted .docx');
+    }
+  }
+
+  function exportDialogueCsv() {
+    if (!project) return;
+    downloadText(buildPrepCsv(project), exportFileNames.fullCsv(project), 'text/csv;charset=utf-8');
+  }
+
+  function exportNarratorChapterCsv() {
+    if (!project) return;
+    downloadText(buildPrepNarratorChapterCsv(project), exportFileNames.chapterCsv(project), 'text/csv;charset=utf-8');
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       {usesCustomDragRegion && (
@@ -271,6 +299,15 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: 16, alignItems: 'start' }}>
             <main style={{ minWidth: 0 }}>
               <ProjectHeader project={project} totalDialogue={totalDialogue} totalAssigned={totalAssigned} onReplace={handleFile} />
+              <ExportToolbar
+                onDocx={exportHighlightedDocx}
+                onDialogueCsv={exportDialogueCsv}
+                onNarratorCsv={exportNarratorChapterCsv}
+                hasCharacters={(project.characters || []).length > 0}
+              />
+              {error && (
+                <div style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--danger-light)', border: '1px solid var(--danger)', borderRadius: 8, color: 'var(--danger)', fontSize: '0.78rem' }}>{error}</div>
+              )}
               {project.chapters.map((ch, ci) => (
                 <ChapterBlock
                   key={ci}
@@ -398,6 +435,34 @@ function ProjectHeader({ project, totalDialogue, totalAssigned, onReplace }) {
           style={{ display: 'none' }}
         />
       </label>
+    </section>
+  );
+}
+
+function ExportToolbar({ onDocx, onDialogueCsv, onNarratorCsv, hasCharacters }) {
+  const btn = (active) => ({
+    padding: '8px 12px',
+    background: 'white',
+    border: '1px solid ' + PREP_INK,
+    color: PREP_INK,
+    fontSize: '0.74rem',
+    fontWeight: 700,
+    borderRadius: 999,
+    cursor: 'pointer',
+    opacity: active ? 1 : 0.55,
+    whiteSpace: 'nowrap',
+  });
+  return (
+    <section style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+      <button type="button" onClick={onDocx} style={btn(hasCharacters)} title={hasCharacters ? 'Export a Word doc with each dialogue line highlighted in its character color' : 'Add at least one character first to see highlights'}>
+        Export highlighted .docx
+      </button>
+      <button type="button" onClick={onDialogueCsv} style={btn(true)}>
+        Export every dialogue line (CSV)
+      </button>
+      <button type="button" onClick={onNarratorCsv} style={btn(true)}>
+        Export narrators by chapter (CSV)
+      </button>
     </section>
   );
 }

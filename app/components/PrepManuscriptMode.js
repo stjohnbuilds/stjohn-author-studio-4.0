@@ -65,10 +65,22 @@ const SaveBadge = (props) => <SharedSaveBadge {...props} tone={TONE} />;
 const StickyTopBar = (props) => <SharedStickyTopBar {...props} tone={TONE} />;
 const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 
+// Ten pastels in the order Marie wants — pink first, then warm tones,
+// then cool tones. These are the BASE colors for each character chip;
+// side voices get progressively darker shades of the chosen base via
+// darkenHex() so a character + side voice still visually relate.
+// Marie can override any chip's base via the colour picker.
 const CHARACTER_PALETTE = [
-  '#F4DCE0', '#E5DCEF', '#DCE6F0', '#DCEBE0',
-  '#F4E4D8', '#E8DCF1', '#D8EFE0', '#D8E6F1',
-  '#F0DCE8', '#EAE5F2',
+  '#F8D2DA', // pastel pink
+  '#F8E0D2', // pastel peach
+  '#FBF1C8', // pastel yellow
+  '#E4F0D8', // pastel mint
+  '#D8EFE0', // pastel green
+  '#D8EAEA', // pastel cyan
+  '#DEE9F5', // pastel blue
+  '#E2DCF6', // pastel periwinkle
+  '#ECDEF6', // pastel lavender
+  '#F4DCEC', // pastel rose
 ];
 
 // ===========================================================================

@@ -25,6 +25,10 @@ bin/ggml-base.en.bin.download
 # Local user library (keep out of git)
 Save Data/
 
+# Local env (Supabase URL + publishable key — never commit)
+.env.local
+.env*.local
+
 # Claude Code hooks (per Marie's bible Step 2.5)
 .claude/hook-activity.log
 .claude/edit-log.txt

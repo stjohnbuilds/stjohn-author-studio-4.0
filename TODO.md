@@ -108,15 +108,7 @@ Active and recently archived tasks. Rules for this file are in
       piece and add the Proof-only steps as panels around it. Marie's
       "use the baseline" rule applies here too; this is the last
       duplicate of the upload flow.
-- [ ] **Side voice annotations as Word comments in the export** —
-      Marie wants each assigned dialogue to carry an inline Word
-      comment with the character/narrator info and `[Recurring]` or
-      `[One time]` tag, so the engineer reading the .docx sees the
-      voice notes in context. Right now the breakdown page lists side
-      voices but the dialogues themselves only get the highlight.
-      Needs: emit `word/comments.xml`, declare it in content-types +
-      document rels, and inject `<w:commentRangeStart>` /
-      `<w:commentReference>` around each dialogue run.
+(Side-voice Word comments shipped 2026-05-24 — see Archived.)
 
 ### Phase 5 — Mode 1: Proof Listen working on real file
 

@@ -84,7 +84,11 @@ function countWords(text = '') {
 // (h{level}). If splitOnSubheadings is true and a chapter has the
 // next level of headings (h{level+1}), each sub-heading becomes its
 // own row (with splitGroup metadata so the UI can group them).
-function parseChaptersFromHtml(html, chapterLevel, splitOnSubheadings) {
+//
+// Exported so modes like Duet can reuse the same chapter-shape when
+// they re-parse on manuscript re-upload, instead of carrying their
+// own duplicate parser.
+export function parseChaptersFromHtml(html, chapterLevel, splitOnSubheadings) {
   const chapterTag = `h${chapterLevel}`;
   const subTag = splitOnSubheadings && chapterLevel < 6 ? `h${chapterLevel + 1}` : null;
   const host = document.createElement('div');

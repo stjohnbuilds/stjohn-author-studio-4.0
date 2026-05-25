@@ -479,7 +479,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
           )}
           {(activeBook.chapters || []).map((ch, i) => {
             const firstSection = (ch.sections || [])[0];
-            const flagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
+            const chapterFlagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
             return (
               <button
                 key={ch.id}

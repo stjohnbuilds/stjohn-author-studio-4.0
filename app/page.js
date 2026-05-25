@@ -262,6 +262,31 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Merge local Proof books with the cloud-pulled list. Cloud books carry
+// a `cloudId` (the Supabase row uuid). When a local book and a cloud
+// book share the same local `id`, the one with the newer updated time
+// wins, but we always preserve the cloudId so subsequent pushes update
+// the same row instead of creating a duplicate.
+function mergeProofBookLists(localBooks, cloudBooks) {
+  const byId = new Map((localBooks || []).map((b) => [b.id, b]));
+  for (const cb of cloudBooks || []) {
+    if (!cb?.id) continue;
+    const existing = byId.get(cb.id);
+    if (!existing) {
+      byId.set(cb.id, cb);
+      continue;
+    }
+    const localTime = Number(existing.updatedAt) || 0;
+    const cloudTime = Date.parse(cb.updatedAt) || 0;
+    if (cloudTime > localTime) {
+      byId.set(cb.id, { ...cb, cloudId: cb.cloudId });
+    } else {
+      byId.set(cb.id, { ...existing, cloudId: cb.cloudId || existing.cloudId });
+    }
+  }
+  return Array.from(byId.values());
+}
+
 export default function Home() {
   const [appMode, setAppMode] = useState('default');
   const [view, setView] = useState('home');

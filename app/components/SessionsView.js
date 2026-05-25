@@ -872,25 +872,39 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       }))
       .filter(nc => nc.characterName);
 
-    const chapters = (book.chapters || []).map(ch => ({
-      ...ch,
-      sections: (ch.sections || []).map(sec => {
-        const byTitle = finalNarrators.find(nc => nameMatches(sec.title, nc.characterName));
-        const byExisting = !byTitle ? finalNarrators.find(nc => nameMatches(sec.characterName, nc.characterName)) : null;
-        const match = byTitle || byExisting;
-        if (!match) return sec;
-        return {
-          ...sec,
-          characterName: match.characterName,
-          narratorName: match.narratorName || null,
-          isCharPOV: true,
-        };
-      }),
-    }));
+    // Build an "included" lookup from the editor's checkboxes. Any
+    // chapter id that's unchecked gets dropped from the saved book —
+    // Marie's "uncheck the copyright page I missed at import" flow.
+    const includedIds = new Set(
+      (editChapters || []).filter(c => c.included).map(c => c.id)
+    );
+    const removedCount = (book.chapters || []).filter(ch => !includedIds.has(ch.id)).length;
+
+    const chapters = (book.chapters || [])
+      .filter(ch => includedIds.has(ch.id))
+      .map(ch => ({
+        ...ch,
+        sections: (ch.sections || []).map(sec => {
+          const byTitle = finalNarrators.find(nc => nameMatches(sec.title, nc.characterName));
+          const byExisting = !byTitle ? finalNarrators.find(nc => nameMatches(sec.characterName, nc.characterName)) : null;
+          const match = byTitle || byExisting;
+          if (!match) return sec;
+          return {
+            ...sec,
+            characterName: match.characterName,
+            narratorName: match.narratorName || null,
+            isCharPOV: true,
+          };
+        }),
+      }));
 
     onUpdateBook({ title, narratorColors: finalNarrators, chapters });
     setEditingMeta(false);
-    showToast('Book details updated.', 'success');
+    if (removedCount > 0) {
+      showToast(`Book updated — ${removedCount} chapter${removedCount === 1 ? '' : 's'} removed.`, 'success');
+    } else {
+      showToast('Book details updated.', 'success');
+    }
   }
 
   function setChapterCompletion(chapterId, complete) {

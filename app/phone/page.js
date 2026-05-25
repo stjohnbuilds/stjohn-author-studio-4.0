@@ -359,6 +359,33 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
     }
   }, [session?.user?.id]);
 
+  // Load IndexedDB cache, then refresh from cloud.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await readPhoneProjectCache('quill', session?.user?.id);
+      if (cancelled) return;
+      if (cached?.length) setProjects(cached);
+      await refreshFromCloud();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
+
+  // Re-pull when the user returns to the app (focus / visibility) so a
+  // flag saved on the other device a few minutes ago shows up.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onFocus = () => { refreshFromCloud(); };
+    const onVisibility = () => { if (document.visibilityState === 'visible') refreshFromCloud(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [refreshFromCloud]);
+
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) || null,
     [projects, activeProjectId]

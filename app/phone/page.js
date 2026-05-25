@@ -932,7 +932,7 @@ function PhoneChapterReader({ project, chapter, onBack, onSaveProject }) {
             position: 'fixed',
             left: 12,
             right: 12,
-            bottom: 18,
+            bottom: 88,
             background: 'white',
             border: '1px solid ' + QUILL_INK + '55',
             borderRadius: 16,
@@ -974,6 +974,10 @@ function PhoneChapterReader({ project, chapter, onBack, onSaveProject }) {
           </div>
         </div>
       )}
+      <PhoneAudioDock
+        tone={{ ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL }}
+        sectionKey={chapter.id}
+      />
     </main>
   );
 }

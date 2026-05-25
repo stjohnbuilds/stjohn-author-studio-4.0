@@ -7,3 +7,4 @@ export * from './client.js';
 export * from './account.js';
 export * from './audio-guard.js';
 export * from './quill-sync.js';
+export * from './proof-sync.js';

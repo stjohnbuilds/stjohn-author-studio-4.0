@@ -85,7 +85,182 @@ Always read `HANDOFF.md` first, then this file.
       colour mapping, so the goal is for BookSetup to render
       `ImportFlow` plus the Proof-only panels.
 
-### URGENT — Reader unification (do this BEFORE any more reader bug-fixing)
+### URGENT — Full app unification (master plan, multi-turn execution)
+
+**The mandate, in Marie's words:** ONE system. ONE BookDetail. ONE reader.
+ONE audio engine. ONE set of panels. Mode just changes the verb
+(flag / annotate / duet-mark / dialogue-tag). **Pull Proof's existing
+modules INTO shared packages — do not rebuild "similar" versions.**
+Visual = Quill's flat clean look (no gradients). Quill gains audio +
+narrators + audiobook timing + bulk-chapter-audio + transcription queue
+by rendering the SAME components Proof renders.
+
+**Annotation list in Quill once the bottom is the audio dock:** a popout
+button in the top dock (next to the chapter dropdown). Same button slot
+Proof uses for its top controls. Simple.
+
+**Prep stays separate** (no audio, dialogue-span model, different
+feature surface). **Duet's reader stays separate** (block-display, not
+word-interactive). Everything else unifies.
+
+#### Phase A — Extract the reusable Proof modules (low/medium risk)
+
+These come out of `ProofingReader.js` (1546 lines) and `SessionsView.js`
+(2385 lines) as standalone shared modules. Extract IN PLACE — Proof
+keeps working by importing the new modules itself.
+
+- [ ] **A1. Extract audio engine** → `packages/audio-engine/index.js`.
+      Exports: `createAudioEngine(audioEl, onTimeUpdate)`,
+      `buildSyncTable(whisperAlignment)`,
+      `getMsIdxAtTime(table, time, fallback)`. Source:
+      ProofingReader.js lines 234-270 + 465-599. Risk: HIGH (deep
+      whisper coupling). Test by confirming Proof still syncs after
+      extraction.
+
+- [ ] **A2. Extract `<AudioDock>`** → `app/components/AudioDock.js`.
+      The bottom bar: native `<audio>` element + speed slider + jump
+      chips (±10s / ±30s) + Follow-text toggle + transcription "T"
+      toggle + flag "F" button (optional via slot). Source:
+      ProofingReader.js lines 1401-1460. Risk: MEDIUM. Props:
+      `{audioRef, listenSpeed, onListenSpeedChange, hasTranscription,
+      useWhisperSync, onWhisperSyncChange, followPlayback,
+      onFollowPlaybackChange, extraButtons?}`.
+
+- [ ] **A3. Extract `<FlagForm>`** → `app/components/FlagForm.js`.
+      Marie hasn't asked Quill to flag (Quill annotates), but Proof's
+      flag form is the canonical "capture-at-audio-time" pattern.
+      Source: ProofingReader.js lines 956-1029 + 1347-1395. Risk:
+      HIGH (Sheets row build, narrator coupling).
+
+- [ ] **A4. Extract `<ChapterSearchBar>`** →
+      `app/components/ChapterSearchBar.js` + `app/lib/chapterSearch.js`.
+      Ctrl/⌘+F live search inside the reader. Source:
+      ProofingReader.js 482-486 + 1085-1124 + 1410-1430. Risk: LOW.
+
+- [ ] **A5. Extract `<NarratorPanel>`** →
+      `app/components/NarratorPanel.js`. Character color picker +
+      narrator-name management. Source: SessionsView.js 1755-2000.
+      Props: `{narratorColors, onNarratorColorsChange, sections}`.
+      Risk: MEDIUM.
+
+- [ ] **A6. Extract `<AudiobookTimingPanel>`** →
+      `app/components/AudiobookTimingPanel.js`. Read-only per-chapter
+      timing grid. Source: SessionsView.js 1755-1810. Risk: LOW.
+
+- [ ] **A7. Extract `<BulkAudioPanel>`** →
+      `app/components/BulkAudioPanel.js`. Folder-pick + per-chapter
+      audio file attach. Source: SessionsView.js 2009-2100. Props:
+      `{chapters, onAttachAudio}`. Risk: MEDIUM (file I/O).
+
+- [ ] **A8. Extract `<TranscriptionQueueIndicator>`** →
+      `app/components/TranscriptionQueueIndicator.js`. Status pill per
+      chapter (queued / running / done). Source: SessionsView.js
+      1334-1337 + 2082-2107. Risk: LOW.
+
+#### Phase B — Extend shared `BookDetail` v2 to host all panels
+
+- [ ] **B1. Add panel slots to BookDetail.** New props: `narratorPanel`,
+      `audiobookTimingPanel`, `bulkAudioPanel`, `transcriptionQueue`.
+      All optional. They render above the chapter list in the
+      `prePanels` area; ordering driven by an array prop so each mode
+      picks what's visible. Keep the flat look (no gradient).
+
+- [ ] **B2. Add `audioPanel` slot to `ChapterRow`.** Per-chapter audio
+      status (attached/missing) + transcription state pill + scan
+      button. Existing `rightControls` slot covers it — verify and
+      document.
+
+#### Phase C — Migrate the modes onto the unified surface
+
+- [ ] **C1. Migrate Proof's `SessionsView` to render shared
+      `BookDetail` v2** with the extracted panels (NarratorPanel,
+      AudiobookTimingPanel, BulkAudioPanel, TranscriptionQueueIndicator).
+      Delete the inline panel code. Proof becomes the smallest mode
+      file. **Risk: HIGH — anchor mode.** Real-file test pass after.
+
+- [ ] **C2. Migrate Quill to render the same BookDetail v2.** Quill
+      *gains* the audio attach + narrators + audiobook timing + bulk
+      audio panels for free. Annotation export buttons live in
+      `actionButtons` slot.
+
+- [ ] **C3. Migrate Duet to render the same BookDetail v2.**
+      Custom chapter rows stay (audio-status + merge controls) but
+      everything else is shared. Audio-attach replaced by shared
+      `BulkAudioPanel`.
+
+- [ ] **C4. Migrate Proof's reader to `<ChapterReader>`** + shared
+      `<AudioDock>` bottom slot. Already pending in earlier plan as
+      Step 4; lands here as part of the bigger unification.
+
+- [ ] **C5. Add `<AudioDock>` to Quill's reader.** ChapterReader's
+      bottom-dock slot accepts the AudioDock when Quill has audio
+      attached. When no audio, dock is empty. Annotation list moves
+      to a popout button in the top dock (next to chapter dropdown)
+      — opens a side popover listing chapter annotations with
+      jump-to.
+
+- [ ] **C6. Migrate Proof's `BookSetup`** (ManuscriptSetup.js, 1027
+      lines) to render shared `<ImportFlow>` plus the Proof-only
+      add-on panels (PDF paging, narrator color mapping). Last
+      duplicate of the upload flow.
+
+#### Phase D — Visual + interaction polish
+
+- [ ] **D1. Kill the cream-to-white gradient** everywhere.
+      `READER_PAGE_BG` becomes a flat cream. Search for `linear-gradient(180deg, #fbfaf7` and replace with flat. Card backgrounds use flat white or `rgba(255,255,255,0.86)`.
+
+- [ ] **D2. Fix per-word highlight band → continuous underline.**
+      Currently each word's `borderBottom: 3px solid` draws an
+      underline that stops at the space between words, so the
+      annotation reads as N broken stripes. Fix in
+      `ChapterReader.js` `renderUnit`: render the underline as a
+      continuous element OR use `text-decoration: underline` on a
+      wrapping span across the whole range OR use `box-shadow`
+      that bleeds into the trailing space.
+
+- [ ] **D3. Fix image-annotation red → pink (or purple).**
+      `QuillAndInkMode.js` `unitDecoration` callback: change
+      `background: '#d8282822'; color: '#7a1818'` to a pastel pink
+      / purple from `MODE_TOKENS.quill`.
+
+- [ ] **D4. Fix top banner blocking reader content.**
+      `ChapterReader.js` paper container `padding: '20px 0 ...'`
+      isn't enough — sticky bar height is ~54px so the first lines
+      of the chapter hide under it. Bump top padding to clear it.
+
+- [ ] **D5. Track down Duet upload purple-chip leak.**
+      `ImportFlow.js` uses `accent` prop. Duet must be passing
+      `MODE_TOKENS.proof.accent` somewhere instead of
+      `MODE_TOKENS.duet.accent`. Audit `PrebuildMode.js` for stray
+      proof tokens.
+
+#### Phase E — Lock it in
+
+- [ ] **E1. Replace every `window.confirm()` with shared
+      `<ConfirmDialog />`.** 9 calls total: BookDetail (1),
+      PrebuildMode (4), PrepManuscriptMode (3), SessionsView (1).
+      Themed modal that uses the mode tone.
+
+- [ ] **E2. Tighten build-checker hook** with new patterns:
+      block new inline `function .*Narrator(`, `function .*Audio(`,
+      `function .*FlagForm(`, `function .*Queue(` in mode files
+      without the matching shared-component import. Same
+      git-diff-aware approach.
+
+- [ ] **E3. Update `docs/SHARED_COMPONENTS.md`** with every new
+      shared module (AudioDock, FlagForm, ChapterSearchBar,
+      NarratorPanel, AudiobookTimingPanel, BulkAudioPanel,
+      TranscriptionQueueIndicator, ConfirmDialog) and which modes
+      use each.
+
+- [ ] **E4. Real-file end-to-end test pass** (Marie's). Open each
+      mode on a real book + audiobook, walk through the full
+      workflow she actually does. Any regression → fix in the
+      shared module, not in the mode file.
+
+#### Original reader-unification section (the smaller plan from earlier)
+
+
 
 **Why this is urgent:** Marie has flagged this many times. The four
 mode files each render manuscript text their own way (`ProofingReader.js`,

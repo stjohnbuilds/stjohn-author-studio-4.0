@@ -898,15 +898,18 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const bgColor = getPhoneReaderBackgroundColor(readerSettings.background);
   const navColor = getPhoneReaderNavColor(readerSettings.background);
 
-  // Find a preset audio file for the current section out of the folder
-  // Marie picked for this book.
+  // Find a preset audio file for the current section: manual override
+  // first (so a per-section pick survives navigation), then the folder
+  // picker match.
   const activeBookAudioFiles = activeBook ? (audioFilesByBook[activeBook.id] || []) : [];
 
   if (activeChapter && activeBook && activeSection) {
+    const override = audioSectionOverride[activeSection.id] || null;
     const sectionAudioLabels = [activeSection.audioFileName, activeSection.title, activeChapter.title].filter(Boolean);
-    const presetAudioFile = activeBookAudioFiles.length
+    const folderMatched = activeBookAudioFiles.length
       ? pickAudioFile(activeBookAudioFiles, sectionAudioLabels)
       : null;
+    const presetAudioFile = override || folderMatched;
     return (
       <ScriptChapterView
         book={activeBook}
@@ -918,6 +921,14 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         onOpenSettings={onOpenSettings}
         onSaveBook={pushBook}
         presetAudioFile={presetAudioFile}
+        onManualPickAudio={(file) => {
+          if (!activeSection?.id) return;
+          setAudioSectionOverride((prev) => {
+            const next = { ...prev };
+            if (file) next[activeSection.id] = file; else delete next[activeSection.id];
+            return next;
+          });
+        }}
       />
     );
   }

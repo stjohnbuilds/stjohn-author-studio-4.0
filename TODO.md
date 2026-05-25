@@ -174,18 +174,18 @@ fork the primitive. Same reasoning as Prep keeping its own
 `BookDetailView` instead of using shared `BookDetail`. If Marie wants
 Prep merged in too later, ChapterReader gains a `splitUnits` prop.
 
-- [ ] **Step 6 — Update docs and CLAUDE.md.** Add ChapterReader to
-      `docs/SHARED_COMPONENTS.md` as the canonical reader; remove the
-      "What's NOT shared yet → Reader" bullet from that doc. Update
-      `CLAUDE.md` architecture rule #1 ("One shared reader") to point
-      at `app/components/ChapterReader.js` instead of the planned
-      `packages/reader-engine/`.
+- [x] **Step 6 — Update docs and CLAUDE.md.** ChapterReader added to
+      `docs/SHARED_COMPONENTS.md` as the canonical reader. "What's NOT
+      shared yet → Reader" bullet rewritten to scope to just the
+      pending Proof migration. CLAUDE.md architecture rule #1 rewritten
+      to point at `app/components/ChapterReader.js` and explain why
+      Prep and Duet are intentionally separate.
 
-- [ ] **Step 7 — Tighten build-checker hook.** Add a new guarded
-      pattern: any mode file that adds `function .*Reader(` or
-      `renderChapter\w*` without importing `./ChapterReader` is
-      blocked. Same git-diff-aware approach as the existing BookDetail
-      guard.
+- [x] **Step 7 — Tighten build-checker hook.** Hook now hard-blocks
+      newly added `function .*Reader(` / `renderChapter*` /
+      `renderWord*` in mode files that don't import
+      `./ChapterReader`. Same git-diff-aware approach as the existing
+      BookDetail / HomeView guard.
 
 - [ ] **Step 8 — Real-file end-to-end test pass.** Marie opens each
       mode on a real book + manuscript, walks through the full

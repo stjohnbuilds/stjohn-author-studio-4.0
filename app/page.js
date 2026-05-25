@@ -1114,6 +1114,7 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
 
   return (
     <div
+      className="ap-pill-slide-in"
       style={{
         position: 'fixed',
         top: usesCustomDragRegion ? 40 : 16,

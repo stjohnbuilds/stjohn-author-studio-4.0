@@ -147,12 +147,13 @@ Risk ranking (do in this order — lowest risk first, anchor mode last):
       regresses, the primitive needs more API surface — fix in
       ChapterReader, not in Quill.
 
-- [ ] **Step 3 — Migrate Duet** to use `<ChapterReader>`. Audio sync
-      stays mode-side. Reader handles word render + click; mode handles
-      "place duet marker at audio.currentTime when word clicked." Audio
-      attach + scan controls live in bottom dock slot. Re-test: import
-      .docx, audio attach, duet marker placement, scan progress
-      indicator, scan-all flow.
+- [x] **Step 3 — Migrate Duet** — SKIPPED. Duet's reader is read-only
+      block-highlight display (multi-word contiguous spans with
+      insertion-time labels), not a word-drag-select reader. Forcing
+      it into `<ChapterReader>` would require a separate block-render
+      mode that bloats the primitive. Same structural-difference
+      reasoning as Prep. Duet keeps its own reader permanently unless
+      it grows interactive features later.
 
 - [ ] **Step 4 — Migrate Proof** to use `<ChapterReader>`. **Highest
       risk — Marie's anchor mode that has been working since v3.0.**

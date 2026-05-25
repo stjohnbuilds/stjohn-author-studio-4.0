@@ -204,6 +204,44 @@ declaring anything done:
 The protocol exists because AIs keep declaring "fixed" when it isn't.
 The battery method catches React/browser bugs unit tests miss.
 
+### Handover trigger (Marie's bootstrap-doc protocol)
+
+When Marie's prompt contains any of these phrases (case-insensitive):
+**make handover / make a handover, write the handover, update the
+handover, do a handover, give me a handover, trigger the handover
+hook, find the handover hook, build a handover, generate a handover,
+fresh handover, new handover, handoff note / handoff doc / handoff
+file** — the `.claude/hooks/handover-trigger.sh` hook fires and
+injects the 8-section template. The model MUST produce a complete
+handover doc BEFORE doing anything else this turn. Write it to
+`HANDOFF.md` at the project root (overwrite).
+
+The 8 sections, in this exact order:
+
+1. **WHO IS THE USER** — Marie. Non-coder. Plain English, short
+   sentences, no jargon. Banned coder vocabulary. Talk like she's 10.
+2. **HARD RULES** — bullet list of rules that have bitten before:
+   no dual-write, no self-certifying, plain English, "Files I
+   changed" footer mandatory, always give clickable links, bottom
+   toolbar is sacred, double-confirm destructive actions, never
+   suggest stopping/pausing, push is fine without asking.
+3. **READ THESE FILES (IN ORDER)** — exact paths of bootstrap docs.
+4. **BROAD VISION** — 2-3 sentences. THE DREAM.
+5. **CURRENT STATE** — % done, latest pushed commit SHA, test count,
+   typecheck status, CORRECT live URL (warn about stale).
+6. **TOP 5 NEXT JOBS** — priority order with effort tag (Easy /
+   Marie / Design call / Big multi-week).
+7. **WHAT ONLY MARIE CAN DO** — migrations, hands-tests, design
+   calls, push authorisation.
+8. **WHERE THINGS LIVE** — file map + the commands she actually uses
+   (paste-ready).
+
+Plus a COPY-PASTE block at the very top that bootstraps a fresh chat.
+
+The protocol exists because handovers between AI sessions keep losing
+critical Marie-context (non-coder, banned vocab, the live URL keeps
+going stale, etc.).
+
 ## Commands
 
 ```

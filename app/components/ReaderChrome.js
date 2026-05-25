@@ -426,6 +426,115 @@ export function ProfilePill({ email = '', onSignOut, usesCustomDragRegion = fals
 }
 
 // ---------------------------------------------------------------------------
+// PinnedTabPanel — shared "tab strip on top + scrollable content below"
+// container. The whole point: the tab pills NEVER move when you switch
+// tabs, because the container is a fixed-min-height flex column with the
+// header pinned at the top and the body taking flex:1 underneath.
+//
+// Marie kept hitting "the Nav/Queue strip jumps when I click Queue"
+// before this pattern was applied to SessionsView. Bake it in here so
+// every mode that needs tab + content gets the stable behaviour for
+// free.
+//
+// tabs    — [{ id, label, badge? }] — `badge` is an optional dot/number
+//           rendered on the right of the pill.
+// active  — currently selected tab id.
+// onChange(id) — callback when a pill is clicked.
+// children — render prop OR plain node. If function, called with the
+//            active tab id so the caller can switch content. Otherwise
+//            you can switch outside and pass the resolved node.
+// tone, minHeight, maxHeight, style — overrides.
+// ---------------------------------------------------------------------------
+
+export function PinnedTabPanel({
+  tabs = [],
+  active,
+  onChange,
+  tone = 'prep',
+  minHeight = 240,
+  maxHeight = '40vh',
+  style,
+  children,
+}) {
+  const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
+  const body = typeof children === 'function' ? children(active) : children;
+  return (
+    <div
+      data-pinned-tab-panel="true"
+      style={{
+        background: 'white',
+        border: '1px solid var(--border)',
+        borderRadius: 16,
+        padding: '6px 7px 4px',
+        boxShadow: '0 10px 24px var(--accent-shadow)',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight,
+        maxHeight,
+        ...style,
+      }}
+    >
+      <div style={{ padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'white',
+          border: '1px solid ' + (token.ink + '33'),
+          borderRadius: 999,
+          padding: 3,
+          minWidth: Math.max(176, tabs.length * 90),
+        }}>
+          {tabs.map((tab) => {
+            const isActive = tab.id === active;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onChange && onChange(tab.id)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  background: isActive ? token.pastel : 'transparent',
+                  color: isActive ? token.ink : 'var(--text-muted)',
+                  padding: tab.badge ? '5px 20px 5px 12px' : '5px 12px',
+                  borderRadius: 999,
+                  fontSize: '0.69rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  textAlign: 'center',
+                }}
+              >
+                {tab.label}
+                {tab.badge && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      top: '50%',
+                      width: 8,
+                      height: 8,
+                      marginTop: -4,
+                      borderRadius: '50%',
+                      background: tab.badge === true ? token.ink : (tab.badgeColor || token.ink),
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {body}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // useDismissable — close-on-outside-click + Escape, used everywhere a
 // popover or inline editor lives.
 // ---------------------------------------------------------------------------

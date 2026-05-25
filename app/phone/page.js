@@ -808,6 +808,10 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   // between chapters of the same book but is lost on page reload (Blob
   // refs can't be serialized — Marie picks the folder again per session).
   const [audioFilesByBook, setAudioFilesByBook] = useState({});
+  // Per-section manual override — when Marie picks a single audio file
+  // inside the reader (not via the book-level folder picker), remember
+  // it here so navigating away and back doesn't lose it.
+  const [audioSectionOverride, setAudioSectionOverride] = useState({});
   const [audioPickStatus, setAudioPickStatus] = useState('');
 
   const refresh = useCallback(async () => {

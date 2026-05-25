@@ -1072,7 +1072,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

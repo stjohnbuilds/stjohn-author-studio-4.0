@@ -804,13 +804,21 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
     if (target?.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // -- render content -------------------------------------------------------
-
-  const renderedContent = useMemo(
-    () => renderChapterAsWords({ chapter, selectedRange, wordToAnnotation, onWordPointerDown, onWordPointerEnter }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chapter?.id, chapter?.textHtml, selectedRange?.start, selectedRange?.end, wordToAnnotation]
-  );
+  // -- per-word decoration handed to ChapterReader --------------------------
+  // Annotated words get a pink underline (highlight class), a red wash
+  // (image), or a tinted background (anything else with a colour).
+  // useCallback so ChapterReader's render memo stays stable.
+  const unitDecoration = useCallback((idx) => {
+    const ann = wordToAnnotation.get(idx);
+    if (!ann) return null;
+    if (ann.classId === 'highlight') {
+      return { borderBottom: '3px solid ' + (ann.color || '#f0aac0'), paddingBottom: 1 };
+    }
+    if (ann.classId === 'image') {
+      return { background: '#d8282822', color: '#7a1818' };
+    }
+    return { background: (ann.color || QUILL.accent) + '33' };
+  }, [wordToAnnotation]);
 
   if (!chapter) {
     return (

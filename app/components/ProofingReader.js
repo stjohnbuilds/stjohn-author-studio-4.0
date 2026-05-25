@@ -3,6 +3,14 @@ import { useState, useRef, useEffect } from 'react';
 import { DEFAULT_ESTIMATED_WORDS_PER_PAGE, getPageNumberForWordIndex } from '../lib/manuscriptPaging';
 import { findPdfPageForQuote } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';
+// Audio-time ↔ manuscript-word-index helpers. Extracted to a shared
+// package so Quill, Duet, and the phone Script mode use the same
+// sync math without copy-pasting.
+import {
+  buildSyncTable as buildDirectSyncTable,
+  getMsIdxAtTime,
+  getAudioTimeForMsIdx,
+} from '../../packages/audio-engine';
 
 function fmtTime(sec){const s=Math.floor(sec),m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+s%60;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

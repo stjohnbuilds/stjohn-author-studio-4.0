@@ -110,55 +110,12 @@ export default function PhoneShell() {
 }
 
 // ===========================================================================
-// PhoneApp — service picker → projects → chapter view
+// PhoneApp — service picker, dispatches to per-service component
 // ===========================================================================
 
 function PhoneApp({ session, onSignOut }) {
   const [service, setService] = useState(null); // null | 'quill' | 'script'
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [activeProjectId, setActiveProjectId] = useState(null);
-  const [activeChapterId, setActiveChapterId] = useState(null);
 
-  const reloadProjects = useCallback(async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const supabase = getSupabaseClient();
-      if (!supabase) throw new Error('Supabase is not configured.');
-      const list = await pullQuillProjects(supabase);
-      setProjects(list);
-    } catch (e) {
-      setError(e?.message || 'Could not load projects.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (service === 'quill') reloadProjects();
-  }, [service, reloadProjects]);
-
-  const activeProject = useMemo(
-    () => projects.find((p) => p.id === activeProjectId) || null,
-    [projects, activeProjectId]
-  );
-  const activeChapter = useMemo(
-    () => activeProject?.chapters?.find((c) => c.id === activeChapterId) || null,
-    [activeProject, activeChapterId]
-  );
-
-  function pushProject(nextProject) {
-    setProjects((all) => all.map((p) => p.id === nextProject.id ? nextProject : p));
-    const supabase = getSupabaseClient();
-    if (supabase && session?.user?.id) {
-      pushQuillProject(supabase, nextProject, session.user.id).catch((e) =>
-        console.warn('[Phone] cloud push failed:', e?.message || e));
-    }
-  }
-
-  // ---- service picker ----
   if (!service) {
     return (
       <main style={phoneRoot}>
@@ -199,7 +156,61 @@ function PhoneApp({ session, onSignOut }) {
     );
   }
 
-  // ---- reader (chapter open) ----
+  if (service === 'quill') {
+    return <QuillPhoneService session={session} onSignOut={onSignOut} onBackToServices={() => setService(null)} />;
+  }
+  if (service === 'script') {
+    return <ScriptPhoneService session={session} onSignOut={onSignOut} onBackToServices={() => setService(null)} />;
+  }
+  return null;
+}
+
+// ===========================================================================
+// QuillPhoneService — projects → chapter list → tap-to-annotate reader
+// ===========================================================================
+
+function QuillPhoneService({ session, onSignOut, onBackToServices }) {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [activeProjectId, setActiveProjectId] = useState(null);
+  const [activeChapterId, setActiveChapterId] = useState(null);
+
+  const reloadProjects = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) throw new Error('Supabase is not configured.');
+      const list = await pullQuillProjects(supabase);
+      setProjects(list);
+    } catch (e) {
+      setError(e?.message || 'Could not load projects.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { reloadProjects(); }, [reloadProjects]);
+
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId) || null,
+    [projects, activeProjectId]
+  );
+  const activeChapter = useMemo(
+    () => activeProject?.chapters?.find((c) => c.id === activeChapterId) || null,
+    [activeProject, activeChapterId]
+  );
+
+  function pushProject(nextProject) {
+    setProjects((all) => all.map((p) => p.id === nextProject.id ? nextProject : p));
+    const supabase = getSupabaseClient();
+    if (supabase && session?.user?.id) {
+      pushQuillProject(supabase, nextProject, session.user.id).catch((e) =>
+        console.warn('[Phone] Quill push failed:', e?.message || e));
+    }
+  }
+
   if (activeChapter && activeProject) {
     return (
       <PhoneChapterReader
@@ -211,7 +222,6 @@ function PhoneApp({ session, onSignOut }) {
     );
   }
 
-  // ---- chapter list ----
   if (activeProject) {
     return (
       <main style={phoneRoot}>
@@ -257,12 +267,11 @@ function PhoneApp({ session, onSignOut }) {
     );
   }
 
-  // ---- project list ----
   return (
     <main style={phoneRoot}>
       <PhoneHeader
         title="Quill & Ink"
-        left={<BackButton onClick={() => setService(null)} />}
+        left={<BackButton onClick={onBackToServices} />}
         right={<AccountChip email={session?.user?.email} onSignOut={onSignOut} />}
       />
       <section style={{ padding: '1rem' }}>
@@ -311,6 +320,417 @@ function PhoneApp({ session, onSignOut }) {
           </button>
         ))}
       </section>
+    </main>
+  );
+}
+
+// ===========================================================================
+// ScriptPhoneService — Proof Listen on the phone. Tap-to-flag.
+// Audio playback is added in a follow-up phase (A7).
+// ===========================================================================
+
+function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [activeBookId, setActiveBookId] = useState(null);
+  const [activeChapterId, setActiveChapterId] = useState(null);
+  const [activeSectionId, setActiveSectionId] = useState(null);
+
+  const reload = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const supabase = getSupabaseClient();
+      if (!supabase) throw new Error('Supabase is not configured.');
+      const list = await pullProofProjects(supabase);
+      setBooks(list);
+    } catch (e) {
+      setError(e?.message || 'Could not load projects.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const activeBook = useMemo(
+    () => books.find((b) => b.id === activeBookId) || null,
+    [books, activeBookId]
+  );
+  const activeChapter = useMemo(
+    () => activeBook?.chapters?.find((c) => c.id === activeChapterId) || null,
+    [activeBook, activeChapterId]
+  );
+  const activeSection = useMemo(() => {
+    if (!activeChapter) return null;
+    const sections = activeChapter.sections || [];
+    if (!sections.length) return null;
+    return sections.find((s) => s.id === activeSectionId) || sections[0];
+  }, [activeChapter, activeSectionId]);
+
+  function pushBook(nextBook) {
+    setBooks((all) => all.map((b) => b.id === nextBook.id ? nextBook : b));
+    const supabase = getSupabaseClient();
+    if (supabase && session?.user?.id) {
+      pushProofProject(supabase, nextBook, session.user.id).catch((e) => {
+        console.warn('[Phone] Proof push failed:', e?.message || e);
+        setError('Could not save flag to the cloud. Try Refresh.');
+      });
+    }
+  }
+
+  if (activeChapter && activeBook && activeSection) {
+    return (
+      <ScriptChapterReader
+        book={activeBook}
+        chapter={activeChapter}
+        section={activeSection}
+        onBack={() => { setActiveSectionId(null); setActiveChapterId(null); }}
+        onSaveBook={pushBook}
+      />
+    );
+  }
+
+  if (activeBook) {
+    return (
+      <main style={phoneRoot}>
+        <PhoneHeader
+          title={activeBook.title}
+          left={<BackButton onClick={() => setActiveBookId(null)} />}
+        />
+        <section style={{ padding: '1rem' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK, marginBottom: 10 }}>
+            Chapters
+          </div>
+          {!(activeBook.chapters || []).length && (
+            <div style={{ textAlign: 'center', padding: '1.6rem 0', fontSize: '0.84rem', color: '#9B928E' }}>
+              No chapters yet — open the book on the desktop and let it sync.
+            </div>
+          )}
+          {(activeBook.chapters || []).map((ch, i) => {
+            const firstSection = (ch.sections || [])[0];
+            const flagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
+            return (
+              <button
+                key={ch.id}
+                onClick={() => { setActiveChapterId(ch.id); setActiveSectionId(firstSection?.id || null); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '14px 14px',
+                  background: 'white',
+                  border: '1px solid #DDD0C4',
+                  borderRadius: 12,
+                  marginBottom: 8,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846' }}>
+                    {i + 1}. {ch.title}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                    {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {flagCount} flag{flagCount === 1 ? '' : 's'}
+                  </div>
+                </div>
+                <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+              </button>
+            );
+          })}
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main style={phoneRoot}>
+      <PhoneHeader
+        title="Proof Listen"
+        left={<BackButton onClick={onBackToServices} />}
+        right={<AccountChip email={session?.user?.email} onSignOut={onSignOut} />}
+      />
+      <section style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
+            Your audiobooks
+          </div>
+          <button onClick={reload} style={{ background: 'none', border: 'none', color: PROOF_INK, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
+        {error && <div style={{ background: '#FAEDEC', color: '#C4514A', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', marginBottom: 10 }}>{error}</div>}
+        {!books.length && !loading && (
+          <div style={{ textAlign: 'center', padding: '1.6rem 0', fontSize: '0.84rem', color: '#9B928E' }}>
+            No audiobooks saved to the cloud yet. Open Proof Listen on the desktop first.
+          </div>
+        )}
+        {books.map((b) => {
+          const chapterCount = (b.chapters || []).length;
+          const flagCount = (b.chapters || []).reduce((n, ch) => n + (ch.sections || []).reduce((m, s) => m + (s.flags?.length || 0), 0), 0);
+          return (
+            <button
+              key={b.id}
+              onClick={() => { setActiveBookId(b.id); setActiveChapterId(null); setActiveSectionId(null); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '14px 14px',
+                background: 'white',
+                border: '1px solid #DDD0C4',
+                borderLeft: '4px solid ' + PROOF_ACCENT,
+                borderRadius: 12,
+                marginBottom: 8,
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.94rem', color: '#4C4846', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {b.title}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                  {chapterCount} chapter{chapterCount === 1 ? '' : 's'} · {flagCount} flag{flagCount === 1 ? '' : 's'}
+                </div>
+              </div>
+              <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+            </button>
+          );
+        })}
+      </section>
+    </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ScriptChapterReader — Proof reader on phone. Word render, tap to flag.
+// Audio playback comes in a follow-up phase; for now flag.ts = 0 unless an
+// audio object has been wired in by the parent.
+// ---------------------------------------------------------------------------
+
+function ScriptChapterReader({ book, chapter, section, onBack, onSaveBook }) {
+  const sections = chapter.sections || [];
+  const sectionIndex = Math.max(0, sections.findIndex((s) => s.id === section.id));
+  const plainText = useMemo(() => sectionPlainText(section), [section]);
+  const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
+
+  const [selectedRange, setSelectedRange] = useState(null);
+  const [flagPanelOpen, setFlagPanelOpen] = useState(false);
+  const [flagType, setFlagType] = useState('Edit');
+  const [flagNote, setFlagNote] = useState('');
+
+  function onWordTap(idx) {
+    if (selectedRange?.start === idx && selectedRange?.end === idx) {
+      setSelectedRange(null);
+      setFlagPanelOpen(false);
+      return;
+    }
+    setSelectedRange({ start: idx, end: idx });
+    setFlagPanelOpen(true);
+  }
+
+  function extendSelection(targetIdx) {
+    if (!selectedRange) return;
+    setSelectedRange({
+      start: Math.min(selectedRange.start, targetIdx),
+      end: Math.max(selectedRange.end, targetIdx),
+    });
+  }
+
+  function cancelFlag() {
+    setSelectedRange(null);
+    setFlagPanelOpen(false);
+    setFlagNote('');
+    setFlagType('Edit');
+  }
+
+  function saveFlag() {
+    if (!selectedRange) return;
+    const startIdx = Math.min(selectedRange.start, selectedRange.end);
+    const endIdx = Math.max(selectedRange.start, selectedRange.end);
+    const quote = wordSpans.slice(startIdx, endIdx + 1).map((s) => s.word).join(' ');
+    const flag = {
+      id: `phone-flag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      idx: startIdx,
+      wordEnd: endIdx,
+      ts: 0, // audio sync arrives in a later phase
+      sentPlain: quote,
+      note: (flagNote || '').trim(),
+      type: flagType,
+      page: '',
+      narrator: section.narratorName || section.characterName || 'Narrator',
+      source: 'phone',
+      createdAt: new Date().toISOString(),
+    };
+    const nextBook = {
+      ...book,
+      chapters: (book.chapters || []).map((ch) => ch.id !== chapter.id ? ch : ({
+        ...ch,
+        sections: (ch.sections || []).map((s) => s.id !== section.id ? s : ({
+          ...s,
+          flags: [...(s.flags || []), flag],
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    onSaveBook(nextBook);
+    cancelFlag();
+  }
+
+  function deleteFlag(flagId) {
+    const nextBook = {
+      ...book,
+      chapters: (book.chapters || []).map((ch) => ch.id !== chapter.id ? ch : ({
+        ...ch,
+        sections: (ch.sections || []).map((s) => s.id !== section.id ? s : ({
+          ...s,
+          flags: (s.flags || []).filter((f) => (f.id || `${f.idx}:${f.ts}`) !== flagId),
+        })),
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    onSaveBook(nextBook);
+  }
+
+  return (
+    <main style={phoneRoot}>
+      <PhoneHeader
+        title={`Ch ${(book.chapters || []).findIndex((c) => c.id === chapter.id) + 1}: ${chapter.title}`}
+        left={<BackButton onClick={onBack} />}
+      />
+      {sections.length > 1 && (
+        <div style={{ padding: '6px 14px 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#6D6663' }}>
+          <span>Section</span>
+          <select
+            value={section.id}
+            onChange={(e) => {
+              const next = sections.find((s) => s.id === e.target.value);
+              if (next && next.id !== section.id) {
+                cancelFlag();
+                onBack();
+                // re-enter via parent — parent owns the activeSectionId
+              }
+            }}
+            style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #DDD0C4', background: 'white', fontSize: '0.82rem' }}
+          >
+            {sections.map((s, i) => (
+              <option key={s.id} value={s.id}>{i + 1}. {s.title || `Section ${i + 1}`}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <section style={{ padding: '0.8rem 0.9rem 6rem', userSelect: 'none' }}>
+        <div style={{ background: 'white', border: '1px solid #DDD0C4', borderRadius: 14, padding: '1rem 1rem', fontSize: '17px', lineHeight: 1.7, color: '#4C4846' }}>
+          {wordSpans.length === 0 && (
+            <span style={{ color: '#9B928E', fontSize: '0.86rem' }}>No text in this section.</span>
+          )}
+          {wordSpans.map((span, idx) => {
+            const inSel = !!selectedRange && idx >= Math.min(selectedRange.start, selectedRange.end) && idx <= Math.max(selectedRange.start, selectedRange.end);
+            const flag = (section.flags || []).find((f) => {
+              const s = Number(f.idx);
+              const e = Number(f.wordEnd ?? f.idx);
+              if (!Number.isFinite(s) || !Number.isFinite(e)) return false;
+              return idx >= Math.min(s, e) && idx <= Math.max(s, e);
+            });
+            const style = { cursor: 'pointer', padding: '0 1px', borderRadius: 3 };
+            if (flag && !inSel) { style.borderBottom = `3px solid ${PROOF_ACCENT}`; }
+            if (inSel) { style.background = PROOF_PASTEL; style.boxShadow = `inset 0 -2px 0 ${PROOF_INK}`; }
+            const sep = idx < wordSpans.length - 1 ? plainText.slice(span.end, wordSpans[idx + 1].start) : '';
+            return (
+              <span
+                key={idx}
+                onClick={() => onWordTap(idx)}
+                onPointerEnter={(e) => { if (e.buttons === 1 && selectedRange) extendSelection(idx); }}
+              >
+                <span style={style}>{span.word}</span>
+                {sep}
+              </span>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK, marginBottom: 8 }}>
+            Flags · {(section.flags || []).length}
+          </div>
+          {(section.flags || []).map((f, i) => {
+            const flagId = f.id || `${f.idx}:${f.ts}:${i}`;
+            return (
+              <div key={flagId} style={{ background: 'white', border: '1px solid #DDD0C4', borderRadius: 10, padding: '8px 10px', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: PROOF_ACCENT }} />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: PROOF_INK }}>{f.type || 'Edit'}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#9B928E', marginLeft: 'auto' }}>{formatTime(f.ts)}</span>
+                  <button
+                    onClick={() => deleteFlag(flagId)}
+                    aria-label="Delete flag"
+                    style={{ background: 'none', border: 'none', color: '#C4514A', cursor: 'pointer', fontSize: '0.86rem', padding: '0 4px' }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div style={{ fontSize: '0.82rem', fontStyle: 'italic' }}>&ldquo;{f.sentPlain}&rdquo;</div>
+                {f.note && <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 3 }}>{f.note}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {flagPanelOpen && selectedRange && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 12,
+            right: 12,
+            bottom: 18,
+            background: 'white',
+            border: '1px solid ' + PROOF_INK + '55',
+            borderRadius: 16,
+            boxShadow: '0 14px 34px rgba(76, 72, 70, 0.22)',
+            padding: '14px 14px',
+            zIndex: 1500,
+          }}
+        >
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {FLAG_TYPES.map((t) => (
+              <button
+                key={t}
+                onClick={() => setFlagType(t)}
+                style={{
+                  padding: '6px 11px',
+                  border: '1px solid ' + (flagType === t ? PROOF_INK : '#DDD0C4'),
+                  background: flagType === t ? PROOF_PASTEL : 'white',
+                  borderRadius: 999,
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: flagType === t ? PROOF_INK : '#6D6663',
+                  cursor: 'pointer',
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <input
+            value={flagNote}
+            onChange={(e) => setFlagNote(e.target.value)}
+            placeholder="Flag note (optional)"
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #DDD0C4', fontSize: '0.88rem', marginBottom: 10 }}
+          />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={cancelFlag} style={{ padding: '9px 14px', background: 'white', border: '1px solid #DDD0C4', borderRadius: 999, fontSize: '0.82rem', fontWeight: 600, color: '#6D6663', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={saveFlag} style={{ padding: '9px 16px', background: PROOF_ACCENT, color: 'white', border: 'none', borderRadius: 999, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+              Save flag
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

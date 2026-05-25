@@ -815,6 +815,9 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
 
   if (activeBook) {
     const totalFlags = (activeBook.chapters || []).reduce((n, ch) => n + (ch.sections || []).reduce((m, s) => m + (s.flags?.length || 0), 0), 0);
+    const audioFiles = audioFilesByBook[activeBook.id] || [];
+    const totalSections = countSectionTotals(activeBook);
+    const matchedCount = audioFiles.length ? countSectionAudioMatches(audioFiles, activeBook) : 0;
     return (
       <main style={phoneRoot(bgColor)}>
         <PhoneHeader
@@ -826,6 +829,30 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           right={<SettingsButton onClick={onOpenSettings} ink={PROOF_INK} />}
         />
         <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
+          {/* Per-book audio folder picker. Marie picks the folder once
+              for the whole book; each chapter's audio is auto-matched
+              by exact filename. Files stay on the phone — only the
+              filename ever crossed Supabase. */}
+          <BookAudioFolderPicker
+            book={activeBook}
+            audioFiles={audioFiles}
+            matchedCount={matchedCount}
+            totalSections={totalSections}
+            status={audioPickStatus}
+            onPick={(files) => {
+              setAudioFilesByBook((prev) => ({ ...prev, [activeBook.id]: files }));
+              const matched = countSectionAudioMatches(files, activeBook);
+              setAudioPickStatus(
+                matched
+                  ? `Linked ${matched} of ${countSectionTotals(activeBook)} sections.`
+                  : 'No filenames matched. You can still pick audio per chapter inside the reader.'
+              );
+            }}
+            onClear={() => {
+              setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[activeBook.id]; return next; });
+              setAudioPickStatus('');
+            }}
+          />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
               Chapters

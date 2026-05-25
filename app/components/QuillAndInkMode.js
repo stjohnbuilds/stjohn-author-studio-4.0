@@ -829,90 +829,23 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
-      <StickyTopBar
+    <>
+      <ChapterReader
         tone="quill"
+        chapter={chapter}
+        chapters={chapters}
+        chapterIndex={chapterIndex}
+        onChangeChapter={onChangeChapter}
+        saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
-        title={`Chapter ${chapterIndex + 1} of ${chapters.length}`}
-        subtitle={chapter.title}
-      >
-        <button
-          type="button"
-          onClick={() => onChangeChapter(chapters[Math.max(0, chapterIndex - 1)]?.id)}
-          disabled={chapterIndex <= 0}
-          style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex <= 0 ? 0.3 : 1 }}
-        >
-          ← Prev
-        </button>
-        <button
-          type="button"
-          onClick={() => onChangeChapter(chapters[Math.min(chapters.length - 1, chapterIndex + 1)]?.id)}
-          disabled={chapterIndex >= chapters.length - 1}
-          style={{ ...topBtnStyle('quill', 'ghost'), opacity: chapterIndex >= chapters.length - 1 ? 0.3 : 1 }}
-        >
-          Next →
-        </button>
-        <SaveBadge status={saveStatus} tone="quill" />
-      </StickyTopBar>
-
-      {/* Centered paper. Same READER_WIDTH the other modes use, so
-          Quill stops feeling like a different app. Bottom padding
-          leaves room for the fixed annotation dock. */}
-      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: '20px 0 200px' }}>
-        <div
-          className="quill-reader-body"
-          style={{
-            background: READER_PAGE_BG,
-            border: '1px solid var(--border)',
-            borderRadius: 16,
-            padding: '1.8rem 2.2rem',
-            fontSize: READER_FONT_SIZE,
-            lineHeight: READER_LINE_HEIGHT,
-            minHeight: '60vh',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-          }}
-        >
-          {renderedContent}
-        </div>
-      </div>
-
-      {/* Floating action button in the LINE'S LEFT MARGIN — replaces
-          the inline + that used to float above the first selected word.
-          Position computed from the selected word's getBoundingClientRect
-          and its block's left edge, so the button always sits in the
-          gutter beside the line, not on top of the text. */}
-      {selectedRange && selectionActionPos && (
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={openPopover}
-          style={{
-            position: 'fixed',
-            top: selectionActionPos.top,
-            left: selectionActionPos.left,
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            background: 'white',
-            color: QUILL.ink,
-            border: '1px solid ' + QUILL.ink + '66',
-            cursor: 'pointer',
-            fontSize: '1.1rem',
-            fontWeight: 700,
-            lineHeight: 1,
-            boxShadow: '0 6px 18px rgba(76,72,70,0.18)',
-            zIndex: 1550,
-            display: 'grid',
-            placeItems: 'center',
-            WebkitAppRegion: 'no-drag',
-          }}
-          aria-label={editingAnnotationId ? 'Edit annotation' : 'Add annotation'}
-          title={editingAnnotationId ? 'Edit annotation' : 'Add annotation'}
-        >
-          {editingAnnotationId ? '✎' : '+'}
-        </button>
-      )}
+        paperPaddingBottom={200}
+        unitDecoration={unitDecoration}
+        onUnitPointerDown={onWordPointerDown}
+        onUnitPointerEnter={onWordPointerEnter}
+        selectedRange={selectedRange}
+        onSelectionAction={openPopover}
+        actionButtonIcon={editingAnnotationId ? '✎' : '+'}
+      />
 
       {popoverOpen && popoverPos && (
         <div

@@ -875,10 +875,24 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     // Build an "included" lookup from the editor's checkboxes. Any
     // chapter id that's unchecked gets dropped from the saved book —
     // Marie's "uncheck the copyright page I missed at import" flow.
-    const includedIds = new Set(
-      (editChapters || []).filter(c => c.included).map(c => c.id)
-    );
+    // Defensive guard: if the editor list is empty/missing (state didn't
+    // load), treat that as "keep everything" rather than wiping the book.
+    const editList = Array.isArray(editChapters) && editChapters.length
+      ? editChapters
+      : (book.chapters || []).map(ch => ({ id: ch.id, included: true }));
+    const includedIds = new Set(editList.filter(c => c.included).map(c => c.id));
     const removedCount = (book.chapters || []).filter(ch => !includedIds.has(ch.id)).length;
+
+    // Double-confirm destructive removals — Marie's rule for any action
+    // that drops user data.
+    if (removedCount > 0 && typeof window !== 'undefined') {
+      const ok = window.confirm(
+        removedCount === (book.chapters || []).length
+          ? 'You unchecked every chapter — saving will leave the book empty. Continue?'
+          : `Remove ${removedCount} chapter${removedCount === 1 ? '' : 's'} from this book? Their flags and audio will be lost.`
+      );
+      if (!ok) return;
+    }
 
     const chapters = (book.chapters || [])
       .filter(ch => includedIds.has(ch.id))

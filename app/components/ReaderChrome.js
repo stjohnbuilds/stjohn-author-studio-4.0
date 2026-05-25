@@ -384,7 +384,7 @@ export function ProfilePill({ email = '', onSignOut, usesCustomDragRegion = fals
           style={{
             position: 'absolute',
             top: 50,
-            right: 0,
+            left: 0,
             minWidth: 220,
             background: 'white',
             border: '1px solid var(--accent-border)',

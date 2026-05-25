@@ -334,6 +334,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         usesCustomDragRegion={usesCustomDragRegion}
         updateProject={updateActive}
         chapterAudio={chapterAudios[activeChapterId] || null}
+        chapterTranscript={chapterTranscripts[activeChapterId] || null}
       />
     );
   }

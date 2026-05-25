@@ -25,7 +25,6 @@ import ChapterReader, {
 } from './ChapterReader';
 import {
   MODE_TOKENS,
-  SaveBadge,
   topBtnStyle,
   useDismissable,
 } from './ReaderChrome';

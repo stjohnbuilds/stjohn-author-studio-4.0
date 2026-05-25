@@ -424,12 +424,25 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
   function getDisplayAudioTime(currentTime){ return currentTime; }
 
+  // Render the manuscript through the shared ChapterReader body. The
+  // resulting DOM has data-cr-unit spans, queryable via the shared
+  // getChapterReaderWordEl helper. All of Proof's audio sync / narrator
+  // detection / flag pin code reads those spans via .reader-text +
+  // data-cr-unit selectors, so it keeps working without copying the
+  // word-wrapping logic.
+  const renderedBody = useMemo(() => renderChapterBody({
+    chapter: { id: section?.id, textHtml: withChapterPrerollHtml(section, includeChapterPreroll) },
+    tone: 'proof',
+  }), [section?.id, section?.html, includeChapterPreroll]);
+
   // Re-init section
   useEffect(()=>{
     if(!textRef.current||!section)return;
-    textRef.current.innerHTML=withChapterPrerollHtml(section, includeChapterPreroll);
-    msWordsRef.current=wrapWords(textRef.current);
-    wordElsRef.current=Array.from(textRef.current.querySelectorAll('.w'));
+    // The DOM is populated by React from renderedBody. We just need to
+    // cache the word spans for the audio-sync hot path + extract their
+    // text for msWordsRef.
+    wordElsRef.current = Array.from(textRef.current.querySelectorAll('[data-cr-unit]'));
+    msWordsRef.current = wordElsRef.current.map(el => el.textContent || '');
     const alignment = Array.isArray(section.whisperAlignment) ? section.whisperAlignment : [];
     const syncTable = buildDirectSyncTable(alignment);
     syncTableRef.current = syncTable;

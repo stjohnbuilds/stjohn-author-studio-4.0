@@ -1911,9 +1911,12 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       <SharedBookDetail
         tone={mode === 'quill' ? 'quill' : 'proof'}
         title={book.title}
-        subtitle={mode === 'quill'
-          ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations · ${book.fileName || ''}`
-          : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags · ${book.fileName}`}
+        subtitle={(() => {
+          const fileTail = book.fileName ? ` · ${book.fileName}` : '';
+          return mode === 'quill'
+            ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations${fileTail}`
+            : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags${fileTail}`;
+        })()}
         onBackHome={onBack}
         usesCustomDragRegion={usesCustomDragRegion}
         onDelete={onDelete}

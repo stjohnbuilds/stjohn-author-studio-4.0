@@ -621,6 +621,29 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
       <div style={{ background: 'var(--accent-soft)', borderRadius: 16, border: '1px solid var(--accent-border)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text)' }}>Audio &amp; transcription</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <label
+            title="Pick multiple audio files at once. They'll be matched to chapters by filename (e.g. 'chapter01.mp3' → Chapter 1)."
+            style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--accent-border)', background: 'white', color: 'var(--accent-dark)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+          >
+            + Bulk attach audio
+            <input
+              type="file"
+              accept="audio/*,.mp3,.m4a,.m4b,.wav,.flac,.opus"
+              multiple
+              style={{ display: 'none' }}
+              onChange={(e) => { onBulkAttachAudio?.(e.target.files); e.target.value = ''; }}
+            />
+          </label>
+          {audioCount > transcribedCount && (
+            <button
+              type="button"
+              onClick={() => onTranscribeAll?.()}
+              title="Run whisper transcription on every chapter with attached audio that hasn't been transcribed yet."
+              style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--accent-border)', background: 'var(--accent)', color: 'white', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Transcribe all ({audioCount - transcribedCount})
+            </button>
+          )}
           <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
             <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Audio</span>
             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{audioCount}/{chapters.length}</span>

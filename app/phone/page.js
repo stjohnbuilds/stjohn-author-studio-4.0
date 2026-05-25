@@ -1329,13 +1329,28 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
         )}
       </section>
 
-      {panelOpen && selectedRange && (
+      {panelOpen && selectedRange && selectionMeta && (
         <ReaderPopover ink={PROOF_INK}>
           <div style={popoverHeader(PROOF_INK)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: PROOF_INK, fontSize: '0.88rem' }}>
-                {formatTime(Number(currentAudioTimeRef.current) || 0)}
+              <span
+                style={{ fontFamily: 'monospace', fontWeight: 800, color: PROOF_INK, fontSize: '1.02rem', letterSpacing: '0.04em' }}
+                title={
+                  selectionMeta.tsSource === 'aligned'
+                    ? 'Timestamp pulled from the chapter transcription for this word'
+                    : selectionMeta.tsSource === 'audio'
+                      ? 'Timestamp pulled from where audio is currently playing — transcribe this chapter on desktop for word-accurate times'
+                      : 'No audio time available — transcribe this chapter on desktop'
+                }
+              >
+                {formatTime(Number(selectionMeta.ts) || 0)}
               </span>
+              {selectionMeta.tsSource === 'audio' && (
+                <span style={{ fontSize: '0.6rem', color: '#7a5b18', background: '#fff7e6', border: '1px solid #f4d28a', padding: '1px 6px', borderRadius: 999, fontWeight: 700, whiteSpace: 'nowrap' }} title="Timestamp came from live audio playback, not the chapter transcription. Transcribe on desktop for word-accurate times.">live</span>
+              )}
+              {selectionMeta.tsSource === 'none' && (
+                <span style={{ fontSize: '0.6rem', color: '#7a5b18', background: '#fff7e6', border: '1px solid #f4d28a', padding: '1px 6px', borderRadius: 999, fontWeight: 700, whiteSpace: 'nowrap' }} title="No audio time — transcribe this chapter on desktop for word-accurate times">no audio</span>
+              )}
               <span style={{ fontSize: '0.66rem', background: PROOF_PASTEL, color: PROOF_INK, padding: '2px 8px', borderRadius: 999, fontWeight: 700, border: '1px solid ' + PROOF_INK + '33', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={autoNarrator}>
                 {autoNarrator}
               </span>

@@ -119,6 +119,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
+  // Per-chapter audio attachments. Lives in memory only (blob URLs don't
+  // survive reload). Key = chapterId; value = { url, fileName }.
+  // Marie's rule: audio NEVER touches Supabase. Stays on this device.
+  const [chapterAudios, setChapterAudios] = useState({});
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
   // True for state changes that came from the cloud (initial hydrate

@@ -571,6 +571,7 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
       }
       onDelete={onDelete}
       deleteLabel={`Delete "${project.title}"`}
+      prePanels={audiobookPanels}
     >
       {chapters.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--text-light)', fontSize: '0.82rem', padding: '1.2rem 0 0.35rem' }}>

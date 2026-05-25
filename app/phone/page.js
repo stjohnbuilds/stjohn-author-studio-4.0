@@ -958,16 +958,53 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
 // ScriptChapterView — reader + flag popover + audio dock with sync.
 // ---------------------------------------------------------------------------
 
-function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onSwitchSection, onOpenSettings, onSaveBook }) {
+function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onSwitchSection, onOpenSettings, onSaveBook, presetAudioFile = null }) {
   const sections = chapter.sections || [];
   const html = sectionHtml(section);
   const plainText = useMemo(() => sectionPlainText(section), [section]);
   const words = useMemo(() => buildWordSpans(plainText), [plainText]);
 
+  // Default narrator for this section: prefer the desktop's per-section
+  // narratorName, then the character's name, then a name picked from the
+  // book's narratorColors map by character, then 'Narrator' fallback.
+  const autoNarrator = useMemo(() => {
+    const byCharacter = (book.narratorColors || []).find((nc) => nc.characterName === section.characterName);
+    return (
+      section.narratorName
+      || byCharacter?.narratorName
+      || section.characterName
+      || byCharacter?.characterName
+      || 'Narrator'
+    );
+  }, [section, book.narratorColors]);
+
+  // Narrator options surfaced in the picker — every distinct narrator
+  // declared on this book, plus the always-available "Narrator" /
+  // "Engineer" generics.
+  const narratorOptions = useMemo(() => {
+    const out = new Set();
+    out.add('Narrator');
+    out.add('Engineer');
+    (book.narratorColors || []).forEach((nc) => {
+      if (nc.narratorName) out.add(nc.narratorName);
+      if (nc.characterName) out.add(nc.characterName);
+    });
+    if (autoNarrator) out.add(autoNarrator);
+    return Array.from(out);
+  }, [book.narratorColors, autoNarrator]);
+
   const [selectedRange, setSelectedRange] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [flagType, setFlagType] = useState('Edit');
-  const [flagNote, setFlagNote] = useState('');
+  // Desktop's flag draft shape — keep the field names aligned so the
+  // CSV builder and the cloud-sync row builder don't have to translate.
+  const [flagDraft, setFlagDraft] = useState({
+    quote: '',
+    page: '',
+    note: '',
+    narrator: autoNarrator,
+    type: 'Edit',
+  });
+  const [toast, setToast] = useState('');
   const [audioTime, setAudioTime] = useState(0);
   const [syncEnabled, setSyncEnabled] = useState(false);
   const currentAudioTimeRef = useRef(0);
@@ -976,12 +1013,35 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   useEffect(() => {
     setSelectedRange(null);
     setPanelOpen(false);
-    setFlagNote('');
-    setFlagType('Edit');
+    setFlagDraft({
+      quote: '',
+      page: '',
+      note: '',
+      narrator: autoNarrator,
+      type: 'Edit',
+    });
     setSyncEnabled(false);
     setAudioTime(0);
     currentAudioTimeRef.current = 0;
-  }, [section.id]);
+    // autoNarrator depends on section — including it here is safe
+  }, [section.id, autoNarrator]);
+
+  // Auto-fill the quote when a fresh selection opens the panel.
+  useEffect(() => {
+    if (!panelOpen || !selectedRange) return;
+    const start = Math.min(selectedRange.start, selectedRange.end);
+    const end = Math.max(selectedRange.start, selectedRange.end);
+    const quoteText = words.slice(start, end + 1).map((s) => s.word).join(' ');
+    setFlagDraft((prev) => ({ ...prev, quote: prev.quote || quoteText }));
+  }, [panelOpen, selectedRange, words]);
+
+  // Toast helper — small auto-dismiss notice for things like "page
+  // number missing" that Marie wants surfaced.
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(''), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const wordDecoration = useCallback((idx) => {
     const flag = (section.flags || []).find((f) => {

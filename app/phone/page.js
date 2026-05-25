@@ -718,8 +718,16 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
       const supabase = getSupabaseClient();
       if (!supabase) throw new Error('Supabase is not configured.');
       const list = await pullProofProjects(supabase);
-      setBooks(list);
-      if (session?.user?.id) writePhoneProjectCache('script', session.user.id, list);
+      setBooks((current) => {
+        if (list?.length) {
+          if (session?.user?.id) writePhoneProjectCache('script', session.user.id, list);
+          return list;
+        }
+        if (!current?.length && session?.user?.id) {
+          writePhoneProjectCache('script', session.user.id, []);
+        }
+        return current;
+      });
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {

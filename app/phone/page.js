@@ -635,7 +635,7 @@ function ScriptChapterReader({ book, chapter, section, onBack, onSwitchSection, 
       id: `phone-flag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       idx: startIdx,
       wordEnd: endIdx,
-      ts: 0, // audio sync arrives in a later phase
+      ts: Number(currentAudioTimeRef.current) || 0,
       sentPlain: quote,
       note: (flagNote || '').trim(),
       type: flagType,

@@ -1292,33 +1292,21 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         </div>
       )}
 
-      <div style={{ flexShrink:0,borderTop:'1px solid var(--border-light)',background:'linear-gradient(180deg, rgba(250,250,248,0.84) 0%, #ffffff 62%)',padding:'8px 16px 10px',boxShadow:'0 -10px 28px rgba(15,18,35,0.05)' }}>
-        <div style={{ width:readerContentWidth,margin:'0 auto',display:'flex',flexDirection:'column',gap:6 }}>
-          <audio ref={audioRef} controls preload="auto" style={{ width:'100%',height:38,borderRadius:16 }} />
-          <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap' }}>
-            <div style={{ display:'inline-flex',alignItems:'center',gap:7,padding:'6px 9px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)',minWidth:240,maxWidth:'100%' }}>
-              <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',whiteSpace:'nowrap' }}>Speed</span>
-              <button onClick={()=>stepPlaybackSpeed(-0.1)} aria-label="Decrease playback speed" title="Slower" style={{ background:'transparent',border:'none',padding:'0 2px',fontSize:'1rem',cursor:'pointer',color:'var(--text-muted)' }}>−</button>
-              <input type="range" min={0.5} max={3} step={0.05} value={listenSpeed} onChange={e=>applyPlaybackSpeed(e.target.value)} style={{ flex:1,cursor:'pointer',accentColor:'var(--accent)' }} aria-label="Playback speed" />
-              <button onClick={()=>stepPlaybackSpeed(0.1)} aria-label="Increase playback speed" title="Faster" style={{ background:'transparent',border:'none',padding:'0 2px',fontSize:'1rem',cursor:'pointer',color:'var(--text-muted)' }}>+</button>
-              <span style={{ fontSize:'0.76rem',color:'var(--text)',fontVariantNumeric:'tabular-nums',minWidth:40,textAlign:'right' }}>{listenSpeed.toFixed(2)}×</span>
-            </div>
+      <AudioDock
+        floating={false}
+        audioRef={audioRef}
+        audioUrl={audioUrl}
+        contentWidth={readerContentWidth}
+        speed={listenSpeed}
+        onSpeedChange={applyPlaybackSpeed}
+        rightActions={(
+          <>
             {hasTranscription && (
               <button
                 type="button"
                 onClick={()=>setUseWhisperSync(v=>!v)}
                 title={useWhisperSync ? 'Transcription on. Click to turn it off.' : 'Transcription off. Click to turn it on.'}
-                style={{
-                  width:38,
-                  height:38,
-                  border:'1px solid '+(useWhisperSync?'#8fbf8f':'var(--border)'),
-                  borderRadius:999,
-                  background:useWhisperSync?'#e7f6e7':'white',
-                  fontSize:'0.82rem',
-                  fontWeight:700,
-                  cursor:'pointer',
-                  color:useWhisperSync?'#2b7a2b':'var(--text-muted)',
-                }}
+                style={{ width:38,height:38,border:'1px solid '+(useWhisperSync?'#8fbf8f':'var(--border)'),borderRadius:999,background:useWhisperSync?'#e7f6e7':'white',fontSize:'0.82rem',fontWeight:700,cursor:'pointer',color:useWhisperSync?'#2b7a2b':'var(--text-muted)' }}
               >
                 T
               </button>
@@ -1327,51 +1315,42 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
               type="button"
               onClick={()=>setFollowPlayback(v=>!v)}
               title={`Follow text is ${followPlayback ? 'on' : 'off'}. When on, moving the audio keeps the text following along.`}
-              style={{
-                minWidth:132,
-                padding:'7px 12px',
-                border:'1px solid '+(followPlayback?'var(--accent)':'var(--border)'),
-                borderRadius:999,
-                background:followPlayback?'var(--accent-soft)':'white',
-                fontSize:'0.74rem',
-                fontWeight:700,
-                cursor:'pointer',
-                color:followPlayback?'var(--accent-dark)':'var(--text-muted)',
-              }}
+              style={{ minWidth:132,padding:'7px 12px',border:'1px solid '+(followPlayback?'var(--accent)':'var(--border)'),borderRadius:999,background:followPlayback?'var(--accent-soft)':'white',fontSize:'0.74rem',fontWeight:700,cursor:'pointer',color:followPlayback?'var(--accent-dark)':'var(--text-muted)' }}
             >
               Follow text: {followPlayback ? 'On' : 'Off'}
             </button>
-            <div style={{ display:'inline-flex',alignItems:'center',gap:4,padding:'6px 8px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)' }}>
-              {[[-30,'«30'],[-10,'‹10'],[10,'10›'],[30,'30»']].map(([s,l])=>(
-                <button key={s} onClick={()=>jumpSec(s)} title={`Jump ${s > 0 ? '+' : ''}${s} seconds`} style={{ background:'transparent',border:'none',padding:'2px 4px',fontSize:'0.76rem',cursor:'pointer',color:'var(--text-muted)' }}>{l}</button>
-              ))}
-            </div>
-            <button type="button" onClick={openFlag} title="Flag the current spot" style={{ width:38,height:38,background:'var(--danger-light)',color:'var(--danger)',border:'1px solid #f0b8b8',borderRadius:999,fontSize:'0.82rem',fontWeight:700,cursor:'pointer' }}
-              onMouseEnter={e=>e.currentTarget.style.background='#f9d9d9'} onMouseLeave={e=>e.currentTarget.style.background='var(--danger-light)'}>
+            <button
+              type="button"
+              onClick={openFlag}
+              title="Flag the current spot"
+              style={{ width:38,height:38,background:'var(--danger-light)',color:'var(--danger)',border:'1px solid #f0b8b8',borderRadius:999,fontSize:'0.82rem',fontWeight:700,cursor:'pointer' }}
+              onMouseEnter={e=>e.currentTarget.style.background='#f9d9d9'}
+              onMouseLeave={e=>e.currentTarget.style.background='var(--danger-light)'}
+            >
               F
             </button>
+          </>
+        )}
+        extraRow={showExtraControls && (
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,flexWrap:'wrap' }}>
+            {showWordTracker && (
+              <div style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)' }}>
+                <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase' }}>Words</span>
+                {[[-10,'−10'],[-3,'−3'],[3,'+3'],[10,'+10']].map(([n,l])=><Btn key={n} onClick={()=>nudge(n)} title="Nudge manuscript highlight" style={{ borderRadius:999,padding:'6px 9px' }}>{l}</Btn>)}
+              </div>
+            )}
+            {showManualSyncControls && (
+              <div style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)' }}>
+                <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',whiteSpace:'nowrap' }}>Sync</span>
+                <Btn onClick={()=>stepSyncSpeed(-0.05)} aria-label="Decrease sync speed" style={{ borderRadius:999,padding:'6px 9px' }}>−</Btn>
+                <input type="range" min={0.5} max={4} step={0.01} value={syncSpeed} onChange={e=>setSyncSpeedFromSlider(e.target.value)} style={{ width:120,maxWidth:'34vw',cursor:'pointer',accentColor:'var(--accent)' }} title="Fine-tune text vs audio" />
+                <Btn onClick={()=>stepSyncSpeed(0.05)} aria-label="Increase sync speed" style={{ borderRadius:999,padding:'6px 9px' }}>+</Btn>
+                <span style={{ fontSize:'0.74rem',color:'var(--text-muted)',fontVariantNumeric:'tabular-nums',minWidth:40 }}>{syncSpeed.toFixed(2)}×</span>
+              </div>
+            )}
           </div>
-          {showExtraControls && (
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:8,flexWrap:'wrap' }}>
-              {showWordTracker && (
-                <div style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)' }}>
-                  <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase' }}>Words</span>
-                  {[[-10,'−10'],[-3,'−3'],[3,'+3'],[10,'+10']].map(([n,l])=><Btn key={n} onClick={()=>nudge(n)} title="Nudge manuscript highlight" style={{ borderRadius:999,padding:'6px 9px' }}>{l}</Btn>)}
-                </div>
-              )}
-              {showManualSyncControls && (
-                <div style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',borderRadius:999,background:'rgba(255,255,255,0.96)',border:'1px solid var(--border-light)' }}>
-                  <span style={{ fontSize:'0.68rem',color:'var(--text-muted)',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',whiteSpace:'nowrap' }}>Sync</span>
-                  <Btn onClick={()=>stepSyncSpeed(-0.05)} aria-label="Decrease sync speed" style={{ borderRadius:999,padding:'6px 9px' }}>−</Btn>
-                  <input type="range" min={0.5} max={4} step={0.01} value={syncSpeed} onChange={e=>setSyncSpeedFromSlider(e.target.value)} style={{ width:120,maxWidth:'34vw',cursor:'pointer',accentColor:'var(--accent)' }} title="Fine-tune text vs audio" />
-                  <Btn onClick={()=>stepSyncSpeed(0.05)} aria-label="Increase sync speed" style={{ borderRadius:999,padding:'6px 9px' }}>+</Btn>
-                  <span style={{ fontSize:'0.74rem',color:'var(--text-muted)',fontVariantNumeric:'tabular-nums',minWidth:40 }}>{syncSpeed.toFixed(2)}×</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      />
 
       {showReport&&(
         <div style={{ position:'absolute',inset:0,background:'white',zIndex:20,display:'flex',flexDirection:'column' }}>

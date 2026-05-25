@@ -3,7 +3,8 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "bash .claude/hooks/context-check.sh" }
+          { "type": "command", "command": "bash .claude/hooks/context-check.sh" },
+          { "type": "command", "command": "bash .claude/hooks/deep-check-trigger.sh" }
         ]
       }
     ],

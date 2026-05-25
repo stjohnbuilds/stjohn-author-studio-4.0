@@ -713,6 +713,12 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const [activeBookId, setActiveBookId] = useState(null);
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [activeSectionId, setActiveSectionId] = useState(null);
+  // Per-book audio folder. Picked once on the chapter list; auto-matches
+  // each section by audioFileName. File[] state survives navigation
+  // between chapters of the same book but is lost on page reload (Blob
+  // refs can't be serialized — Marie picks the folder again per session).
+  const [audioFilesByBook, setAudioFilesByBook] = useState({});
+  const [audioPickStatus, setAudioPickStatus] = useState('');
 
   useEffect(() => {
     let cancelled = false;

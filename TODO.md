@@ -37,15 +37,6 @@ Always read `HANDOFF.md` first, then this file.
       matching layout. Eyes-on check: are character styles created?
       Are highlights underlined? Marie is the only one who knows what
       "right" looks like for her print workflow.
-- [ ] **Try Quill on a real .docx.** Top-left mode toggle → Quill. New
-      project → upload a manuscript. Open a chapter. Drag across a few
-      words, tap the pink + button, pick a class, save. Verify the
-      pink underline appears + the annotation shows in the sidebar.
-- [ ] **Test the InDesign export.** Book detail → Export CSV +
-      InDesign. Open the .jsx in InDesign and run it against the
-      matching layout. Eyes-on check: are character styles created?
-      Are highlights underlined? Marie is the only one who knows what
-      "right" looks like for her print workflow.
 - [ ] **Test the phone scaffold.** Browser to `http://localhost:3000/phone`
       while `npm run dev` is running. Sign in with the same account.
       Quill project from the desktop should appear. Open a chapter,

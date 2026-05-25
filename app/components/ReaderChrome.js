@@ -341,14 +341,17 @@ export function ProfilePill({ email = '', onSignOut, usesCustomDragRegion = fals
 
   const initial = (email || '').trim().charAt(0).toUpperCase() || '?';
 
+  // Sits in the same vertical column as the home / mode pill on the
+  // top-left, stacked beneath it. Home pill is at top:40 (electron) /
+  // top:16 (web) and is ~46px tall, so profile sits 56px below the top.
   return (
     <div
       ref={wrapRef}
       className="ap-pill-slide-in"
       style={{
         position: 'fixed',
-        top: usesCustomDragRegion ? 40 : 16,
-        right: 16,
+        top: usesCustomDragRegion ? 96 : 72,
+        left: 16,
         zIndex: 1500,
         WebkitAppRegion: 'no-drag',
       }}

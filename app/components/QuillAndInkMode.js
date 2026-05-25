@@ -859,7 +859,42 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         onBack={onBack}
         saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
-        paperPaddingBottom={200}
+        paperPaddingBottom={audioUrl ? 220 : 180}
+        bottomDock={(
+          <>
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.m4a,.m4b,.wav,.flac,.opus"
+              style={{ display: 'none' }}
+              onChange={(e) => { pickAudioFile(e.target.files?.[0]); e.target.value = ''; }}
+            />
+            <AudioDock
+              audioUrl={audioUrl}
+              label={audioFileName || ''}
+              leftActions={(
+                <button
+                  type="button"
+                  onClick={() => audioFileInputRef.current?.click()}
+                  title={audioUrl ? 'Swap audio file' : 'Pick a local audio file (stays on this device)'}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    border: '1px solid var(--accent-border)',
+                    background: 'white',
+                    color: 'var(--accent-dark)',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {audioUrl ? 'Swap audio' : '+ Pick audio'}
+                </button>
+              )}
+            />
+          </>
+        )}
         unitDecoration={unitDecoration}
         onUnitPointerDown={onWordPointerDown}
         onUnitPointerEnter={onWordPointerEnter}

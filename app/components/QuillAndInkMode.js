@@ -23,6 +23,7 @@ import ChapterReader, {
   getChapterReaderWordEl,
   computeChapterReaderPopoverPos,
 } from './ChapterReader';
+import AudioDock from './AudioDock';
 import {
   MODE_TOKENS,
   topBtnStyle,

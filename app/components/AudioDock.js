@@ -2,13 +2,17 @@
 
 // Shared bottom-of-reader audio dock. Sits in ChapterReader's bottomDock
 // slot. Native <audio> element with controls, plus speed slider and jump
-// chips. Optional left and right slots so modes can add their own buttons
-// (Proof: flag, transcription toggle; Quill: pick audio file).
+// chips. Optional slots so modes can add their own buttons (Proof:
+// flag, transcription toggle, follow text, manual sync; Quill: pick
+// audio file).
 //
 // Marie's rule: ONE audio dock everywhere. Same look, same controls.
-// Proof's reader (ProofingReader.js) still has its own copy with the
-// extra whisper-sync controls — it'll switch to this when the reader
-// migration lands. Until then, this is Quill's dock; Proof's stays put.
+// Used by: Quill (file picker + simple playback), Proof (whisper sync
+// + flag + follow text + manual sync extras via the slots).
+//
+// Speed can be controlled (parent passes speed + onSpeedChange) or
+// uncontrolled (internal state seeded from defaultSpeed). Proof uses
+// controlled mode because it persists listenSpeed per book.
 
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -19,10 +23,14 @@ export default function AudioDock({
   onTimeUpdate,
   onLoadedMetadata,
   defaultSpeed = 1,
-  // Left and right slots for mode-specific buttons (e.g. Quill's
-  // "Pick audio" button, Proof's "F" flag button).
+  // Controlled speed mode — if both are provided, parent owns the value.
+  speed: speedProp,
+  onSpeedChange,
+  // Left, right, and extra-row slots for mode-specific buttons (Quill's
+  // pick-audio, Proof's flag / transcription / follow / manual sync).
   leftActions = null,
   rightActions = null,
+  extraRow = null,
   // Show the speed slider? Default yes.
   showSpeed = true,
   // Show the ±10s / ±30s jump chips? Default yes.
@@ -32,7 +40,12 @@ export default function AudioDock({
 }) {
   const internalRef = useRef(null);
   const audioRef = audioRefProp || internalRef;
-  const [speed, setSpeed] = useState(defaultSpeed);
+  const isControlled = typeof speedProp === 'number' && typeof onSpeedChange === 'function';
+  const [internalSpeed, setInternalSpeed] = useState(defaultSpeed);
+  const speed = isControlled ? speedProp : internalSpeed;
+  const setSpeed = isControlled
+    ? (next) => onSpeedChange(typeof next === 'function' ? next(speed) : next)
+    : setInternalSpeed;
 
   // Keep the <audio> element's playbackRate in sync with the slider.
   useEffect(() => {

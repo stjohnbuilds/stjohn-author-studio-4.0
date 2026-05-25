@@ -814,7 +814,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
       };
     }
     if (ann.classId === 'image') {
-      return { background: QUILL.pastel, color: QUILL.ink };
+      return { background: '#DCEAC9', color: '#3D5630' };
     }
     return { background: (ann.color || QUILL.accent) + '33' };
   }, [wordToAnnotation]);

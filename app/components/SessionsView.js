@@ -2139,34 +2139,41 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             // the underlying section data isn't mutated, so flags/audio
             // stay attached to the original section.
             let displaySections = ch.sections || [];
-            if (showSceneRows && displaySections.length === 1 && displaySections[0]?.html && /<h2[\s>]/i.test(displaySections[0].html)) {
-              try {
-                const host = document.createElement('div');
-                host.innerHTML = displaySections[0].html;
-                const parts = [];
-                let curPart = null;
-                Array.from(host.childNodes).forEach(node => {
-                  const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
-                  if (tag === 'h2') {
-                    if (curPart) parts.push(curPart);
-                    curPart = { title: (node.textContent || '').trim() || 'Scene', nodes: [node.cloneNode(true)] };
+            if (showSceneRows && displaySections.length === 1) {
+              const onlyHtml = displaySections[0]?.html || '';
+              if (/<h2[\s>]/i.test(onlyHtml)) {
+                try {
+                  const host = document.createElement('div');
+                  host.innerHTML = onlyHtml;
+                  const parts = [];
+                  let curPart = null;
+                  Array.from(host.childNodes).forEach(node => {
+                    const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
+                    if (tag === 'h2') {
+                      if (curPart) parts.push(curPart);
+                      curPart = { title: (node.textContent || '').trim() || 'Scene', nodes: [node.cloneNode(true)] };
+                    } else {
+                      if (!curPart) curPart = { title: 'Beginning', nodes: [node.cloneNode(true)] };
+                      else curPart.nodes.push(node.cloneNode(true));
+                    }
+                  });
+                  if (curPart) parts.push(curPart);
+                  if (parts.length >= 2) {
+                    const baseSection = displaySections[0];
+                    displaySections = parts.map((p, i) => ({
+                      ...baseSection,
+                      id: `${baseSection.id}-scene-${i}`,
+                      title: p.title,
+                      html: p.nodes.map(n => n.outerHTML || n.textContent || '').join(''),
+                      isDerivedScene: true,
+                    }));
                   } else {
-                    if (!curPart) curPart = { title: 'Beginning', nodes: [node.cloneNode(true)] };
-                    else curPart.nodes.push(node.cloneNode(true));
+                    displaySections = [];
                   }
-                });
-                if (curPart) parts.push(curPart);
-                if (parts.length >= 2) {
-                  const baseSection = displaySections[0];
-                  displaySections = parts.map((p, i) => ({
-                    ...baseSection,
-                    id: `${baseSection.id}-scene-${i}`,
-                    title: p.title,
-                    html: p.nodes.map(n => n.outerHTML || n.textContent || '').join(''),
-                    isDerivedScene: true,
-                  }));
-                }
-              } catch (e) { /* ignore — fallback to single section */ }
+                } catch (e) { displaySections = []; }
+              } else {
+                displaySections = [];
+              }
             }
             return (
               <div key={ch.id} ref={node => { chapterRefs.current[ch.id] = node; }} style={{ background:'white',overflow:'hidden',scrollMarginTop:88,borderTop:chIndex===0?'none':'1px solid var(--border)' }}>

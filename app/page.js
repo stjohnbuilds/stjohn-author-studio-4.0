@@ -404,12 +404,17 @@ export default function Home() {
   // Pull Proof books from Supabase once auth is ready + signed in. Merge
   // with whatever loaded locally so a fresh machine sees cloud-only
   // books and an offline-first machine doesn't lose its local edits.
+  //
+  // ALSO re-pull when the window regains focus / becomes visible — this
+  // catches the "I saved a flag on the phone while desktop was idle"
+  // case so the desktop doesn't push a stale book back over it. (Marie
+  // hit this and asked us to verify the cloud round-trip.)
   useEffect(() => {
     if (!hasSupabaseConfig || !authReady || !authSession?.user) return undefined;
     const supabase = getSupabaseClient();
     if (!supabase) return undefined;
     let cancelled = false;
-    (async () => {
+    async function doPull() {
       try {
         const cloudBooks = await pullProofProjects(supabase);
         if (cancelled || !cloudBooks?.length) return;
@@ -418,8 +423,21 @@ export default function Home() {
       } catch (e) {
         console.warn('[Proof] cloud pull failed:', e?.message || e);
       }
-    })();
-    return () => { cancelled = true; };
+    }
+    doPull();
+    const onFocus = () => { doPull(); };
+    const onVisibility = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') doPull(); };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+    };
   }, [authReady, authSession]);
 
   // Debounced cloud push whenever Proof books change. Fire-and-forget

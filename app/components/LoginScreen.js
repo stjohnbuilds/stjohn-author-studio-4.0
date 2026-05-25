@@ -310,6 +310,42 @@ export default function LoginScreen({ onSignedIn, usesCustomDragRegion = false }
                 {submitLabel}
               </button>
 
+              {mode === 'sign-in' && process.env.NODE_ENV !== 'production' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Dev-only escape hatch so Claude / Marie can drive the
+                    // app past the auth gate without a real Supabase round
+                    // trip. The fake session has only what page.js reads
+                    // (user.email + user.id). Cloud sync features still
+                    // need real auth — this is for visual / layout
+                    // verification only.
+                    onSignedIn?.({
+                      access_token: 'dev-skip',
+                      refresh_token: 'dev-skip',
+                      user: { id: 'dev-skip-user', email: 'dev@local' },
+                    });
+                  }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    marginTop: 14,
+                    padding: '8px 12px',
+                    background: 'rgba(255, 200, 80, 0.18)',
+                    color: '#7a5a10',
+                    border: '1px dashed #d8a04c',
+                    borderRadius: 10,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Dev · skip login (fake session)
+                </button>
+              )}
+
               {mode === 'sign-in' && (
                 <>
                   <button

@@ -447,6 +447,10 @@ const card = { background:'white',borderRadius:16,border:'1px solid var(--border
 function Badge({ n }) { return <div style={{ width:22,height:22,borderRadius:'50%',background:'var(--accent)',color:'white',fontSize:'0.68rem',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>{n}</div>; }
 
 export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron = false, onImportTransfer }) {
+  // Phase machine: 'import' = same ImportFlow that Prep/Duet/Quill use
+  //                'extras' = Proof-only post-upload screens (narrator
+  //                           mapping + PDF + final save)
+  const [phase, setPhase] = useState('import');
   const [bookTitle, setBookTitle] = useState('');
   const [fileName, setFileName] = useState('');
   const [fullHtml, setFullHtml] = useState('');

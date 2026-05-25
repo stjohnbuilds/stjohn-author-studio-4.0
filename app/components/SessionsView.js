@@ -1853,29 +1853,21 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         usesCustomDragRegion={usesCustomDragRegion}
         onDelete={onDelete}
         deleteLabel={`Delete "${book.title}"`}
+        actionButtons={(
+          <>
+            <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
+            <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
+            {isElectron && onTransferExport && (
+              <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>
+            )}
+            <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
+          </>
+        )}
         containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
         <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
-          <div style={{ padding:'16px 16px 14px',background:'var(--accent-soft)',borderBottom:'1px solid var(--accent-border)' }}>
-            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
-              <div>
-                <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:6 }}>Book info</div>
-                <h2 style={{ fontSize:'1.52rem',fontWeight:700,letterSpacing:'-0.03em',color:'var(--text)',margin:'0 0 4px' }}>{book.title}</h2>
-                <p style={{ fontSize:'0.82rem',color:'var(--text-muted)',margin:0 }}>{allSections.length} sections · {completedCount} completed · {totalFlags} flags · {book.fileName}</p>
-              </div>
-              <div style={{ display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end' }}>
-                <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
-                {isElectron && onTransferExport && (
-                  <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>
-                )}
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
-              </div>
-            </div>
-          </div>
-
           <div style={{ padding:'11px 14px 14px',display:'grid',gap:9 }}>
             {editingMeta && (
               <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 12px' }}>

@@ -1082,28 +1082,36 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   function clearSelection() {
     setSelectedRange(null);
     setPanelOpen(false);
-    setFlagNote('');
-    setFlagType('Edit');
+    setFlagDraft({ quote: '', page: '', note: '', narrator: autoNarrator, type: 'Edit' });
   }
 
   function saveFlag() {
     if (!selectedRange) return;
     const start = Math.min(selectedRange.start, selectedRange.end);
     const end = Math.max(selectedRange.start, selectedRange.end);
-    const quote = words.slice(start, end + 1).map((s) => s.word).join(' ');
+    const fallbackQuote = words.slice(start, end + 1).map((s) => s.word).join(' ');
+    const editedQuote = (flagDraft.quote || fallbackQuote || '').trim();
+    const pageRaw = (flagDraft.page || '').trim();
     const flag = {
       id: `phone-flag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       idx: start,
       wordEnd: end,
       ts: Number(currentAudioTimeRef.current) || 0,
-      sentPlain: quote,
-      note: (flagNote || '').trim(),
-      type: flagType,
-      page: '',
-      narrator: section.narratorName || section.characterName || 'Narrator',
+      // Match the desktop schema exactly so CSV + cloud rows agree:
+      // sentPlain = the quote text, note = "should say" correction,
+      // narrator + page + type carry forward.
+      sentPlain: editedQuote,
+      sentHtml: editedQuote, // plain on phone; desktop wraps with <em class="fw">
+      page: pageRaw || '#',
+      narrator: (flagDraft.narrator || autoNarrator || 'Narrator').trim() || 'Narrator',
+      type: flagDraft.type || 'Edit',
+      note: (flagDraft.note || '').trim(),
       source: 'phone',
       createdAt: new Date().toISOString(),
     };
+    if (!pageRaw) {
+      setToast('Saved without a page number — add one in the desktop app when you can.');
+    }
     const nextBook = {
       ...book,
       chapters: (book.chapters || []).map((ch) => ch.id !== chapter.id ? ch : ({

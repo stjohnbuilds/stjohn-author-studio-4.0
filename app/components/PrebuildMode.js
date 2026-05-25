@@ -1472,8 +1472,9 @@ export default function PrebuildMode({ modeToggle = null }) {
             </div>
           </div>
           )}
-        </div>
-      </div>
+          </>
+        }
+      />
     );
   }
 

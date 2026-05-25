@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { DEFAULT_ESTIMATED_WORDS_PER_PAGE, getPageNumberForWordIndex } from '../lib/manuscriptPaging';
 import { findPdfPageForQuote } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';

@@ -324,6 +324,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
         updateProject={updateActive}
+        chapterAudio={chapterAudios[activeChapterId] || null}
       />
     );
   }

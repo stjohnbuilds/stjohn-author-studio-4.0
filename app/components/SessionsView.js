@@ -1670,11 +1670,15 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               boxShadow:'0 10px 24px var(--accent-shadow)',
             }
           : {
+              // Centered vertically — was top:88 spanning full height,
+              // which felt like a sticky banner. Capped at 60vh so it
+              // floats neatly to one side instead of dominating the page.
               position:'fixed',
               right:12,
-              top:88,
+              top:'50%',
+              transform:'translateY(-50%)',
               width:224,
-              maxHeight:`calc(100vh - ${persistentAudioUrl ? 160 : 124}px)`,
+              maxHeight:'min(60vh, 560px)',
               overflow:'hidden',
               background:'rgba(255,255,255,0.96)',
               backdropFilter:'blur(10px)',

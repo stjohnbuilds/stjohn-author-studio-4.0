@@ -344,6 +344,24 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           onExportCsv={exportCsv}
           onExportJsx={exportJsx}
           onExportAll={exportAll}
+          chapterAudios={chapterAudios}
+          onAttachAudio={(chapterId, file) => {
+            if (!file) return;
+            setChapterAudios((prev) => {
+              const old = prev[chapterId];
+              if (old?.url) URL.revokeObjectURL(old.url);
+              return { ...prev, [chapterId]: { url: URL.createObjectURL(file), fileName: file.name } };
+            });
+          }}
+          onDetachAudio={(chapterId) => {
+            setChapterAudios((prev) => {
+              const old = prev[chapterId];
+              if (old?.url) URL.revokeObjectURL(old.url);
+              const next = { ...prev };
+              delete next[chapterId];
+              return next;
+            });
+          }}
         />
       </div>
     );

@@ -793,17 +793,28 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   }
 
   // -- per-word decoration handed to ChapterReader --------------------------
-  // Annotated words get a pink underline (highlight class), a red wash
-  // (image), or a tinted background (anything else with a colour).
-  // useCallback so ChapterReader's render memo stays stable.
+  // Annotated words get a continuous pink underline (highlight class)
+  // — text-decoration spans inline content INCLUDING the trailing
+  // whitespace, so adjacent annotated words appear as one band, not
+  // N broken stripes. Image annotations get a pastel pink wash
+  // (was red — Marie hated red). Anything else with a colour gets a
+  // tinted background. useCallback so ChapterReader's render memo
+  // stays stable.
   const unitDecoration = useCallback((idx) => {
     const ann = wordToAnnotation.get(idx);
     if (!ann) return null;
     if (ann.classId === 'highlight') {
-      return { borderBottom: '3px solid ' + (ann.color || '#f0aac0'), paddingBottom: 1 };
+      const color = ann.color || QUILL.accent;
+      return {
+        textDecorationLine: 'underline',
+        textDecorationColor: color,
+        textDecorationThickness: '3px',
+        textUnderlineOffset: '2px',
+        textDecorationSkipInk: 'none',
+      };
     }
     if (ann.classId === 'image') {
-      return { background: '#d8282822', color: '#7a1818' };
+      return { background: QUILL.pastel, color: QUILL.ink };
     }
     return { background: (ann.color || QUILL.accent) + '33' };
   }, [wordToAnnotation]);

@@ -471,7 +471,7 @@ function QuillHomeView({ projects, onOpen, onNew }) {
 // Book detail — chapter list + export bar
 // ===========================================================================
 
-function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll }) {
+function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll, chapterAudios = {}, onAttachAudio, onDetachAudio }) {
   const chapters = project.chapters || [];
   const annotationsByChapter = useMemo(() => {
     const map = new Map();
@@ -483,7 +483,8 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
   }, [project.annotations]);
 
   const annCount = project.annotations?.length || 0;
-  const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}`;
+  const audioCount = Object.keys(chapterAudios).filter(id => chapters.some(c => c.id === id)).length;
+  const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}${audioCount ? ` · ${audioCount} audio attached` : ''}`;
 
   return (
     <BookDetail

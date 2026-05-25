@@ -1207,7 +1207,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 // PhoneAudioDock — shared audio strip (Quill + Script). Now with Sync.
 // ===========================================================================
 
-function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '' }) {
+function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null }) {
   const inputRef = useRef(null);
   const audioRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -1218,12 +1218,18 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
   const [rate, setRate] = useState(1);
   const [loadError, setLoadError] = useState('');
 
+  // When the user navigates to a different section, reset all transient
+  // playback state. If the parent has already matched a file from the
+  // folder Marie picked at the book level, adopt it as the new default.
   useEffect(() => {
-    setFile(null);
+    setFile(presetAudioFile || null);
     setIsPlaying(false);
     setTime(0);
     setLoadError('');
     if (currentTimeRef) currentTimeRef.current = 0;
+    // intentionally only react to section change, not to presetAudioFile
+    // identity changes within the same section
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionKey, currentTimeRef]);
 
   useEffect(() => {

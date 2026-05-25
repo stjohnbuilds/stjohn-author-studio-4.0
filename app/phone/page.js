@@ -387,6 +387,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
         chapter={activeChapter}
         section={activeSection}
         onBack={() => { setActiveSectionId(null); setActiveChapterId(null); }}
+        onSwitchSection={(id) => setActiveSectionId(id)}
         onSaveBook={pushBook}
       />
     );

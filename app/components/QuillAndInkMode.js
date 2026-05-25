@@ -387,9 +387,12 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               const result = await transcribeAudio(audio.file, (p) => {
                 setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { ...(prev[chapterId] || {}), status: 'running', progress: p.progress || 0, message: p.message || '' } }));
               });
-              // Align whisper words to chapter manuscript text.
+              // Align whisper words to chapter manuscript words. Same
+              // path Proof uses — see SessionsView line 1168-1169.
               const manuscriptText = chapter.plainText || htmlToPlainText(chapter.textHtml || '');
-              const alignment = alignTranscriptToManuscript(manuscriptText, result?.words || result?.segments || []);
+              const msWords = String(manuscriptText).split(/\s+/).filter(Boolean);
+              const whisperWords = result?.words || [];
+              const alignment = alignTranscriptToManuscript(msWords, whisperWords);
               const syncTable = buildDirectSyncTable(alignment);
               setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
             } catch (err) {

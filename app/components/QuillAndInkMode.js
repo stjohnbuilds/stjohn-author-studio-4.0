@@ -27,7 +27,6 @@ import {
   MODE_TOKENS,
   HomeBackPill,
   SaveBadge,
-  StickyTopBar,
   topBtnStyle,
   useDismissable,
 } from './ReaderChrome';

@@ -512,7 +512,7 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
 // Reader view — word render, drag-to-highlight, annotation popover + list
 // ===========================================================================
 
-function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, usesCustomDragRegion, updateProject }) {
+function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStatus, usesCustomDragRegion, updateProject }) {
   const chapters = project.chapters || [];
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
   const chapter = chapters[chapterIndex] || null;

@@ -591,6 +591,7 @@ function ScriptChapterReader({ book, chapter, section, onBack, onSwitchSection, 
   const [flagPanelOpen, setFlagPanelOpen] = useState(false);
   const [flagType, setFlagType] = useState('Edit');
   const [flagNote, setFlagNote] = useState('');
+  const currentAudioTimeRef = useRef(0);
 
   // Reset transient flag state when the user switches to a different section.
   useEffect(() => {

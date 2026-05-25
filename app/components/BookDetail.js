@@ -81,17 +81,43 @@ export default function BookDetail({
           offset). Previously 20px let action buttons sit under the
           sticky bar — the bug Marie screenshotted on book detail. */}
       <div style={{ width: containerWidth, margin: '0 auto', padding: '90px 0 80px' }}>
-        {actionButtons && (
+        {(actionButtons || onDelete) && (
           <div
             style={{
               display: 'flex',
               justifyContent: 'center',
+              alignItems: 'center',
               gap: 8,
               flexWrap: 'wrap',
               marginBottom: 14,
             }}
           >
             {actionButtons}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`${deleteLabel}?\nThis can't be undone.`)) onDelete();
+                }}
+                title={deleteLabel}
+                aria-label={deleteLabel}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  border: '1px solid #f0b8b8',
+                  background: 'white',
+                  color: 'var(--danger)',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                🗑
+              </button>
+            )}
           </div>
         )}
 

@@ -177,10 +177,14 @@ function renderChapter({
     const inSelection = !!selectedRange && idx >= selectedRange.start && idx <= selectedRange.end;
     const decoration = unitDecoration ? unitDecoration(idx) : null;
 
+    // No horizontal padding — `padding: 0 1px` used to add visible 2px
+    // gaps between adjacent words, breaking what should be one
+    // continuous highlight band into N stripes. The trailing whitespace
+    // (`after`) lives INSIDE this span, so when adjacent annotated
+    // words have the same background / underline they appear as a
+    // single uninterrupted band.
     const style = {
       cursor: 'pointer',
-      padding: '0 1px',
-      borderRadius: 3,
       transition: 'background-color 0.1s ease',
       position: 'relative',
     };

@@ -514,6 +514,26 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const plainText = chapter?.plainText || htmlToPlainText(chapter?.textHtml || '');
   const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
 
+  // Audio dock — Quill can play a local audio file while annotating.
+  // Audio NEVER leaves the device (Marie's rule). The URL is a local
+  // blob URL revoked when the chapter changes.
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [audioFileName, setAudioFileName] = useState('');
+  const audioFileInputRef = useRef(null);
+
+  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
+  // Clear audio when chapter changes — different chapter = different audio.
+  useEffect(() => {
+    setAudioUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setAudioFileName('');
+  }, [chapter?.id]);
+
+  function pickAudioFile(file) {
+    if (!file) return;
+    setAudioUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
+    setAudioFileName(file.name);
+  }
+
   // Selection state
   const [selectedRange, setSelectedRange] = useState(null);    // { start, end } (word indices, inclusive)
   const [popoverOpen, setPopoverOpen] = useState(false);

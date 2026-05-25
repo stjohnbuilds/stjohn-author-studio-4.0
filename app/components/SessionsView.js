@@ -1880,7 +1880,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
-        <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
+        <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'visible',marginBottom:'1rem' }}>
           {/* Compact top panel grid: Narrators (½) + Audiobook timing (½)
               on row 1, Bulk audio + editing meta as full-width rows
               underneath. Matches Marie's "4 small blocks at top" sketch. */}

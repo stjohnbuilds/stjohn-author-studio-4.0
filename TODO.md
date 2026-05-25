@@ -116,7 +116,7 @@ per mode = net code reduction. ~3-4 focused hours plus testing.
 
 Risk ranking (do in this order — lowest risk first, anchor mode last):
 
-- [ ] **Step 1 — Extract `<ChapterReader>` primitive.** New file
+- [x] **Step 1 — Extract `<ChapterReader>` primitive.** New file
       `app/components/ChapterReader.js`. Owns: shell (sticky bar slot,
       paper container at READER_WIDTH, top action slot, bottom dock
       slot), HTML walker (recursive renderNode for p / h1-h6 /

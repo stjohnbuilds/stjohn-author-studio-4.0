@@ -894,7 +894,7 @@ function BookDetailView({
               Tap the trash to remove a chapter you didn&apos;t mean to include. To add a chapter back, re-import the manuscript.
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
             {project.chapters.map((ch, i) => {
               const c = chapterCounts(ch);
               const p = c.total === 0 ? 0 : Math.round((c.assigned / c.total) * 100);

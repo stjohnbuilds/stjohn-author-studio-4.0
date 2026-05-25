@@ -789,7 +789,15 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const bgColor = getPhoneReaderBackgroundColor(readerSettings.background);
   const navColor = getPhoneReaderNavColor(readerSettings.background);
 
+  // Find a preset audio file for the current section out of the folder
+  // Marie picked for this book.
+  const activeBookAudioFiles = activeBook ? (audioFilesByBook[activeBook.id] || []) : [];
+
   if (activeChapter && activeBook && activeSection) {
+    const sectionAudioLabels = [activeSection.audioFileName, activeSection.title, activeChapter.title].filter(Boolean);
+    const presetAudioFile = activeBookAudioFiles.length
+      ? pickAudioFile(activeBookAudioFiles, sectionAudioLabels)
+      : null;
     return (
       <ScriptChapterView
         book={activeBook}
@@ -800,6 +808,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         onSwitchSection={(id) => setActiveSectionId(id)}
         onOpenSettings={onOpenSettings}
         onSaveBook={pushBook}
+        presetAudioFile={presetAudioFile}
       />
     );
   }

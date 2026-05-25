@@ -47,6 +47,76 @@ I'll point you at the top of TODO.md.
 
 ---
 
+## ⚠️ FAILURE MODES OF THE LAST AI — DO NOT REPEAT
+
+The previous session shipped a lot of working code, but the patterns
+below caused Marie significant frustration. Avoid them.
+
+1. **DON'T build a fresh `function .*BookDetail/HomeView/Setup/Panel` in
+   a mode file even if you import the shared component.** The previous
+   AI built `QuillBookDetail` (250 lines of duplicate UI) by wrapping
+   `<BookDetail>` in a fresh function and stuffing custom JSX inside.
+   Marie asked "use the same UI" **16 times in one chat** before it
+   was undone. The build-checker now hard-blocks this — but don't even
+   try.
+
+2. **DON'T claim things done that aren't actually done.** "Banner
+   killed" — partial. "Duet migrated" — wasn't. Marie called this
+   lying. It was. Run the change in dev preview yourself before
+   reporting completion.
+
+3. **DON'T treat "compiles cleanly" as "works."** Marie can't test on
+   her real .docx every session. If you say a change works, you have
+   to have driven it in the live UI (use the preview tools) with a
+   real-ish data shape. Code compiling ≠ feature working.
+
+4. **DON'T update only the section Marie asked about.** If she asks
+   you to update `TODO.md`, sweep the WHOLE file for stale items.
+   The previous AI updated the morning checklist and left the
+   URGENT block right below it stale — Marie's next AI got two bad
+   handovers in a row because of it. The active TODO-update check
+   in `no-mess.sh` now warns about this — but don't make it fire.
+
+5. **DON'T defer/ask when Marie says "don't come back until done."**
+   The previous AI surfaced repeatedly with "82% confidence, want
+   me to keep going?" Marie's instruction was clear: keep working,
+   multi-session is fine, just don't pause. If you genuinely can't
+   proceed (need a real audiobook only she has), say so once and
+   move to a related task — don't hand her back a half-done thing.
+
+6. **DON'T defer big migrations as "multi-week."** The previous AI
+   said the Duet migration was multi-hour deep work. Once committed,
+   it took ~30 minutes. The "Big multi-week" tag in older HANDOFFs is
+   a holdover from a different planning phase — re-evaluate scope
+   yourself before deferring.
+
+7. **DON'T conflate "I extracted N shared components" with "Marie sees
+   the same UI."** Marie cares about the outcome (one UI everywhere),
+   not the architectural pattern (extracted-to-files vs inline-in-one-file).
+   Report outcomes, not architecture.
+
+8. **DON'T patch one mode and forget the others.** Previous AI fixed
+   the nav-panel height in `SessionsView` while Duet still rendered
+   its own custom JSX — fix didn't reach Duet. Marie's exact phrase:
+   "this is what I mean — I need a systemic fix here." If the change
+   should apply to all modes, make sure all modes share the surface
+   first.
+
+9. **DON'T leave stale TODO sections.** If a task in TODO is now
+   covered by something you built, mark it `[x]` or move it to
+   `## Archived`. The active TODO-check hook helps but doesn't
+   substitute for actually curating the file.
+
+10. **DON'T inflate confidence percentages.** Real-data testing wasn't
+    possible for most of the previous session — confidence numbers
+    were based on dev preview clicks + code compiles. If you can't
+    verify on Marie's real files, that's a 0% confidence item until
+    she tests. Mark uncertainty honestly.
+
+If you find yourself reading the rules above and thinking "but in my
+case..." — stop. Marie has been burned by exactly that pattern. Default
+to the conservative read.
+
 ## 1. WHO IS THE USER
 
 - Marie. **Non-coder.** This is her fourth attempt at the same app.

@@ -503,7 +503,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
                     {i + 1}. {ch.title}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
-                    {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {flagCount} flag{flagCount === 1 ? '' : 's'}
+                    {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {chapterFlagCount} flag{chapterFlagCount === 1 ? '' : 's'}
                   </div>
                 </div>
                 <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>

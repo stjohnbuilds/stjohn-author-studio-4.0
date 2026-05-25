@@ -831,6 +831,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         chapters={chapters}
         chapterIndex={chapterIndex}
         onChangeChapter={onChangeChapter}
+        onBack={onBack}
         saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
         paperPaddingBottom={200}

@@ -44,10 +44,16 @@ Phone scope (deliberately small):
 
 ## Non-negotiable architecture rules
 
-1. **One shared reader.** Every mode (and the phone) renders the
-   manuscript through the same reader component. Different modes get
-   different highlight/tap behavior. **Never copy the reader.** Fix once
-   = fixed everywhere.
+1. **One shared reader.** Every mode that does word-level interaction
+   (Proof, Quill — and the phone) renders the manuscript through
+   `app/components/ChapterReader.js`. Modes pass `unitDecoration(idx)`
+   for per-word styling and pointer callbacks for interaction.
+   **Never copy the reader.** Fix once = fixed everywhere. The
+   build-checker hook hard-blocks any new inline `function .*Reader`
+   in a mode file that doesn't import `./ChapterReader`. Prep
+   (dialogue spans) and Duet (read-only block-highlight) keep their
+   own readers because their interaction models are structurally
+   different — documented in `docs/SHARED_COMPONENTS.md`.
 2. **One shared cloud-sync.** Every Supabase call goes through one
    package. Per-table CRUD helpers, not per-mode duplicates.
 3. **One shared audio engine.** Whisper, file matching, alignment,

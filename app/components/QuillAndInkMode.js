@@ -674,16 +674,16 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
       .map((a) => a.optionId)
       .filter(Boolean);
     setCharacterIds(charsAtRange);
-    const wordEl = event?.currentTarget || getQuillWordElement(start);
+    const wordEl = event?.currentTarget || getChapterReaderWordEl(start);
     setPopoverOpen(true);
-    setPopoverPos(computePopoverPos(wordEl));
+    setPopoverPos(computeChapterReaderPopoverPos(wordEl));
   }
 
   function openPopover() {
     if (!selectedRange) return;
-    const wordEl = getQuillWordElement(selectedRange.start);
+    const wordEl = getChapterReaderWordEl(selectedRange.start);
     setPopoverOpen(true);
-    setPopoverPos(computePopoverPos(wordEl));
+    setPopoverPos(computeChapterReaderPopoverPos(wordEl));
   }
 
   function saveAnnotation() {

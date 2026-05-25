@@ -1403,8 +1403,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         .reader-text::-webkit-scrollbar-thumb{background:transparent;border-radius:999px}
         .reader-text:hover::-webkit-scrollbar-thumb,.reader-text:focus-within::-webkit-scrollbar-thumb{background:rgba(140,124,148,0.42)}
         .reader-text::-webkit-scrollbar-thumb:hover{background:rgba(140,124,148,0.58)}
-        .reader-text .w{display:inline;cursor:default;border-radius:5px;padding:1px 2px;transition:background-color 0.12s ease, box-shadow 0.12s ease, filter 0.08s}
-        .reader-text .w:hover{filter:brightness(0.96)}
+        .reader-text [data-cr-unit]{border-radius:5px;transition:background-color 0.12s ease, box-shadow 0.12s ease, filter 0.08s}
+        .reader-text [data-cr-unit]:hover{filter:brightness(0.96)}
         .reader-text .w-cur{background:color-mix(in srgb, var(--accent-light) 88%, white);border-radius:6px;box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-border-strong) 65%, transparent), inset 0 -1px 0 var(--accent-border-strong)}
         .reader-text .w-flagged{text-decoration:underline;text-decoration-style:wavy;text-decoration-color:#e24b4a}
         .reader-text .w-search{background:#fff3a0;border-radius:3px}

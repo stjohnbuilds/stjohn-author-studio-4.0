@@ -56,6 +56,12 @@ import {
   DEFAULT_PHONE_READER_SETTINGS,
 } from './_lib/readerSettings.js';
 import { readPhoneProjectCache, writePhoneProjectCache } from './_lib/projectCache.js';
+import {
+  getAudioFiles,
+  pickAudioFile,
+  countSectionAudioMatches,
+  countSectionTotals,
+} from './_lib/audioLibrary.js';
 
 const QUILL_INK = '#834D5C';
 const QUILL_ACCENT = '#CB8AA0';

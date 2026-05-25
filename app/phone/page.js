@@ -145,6 +145,80 @@ function downloadText(filename, content, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// --- Flag auto-fill helpers (mirror the desktop's behaviour) ---
+
+function countWords(text) {
+  return (String(text || '').match(/\S+/g) || []).length;
+}
+
+// Global word index across the whole book, so the page map (which is
+// keyed by global manuscript word index) can be looked up.
+function globalWordIndexFor(book, targetSection, sectionLocalIdx) {
+  const explicit = Number(targetSection?.manuscriptWordStart);
+  if (Number.isFinite(explicit)) return explicit + Math.max(0, sectionLocalIdx);
+  let offset = 0;
+  for (const ch of book?.chapters || []) {
+    for (const sec of ch.sections || []) {
+      if (sec.id === targetSection?.id) return offset + Math.max(0, sectionLocalIdx);
+      const txt = sec.plainText || htmlToPlainText(String(sec.html || sec.textHtml || ''));
+      offset += countWords(txt);
+    }
+  }
+  return Math.max(0, sectionLocalIdx);
+}
+
+function pageNumberForWord(pageMap, globalWordIdx) {
+  const entries = (Array.isArray(pageMap) ? pageMap : [])
+    .filter((e) => Number.isFinite(Number(e?.wordStart)) && Number.isFinite(Number(e?.pageNumber)))
+    .sort((a, b) => Number(a.wordStart) - Number(b.wordStart));
+  if (!entries.length) return null;
+  const idx = Math.max(0, Number(globalWordIdx) || 0);
+  let pn = Number(entries[0].pageNumber) || 1;
+  for (const e of entries) {
+    if (Number(e.wordStart) > idx) break;
+    pn = Number(e.pageNumber) || pn;
+  }
+  return pn;
+}
+
+// Look up the start time (seconds into the audio) for a given word
+// index using the section's whisper alignment table, if present.
+function wordStartTimeFromAlignment(alignment, wordIdx) {
+  if (!Array.isArray(alignment) || wordIdx < 0 || wordIdx >= alignment.length) return null;
+  const w = alignment[wordIdx]?.wordObj;
+  if (!w) return null;
+  const start = Number(w.start);
+  return Number.isFinite(start) ? start : null;
+}
+
+// Map "character → narrator" using book.narratorColors. The narrator is
+// the person doing the recording (Illisa); the character is the POV
+// (Crescent). Marie cares about who's responsible — narrator wins.
+function narratorChoicesFor(book) {
+  const out = new Set();
+  out.add('Narrator');
+  out.add('Engineer');
+  (book?.narratorColors || []).forEach((nc) => {
+    const ch = (nc.characterName || '').trim();
+    const nr = (nc.narratorName || '').trim();
+    if (ch && nr && nr !== ch) out.add(`${ch} / ${nr}`);
+    else if (ch) out.add(ch);
+    if (nr) out.add(nr);
+  });
+  return Array.from(out);
+}
+
+function autoNarratorFor(book, section) {
+  const ch = (section?.characterName || '').trim();
+  const directSectionNarrator = (section?.narratorName || '').trim();
+  const byCharacter = (book?.narratorColors || []).find((nc) => (nc.characterName || '').trim() === ch);
+  const mappedNarrator = (byCharacter?.narratorName || '').trim();
+  // Priority: mapped narrator (Illisa) > directly-set narrator > character > fallback.
+  // Marie's note: when section.characterName === 'Crescent' and the
+  // narratorColors map says Crescent → Illisa, "Illisa" wins.
+  return mappedNarrator || directSectionNarrator || ch || 'Narrator';
+}
+
 export default function PhoneShell() {
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [authSession, setAuthSession] = useState(null);

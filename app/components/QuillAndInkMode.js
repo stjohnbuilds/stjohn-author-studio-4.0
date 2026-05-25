@@ -25,7 +25,6 @@ import ChapterReader, {
 } from './ChapterReader';
 import {
   MODE_TOKENS,
-  HomeBackPill,
   SaveBadge,
   topBtnStyle,
   useDismissable,

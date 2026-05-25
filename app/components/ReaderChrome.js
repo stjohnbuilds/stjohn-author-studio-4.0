@@ -53,6 +53,28 @@ export const MODE_TOKENS = {
   quill: { ink: '#834D5C', accent: '#E2B4C5', pastel: '#F8E2E8' },   // pastel pink (lightened)
 };
 
+// Per-mode override for the global --accent CSS variables defined in
+// app/globals.css. Spread the result into the style prop of a wrapper div
+// at the top of each mode's render — every descendant that reads
+// var(--accent) / var(--accent-soft) / etc. inherits the mode's pastel
+// palette instead of the global purple. Fixes Marie's "purple leak"
+// (HANDOFF.md Job 1).
+export function modeAccentVars(tone) {
+  const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
+  const ink = token.ink;
+  return {
+    '--accent': token.accent,
+    '--accent-dark': token.ink,
+    '--accent-soft': token.pastel,
+    '--accent-light': token.pastel,
+    '--accent-surface': token.pastel,
+    '--accent-border': token.ink + '33',
+    '--accent-border-strong': token.ink + '66',
+    '--accent-shadow': ink + '22',
+    '--accent-shadow-strong': ink + '44',
+  };
+}
+
 // Pick black/white text for a given hex background so contrast holds
 // when the accent gets pushed lighter. Uses WCAG relative luminance.
 // Returns a hex string usable as a CSS color.

@@ -5,6 +5,11 @@ import { findPdfPageForQuote } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';
 import AudioDock from './AudioDock';
 import { HomeBackPill } from './ReaderChrome';
+import {
+  renderChapterBody,
+  getChapterReaderWordEl,
+  READER_BODY_CLASS,
+} from './ChapterReader';
 // Audio-time ↔ manuscript-word-index helpers. Extracted to a shared
 // package so Quill, Duet, and the phone Script mode use the same
 // sync math without copy-pasting.

@@ -2067,9 +2067,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   border:'1px solid var(--accent)',background:'var(--accent)',color:'white',
                   cursor:'pointer',
                 }}
-                title="Transcribe — queue chapter transcriptions in the background"
+                title="Transcribe all — queue chapter transcriptions in the background"
               >
-                Transcribe
+                Transcribe all
               </button>
             )}
             <InfoTip tip={'This queues chapters for transcription one at a time. Progress now lives in the side panel under Queue, so you can leave and come back without losing the status.'} side="bottom" />

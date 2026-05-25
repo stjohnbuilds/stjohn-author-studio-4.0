@@ -1675,6 +1675,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               padding:'6px 7px 4px',
               marginBottom:'0.75rem',
               boxShadow:'0 10px 24px var(--accent-shadow)',
+              // Pinned-tab pattern: fixed height so the tab strip top
+              // never moves when switching between Nav and Queue.
+              // Content inside scrolls if it overflows. (See
+              // CLAUDE.md "Tab-top pinned" rule.)
+              display:'flex',
+              flexDirection:'column',
+              minHeight:240,
+              maxHeight:'40vh',
             }
           : {
               // Centered vertically — was top:88 spanning full height,
@@ -1685,7 +1693,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               top:'50%',
               transform:'translateY(-50%)',
               width:224,
-              maxHeight:'min(60vh, 560px)',
+              height:'min(60vh, 560px)',
               overflow:'hidden',
               background:'rgba(255,255,255,0.96)',
               backdropFilter:'blur(10px)',
@@ -1693,6 +1701,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               borderRadius:16,
               boxShadow:'0 16px 32px var(--accent-shadow-strong)',
               zIndex:980,
+              display:'flex',
+              flexDirection:'column',
             }}
       >
         <div style={{ padding:isInline ? 0 : '8px 8px 6px',borderBottom:isInline ? 'none' : '1px solid var(--accent-border)' }}>

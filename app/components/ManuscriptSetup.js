@@ -574,6 +574,95 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
     throw new Error(formatPdfError(failures, 'Could not scan page numbers automatically from this DOCX.'));
   }
 
+  // Called when the shared ImportFlow finishes Phase 1. Payload is the
+  // .docx bytes + already-parsed chapter list. Runs Proof's own scan
+  // (narrator colors, PDF page mapping) on the result and moves into
+  // the 'extras' phase so the user can map narrators + confirm save.
+  async function handleImportConfirm(payload) {
+    setLoading(true);
+    setPdfStatus('');
+    try {
+      const html = payload.fullHtml || '';
+      const docxBytes = payload.sourceDocxBytes instanceof Uint8Array
+        ? payload.sourceDocxBytes
+        : (payload.sourceDocxBytes ? new Uint8Array(payload.sourceDocxBytes) : null);
+      setFullHtml(html);
+      setFileName(payload.fileName || '');
+      if (payload.title) setBookTitle(payload.title);
+      if (docxBytes) setDocxSource({ fileName: payload.fileName || '', data: docxBytes });
+      // ImportFlow already lets the user choose chapter level + scene
+      // splitting. We adopt their choice via the parsed chapter list —
+      // turning the ImportFlow chapter shape into Proof's section shape.
+      const adopted = (payload.chapters || []).filter(c => c.included !== false).map(c => ({
+        id: c.id || uid(),
+        title: c.title,
+        sections: [{
+          id: uid(),
+          title: c.title,
+          html: c.html || '',
+          audioFileName: null,
+          flags: [],
+          completed: false,
+          characterName: null,
+          narratorName: null,
+          isCharPOV: false,
+        }],
+      }));
+      setChapters(withReviewState(adopted));
+      // Try to recover scene-split setting by sniffing splitGroup field.
+      const wasSplit = (payload.chapters || []).some(c => c.splitGroup);
+      setSplitScenes(!!wasSplit);
+      // Scan narrator highlight colours — same logic handleDocx uses.
+      try {
+        const htmlFound = scanHighlights(html);
+        let docxFound = [];
+        if (docxBytes) {
+          try { docxFound = await extractDocxHighlightColors(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength)); }
+          catch { docxFound = []; }
+        }
+        const found = mergeHighlightSets(htmlFound, docxFound);
+        setScannedColors(found);
+        setNarratorColors([{ hex: DEFAULT_MANUAL_COLORS[0], cls: null, label: 'Custom', characterName: '', narratorName: '' }]);
+      } catch (e) {
+        console.warn('Narrator scan failed:', e);
+        setScannedColors([]);
+      }
+      // Manuscript page map from rendered DOCX XML.
+      if (docxBytes) {
+        try {
+          const jszipMod = await import('jszip');
+          const JSZip = jszipMod.default || jszipMod;
+          const zip = await JSZip.loadAsync(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength));
+          const documentXml = await zip.file('word/document.xml')?.async('string');
+          setManuscriptPaging(extractRenderedPageMapFromDocxXml(documentXml) || null);
+        } catch (e) {
+          console.warn('Manuscript paging extraction failed:', e);
+        }
+      }
+      // Optional automatic PDF page map (Electron only).
+      if (docxBytes && window.electron?.convertDocxToPdf) {
+        try {
+          setPdfStatus('Generating page map from your DOCX…');
+          const converted = await extractDocxPdfPaging(docxBytes, payload.fileName || 'manuscript.docx');
+          const nextPdfPaging = converted.pdfPaging;
+          if (nextPdfPaging) {
+            setPdfPaging(nextPdfPaging);
+            setPdfFileName(converted.fileName || (payload.fileName || '').replace(/\.docx$/i, '.pdf'));
+            setPdfStatus('Page numbers scanned automatically.');
+          }
+        } catch (pdfError) {
+          console.warn('Automatic DOCX-to-PDF conversion failed:', pdfError);
+          setPdfStatus(`Could not scan page numbers automatically: ${pdfError.message}`);
+        }
+      }
+      setPhase('extras');
+    } catch (e) {
+      console.warn('Could not finalize import:', e);
+      alert('Could not finalize import: ' + (e?.message || e));
+    }
+    setLoading(false);
+  }
+
   async function handleDocx(file) {
     setLoading(true);
     setPdfStatus('');

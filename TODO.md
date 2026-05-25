@@ -136,7 +136,7 @@ Risk ranking (do in this order — lowest risk first, anchor mode last):
       **No mode migrations in this step** — just build the primitive +
       a smoke test that renders some HTML.
 
-- [ ] **Step 2 — Migrate Quill** to use `<ChapterReader>`. Lowest risk
+- [x] **Step 2 — Migrate Quill** to use `<ChapterReader>`. Lowest risk
       because Quill was just rewired and the primitive's API was
       designed from Quill's shape. Delete `renderChapterAsWords` +
       word selection state from `QuillAndInkMode.js`. Keep

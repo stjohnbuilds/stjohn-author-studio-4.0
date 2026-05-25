@@ -1850,6 +1850,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         title={book.title}
         subtitle={`${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags · ${book.fileName}`}
         onBackHome={onBack}
+        usesCustomDragRegion={usesCustomDragRegion}
         containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>

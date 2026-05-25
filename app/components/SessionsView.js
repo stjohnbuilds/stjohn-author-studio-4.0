@@ -1877,9 +1877,12 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
         <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
-          <div style={{ padding:'11px 14px 14px',display:'grid',gap:9 }}>
+          {/* Compact top panel grid: Narrators (½) + Audiobook timing (½)
+              on row 1, Bulk audio + editing meta as full-width rows
+              underneath. Matches Marie's "4 small blocks at top" sketch. */}
+          <div style={{ padding:'11px 14px 14px',display:'grid',gap:9,gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }}>
             {editingMeta && (
-              <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 12px' }}>
+              <div style={{ gridColumn:'1 / -1',background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 12px' }}>
                 <div style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)',marginBottom:10 }}>Edit book + narrator mappings</div>
                 <div style={{ marginBottom:10 }}>
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Book title</div>

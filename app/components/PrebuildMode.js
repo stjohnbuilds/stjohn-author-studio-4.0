@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 // Shared upload + chapter picker. Same component every mode uses, so a
 // fix to the chapter-checkbox list lands everywhere at once.
 import ImportFlow, { parseChaptersFromHtml } from './ImportFlow';
+import BookDetail from './BookDetail';
 import {
   STYLE_MAP,
   convertShadingToHighlight,

@@ -36,12 +36,7 @@ mode-specific extras (Proof audio queue, Duet scan navigator, etc.).
 
 These are tracked in `TODO.md` as next-session refactors:
 
-- **Reader** — four mode files have their own word-render + selection logic. `ReaderChrome` only shares the paper/font/sticky bar.
-  - Proof: `ProofingReader.js` (1546 lines, includes audio sync + flag tapping)
-  - Prep: `SectionBody` inside `PrepManuscriptMode.js` (dialogue spans + character assignment)
-  - Duet: inline in `PrebuildMode.js` (duet markers in audio)
-  - Quill: `QuillReaderView` inside `QuillAndInkMode.js` (drag-to-highlight + annotation popover)
-  - Plan: extract a shared `ChapterPaper` that takes per-mode `renderWord` + interaction callbacks.
+- **Reader (Proof migration)** — Quill uses `<ChapterReader>` as of 2026-05-24. Proof still has its own `ProofingReader.js` (1546 lines, audio sync + flag tapping) and is logged for next-session migration; high risk because it's Marie's anchor mode. Prep and Duet stay on their own readers permanently because their interaction models are structurally different (Prep = dialogue spans, Duet = read-only block highlights).
 - **Home view** — each mode has its own project-list page. Quill's is the simplest. Extract a `ModeHome` component using Quill as the baseline.
 - **Confirm dialogs** — every mode uses `window.confirm()`. Replace with a shared `<ConfirmDialog />` for visual consistency.
 

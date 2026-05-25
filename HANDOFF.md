@@ -1,282 +1,327 @@
-# HANDOFF — StJohn Author Studio 4.0 — 2026-05-24 (overnight + QoL pass)
+# HANDOFF — StJohn Author Studio 4.0 — 2026-05-24 (late evening)
 
-Fresh Claude session: read this file first. Top to bottom. Then `CLAUDE.md`,
-then `TODO.md`. Don't write code before you've read all three.
-
-This handoff replaces the earlier one — Claude ran overnight on
-2026-05-24 and landed login, Quill & Ink desktop mode, the Supabase
-cloud sync, and a phone scaffold. Then did a quality-of-life pass:
-bug fixes, dead-code cleanup, edge cases. Marie is reviewing in the
-morning, so most of the test passes are still hers to do.
+> **Triggered by Marie's handover hook.** This file overwrites the
+> previous handoff. The 8 sections below follow her bootstrap-doc
+> protocol exactly (CLAUDE.md → Hook rules → Handover trigger).
 
 ---
 
-## 0. Two-line summary
+## ⎘ COPY-PASTE BOOTSTRAP (paste into a fresh chat)
 
-All four desktop modes now exist — Quill & Ink shipped overnight. Login
-is in front of the app. Phone web companion shell is live. Cloud sync
-to Supabase is wired for Quill (audio paths stripped before upload).
+```
+I'm Marie. This is my StJohn Author Studio 4.0 desktop+phone app —
+fourth attempt. The project lives at ~/Dev/StJohn-Author-Studio-4.0.
+
+Read these in this order before doing anything:
+
+1. HANDOFF.md (this file) — top to bottom. Section 1 (WHO IS THE USER)
+   and Section 2 (HARD RULES) matter most. If you skip them I will be
+   upset.
+2. CLAUDE.md — project rules. Read all of it including the Hook rules,
+   the Deep-check trigger and the Handover trigger sections.
+3. TODO.md — the URGENT section at top, then Active.
+4. docs/SHARED_COMPONENTS.md — the cheat sheet of shared components.
+   If you're about to write inline UI in a mode file, you almost
+   certainly shouldn't.
+5. /Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/
+   — my auto-memory files. Includes "always give run command".
+
+The most important rule: I am NOT technical. Plain English, short
+bullets, no jargon. Banned vocab in section 2. Talk like I'm 10.
+
+Second most important: NO duplication. One source of truth for
+everything. Mode = verb only (flag / annotate / duet-mark /
+dialogue-tag). The shared components live in app/components/ and
+packages/ — use them, never copy them.
+
+Third: every response that touches files MUST end with a
+"Files I changed:" footer. Non-negotiable.
+
+When you're ready, just say "I've read everything, what's next?" and
+I'll point you at the top of TODO.md.
+```
 
 ---
 
-## 1. How to launch
+## 1. WHO IS THE USER
+
+- Marie. **Non-coder.** This is her fourth attempt at the same app.
+- Plain English, short sentences, **bullets only when truly parallel.**
+  Default 2-4 sentences.
+- **Talk like she's 10.** Friendly, not condescending. No "actually" or
+  "as you can see."
+- **Banned coder vocabulary** (do not say): refactor, abstraction,
+  composition, polyfill, hydrate, memoize, lift state, scope guard,
+  prop drilling, dependency injection, side-effect, idempotent. If
+  you find yourself reaching for one of these, you're doing it wrong.
+- She is **emotionally exhausted** by this rebuild. Don't add to the
+  cognitive load. Every response should make her brain quieter, not
+  busier.
+
+## 2. HARD RULES (these have all bitten before — do not break them)
+
+- **No dual-write.** ONE source of truth per piece of UI. Never copy
+  a component "with small tweaks" into a mode file. If a shared
+  component doesn't fit, extend it with a prop or a slot.
+- **No self-certifying.** When she says "deep check" / "scrub it" /
+  "battery test" / "verify everything," run the 7-step protocol from
+  CLAUDE.md before claiming done. Confidence percent + uncertainty
+  list at the end. No exceptions.
+- **Plain English only.** See banned vocab above.
+- **"Files I changed:" footer is mandatory** on every response that
+  touches files. Bullet list with each path + one-line "what and why."
+  This is how Marie tracks what's happening.
+- **Always give clickable links** where possible — paths in backticks
+  she can click in her terminal/editor.
+- **Bottom toolbar is sacred** — it's the audio play/pause/scrub dock
+  in the reader. Do NOT put annotation lists, flag lists, or any
+  other secondary content there. Annotations / flags live in a
+  popout button in the top nav.
+- **Double-confirm destructive actions.** Delete project, remove all
+  annotations, etc. — two clicks. `window.confirm` works for now;
+  shared `<ConfirmDialog />` is TODO.
+- **Never suggest stopping or pausing** unless you genuinely cannot
+  proceed. Marie has heard "let's pause and check" too many times.
+  Keep going. Multi-turn execution without check-ins is the default.
+- **Push is fine without asking.** git push to main, GitHub. She
+  doesn't need to authorise each push. (She DOES need to authorise
+  Vercel deploys — only `vercel --prod` waits.)
+- **End every code-touching response with the run command** in a code
+  block + "paste and hit Enter":
+  ```
+  cd ~/Dev/StJohn-Author-Studio-4.0 && npm start
+  ```
+
+## 3. READ THESE FILES (IN ORDER)
+
+1. `~/Dev/StJohn-Author-Studio-4.0/HANDOFF.md` (this file)
+2. `~/Dev/StJohn-Author-Studio-4.0/CLAUDE.md` — project rules + Hook
+   rules + Deep-check trigger + Handover trigger sections
+3. `~/Dev/StJohn-Author-Studio-4.0/TODO.md` — start with URGENT section
+4. `~/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md` — what's
+   already shared; what's NOT shared yet
+5. `~/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md` — the
+   architectural plan
+6. `/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/MEMORY.md`
+   — Marie's auto-memory (always-give-run-command feedback)
+7. `~/Dev/StJohn-Author-Studio-4.0/.claude/hook-activity.log` — proof
+   the hooks are running. Tail it to see recent activity.
+
+**Reference apps (READ-ONLY — never edit):**
+- `~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/Script and Sync 3.0/`
+- `~/Library/CloudStorage/.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/`
+- `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/`
+
+## 4. BROAD VISION (the dream)
+
+One desktop app + one phone companion that **completely handles Marie's
+self-published audiobook + special-edition print workflow.** Four
+modes (Proof Listen, Prep Manuscript, Duet Prep, Quill & Ink) that
+share ONE brain — one reader, one audio engine, one cloud sync. The
+mode is just a verb. **A finished writer should be able to take a
+manuscript from .docx import all the way to a polished audiobook +
+InDesign print file in this one app, with the phone for capture on the
+go.**
+
+## 5. CURRENT STATE
+
+- **% done overall:** ~73% (weighted).
+- **Latest commit SHA on `main`:** `6059f27` (`auto-backup: before
+  Claude edit 2026-05-24 22:45:25`). All recent commits are auto-backups
+  from the git-backup hook — Marie hasn't done a manual squash commit
+  in a while; safe to push as-is or squash before push.
+- **Branch state:** `M CLAUDE.md` (handover protocol section added
+  this turn). Otherwise clean working tree.
+- **Test count:** **0 dedicated `.test.js` files.** Verification has
+  been manual + the build-checker hook + dev preview. Adding a real
+  test suite is a future job (not on top-5).
+- **Typecheck status:** **N/A** — JS project, no TypeScript.
+  `node --check` runs via the build-checker hook on every edited .js
+  file, but JSX isn't validated by `node --check` so it's a weak
+  signal.
+- **Live URL:** **NOT DEPLOYED YET.** No Vercel deploy exists for the
+  phone. Desktop runs locally via `npm start` (Electron). When the
+  phone deploy lands, the URL will be on Vercel — until then, anyone
+  who tells you "the live URL is X" is wrong.
+- **Recent work (this session):** Quill rebuilt around shared
+  `ChapterReader` + `BookDetail`. Duet's book detail wrapped in the
+  same `BookDetail`. Audio engine pure helpers extracted to
+  `packages/audio-engine`. Deep-check + handover hooks installed.
+  Dev skip-login button added so AIs can drive the app without
+  Marie's password.
+
+## 6. TOP 5 NEXT JOBS (priority order)
+
+1. **Global accent override per active mode (kill purple leak).**
+   `Easy.` Wrap each mode's render in a div that overrides
+   `--accent` / `--accent-dark` / `--accent-soft` / `--accent-border`
+   CSS vars with the mode's tokens from `MODE_TOKENS[tone]`. Right
+   now Duet renders with the global purple `var(--accent)` instead
+   of its blue. Marie sees the wrong colour on every `var(--accent)`
+   button inside Duet (and same risk in Proof, Quill).
+
+2. **Kill the inline-card gradient in Duet + Proof.**
+   `Easy.` Every card header in `PrebuildMode.js` and
+   `SessionsView.js` uses `linear-gradient(180deg, var(--accent-soft)
+   0%, #ffffff 100%)`. Marie has said many times she wants the FLAT
+   Quill look everywhere. Find-and-replace those gradients with flat
+   `var(--accent-soft)` or flat white.
+
+3. **Migrate Proof's `SessionsView` to render shared `BookDetail`.**
+   `Big multi-week.` 2385 lines, anchor mode, deeply coupled to
+   audio sync. Strategy: wrap shell in `<BookDetail>` (same as Duet
+   just did), pass all the inline panels (audio queue, narrators,
+   audiobook timing, bulk audio) via `prePanels`. Full real-file
+   test pass required after. **Highest risk job in the queue.**
+
+4. **Migrate Proof's reader to `<ChapterReader>`** + add shared
+   `<AudioDock>` to ChapterReader's bottom slot. `Big multi-week.`
+   Audio sync stays mode-side; ChapterReader handles word render +
+   click. Once this lands, **Quill gains audio for free** because
+   ChapterReader's AudioDock works for any mode.
+
+5. **Marie's real-file end-to-end test pass on Quill** post-migration.
+   `Marie.` She opens a real .docx, drag-selects, adds annotations,
+   exports CSV + InDesign .jsx, runs the .jsx in InDesign. The only
+   way to know the unification didn't regress Quill's actual
+   workflow.
+
+## 7. WHAT ONLY MARIE CAN DO
+
+- **Sign up for the real Supabase account** (already done — `evcusovtjfypfyfvnooy`
+  "Typing and Tomes 2.0 DATA"). Dev skip-login bypasses this for the
+  AI but cloud sync still needs Marie's real auth.
+- **Real-file tests on her own manuscripts + audiobooks.** AIs cannot
+  open her .docx via file picker or attach her audio.
+- **Design calls** — pastel-vs-rich, layout decisions, colour swaps
+  she hasn't pre-approved. When in doubt, ask.
+- **Push authorisation** — she's said push is fine without asking, but
+  destructive pushes (force-push to main) still need explicit OK.
+- **Vercel deploy authorisation** — `vercel --prod` always waits.
+- **InDesign runs** — only Marie has InDesign installed to verify the
+  exported `.jsx` actually does what she needs.
+- **Approving the unification scope** — when the AI proposes a refactor
+  that touches >1 mode file at once, get Marie's go before starting.
+
+## 8. WHERE THINGS LIVE
+
+```
+~/Dev/StJohn-Author-Studio-4.0/
+├── HANDOFF.md                      ← this file
+├── CLAUDE.md                       ← rules + hook protocols
+├── TODO.md                         ← URGENT section at top
+├── app/
+│   ├── page.js                     ← auth gate + mode router
+│   ├── components/
+│   │   ├── ChapterReader.js        ★ THE shared reader (Quill uses it,
+│   │   │                             Proof migration pending)
+│   │   ├── BookDetail.js           ★ THE shared book-detail page
+│   │   │                             (Quill + Duet use it, Proof pending)
+│   │   ├── ReaderChrome.js         ★ Shared sticky bar, save badge,
+│   │   │                             MODE_TOKENS, pickContrastText,
+│   │   │                             topBtnStyle
+│   │   ├── ImportFlow.js           ★ Shared .docx upload + chapter picker
+│   │   │                             (Quill, Prep, Duet use it; Proof has
+│   │   │                             its own ManuscriptSetup.js — to migrate)
+│   │   ├── LoginScreen.js          ← with dev skip-login button
+│   │   ├── ProofingReader.js       ← Proof's reader (1546 lines, to migrate)
+│   │   ├── SessionsView.js         ← Proof's book detail (2385 lines, to migrate)
+│   │   ├── PrebuildMode.js         ← Duet (book detail uses shared BookDetail)
+│   │   ├── PrepManuscriptMode.js   ← Prep (intentionally separate)
+│   │   ├── QuillAndInkMode.js      ← Quill (fully on shared components)
+│   │   └── ManuscriptSetup.js      ← Proof's BookSetup (to migrate to ImportFlow)
+│   └── phone/page.js               ← phone scaffold
+├── packages/
+│   ├── audio-engine/index.js       ← buildSyncTable, getMsIdxAtTime,
+│   │                                 getAudioTimeForMsIdx (pure helpers)
+│   ├── cloud-sync/                 ← Supabase client + Quill sync wired;
+│   │                                 Proof sync TODO
+│   ├── manuscript-engine/          ← DOCX + dialogue detection (Prep)
+│   └── quill-engine/               ← annotation tree + InDesign exporter
+├── docs/
+│   ├── SHARED_COMPONENTS.md        ← what's shared, what's not, how to extend
+│   ├── BUILD_PLAN_V4.md
+│   ├── FRONT_FUNCTION_TREE.md
+│   ├── INTERNAL_FUNCTION_TREE.md
+│   └── WIRING_MATRIX.md
+└── .claude/
+    ├── settings.json               ← hooks registered here
+    ├── hooks/
+    │   ├── _log.sh                 ← shared logger
+    │   ├── context-check.sh        ← prompt-submit reminder
+    │   ├── deep-check-trigger.sh   ← fires on "deep check" / "scrub it" etc.
+    │   ├── handover-trigger.sh     ← fires on "make a handover" etc.
+    │   ├── build-checker.sh        ← syntax check + duplication guard
+    │   ├── file-tracker.sh         ← logs every Edit/Write
+    │   ├── git-backup.sh           ← auto-commit before each edit
+    │   └── no-mess.sh              ← post-Stop checklist
+    ├── hook-activity.log           ← gitignored; tail to see hooks firing
+    ├── blocked-edits.log           ← gitignored; build-checker block log
+    └── edit-log.txt                ← gitignored
+```
+
+### Commands Marie actually uses
 
 ```
 cd ~/Dev/StJohn-Author-Studio-4.0 && npm start
 ```
+↑ Paste into Terminal, hit Enter. Launches Electron + Next together.
 
-Paste into Terminal, hit Enter. Cmd+Q to close.
-
-Marie does NOT use the terminal naturally. Always give her the exact
-paste-line + "hit Enter" reminder.
-
-Tests:
 ```
 npm test
 ```
+↑ No tests yet (0 `.test.js` files). Currently a no-op for verification.
 
-Phone preview (web):
 ```
 npm run dev
 ```
-Then visit `http://localhost:3000/phone` in a browser.
+↑ Web preview only (Next dev server on `http://localhost:3000`). Use
+this when verifying the phone (`/phone`) or when the dev skip-login
+button is needed.
+
+```
+npm run release:mac
+npm run release:win
+```
+↑ Packaged builds. Writes to `dist/` then `Script and Sync Releases/`.
+
+```
+cat ~/Dev/StJohn-Author-Studio-4.0/.claude/hook-activity.log
+```
+↑ Verify hooks are firing. Should show timestamps for every recent edit.
+
+```
+cat ~/Dev/StJohn-Author-Studio-4.0/.claude/blocked-edits.log
+```
+↑ Empty = nothing was blocked. Non-empty = the build-checker caught a
+duplication attempt; the log lists which file + what shared component
+should have been used.
+
+```
+git log --oneline -10
+```
+↑ Recent commits (mostly auto-backups). Latest SHA at time of writing:
+`6059f27`.
 
 ---
 
-## 2. What's new since the last handoff (overnight 2026-05-24)
+**Summary of what changed since the last handover (in Marie's English):**
 
-### Login screen (NEW)
-First screen on launch. Email + password, show/hide eye icon, forgot
-password, create account. Pastel mauve aesthetic matching the home.
-Sign-out lives at the bottom of the home page once signed in.
-
-- File: `app/components/LoginScreen.js`
-- Gate logic: `app/page.js` (auth state effect + early return)
-- Sign-out: bottom of `HomePage` in `app/page.js`
-- Supabase URL + publishable key live in `.env.local` (gitignored)
-
-### Shared cloud-sync package (NEW)
-Single shared package every mode + the phone talk to.
-
-- `packages/cloud-sync/client.js` — one Supabase client, lazy
-- `packages/cloud-sync/account.js` — sign-in / sign-up / forgot /
-  resend / sign-out (ported from the alpha)
-- `packages/cloud-sync/audio-guard.js` — strips audio paths before any
-  upload. Only the bare filename may travel. CLAUDE.md emphasizes this.
-- `packages/cloud-sync/quill-sync.js` — push/pull/delete for the three
-  Quill tables (projects, chapters, annotations). Replace-on-write
-  strategy so removed chapters/annotations actually disappear from
-  Supabase.
-
-### Quill & Ink desktop mode (NEW)
-Full port from the archived alpha. The 4-mode toggle now has Quill
-enabled (no longer "Coming in Phase 8").
-
-- Home view → projects list, "+ New project" button (pink accent)
-- ImportFlow (shared) handles .docx upload + chapter picker
-- Book detail → chapter list + export buttons (CSV + InDesign .jsx)
-- Reader: word-by-word rendering, drag-to-highlight, "+" / "✎" icons
-  on selection, annotation popover (Image / Highlight / Emotion +
-  attach characters), inline note, save button
-- Annotation list sidebar with delete + jump-to
-- Quill engine ported intact: annotation tree, normalize helpers, CSV
-  + full InDesign JSX exporter (15.7 KB script for the InDesign Run
-  Script panel)
-- Local persistence via Electron file system (`read-quill-data` /
-  `write-quill-data` handlers added to `main.js` + `preload.js`,
-  written to `quill-projects.json`)
-- Cloud sync fires in the background whenever you save (no-op if
-  not signed in, fails silently if Supabase is down)
-
-### Phone companion (NEW scaffold)
-Lives at `/phone` (`app/phone/page.js`). Web-only, deploy to Vercel.
-
-- Same login as desktop
-- Service picker: Quill (working) / Proof Listen (placeholder)
-- Project list pulled from Supabase
-- Chapter list per project
-- Chapter reader with tap-to-annotate (popover, save)
-- Audio + Script Mode flag-tapping + CSV export — NOT in this
-  overnight pass. Marie's morning todo.
-
-### Other plumbing
-- `@supabase/supabase-js@^2` installed
-- `.env.local` added with the Supabase URL + publishable key.
-  `.env*.local` added to `.gitignore` so it's never committed.
-- `main.js` + `preload.js` got `read-quill-data` / `write-quill-data`
-  IPC handlers and file paths next to the prep ones.
-
-### QoL pass — bugs caught and fixed
-- **Character markers no longer duplicate on edit.** Opening an existing
-  annotation now pre-ticks the character markers at the same range, and
-  saving filters out the old ones before re-adding. Without this, every
-  re-save left orphan duplicate markers in `project.annotations`.
-- **Cloud push now writes back the generated `cloudId`** to the local
-  project. Without this, every save inserted a brand-new row in
-  Supabase instead of upserting in place. The first save inserts +
-  captures the UUID; subsequent saves upsert.
-- **Annotation popover clamps to the viewport** — it used to be
-  positioned at `left: popoverPos.left - 120` with only a floor at
-  `12px`. Annotating words near the right edge or in a narrow window
-  could push it off-screen. Now also has a ceiling at
-  `window.innerWidth - 340`.
-- **Removed the "Re-import .docx" button on the Quill book detail.**
-  It looked like "replace the manuscript" but actually created a new
-  duplicate project, leaving the old one with all its annotations
-  orphaned. Marie can use "+ New project" on Quill home if she wants
-  another manuscript.
-- **Phone "Proof Listen" service tile is visibly disabled** (greyed,
-  not-allowed cursor, subtitle says "Coming next"). Used to look
-  clickable and `alert()` the user — bad UX.
-- **Phone account chip hides when no email** instead of rendering "?",
-  and the "Signed in as ..." line hides when empty.
-- **Removed dead `error` state from QuillAndInkMode** — was set to
-  empty string and never updated, but rendered a `<div>` that never
-  showed. Pure dead code.
-
----
-
-## 3. State of the modes
-
-| Mode | Status |
-|---|---|
-| **Login screen** | Built. Marie hasn't logged in for real yet — overnight Claude used a temporary bypass that's been removed. **First task in the morning: create an account.** |
-| **Proof Listen** | Inherited working from Script and Sync 3.0. Unchanged overnight. |
-| **Prep Manuscript** | Polished 2026-05-24 day session. Unchanged overnight. |
-| **Duet Prep** | Unchanged overnight. Inherited from SaS 3.0. |
-| **Quill & Ink** | Built overnight. Local save + cloud sync. Annotation popover, drag-to-highlight, CSV + InDesign export. **Marie needs to test on a real .docx.** |
-| **Phone** | Scaffold built. Login + project list + chapter view + tap-to-annotate. Audio + Script-mode flagging not yet ported. |
-| **Cloud sync (Quill)** | Wired. Pushes after every save when signed in. Audio paths stripped per CLAUDE.md. Marie should sign in then save once to confirm round-trip. |
-| **Cloud sync (Proof / Prep)** | Not wired yet. Tables exist; the helper file pattern is set. Same as Quill but for `script_sync_projects` / `_section_transcriptions` / `_flags`. |
-
----
-
-## 4. What Marie needs to do in the morning
-
-In order:
-
-1. **Sign up.** Launch the app (`cd ~/Dev/StJohn-Author-Studio-4.0 && npm start`).
-   Click "Don't have an account? Create one" and use a real email. Confirm
-   the email when Supabase sends the link. Sign in.
-2. **Click into Quill.** Top-left mode toggle → Quill. Click "+ New
-   project". Upload a .docx Marie wants to annotate.
-3. **Try one annotation.** In the reader, click-drag across a few words.
-   Tap the pink "+" button that appears above. Pick a class (Highlight,
-   Emotion, Image). Add a note. Save.
-4. **Test the InDesign export.** Back to the project detail. Click
-   "Export CSV + InDesign". Open the .jsx in InDesign's Scripts panel,
-   then run it against the matching layout. Marie's eyes on whether the
-   InDesign output is what she needs.
-5. **Open the phone.** In a browser on the same machine for now:
-   `http://localhost:3000/phone`. Sign in with the same account. The
-   Quill project should appear. Click into a chapter, tap a word, add
-   a phone-side annotation. Reload the desktop — it should appear there.
-
-If step 5 doesn't work, the cloud sync wiring is the suspect. Check the
-Supabase project `evcusovtjfypfyfvnooy` for new rows in `quill_projects`
-/ `quill_chapters` / `quill_annotations`.
-
----
-
-## 5. What's still NOT done
-
-- **Cloud sync for Proof & Prep.** Quill is the only mode wired. Marie
-  is fine with Proof / Prep being desktop-only for now (CLAUDE.md says
-  so), but if she wants Proof flags on the phone, that's the next step.
-- **Phone audio + Script-mode flag-tapping.** The phone shell + Quill
-  annotation flow is in; the Script mode (proof listen) flag tapping
-  and the local audio picker are not ported yet.
-- **Phone CSV export.** Not built.
-- **Audio sync in Quill reader.** Not built. Quill works without audio
-  for now. If Marie wants audio while annotating, that's a future task.
-- **Search inside chapter in Quill.** Not built. Marie can use cmd+F
-  for now.
-- **InDesign export — Marie's eyes haven't seen the output yet.** The
-  exporter is ported byte-for-byte from the alpha so it should work,
-  but until Marie runs it against a real InDesign doc, we can't call
-  it done.
-- **Search-inside-chapter in Quill.** Not built. ProofingReader has
-  search; Quill borrows it later.
-- **`ProofingReader` → `ReaderChrome` migration.** Same as before.
-  Refactor task. No behaviour change. Logged in `TODO.md`.
-
----
-
-## 6. Files Claude touched overnight (Marie's "I see new code" reassurance)
-
-- `app/page.js` — auth gate + sign-out + Quill route
-- `app/components/LoginScreen.js` (new)
-- `app/components/QuillAndInkMode.js` (new)
-- `app/phone/page.js` (new)
-- `packages/cloud-sync/` (new — client, account, audio-guard,
-  quill-sync, index)
-- `packages/quill-engine/` (new — normalize, annotations, exporters,
-  index)
-- `main.js` + `preload.js` — IPC handlers for Quill
-- `.env.local` (new, gitignored)
-- `.gitignore` — added `.env*.local`
-- `package.json` / `package-lock.json` — `@supabase/supabase-js`
-  installed
-
----
-
-## 7. Reference folders (READ-ONLY)
-
-Unchanged from before. Marie's reference apps under
-`~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/`:
-
-| Path | What it is |
-|---|---|
-| `Script and Sync 3.0/` | Primary base. The 4.0 repo was copied from here. |
-| `StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/` | Alpha Quill. Source of the overnight Quill port. |
-| `StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/` | Phone scaffold. Source of the overnight phone port. |
-| `StJohn Author Studio 2.0 - ARCHIVED 2026-05-23/supabase/` | The migration that created Marie's six tables. Useful schema reference. |
-| `StJohn Author Apps/packages/ui/src/cloudUsage.js` | Where the Supabase URL + publishable key live (now copied into `.env.local`). |
-
----
-
-## 8. Supabase
-
-Project: `evcusovtjfypfyfvnooy` ("Typing and Tomes 2.0 DATA").
-
-Tables (all exist, all have RLS):
-- `script_sync_projects`
-- `script_sync_section_transcriptions`
-- `script_sync_flags`
-- `quill_projects`         ← Quill desktop pushes to this
-- `quill_chapters`         ← Quill desktop pushes to this
-- `quill_annotations`      ← Desktop and phone both write here
-
-URL + publishable key are in `.env.local`. **Never commit that file.**
-
----
-
-## 9. Marie's rules — read these before you touch anything
-
-1. **Plain English.** Short bullets. No code-speak unless she asks. 2–4
-   sentences default.
-2. **Don't check in between passes.** When she says "go", execute end
-   to end.
-3. **Use shared engines. Never duplicate.** `packages/manuscript-engine/`,
-   `packages/quill-engine/`, `packages/cloud-sync/`,
-   `app/components/ReaderChrome.js`, `app/components/ImportFlow.js`.
-4. **A feature is "done" when Marie clicks it on a real file.** Tests
-   passing is not enough.
-5. **End every code change with the run command in a code block.**
-   `cd ~/Dev/StJohn-Author-Studio-4.0 && npm start`. Paste + hit Enter.
-6. **Pastels, not wine.**
-7. **End every response that touches files with "Files I changed:".**
-
-There are also feedback memory files at
-`/Users/mariemackay/.claude/projects/-Users-mariemackay-Dev-StJohn-Author-Studio-4-0/memory/`.
-Read them.
-
----
-
-## 10. Final word
-
-Quill is the big shipping piece. The InDesign export is the part Marie's
-eyes haven't yet validated — if it doesn't do what she expects, the
-fix lives in `packages/quill-engine/exporters.js` (the `buildInDesignJsx`
-function — ported byte-for-byte from the alpha). The phone is a scaffold;
-expect to add audio + script mode + CSV before Marie can ship it.
+- One reader for Quill (and Proof later) — no more four copies.
+- One book-detail page for Quill and Duet — Proof still has its own
+  big one, that's the next big job.
+- Quill loads fast now instead of taking ten minutes.
+- Prep is sage green instead of mustard yellow.
+- Quill highlights are pink not red, and now make ONE continuous
+  underline instead of broken stripes per word.
+- The image annotation isn't red anymore (it was ugly).
+- The "Show sub-headings" button in Duet's upload now actually does
+  something.
+- A safety hook stops AIs writing fresh duplicate components — they
+  get blocked at the door.
+- A "deep check" hook stops AIs saying "fixed" when they haven't run
+  the battery.
+- A "handover" hook (this one) makes sure no AI session loses Marie's
+  context.
+- A dev skip-login button on the sign-in screen so AIs can drive the
+  app without Marie's password (visible only outside production).

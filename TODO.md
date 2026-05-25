@@ -13,30 +13,31 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
-### Marie's morning testing checklist (do these in order)
+### Marie's testing checklist (do these in order)
 
-- [ ] **Sign in.** Supabase is already wired to your existing
-      project (`evcusovtjfypfyfvnooy`). Use the same email/password you
-      use for your other apps in that Supabase. If you don't remember,
-      use "Forgot password" to reset.
-- [ ] **Look at the four mode colours.** Flip between Proof / Prep /
-      Duet / Quill. Each one should wear its own pastel colour, not
-      purple. Card headers should be flat, not a fade-to-white.
-- [ ] **Open a real Proof audiobook.** The book detail page was just
-      rebuilt to use the shared component. Walk through your usual
-      flow — confirm the title, action buttons, chapter list, audio
-      panels, and delete still work like before. If anything looks off
-      or behaves differently, tell me before I tackle the next big
-      migration (the reader itself).
-- [ ] **Try Quill on a real .docx.** Top-left mode toggle → Quill. New
-      project → upload a manuscript. Open a chapter. Drag across a few
-      words, tap the pink + button, pick a class, save. Verify the
-      pink underline appears + the annotation shows in the sidebar.
+- [x] **Sign in** — completed 2026-05-25. Supabase project
+      `evcusovtjfypfyfvnooy` wired; Marie signs in with her existing
+      account.
+- [x] **Four mode colours look right** — completed 2026-05-25.
+      Verified live: each mode wears its own pastel, no purple leak,
+      card headers flat.
+- [ ] **Re-test a real Proof audiobook on the NEW unified UI.**
+      The book detail is now SessionsView (same component Quill +
+      Duet use). Walk through the usual flow — confirm title, action
+      buttons, side nav, chapter list, audio panels, delete still
+      work. The big purple banner is gone; deleted is now a tiny 🗑
+      top-right. **If anything's broken vs the last build, tell me.**
+- [ ] **Re-test Quill on a real .docx on the NEW unified UI.**
+      Quill book-detail is also SessionsView now (mode="quill"). New
+      project → upload a manuscript → open a chapter → drag across
+      words → tap pink + → pick a class → save. Confirm the pink
+      underline + sidebar entry. Also: Split toggle ON should now
+      reveal scene rows from H2 sub-headings.
 - [ ] **Test the InDesign export.** Book detail → Export CSV +
-      InDesign. Open the .jsx in InDesign and run it against the
-      matching layout. Eyes-on check: are character styles created?
-      Are highlights underlined? Marie is the only one who knows what
-      "right" looks like for her print workflow.
+      InDesign. Open the .jsx in InDesign and run against a real
+      layout. Eyes-on check: are character styles created? Are
+      highlights underlined? Marie is the only one who can verify
+      "right" for her print workflow.
 - [ ] **Test the phone scaffold.** Browser to `http://localhost:3000/phone`
       while `npm run dev` is running. Sign in with the same account.
       Quill project from the desktop should appear. Open a chapter,

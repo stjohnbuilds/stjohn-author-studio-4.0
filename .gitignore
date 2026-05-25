@@ -33,3 +33,4 @@ Save Data/
 .claude/hook-activity.log
 .claude/edit-log.txt
 .claude/blocked-edits.log
+.vercel

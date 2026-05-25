@@ -233,6 +233,19 @@ and Reader. Sweep:
 
 ### 2026-05-25 overnight session — phone feature parity + desktop polish
 
+- [x] **Visual polish — chapters page top panels.** Removed the outer
+      white card that was wrapping the 3 inner pastel cards (the
+      card-inside-card was wasting ~190px of vertical space). Tightened
+      Audiobook timing to one row (label + Total + Left pills). Tightened
+      Bulk audio to one row (label + Start-chapter select + Import button).
+      Collapsed the "Manuscript / Chapters" 2-line header into a single
+      tight line. Fixed the "· undefined" in the sticky-bar subtitle when
+      a book has no fileName. Changed the side-nav incomplete indicator
+      from a red × (read as "delete") to a quiet grey ○. The whole top
+      band is now ~80px instead of ~270px — five chapters fit above the
+      fold instead of three. — completed 2026-05-25 (overnight)
+
+
 - [x] **Split toggle — no fake scene when chapter has no H2s.** Fixed
       in `app/components/SessionsView.js`. Battery-tested 11 edge cases
       (no h2, h2 only, multi-h2, h2 at start, h2 at end, multi-section,

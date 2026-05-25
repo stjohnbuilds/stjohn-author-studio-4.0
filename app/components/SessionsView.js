@@ -774,7 +774,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   }
 
   function chapterDisplayNumber(chapter, index) {
-    return chapter?.chapterNumber || index + 1;
+    // Always use position in current chapter list so deleting chapters
+    // post-import renumbers the remaining ones starting at 1.
+    // Marie's complaint: "you uncheck the first few, but it still starts
+    // naming them from 3 or 4."
+    return index + 1;
   }
 
   function chapterDisplayLabel(chapter, index) {

@@ -267,6 +267,7 @@ function QuillPhoneService({ session, onSignOut, onBackToServices }) {
   }
 
   if (activeProject) {
+    const annotationCount = (activeProject.annotations || []).length;
     return (
       <main style={phoneRoot}>
         <PhoneHeader
@@ -274,8 +275,19 @@ function QuillPhoneService({ session, onSignOut, onBackToServices }) {
           left={<BackButton onClick={() => setActiveProjectId(null)} />}
         />
         <section style={{ padding: '1rem' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL_INK, marginBottom: 10 }}>
-            Chapters
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL_INK }}>
+              Chapters
+            </div>
+            <button
+              onClick={() => {
+                if (!annotationCount) { window.alert('No annotations to export yet.'); return; }
+                downloadText(`${safeFileName(activeProject.title)}-annotations.csv`, buildAnnotationsCsv(activeProject), 'text/csv');
+              }}
+              style={{ background: 'none', border: 'none', color: QUILL_INK, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Export CSV
+            </button>
           </div>
           {(activeProject.chapters || []).map((ch) => (
             <button

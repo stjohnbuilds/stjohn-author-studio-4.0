@@ -1085,6 +1085,83 @@ export default function PrebuildMode({ modeToggle = null }) {
       setExportSaveStatus('Saved');
     };
 
+    // Adapter — Duet project shape → Proof book shape — so SessionsView
+    // renders Duet too. Same component everywhere. Narrators panel is
+    // hidden (mode==='duet'); Engineer progress is passed as a slot;
+    // Transcribe button is hidden (Duet doesn't transcribe).
+    const adaptedBook = {
+      id: proj.id,
+      title: proj.title,
+      fileName: proj.fileName || '',
+      chapters: chapters.map(ch => ({
+        id: ch.id,
+        title: ch.title,
+        chapterTitle: ch.title,
+        sections: [{
+          id: ch.id,
+          title: ch.title,
+          html: ch.html || ch.textHtml || '',
+          audioFileName: ch.audioFile?.name || null,
+          audioPath: ch.audioPath || null,
+          flags: [],
+          completed: !!ch.scanned,
+          characterName: null,
+          narratorName: null,
+          chapterTitle: ch.title,
+          isFirstSectionInChapter: true,
+        }],
+      })),
+      narratorColors: [],
+    };
+
+    return (
+      <ProofBookDetail
+        mode="duet"
+        book={adaptedBook}
+        isElectron={typeof window !== 'undefined' && !!window.electron}
+        usesCustomDragRegion={true}
+        onProof={(section) => {
+          const idx = chapters.findIndex(c => c.id === section?.id);
+          if (idx >= 0) { setSelectedChapter(idx); setView('reader'); }
+        }}
+        onUpdateBook={(updated) => {
+          if (updated.title && updated.title !== proj.title) {
+            const u = { ...proj, title: updated.title };
+            updateProject(u);
+            save(projects.map(p => p.id === proj.id ? u : p));
+          }
+        }}
+        onToggleComplete={() => {}}
+        onDelete={deleteProject}
+        onBack={() => { setView('home'); setScanning(false); cancelRef.current = true; }}
+        persistentAudioUrl={null}
+        persistentAudioLabel=""
+        persistentAudioState={null}
+        onPersistentAudioStateChange={() => {}}
+        onReturnToScene={() => {}}
+        onClearPersistentAudio={() => {}}
+        engineerProgress={(
+          <div style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
+            <div style={{ fontWeight:700,fontSize:'0.86rem',color:'var(--text)' }}>Engineer progress</div>
+            <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
+              <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'4px 10px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
+                <span style={{ fontSize:'0.66rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Ready</span>
+                <span style={{ fontSize:'0.88rem',fontWeight:700,color:'var(--text)' }}>{readyToScanCount}/{chapters.length}</span>
+              </div>
+              <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'4px 10px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
+                <span style={{ fontSize:'0.66rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Scanned</span>
+                <span style={{ fontSize:'0.88rem',fontWeight:700,color:'var(--text)' }}>{scannedCount}/{chapters.length}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        actionButtonsOverride={(
+          <>
+            <button type="button" onClick={() => { setSelectedChapter(0); setView('reader'); }} style={{ padding:'8px 14px',borderRadius:999,border:'1px solid var(--accent-border)',background:'white',color:'var(--accent-dark)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer' }}>Review manuscript</button>
+            <button type="button" onClick={openExportPanel} disabled={!scannedCount} style={{ padding:'8px 18px',borderRadius:999,border:'none',background:'var(--accent)',color:'white',fontSize:'0.78rem',fontWeight:700,cursor:'pointer',opacity: scannedCount ? 1 : 0.4 }}>Export</button>
+          </>
+        )}
+      />
     );
   }
 

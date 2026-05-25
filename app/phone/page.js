@@ -737,32 +737,6 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const [audioFilesByBook, setAudioFilesByBook] = useState({});
   const [audioPickStatus, setAudioPickStatus] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const cached = await readPhoneProjectCache('script', session?.user?.id);
-      if (cancelled) return;
-      if (cached?.length) setBooks(cached);
-      await refresh();
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
-
-  // Same focus-pull policy as Quill — re-fetch when the user returns to
-  // the app so flags saved on another device show up.
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const onFocus = () => { refresh(); };
-    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [refresh]);
-
   const refresh = useCallback(async () => {
     setError('');
     setLoading(true);

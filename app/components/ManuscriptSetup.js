@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import InfoTip from './InfoTip';
+import ImportFlow from './ImportFlow';
 import { annotateManuscriptPositions, extractRenderedPageMapFromDocxXml } from '../lib/manuscriptPaging';
 import { extractPdfPagingFromFile } from '../lib/pdfPaging';
 

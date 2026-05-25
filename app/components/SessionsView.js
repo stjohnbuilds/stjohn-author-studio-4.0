@@ -2132,6 +2132,42 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   ? `Re-transcribe chapter. Current alignment: ${chapterAlignmentPercent || 'saved result'}. Option/Alt-click to realign only.`
                   : 'Transcribe chapter';
             const chapterFlagCount = (ch.sections||[]).reduce((n, s) => n + (s.flags?.length || 0), 0);
+            // Display sections: when Split is ON but the chapter has only
+            // ONE section, derive scene rows on-the-fly by splitting the
+            // section's HTML on H2 boundaries. Same H2 logic ImportFlow's
+            // parser uses (see parseChaptersFromHtml). This is view-only —
+            // the underlying section data isn't mutated, so flags/audio
+            // stay attached to the original section.
+            let displaySections = ch.sections || [];
+            if (showSceneRows && displaySections.length === 1 && displaySections[0]?.html && /<h2[\s>]/i.test(displaySections[0].html)) {
+              try {
+                const host = document.createElement('div');
+                host.innerHTML = displaySections[0].html;
+                const parts = [];
+                let curPart = null;
+                Array.from(host.childNodes).forEach(node => {
+                  const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
+                  if (tag === 'h2') {
+                    if (curPart) parts.push(curPart);
+                    curPart = { title: (node.textContent || '').trim() || 'Scene', nodes: [node.cloneNode(true)] };
+                  } else {
+                    if (!curPart) curPart = { title: 'Beginning', nodes: [node.cloneNode(true)] };
+                    else curPart.nodes.push(node.cloneNode(true));
+                  }
+                });
+                if (curPart) parts.push(curPart);
+                if (parts.length >= 2) {
+                  const baseSection = displaySections[0];
+                  displaySections = parts.map((p, i) => ({
+                    ...baseSection,
+                    id: `${baseSection.id}-scene-${i}`,
+                    title: p.title,
+                    html: p.nodes.map(n => n.outerHTML || n.textContent || '').join(''),
+                    isDerivedScene: true,
+                  }));
+                }
+              } catch (e) { /* ignore — fallback to single section */ }
+            }
             return (
               <div key={ch.id} ref={node => { chapterRefs.current[ch.id] = node; }} style={{ background:'white',overflow:'hidden',scrollMarginTop:88,borderTop:chIndex===0?'none':'1px solid var(--border)' }}>
                 {/* Chapter header — single line per chapter, no

@@ -231,6 +231,65 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-05-25 overnight session 2 — phone v1 functionality parity
+
+Marie's ask after seeing the deployed phone: "It's 80% there. Pull
+EVERYTHING from the original Studio app phone — double-tap to highlight,
+drag handles, block highlight, settings (font/size/mode/bg/etc.),
+Scroll vs Page Swipe, popover matches reader width. It's already
+thoroughly debugged there — pull it in, don't re-invent it." Result:
+
+- [x] **Universal reader settings** — cog icon top-right of every
+      screen opens a full-page Settings panel. Eight fields, all
+      from the v1 Studio phone reference: Font (5 options), Text
+      size (16–28), Reader mode (**Scroll | Page Swipe**), Line
+      spacing, Margins, Paragraphs, Alignment, Background (8 swatches).
+      Persisted in localStorage as `stjohn-phone-reader-settings-v1`.
+      Settings apply to BOTH Quill and Script readers, settings panel
+      renders as an overlay (so closing returns to the exact previous
+      view). New module: `app/phone/_lib/readerSettings.js` +
+      `app/phone/_components/PhoneReaderSettings.js`. — completed
+      2026-05-25 (overnight 2)
+- [x] **HTML-preserving reader** — replaced the naive word-span
+      renderer with the v1 Studio walker. Italics, paragraphs, h2/h3
+      scene-break headings, paragraph indentation all preserved.
+      New module: `app/phone/_components/renderReaderContent.js`. —
+      completed 2026-05-25 (overnight 2)
+- [x] **Double-tap to highlight + drag handles + block highlight** —
+      ported the v1 Studio phone selection model. Single tap is a
+      soft tap; second tap within 420ms on the same word opens a
+      selection. Two circular drag handles appear at each end; drag
+      to extend. Each word segment includes its trailing whitespace,
+      so consecutive selected words read as one continuous highlight
+      block (not individual words). New module:
+      `app/phone/_components/PhoneReader.js`. — completed 2026-05-25
+      (overnight 2)
+- [x] **Page Swipe reader mode** — when Reader mode is Page Swipe,
+      the reader becomes a horizontal CSS-column scroll container
+      with `scroll-snap-type: x mandatory`. Swipe left/right to
+      flip pages. Scroll mode falls back to normal vertical scroll. —
+      completed 2026-05-25 (overnight 2)
+- [x] **Popover matches reader width** — annotation popover (Quill)
+      and flag popover (Script) are now constrained to the reader's
+      column width (centered, max 620px). No more full-viewport
+      system-sheet look. — completed 2026-05-25 (overnight 2)
+- [x] **Audio Sync mode** — when the desktop has transcribed a
+      section (whisperAlignment with word-level timestamps), a Sync
+      toggle in the phone audio dock lights up the current word as
+      audio plays and auto-scrolls to keep it in view. — completed
+      2026-05-25 (overnight 2)
+- [x] **IndexedDB project cache + reader-location memory** — phone
+      shows last-known project list instantly from cache while the
+      cloud pull spins up. Last-opened chapter per project is
+      remembered so reopening a project jumps straight back to where
+      Marie left off. Cache is no-overwrite-with-empty (so a
+      transient cloud failure can't "delete" everything). New
+      module: `app/phone/_lib/projectCache.js`. — completed 2026-05-25
+      (overnight 2)
+- [x] **Redeployed to Vercel** — fresh build pushed. Live at
+      **https://stjohn-author-studio-4.vercel.app/phone**. — completed
+      2026-05-25 (overnight 2)
+
 ### 2026-05-25 overnight session — phone feature parity + desktop polish
 
 - [x] **Visual polish — chapters page top panels.** Removed the outer

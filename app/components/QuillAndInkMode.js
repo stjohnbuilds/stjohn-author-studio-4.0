@@ -504,7 +504,7 @@ function QuillHomeView({ projects, onOpen, onNew }) {
 // Book detail — chapter list + export bar
 // ===========================================================================
 
-function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll, chapterAudios = {}, onAttachAudio, onDetachAudio }) {
+function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll, chapterAudios = {}, onAttachAudio, onDetachAudio, chapterTranscripts = {}, onTranscribe }) {
   const chapters = project.chapters || [];
   const annotationsByChapter = useMemo(() => {
     const map = new Map();

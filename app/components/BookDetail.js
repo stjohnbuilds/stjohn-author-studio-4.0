@@ -24,7 +24,7 @@ import {
   MODE_TOKENS,
 } from './ReaderChrome.js';
 
-const BOOK_DETAIL_WIDTH = 'min(760px, calc(100vw - 32px))';
+const DEFAULT_BOOK_DETAIL_WIDTH = 'min(760px, calc(100vw - 32px))';
 
 export default function BookDetail({
   tone = 'prep',
@@ -33,14 +33,21 @@ export default function BookDetail({
   saveStatus,
   usesCustomDragRegion = false,
   onBackHome,
+  // Override the container width. Quill + the default use 760 (matches
+  // ReaderChrome's READER_WIDTH for visual consistency). Proof + Duet
+  // pass ~900 because their workflow panels (audio queue, scan
+  // controls, narrators) need the wider canvas. Pass a CSS value.
+  containerWidth = DEFAULT_BOOK_DETAIL_WIDTH,
   // Buttons rendered between the sticky bar and the chapter list (the
   // "what can I do with this book" row — exports, replace, etc).
   actionButtons = null,
   // Optional panels above the chapter list (e.g. Proof's audio queue,
   // Duet's scan navigator). Stay null for the simplest Quill look.
+  // Modes with their own full workflow JSX pass everything here.
   prePanels = null,
   // The chapter list itself. Modes render their own rows here using
   // either <ChapterRow /> or a fully custom row when they need more.
+  // Pass nothing to skip the chapter card entirely.
   children,
   // Optional panels below the chapter list.
   postPanels = null,

@@ -1925,23 +1925,78 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <div style={{ padding:'11px 14px 14px',display:'grid',gap:9,gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }}>
             {editingMeta && (
               <div style={{ gridColumn:'1 / -1',background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 12px' }}>
-                <div style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)',marginBottom:10 }}>Edit book + narrator mappings</div>
+                <div style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)',marginBottom:10 }}>
+                  {mode === 'duet' ? 'Edit book' : mode === 'quill' ? 'Edit book + characters' : 'Edit book + narrator mappings'}
+                </div>
                 <div style={{ marginBottom:10 }}>
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Book title</div>
                   <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'8px 10px',fontSize:'0.86rem',background:'white',color:'var(--text)' }} />
+                </div>
+                {/* Chapter inclusion — uncheck to remove a chapter
+                    from the book (e.g. a copyright page that snuck
+                    through import). Available in every mode. */}
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4 }}>
+                    <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'0.04em' }}>
+                      Chapters in this book ({(editChapters || []).filter(c => c.included).length} of {editChapters?.length || 0})
+                    </div>
+                    <div style={{ display:'inline-flex',gap:6 }}>
+                      <button
+                        type="button"
+                        onClick={()=>setEditChapters(cs => cs.map(c => ({ ...c, included: true })))}
+                        style={{ background:'transparent',border:'none',color:'var(--accent-dark)',fontSize:'0.7rem',fontWeight:700,cursor:'pointer',padding:'2px 6px' }}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={()=>setEditChapters(cs => cs.map(c => ({ ...c, included: false })))}
+                        style={{ background:'transparent',border:'none',color:'var(--text-muted)',fontSize:'0.7rem',fontWeight:700,cursor:'pointer',padding:'2px 6px' }}
+                      >
+                        None
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ maxHeight:200,overflow:'auto',background:'white',border:'1px solid var(--border)',borderRadius:10,padding:'4px 6px' }}>
+                    {(editChapters || []).map((c, i) => (
+                      <label
+                        key={c.id}
+                        style={{ display:'flex',alignItems:'center',gap:8,padding:'4px 6px',borderRadius:6,cursor:'pointer',fontSize:'0.78rem',color:c.included?'var(--text)':'var(--text-light)',background:i % 2 ? 'transparent' : 'rgba(0,0,0,0.015)' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={c.included}
+                          onChange={()=>setEditChapters(cs => cs.map((cc, ci) => ci === i ? { ...cc, included: !cc.included } : cc))}
+                        />
+                        <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:28,padding:'1px 6px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.66rem',fontWeight:700,color:'var(--text-muted)' }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textDecoration:c.included?'none':'line-through' }}>{c.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {mode !== 'duet' && (
+                <>
+                <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>
+                  {mode === 'quill' ? 'Characters' : 'Narrator mapping'}
                 </div>
                 <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
                   {editNarrators.map((row, i)=>(
                     <div key={i} style={{ display:'grid',gridTemplateColumns:'42px 1fr 1fr auto',gap:8,alignItems:'end' }}>
                       <input type="color" value={row.hex || '#d9d9d9'} onChange={e=>updateEditNarrator(i,'hex',e.target.value)} style={{ width:36,height:36,border:'1px solid var(--border)',borderRadius:8,cursor:'pointer',padding:2 }} />
-                      <input value={row.characterName || ''} onChange={e=>updateEditNarrator(i,'characterName',e.target.value)} placeholder="Character (e.g. Thistle)" style={{ border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',fontSize:'0.82rem' }} />
-                      <input value={row.narratorName || ''} onChange={e=>updateEditNarrator(i,'narratorName',e.target.value)} placeholder="Narrator (e.g. Jadis)" style={{ border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',fontSize:'0.82rem' }} />
+                      <input value={row.characterName || ''} onChange={e=>updateEditNarrator(i,'characterName',e.target.value)} placeholder={mode === 'quill' ? 'Character (e.g. Elara)' : 'Character (e.g. Thistle)'} style={{ border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',fontSize:'0.82rem' }} />
+                      <input value={row.narratorName || ''} onChange={e=>updateEditNarrator(i,'narratorName',e.target.value)} placeholder={mode === 'quill' ? 'Notes (optional)' : 'Narrator (e.g. Jadis)'} style={{ border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',fontSize:'0.82rem' }} />
                       <button onClick={()=>removeEditNarrator(i)} style={{ ...btn({ padding:'6px 10px',fontSize:'0.76rem' }), color:'var(--text-muted)' }}>Remove</button>
                     </div>
                   ))}
                 </div>
+                </>
+                )}
                 <div style={{ display:'flex',gap:8,marginTop:10,flexWrap:'wrap' }}>
+                  {mode !== 'duet' && (
                   <button onClick={addEditNarrator} style={btn({ color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)' })}>+ Add character</button>
+                  )}
                   <div style={{ display:'inline-flex',alignItems:'center',gap:6 }}>
                     <label style={{ ...btn({ color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)' }), display:'inline-flex',alignItems:'center',gap:4 }}>
                       📄 Re-upload manuscript

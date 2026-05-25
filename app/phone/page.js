@@ -881,7 +881,7 @@ function PhoneChapterReader({ project, chapter, onBack, onSaveProject }) {
         title={`Ch ${chapter.chapterNumber}: ${chapter.title}`}
         left={<BackButton onClick={onBack} />}
       />
-      <section style={{ padding: '1rem 0.9rem 6rem', userSelect: 'none' }}>
+      <section style={{ padding: '1rem 0.9rem 7.5rem', userSelect: 'none' }}>
         <div style={{ background: 'white', border: '1px solid #DDD0C4', borderRadius: 14, padding: '1rem 1rem', fontSize: '17px', lineHeight: 1.7, color: '#4C4846' }}>
           {wordSpans.length === 0 && (
             <span style={{ color: '#9B928E', fontSize: '0.86rem' }}>No text in this chapter.</span>

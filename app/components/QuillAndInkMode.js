@@ -645,7 +645,7 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
 // Reader view — word render, drag-to-highlight, annotation popover + list
 // ===========================================================================
 
-function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStatus, usesCustomDragRegion, updateProject, chapterAudio = null }) {
+function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStatus, usesCustomDragRegion, updateProject, chapterAudio = null, chapterTranscript = null }) {
   const chapters = project.chapters || [];
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
   const chapter = chapters[chapterIndex] || null;
@@ -658,6 +658,39 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   // rule: audio NEVER leaves the device.
   const audioUrl = chapterAudio?.url || null;
   const audioFileName = chapterAudio?.fileName || '';
+
+  // Audio sync — when a transcript is loaded, follow the audio time and
+  // highlight the current word. Same engine helpers Proof uses.
+  const audioRef = useRef(null);
+  const [currentMsIdx, setCurrentMsIdx] = useState(-1);
+  const [followText, setFollowText] = useState(true);
+  const syncTable = chapterTranscript?.syncTable || null;
+  useEffect(() => {
+    setCurrentMsIdx(-1);
+  }, [chapter?.id]);
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (!syncTable || syncTable.length < 4) return;
+    let raf = null;
+    function tick() {
+      const idx = getMsIdxAtTime(syncTable, el.currentTime, -1);
+      setCurrentMsIdx((prev) => (prev === idx ? prev : idx));
+      raf = requestAnimationFrame(tick);
+    }
+    function onPlay() { if (raf == null) raf = requestAnimationFrame(tick); }
+    function onPause() { if (raf != null) { cancelAnimationFrame(raf); raf = null; } }
+    el.addEventListener('play', onPlay);
+    el.addEventListener('pause', onPause);
+    el.addEventListener('seeked', tick);
+    onPlay();
+    return () => {
+      el.removeEventListener('play', onPlay);
+      el.removeEventListener('pause', onPause);
+      el.removeEventListener('seeked', tick);
+      if (raf != null) cancelAnimationFrame(raf);
+    };
+  }, [syncTable, audioUrl]);
 
   // Selection state
   const [selectedRange, setSelectedRange] = useState(null);    // { start, end } (word indices, inclusive)

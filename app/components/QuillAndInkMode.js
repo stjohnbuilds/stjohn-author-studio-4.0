@@ -365,105 +365,91 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }
 
   if (view === 'bookDetail' && activeProject) {
+    // Adapter — Quill project shape → Proof book shape — so SessionsView
+    // (Proof's full book-detail UI: side nav, transcription queue, bulk
+    // audio, audiobook timing, edit-nav-post-import, audio survives nav-out)
+    // can render Quill data unchanged. ONE component, not two.
+    const adaptedBook = {
+      id: activeProject.id,
+      title: activeProject.title,
+      fileName: activeProject.fileName || '',
+      chapters: (activeProject.chapters || []).map((ch) => {
+        const audio = chapterAudios[ch.id] || null;
+        const tx = chapterTranscripts[ch.id] || null;
+        return {
+          id: ch.id,
+          title: ch.title,
+          chapterTitle: ch.title,
+          sections: [{
+            id: ch.id,
+            title: ch.title,
+            html: ch.textHtml || ch.html || '',
+            audioFileName: audio?.fileName || null,
+            audioPath: audio?.url || null,
+            audioBlobUrl: audio?.url || null,
+            flags: (activeProject.annotations || []).filter((a) => a.sectionId === ch.id),
+            completed: false,
+            characterName: null,
+            narratorName: null,
+            whisperAlignment: tx?.alignment || null,
+            whisperWords: tx?.alignment || null,
+            chapterTitle: ch.title,
+            isFirstSectionInChapter: true,
+          }],
+        };
+      }),
+      narratorColors: (activeProject.annotationOptions || [])
+        .filter((o) => o.classId === 'character')
+        .map((c) => ({ hex: c.color || '#9b8aa8', characterName: c.label, narratorName: c.label })),
+      manuscriptPaging: null,
+      pdfPaging: null,
+    };
     return (
       <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
         {usesCustomDragRegion && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 38, WebkitAppRegion: 'drag', zIndex: 1100 }} />
         )}
-        <QuillBookDetail
-          project={activeProject}
-          saveStatus={saveStatus}
+        <ProofBookDetail
+          mode="quill"
+          book={adaptedBook}
+          isElectron={typeof window !== 'undefined' && !!window.electron}
           usesCustomDragRegion={usesCustomDragRegion}
-          onBackHome={() => { setView('home'); setActiveProjectId(null); }}
-          onOpenChapter={(chId) => { setActiveChapterId(chId); setView('reader'); }}
+          onProof={(chId) => { setActiveChapterId(chId); setView('reader'); }}
+          onUpdateBook={(updated) => {
+            // Bridge SessionsView's book-shape updates back to Quill's
+            // project shape (chapter title edits etc.). Audio + narrator
+            // edits map to chapterAudios / annotationOptions.
+            if (updated.title && updated.title !== activeProject.title) {
+              updateActive((p) => ({ ...p, title: updated.title }));
+            }
+            if (Array.isArray(updated.narratorColors)) {
+              // Map narratorColors back to annotationOptions characters.
+              const existing = (activeProject.annotationOptions || []).filter((o) => o.classId !== 'character');
+              const next = updated.narratorColors.map((nc, i) => ({
+                id: `char-${i}-${(nc.characterName || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') || Date.now()}`,
+                classId: 'character',
+                label: nc.characterName || `Character ${i + 1}`,
+                color: nc.hex || '#9b8aa8',
+              }));
+              updateActive((p) => ({ ...p, annotationOptions: [...existing, ...next] }));
+            }
+          }}
+          onToggleComplete={() => { /* Quill doesn't gate chapters by completion */ }}
           onDelete={() => deleteProject(activeProject.id)}
-          onExportCsv={exportCsv}
-          onExportJsx={exportJsx}
-          onExportAll={exportAll}
-          chapterAudios={chapterAudios}
-          onAttachAudio={(chapterId, file) => {
-            if (!file) return;
-            const url = URL.createObjectURL(file);
-            setChapterAudios((prev) => {
-              const old = prev[chapterId];
-              if (old?.url) URL.revokeObjectURL(old.url);
-              return { ...prev, [chapterId]: { url, fileName: file.name, file, duration: null } };
-            });
-            // Drop any previous transcript when audio changes.
-            setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
-            // Pull the duration once metadata is ready.
-            try {
-              const probe = document.createElement('audio');
-              probe.preload = 'metadata';
-              probe.src = url;
-              probe.addEventListener('loadedmetadata', () => {
-                const dur = Number(probe.duration);
-                if (Number.isFinite(dur) && dur > 0) {
-                  setChapterAudios((prev) => prev[chapterId] ? { ...prev, [chapterId]: { ...prev[chapterId], duration: dur } } : prev);
-                }
-              }, { once: true });
-            } catch {}
-          }}
-          onDetachAudio={(chapterId) => {
-            setChapterAudios((prev) => {
-              const old = prev[chapterId];
-              if (old?.url) URL.revokeObjectURL(old.url);
-              const next = { ...prev };
-              delete next[chapterId];
-              return next;
-            });
-            setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
-          }}
-          chapterTranscripts={chapterTranscripts}
-          onTranscribe={(chapterId) => runTranscribe(chapterId, chapterAudios, activeProject)}
-          onTranscribeAll={async () => {
-            const chapters = activeProject.chapters || [];
-            const queue = chapters.filter(c => chapterAudios[c.id]?.file && chapterTranscripts[c.id]?.status !== 'done' && chapterTranscripts[c.id]?.status !== 'running');
-            for (const c of queue) {
-              // eslint-disable-next-line no-await-in-loop
-              await runTranscribe(c.id, chapterAudios, activeProject);
-            }
-          }}
-          onBulkAttachAudio={(files) => {
-            // Match each file to a chapter by fuzzy filename comparison.
-            // Same approach Proof uses for bulk audio attach.
-            const chapters = activeProject.chapters || [];
-            const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-            for (const file of Array.from(files || [])) {
-              const fileBase = norm(file.name.replace(/\.[^.]+$/, ''));
-              if (!fileBase) continue;
-              // Find a chapter whose title (or chapterNumber) appears in the file name.
-              const match = chapters.find(c => {
-                const t = norm(c.title);
-                if (t && fileBase.includes(t)) return true;
-                const num = String(c.chapterNumber || '').padStart(2, '0');
-                if (num && fileBase.includes(`chapter${num}`)) return true;
-                if (num && fileBase.includes(`ch${num}`)) return true;
-                return false;
-              });
-              if (match) {
-                const url = URL.createObjectURL(file);
-                setChapterAudios((prev) => {
-                  const old = prev[match.id];
-                  if (old?.url) URL.revokeObjectURL(old.url);
-                  return { ...prev, [match.id]: { url, fileName: file.name, file, duration: null } };
-                });
-                setChapterTranscripts((prev) => { const next = { ...prev }; delete next[match.id]; return next; });
-                // Probe duration
-                try {
-                  const probe = document.createElement('audio');
-                  probe.preload = 'metadata';
-                  probe.src = url;
-                  probe.addEventListener('loadedmetadata', () => {
-                    const dur = Number(probe.duration);
-                    if (Number.isFinite(dur) && dur > 0) {
-                      setChapterAudios((prev) => prev[match.id] ? { ...prev, [match.id]: { ...prev[match.id], duration: dur } } : prev);
-                    }
-                  }, { once: true });
-                } catch {}
-              }
-            }
-          }}
+          onBack={() => { setView('home'); setActiveProjectId(null); }}
+          persistentAudioUrl={null}
+          persistentAudioLabel=""
+          persistentAudioState={null}
+          onPersistentAudioStateChange={() => {}}
+          onReturnToScene={() => {}}
+          onClearPersistentAudio={() => {}}
+          actionButtonsOverride={(
+            <>
+              <button type="button" style={topBtnStyle('quill', 'solid')} onClick={exportAll}>Export CSV + InDesign</button>
+              <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportCsv}>CSV only</button>
+              <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportJsx}>InDesign .jsx only</button>
+            </>
+          )}
         />
       </div>
     );
@@ -568,224 +554,6 @@ function QuillHomeView({ projects, onOpen, onNew }) {
   );
 }
 
-// ===========================================================================
-// Book detail — chapter list + export bar
-// ===========================================================================
-
-function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome, onOpenChapter, onDelete, onExportCsv, onExportJsx, onExportAll, chapterAudios = {}, onAttachAudio, onDetachAudio, chapterTranscripts = {}, onTranscribe, onTranscribeAll, onBulkAttachAudio }) {
-  const chapters = project.chapters || [];
-  const annotationsByChapter = useMemo(() => {
-    const map = new Map();
-    for (const ann of project.annotations || []) {
-      const key = ann.sectionId || '';
-      map.set(key, (map.get(key) || 0) + 1);
-    }
-    return map;
-  }, [project.annotations]);
-
-  const annCount = project.annotations?.length || 0;
-  const audioCount = Object.keys(chapterAudios).filter(id => chapters.some(c => c.id === id)).length;
-  const transcribedCount = Object.keys(chapterTranscripts).filter(id => chapters.some(c => c.id === id) && chapterTranscripts[id]?.status === 'done').length;
-  const totalDurationSec = Object.entries(chapterAudios)
-    .filter(([id]) => chapters.some(c => c.id === id))
-    .reduce((sum, [, a]) => sum + (Number(a?.duration) || 0), 0);
-  function fmtDur(totalSec) {
-    if (!totalSec || !Number.isFinite(totalSec)) return '—';
-    const s = Math.round(totalSec);
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${sec}s`;
-    return `${sec}s`;
-  }
-  const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}${audioCount ? ` · ${audioCount} audio attached` : ''}`;
-
-  // Shared book-detail panels brought over from Proof's pattern:
-  //   • Characters / Narrators panel (Quill's "characters" = Proof's narrators)
-  //   • Audio + transcription status panel (count of chapters with audio attached / transcribed)
-  // Same look as Proof's panels so the two modes share visual language.
-  const characters = (project.annotationOptions || []).filter((opt) => opt.classId === 'character');
-  const audiobookPanels = (
-    <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
-      {characters.length > 0 && (
-        <div style={{ background: 'var(--accent-soft)', borderRadius: 16, border: '1px solid var(--accent-border)', padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent-dark)', marginRight: 4 }}>Characters</span>
-          {characters.map((c) => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', borderRadius: 20, padding: '2px 10px 2px 6px', border: '1px solid var(--accent-border)' }}>
-              <div style={{ width: 12, height: 12, borderRadius: 3, background: c.color || 'var(--accent)' }} />
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div style={{ background: 'var(--accent-soft)', borderRadius: 16, border: '1px solid var(--accent-border)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text)' }}>Audio &amp; transcription</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <label
-            title="Pick multiple audio files at once. They'll be matched to chapters by filename (e.g. 'chapter01.mp3' → Chapter 1)."
-            style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--accent-border)', background: 'white', color: 'var(--accent-dark)', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-          >
-            + Bulk attach audio
-            <input
-              type="file"
-              accept="audio/*,.mp3,.m4a,.m4b,.wav,.flac,.opus"
-              multiple
-              style={{ display: 'none' }}
-              onChange={(e) => { onBulkAttachAudio?.(e.target.files); e.target.value = ''; }}
-            />
-          </label>
-          {audioCount > transcribedCount && (
-            <button
-              type="button"
-              onClick={() => onTranscribeAll?.()}
-              title="Run whisper transcription on every chapter with attached audio that hasn't been transcribed yet."
-              style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--accent-border)', background: 'var(--accent)', color: 'white', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-            >
-              Transcribe all ({audioCount - transcribedCount})
-            </button>
-          )}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
-            <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Audio</span>
-            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{audioCount}/{chapters.length}</span>
-          </div>
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
-            <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Transcribed</span>
-            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{transcribedCount}/{chapters.length}</span>
-          </div>
-          {totalDurationSec > 0 && (
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
-              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Total</span>
-              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{fmtDur(totalDurationSec)}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <BookDetail
-      tone="quill"
-      title={project.title}
-      subtitle={subtitle}
-      saveStatus={saveStatus}
-      usesCustomDragRegion={usesCustomDragRegion}
-      onBackHome={onBackHome}
-      actionButtons={
-        <>
-          <button type="button" onClick={onExportAll} style={topBtnStyle('quill', 'solid')}>Export CSV + InDesign</button>
-          <button type="button" onClick={onExportCsv} style={topBtnStyle('quill', 'outline')}>CSV only</button>
-          <button type="button" onClick={onExportJsx} style={topBtnStyle('quill', 'outline')}>InDesign .jsx only</button>
-        </>
-      }
-      onDelete={onDelete}
-      deleteLabel={`Delete "${project.title}"`}
-      prePanels={audiobookPanels}
-    >
-      {chapters.length === 0 && (
-        <div style={{ textAlign: 'center', color: 'var(--text-light)', fontSize: '0.82rem', padding: '1.2rem 0 0.35rem' }}>
-          No chapters imported yet.
-        </div>
-      )}
-      {chapters.map((ch) => {
-        const count = annotationsByChapter.get(ch.id) || 0;
-        const audio = chapterAudios[ch.id] || null;
-        const tx = chapterTranscripts[ch.id] || null;
-        const txDone = tx?.status === 'done' && Array.isArray(tx.alignment) && tx.alignment.length > 0;
-        const txRunning = tx?.status === 'running';
-        const txError = tx?.status === 'error';
-        const metaBits = [`${count} annotation${count === 1 ? '' : 's'}`];
-        if (audio) metaBits.push(`🎵 ${audio.fileName}`);
-        if (txDone) metaBits.push('✓ transcribed');
-        if (txRunning) metaBits.push(`transcribing… ${Math.round(tx.progress || 0)}%`);
-        if (txError) metaBits.push(`transcribe failed: ${tx.error?.slice(0, 60) || ''}`);
-        return (
-          <ChapterRow
-            key={ch.id}
-            tone="quill"
-            number={ch.chapterNumber}
-            title={ch.title}
-            meta={metaBits.join(' · ')}
-            onClick={() => onOpenChapter(ch.id)}
-            rightControls={(
-              <span
-                onClick={(e) => e.stopPropagation()}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-              >
-                <label
-                  title={audio ? 'Swap audio file' : 'Attach a local audio file (stays on this device)'}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 30,
-                    height: 30,
-                    borderRadius: '50%',
-                    border: '1px solid var(--accent-border)',
-                    background: audio ? 'var(--accent-soft)' : 'white',
-                    color: audio ? 'var(--accent-dark)' : 'var(--text-muted)',
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {audio ? '🎵' : '+'}
-                  <input
-                    type="file"
-                    accept="audio/*,.mp3,.m4a,.m4b,.wav,.flac,.opus"
-                    style={{ display: 'none' }}
-                    onChange={(e) => { onAttachAudio?.(ch.id, e.target.files?.[0]); e.target.value = ''; }}
-                  />
-                </label>
-                {audio && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onTranscribe?.(ch.id); }}
-                    disabled={txRunning}
-                    title={txDone ? 'Re-transcribe' : 'Run whisper transcription on this audio'}
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      border: '1px solid ' + (txDone ? '#8fbf8f' : 'var(--accent-border)'),
-                      background: txDone ? '#e7f6e7' : 'white',
-                      color: txDone ? '#2b7a2b' : 'var(--accent-dark)',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      cursor: txRunning ? 'wait' : 'pointer',
-                      opacity: txRunning ? 0.6 : 1,
-                    }}
-                  >
-                    T
-                  </button>
-                )}
-                {audio && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDetachAudio?.(ch.id); }}
-                    title="Remove audio"
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      border: '1px solid var(--border)',
-                      background: 'white',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.7rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </span>
-            )}
-          />
-        );
-      })}
-    </BookDetail>
-  );
-}
 
 // ===========================================================================
 // Reader view — word render, drag-to-highlight, annotation popover + list

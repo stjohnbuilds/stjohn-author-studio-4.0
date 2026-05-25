@@ -146,15 +146,29 @@ export default function BookDetail({
         {postPanels}
 
         {onDelete && (
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
             <button
               type="button"
               onClick={() => {
                 if (confirm(`${deleteLabel}?\nThis can't be undone.`)) onDelete();
               }}
-              style={topBtnStyle(tone, 'danger')}
+              title={deleteLabel}
+              aria-label={deleteLabel}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: '1px solid #f0b8b8',
+                background: 'white',
+                color: 'var(--danger)',
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              {deleteLabel}
+              🗑
             </button>
           </div>
         )}

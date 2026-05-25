@@ -1192,6 +1192,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
         paperPaddingBottom={audioUrl ? 220 : 120}
+        headerExtra={characterStrip}
         bottomDock={audioUrl ? (
           <AudioDock
             audioRef={audioRef}

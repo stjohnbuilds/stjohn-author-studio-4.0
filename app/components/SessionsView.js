@@ -4,6 +4,7 @@ import { transcribeAudio } from '../lib/transcriptionWorker';
 import { alignTranscriptToManuscript } from '../lib/fuzzyMatcher';
 import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './ManuscriptSetup';
 import InfoTip from './InfoTip';
+import SharedBookDetail from './BookDetail';
 
 function fmtTime(sec) { const s=Math.floor(sec),m=Math.floor(s/60); return m+':'+(s%60<10?'0':'')+s%60; }
 function formatAuditionTime(seconds) {

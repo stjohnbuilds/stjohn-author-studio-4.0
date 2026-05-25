@@ -1087,6 +1087,8 @@ export default function PrebuildMode({ modeToggle = null }) {
     return (
       <BookDetail
         tone="duet"
+        title={proj.title}
+        subtitle={`${chapters.length} chapters · ${totalHighlights} insertion points · ${timestampedHighlights} with timestamps`}
         usesCustomDragRegion={true}
         onBackHome={() => { setView('home'); setScanning(false); cancelRef.current = true; }}
         containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}

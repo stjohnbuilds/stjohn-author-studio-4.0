@@ -637,19 +637,15 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
     };
   }, []);
 
-  // Keep the floating action button (and any open popover) aligned to
-  // the selected word as the layout shifts (scroll, resize, content
-  // changes from edits). rAF gives React a tick to commit the new
-  // selectedRange to the DOM before we measure.
+  // Keep the popover anchored to the selected word as the layout
+  // shifts (scroll, resize). ChapterReader owns the action-button
+  // position; this effect is just for the popover (which mode-side
+  // code owns because the popover is annotation-specific).
   useEffect(() => {
-    if (!selectedRange) {
-      setSelectionActionPos(null);
-      return undefined;
-    }
+    if (!popoverOpen || !selectedRange) return undefined;
     function update() {
-      const wordEl = getQuillWordElement(selectedRange.start);
-      setSelectionActionPos(computeSelectionActionPos(wordEl));
-      if (popoverOpen) setPopoverPos(computePopoverPos(wordEl));
+      const wordEl = getChapterReaderWordEl(selectedRange.start);
+      setPopoverPos(computeChapterReaderPopoverPos(wordEl));
     }
     const raf = requestAnimationFrame(update);
     window.addEventListener('scroll', update, { passive: true, capture: true });

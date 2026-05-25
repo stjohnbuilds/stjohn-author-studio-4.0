@@ -19,7 +19,11 @@ import React from 'react';
 // ---------------------------------------------------------------------------
 
 export const READER_WIDTH = 'min(740px, calc(100vw - 40px))';
-export const READER_PAGE_BG = 'linear-gradient(180deg, #fbfaf7 0%, #ffffff 16%, #ffffff 100%)';
+// Flat paper, no gradient. Marie called the previous cream-to-white
+// gradient "weird" and prefers the flat Quill book-detail look applied
+// everywhere. Subtle cream rather than pure white keeps it reading as
+// "page" instead of "browser window."
+export const READER_PAGE_BG = '#fbfaf7';
 export const READER_FONT_SIZE = '16.5px';
 export const READER_LINE_HEIGHT = 1.92;
 export const HOME_CONTAINER = 640;

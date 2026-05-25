@@ -517,7 +517,42 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
 
   const annCount = project.annotations?.length || 0;
   const audioCount = Object.keys(chapterAudios).filter(id => chapters.some(c => c.id === id)).length;
+  const transcribedCount = Object.keys(chapterTranscripts).filter(id => chapters.some(c => c.id === id) && chapterTranscripts[id]?.status === 'done').length;
   const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}${audioCount ? ` · ${audioCount} audio attached` : ''}`;
+
+  // Shared book-detail panels brought over from Proof's pattern:
+  //   • Characters / Narrators panel (Quill's "characters" = Proof's narrators)
+  //   • Audio + transcription status panel (count of chapters with audio attached / transcribed)
+  // Same look as Proof's panels so the two modes share visual language.
+  const characters = (project.annotationOptions || []).filter((opt) => opt.classId === 'character');
+  const audiobookPanels = (
+    <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
+      {characters.length > 0 && (
+        <div style={{ background: 'var(--accent-soft)', borderRadius: 16, border: '1px solid var(--accent-border)', padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent-dark)', marginRight: 4 }}>Characters</span>
+          {characters.map((c) => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', borderRadius: 20, padding: '2px 10px 2px 6px', border: '1px solid var(--accent-border)' }}>
+              <div style={{ width: 12, height: 12, borderRadius: 3, background: c.color || 'var(--accent)' }} />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ background: 'var(--accent-soft)', borderRadius: 16, border: '1px solid var(--accent-border)', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text)' }}>Audio &amp; transcription</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
+            <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Audio</span>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{audioCount}/{chapters.length}</span>
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
+            <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Transcribed</span>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{transcribedCount}/{chapters.length}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <BookDetail

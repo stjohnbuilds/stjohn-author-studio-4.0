@@ -1941,8 +1941,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               </div>
             )}
 
-            {book.narratorColors?.length>0&&(
-              <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'12px 14px',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center' }}>
+            {mode !== 'duet' && book.narratorColors?.length>0&&(
+              <div style={{ gridColumn:'1 / -1',background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px',display:'flex',flexWrap:'wrap',gap:6,alignItems:'center' }}>
                 <span style={{ fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--accent-dark)',marginRight:4 }}>Narrators</span>
                 <div style={{ display:'flex',alignItems:'center',gap:4,background:'white',borderRadius:20,padding:'2px 8px 2px 6px',border:'1px solid var(--accent-border)' }}>
                   <div style={{ width:12,height:12,borderRadius:3,background:'white',border:'1px solid var(--border)' }} />

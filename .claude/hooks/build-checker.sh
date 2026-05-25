@@ -124,6 +124,20 @@ while IFS= read -r FILE; do
       DUP_FAILURES+="\\n  • $BASENAME edit added $JSX_LINES JSX lines in one go.\\n    -> Big inline UI in a mode file is almost always a hidden duplicate. Check the shared component first."
     fi
   fi
+
+  # Rule 6 — soft warn when a mode file adds a new *Tab state + ternary
+  # content render without using PinnedTabPanel. Marie hit this with the
+  # Nav/Queue jump bug. Soft warn only (no exit 2) — the team may have
+  # good reasons to roll their own occasionally, but the default should
+  # be the shared pattern.
+  if echo "$BASENAME" | grep -Eq "$GUARDED_MODE_FILES"; then
+    ADDED_TAB_STATE=$(echo "$DIFF" | grep -E '^\+.*useState\([^)]*\).*' | grep -E '[A-Za-z]+Tab' || true)
+    ADDED_TAB_TERNARY=$(echo "$DIFF" | grep -E '^\+.*[A-Za-z]+Tab[[:space:]]*===' || true)
+    USES_PINNED=$(grep -E "PinnedTabPanel|data-pinned-tab-panel" "$FILE" 2>/dev/null || true)
+    if [ -n "$ADDED_TAB_STATE" ] && [ -n "$ADDED_TAB_TERNARY" ] && [ -z "$USES_PINNED" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new *Tab state + ternary content render without <PinnedTabPanel>.\\n    -> Use PinnedTabPanel from app/components/ReaderChrome.js so the tab strip stays pinned when switching tabs (prevents the Nav/Queue jump bug)."
+    fi
+  fi
 done <<< "$FILES"
 
 if [ -n "$ERRORS" ]; then

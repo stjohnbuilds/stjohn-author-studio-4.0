@@ -75,33 +75,53 @@ DUP_FAILURES=""
 while IFS= read -r FILE; do
   [ -z "$FILE" ] && continue
   BASENAME=$(basename "$FILE")
-  if echo "$BASENAME" | grep -Eq "$EXEMPT_FILES"; then continue; fi
+  if [ ! -f "$FILE" ]; then continue; fi
+  DIFF=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null)
+  [ -z "$DIFF" ] && continue
+
+  # Rule 1 — fresh component-shaped function in a mode file. No exemption.
+  # The OLD hook let any wrapper pass if the file imported the shared
+  # component. That loophole built QuillBookDetail. Closed.
   if echo "$BASENAME" | grep -Eq "$GUARDED_MODE_FILES"; then
-    if [ -f "$FILE" ]; then
-      # Only look at lines added in this edit (vs the previous commit
-      # — the git-backup hook auto-commits before each edit so HEAD is
-      # the pre-edit state). Catches NEW duplicates without blocking
-      # unrelated edits to files that already have legacy inline copies.
-      ADDED_BOOK_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
-        | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+[A-Za-z0-9_]*(BookDetail|HomeView|ChapterRow|StickyTopBar|ProjectList)[[:space:]]*\(')
-      if [ -n "$ADDED_BOOK_DUPS" ]; then
-        HAS_BOOKDETAIL_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./BookDetail['\"]" "$FILE" 2>/dev/null)
-        HAS_CHROME_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ReaderChrome['\"]" "$FILE" 2>/dev/null)
-        if [ "$HAS_BOOKDETAIL_IMPORT" -eq 0 ] && [ "$HAS_CHROME_IMPORT" -eq 0 ]; then
-          DUP_FAILURES+="\\n  • $BASENAME added new inline component(s):\\n$(echo "$ADDED_BOOK_DUPS" | sed 's/^/      /')\\n    ...but does not import ./BookDetail or ./ReaderChrome."
-        fi
-      fi
-      # Same check for reader-shaped duplicates: any newly added
-      # `function .*Reader(` / `function renderChapter*(` in a mode file
-      # must come with an import of ./ChapterReader.
-      ADDED_READER_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
-        | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+([A-Za-z0-9_]*Reader|renderChapter[A-Za-z0-9_]*|renderWord[A-Za-z0-9_]*)[[:space:]]*\(')
-      if [ -n "$ADDED_READER_DUPS" ]; then
-        HAS_READER_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ChapterReader['\"]" "$FILE" 2>/dev/null)
-        if [ "$HAS_READER_IMPORT" -eq 0 ]; then
-          DUP_FAILURES+="\\n  • $BASENAME added new inline reader function(s):\\n$(echo "$ADDED_READER_DUPS" | sed 's/^/      /')\\n    ...but does not import ./ChapterReader."
-        fi
-      fi
+    ADDED_DUPS=$(echo "$DIFF" | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+[A-Za-z0-9_]*'"$DUP_NAME_RE"'[[:space:]]*\(' || true)
+    ADDED_READER=$(echo "$DIFF" | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+([A-Za-z0-9_]*Reader|renderChapter[A-Za-z0-9_]*|renderWord[A-Za-z0-9_]*)[[:space:]]*\(' || true)
+    if [ -n "$ADDED_DUPS" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new component-shaped function(s):\\n$(echo "$ADDED_DUPS" | sed 's/^/      /')\\n    -> Render shared <BookDetail>/<ImportFlow>/<AudioDock> INLINE. Use props/slots for mode differences."
+    fi
+    if [ -n "$ADDED_READER" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new reader-shaped function(s):\\n$(echo "$ADDED_READER" | sed 's/^/      /')\\n    -> Render <ChapterReader> or call renderChapterBody from ChapterReader.js."
+    fi
+  fi
+
+  # Rule 2 — new <audio> JSX outside AudioDock.
+  if ! echo "$BASENAME" | grep -Eq "$AUDIO_ALLOWED"; then
+    ADDED_AUDIO=$(echo "$DIFF" | grep -E '^\+[[:space:]]*<audio[[:space:]>]' || true)
+    if [ -n "$ADDED_AUDIO" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new <audio> JSX:\\n$(echo "$ADDED_AUDIO" | sed 's/^/      /')\\n    -> Use <AudioDock> from app/components/AudioDock.js."
+    fi
+  fi
+
+  # Rule 3 — new inline word rendering outside ChapterReader.
+  if ! echo "$BASENAME" | grep -Eq "$WORD_RENDER_ALLOWED"; then
+    ADDED_WORDS=$(echo "$DIFF" | grep -E '^\+.*(class=["'\''][^"'\'']*\bw\b|wrapWords[[:space:]]*\()' || true)
+    if [ -n "$ADDED_WORDS" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new word renderer:\\n$(echo "$ADDED_WORDS" | sed 's/^/      /')\\n    -> Use renderChapterBody from ChapterReader.js."
+    fi
+  fi
+
+  # Rule 4 — new audio file picker outside allowed components.
+  if ! echo "$BASENAME" | grep -Eq "$FILE_PICKER_ALLOWED"; then
+    ADDED_PICKER=$(echo "$DIFF" | grep -E '^\+.*<input[^>]+type=["'\'']file["'\''][^>]+accept=["'\''][^"'\'']*audio' || true)
+    if [ -n "$ADDED_PICKER" ]; then
+      DUP_FAILURES+="\\n  • $BASENAME added new audio file picker:\\n$(echo "$ADDED_PICKER" | sed 's/^/      /')\\n    -> File pickers live in AudioDock / ImportFlow / BookDetail / SessionsView."
+    fi
+  fi
+
+  # Rule 5 — soft warn when a single edit balloons JSX in a mode file.
+  if echo "$BASENAME" | grep -Eq "$GUARDED_MODE_FILES"; then
+    JSX_LINES=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*<[A-Za-z][A-Za-z0-9.]*' || true)
+    if [ "$JSX_LINES" -gt 80 ]; then
+      DUP_FAILURES+="\\n  • $BASENAME edit added $JSX_LINES JSX lines in one go.\\n    -> Big inline UI in a mode file is almost always a hidden duplicate. Check the shared component first."
     fi
   fi
 done <<< "$FILES"

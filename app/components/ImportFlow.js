@@ -433,7 +433,7 @@ export default function ImportFlow({
                   background: splitScenes ? 'rgba(0,0,0,0.04)' : 'white',
                   color: splitScenes ? accentColor : 'var(--text)',
                   fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
-                }}>{splitScenes ? 'Splitting on' : 'Splitting off'}</button>
+                }}>{splitScenes ? 'Split scenes on' : 'Split scenes off'}</button>
               </div>
             </div>
           )}

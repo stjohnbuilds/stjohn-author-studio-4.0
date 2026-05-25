@@ -24,6 +24,12 @@ import ChapterReader, {
   computeChapterReaderPopoverPos,
 } from './ChapterReader';
 import AudioDock from './AudioDock';
+import { transcribeAudio } from '../lib/transcriptionWorker';
+import { alignTranscriptToManuscript } from '../lib/fuzzyMatcher';
+import {
+  buildSyncTable as buildDirectSyncTable,
+  getMsIdxAtTime,
+} from '../../packages/audio-engine';
 import {
   MODE_TOKENS,
   topBtnStyle,

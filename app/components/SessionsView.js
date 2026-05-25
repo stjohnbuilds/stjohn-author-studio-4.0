@@ -1874,7 +1874,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       <div style={{ width:showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))',margin:'0 auto',paddingTop:'1.2rem',paddingLeft:'1.1rem',paddingRight:'1.1rem',paddingBottom:persistentAudioUrl ? '8rem' : '3rem' }}>
 
         <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
-          <div style={{ padding:'16px 16px 14px',background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderBottom:'1px solid var(--accent-border)' }}>
+          <div style={{ padding:'16px 16px 14px',background:'var(--accent-soft)',borderBottom:'1px solid var(--accent-border)' }}>
             <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
               <div>
                 <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:6 }}>Book info</div>
@@ -1976,7 +1976,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             )}
 
             <div style={{ display:'grid',gap:10 }}>
-              <div style={{ background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
+              <div style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
                   <div style={{ fontWeight:700,fontSize:'0.86rem',color:'var(--text)' }}>Audiobook timing</div>
                   <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>

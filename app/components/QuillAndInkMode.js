@@ -578,6 +578,12 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
             <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Transcribed</span>
             <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{transcribedCount}/{chapters.length}</span>
           </div>
+          {totalDurationSec > 0 && (
+            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'white', border: '1px solid var(--accent-border)' }}>
+              <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-light)', fontWeight: 700 }}>Total</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)' }}>{fmtDur(totalDurationSec)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

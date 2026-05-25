@@ -545,13 +545,22 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
       {chapters.map((ch) => {
         const count = annotationsByChapter.get(ch.id) || 0;
         const audio = chapterAudios[ch.id] || null;
+        const tx = chapterTranscripts[ch.id] || null;
+        const txDone = tx?.status === 'done' && Array.isArray(tx.alignment) && tx.alignment.length > 0;
+        const txRunning = tx?.status === 'running';
+        const txError = tx?.status === 'error';
+        const metaBits = [`${count} annotation${count === 1 ? '' : 's'}`];
+        if (audio) metaBits.push(`🎵 ${audio.fileName}`);
+        if (txDone) metaBits.push('✓ transcribed');
+        if (txRunning) metaBits.push(`transcribing… ${Math.round(tx.progress || 0)}%`);
+        if (txError) metaBits.push(`transcribe failed: ${tx.error?.slice(0, 60) || ''}`);
         return (
           <ChapterRow
             key={ch.id}
             tone="quill"
             number={ch.chapterNumber}
             title={ch.title}
-            meta={`${count} annotation${count === 1 ? '' : 's'}${audio ? ` · 🎵 ${audio.fileName}` : ''}`}
+            meta={metaBits.join(' · ')}
             onClick={() => onOpenChapter(ch.id)}
             rightControls={(
               <span
@@ -582,6 +591,28 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
                     onChange={(e) => { onAttachAudio?.(ch.id, e.target.files?.[0]); e.target.value = ''; }}
                   />
                 </label>
+                {audio && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onTranscribe?.(ch.id); }}
+                    disabled={txRunning}
+                    title={txDone ? 'Re-transcribe' : 'Run whisper transcription on this audio'}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      border: '1px solid ' + (txDone ? '#8fbf8f' : 'var(--accent-border)'),
+                      background: txDone ? '#e7f6e7' : 'white',
+                      color: txDone ? '#2b7a2b' : 'var(--accent-dark)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: txRunning ? 'wait' : 'pointer',
+                      opacity: txRunning ? 0.6 : 1,
+                    }}
+                  >
+                    T
+                  </button>
+                )}
                 {audio && (
                   <button
                     type="button"

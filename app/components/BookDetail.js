@@ -70,7 +70,10 @@ export default function BookDetail({
         {saveStatus !== undefined && <SaveBadge status={saveStatus} tone={tone} />}
       </StickyTopBar>
 
-      <div style={{ width: BOOK_DETAIL_WIDTH, margin: '0 auto', padding: '20px 0 80px' }}>
+      {/* Top padding 90px clears the sticky bar (~54px + 40px drag
+          offset). Previously 20px let action buttons sit under the
+          sticky bar — the bug Marie screenshotted on book detail. */}
+      <div style={{ width: BOOK_DETAIL_WIDTH, margin: '0 auto', padding: '90px 0 80px' }}>
         {actionButtons && (
           <div
             style={{

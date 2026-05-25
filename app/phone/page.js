@@ -15,7 +15,7 @@
 // NOT in this overnight build: audio playback, search, CSV export, Script
 // mode flag-tapping, manuscript editing. Marie's morning todo.
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import LoginScreen from '../components/LoginScreen';
 import {
   hasSupabaseConfig,
@@ -23,6 +23,8 @@ import {
   signOutSupabaseAccount,
   pullQuillProjects,
   pushQuillProject,
+  pullProofProjects,
+  pushProofProject,
 } from '../../packages/cloud-sync';
 import {
   buildWordSpans,
@@ -30,17 +32,37 @@ import {
   getAnnotationClassTree,
   createAnnotation,
   resolveAnnotationSelection,
+  htmlToPlainText,
 } from '../../packages/quill-engine';
 
 const PHONE_BG = '#F4F1EE';
 const QUILL_INK = '#834D5C';
 const QUILL_ACCENT = '#CB8AA0';
 const QUILL_PASTEL = '#F8E2E8';
+const PROOF_INK = '#5C4A78';
+const PROOF_ACCENT = '#B8A0D4';
+const PROOF_PASTEL = '#EBDEF6';
+
+const FLAG_TYPES = ['Edit', 'Missing', 'Repeat', 'Noise', 'Pacing', 'Other'];
 
 const SERVICE_OPTIONS = [
   { id: 'quill', label: 'Quill & Ink', subtitle: 'Annotate the manuscript', ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL, enabled: true },
-  { id: 'script', label: 'Proof Listen', subtitle: 'Coming next — tap to flag while listening', ink: '#5C4A78', accent: '#9C7FBE', pastel: '#EBDEF6', enabled: false },
+  { id: 'script', label: 'Proof Listen', subtitle: 'Tap to flag while listening', ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL, enabled: true },
 ];
+
+function sectionPlainText(section) {
+  if (!section) return '';
+  if (section.plainText && typeof section.plainText === 'string') return section.plainText;
+  return htmlToPlainText(String(section.html || section.textHtml || ''));
+}
+
+function formatTime(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value < 0) return '0:00';
+  const minutes = Math.floor(value / 60);
+  const remaining = Math.floor(value % 60);
+  return `${minutes}:${String(remaining).padStart(2, '0')}`;
+}
 
 export default function PhoneShell() {
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);

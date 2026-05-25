@@ -980,23 +980,37 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   // tinted background. useCallback so ChapterReader's render memo
   // stays stable.
   const unitDecoration = useCallback((idx) => {
+    const isCurrent = followText && currentMsIdx >= 0 && idx === currentMsIdx;
     const ann = wordToAnnotation.get(idx);
-    if (!ann) return null;
-    if (ann.classId === 'highlight') {
-      const color = ann.color || QUILL.accent;
+    // Start with the annotation style (if any), then merge the audio-
+    // synced current-word highlight on top so it always wins visually.
+    let base = null;
+    if (ann) {
+      if (ann.classId === 'highlight') {
+        const color = ann.color || QUILL.accent;
+        base = {
+          textDecorationLine: 'underline',
+          textDecorationColor: color,
+          textDecorationThickness: '3px',
+          textUnderlineOffset: '2px',
+          textDecorationSkipInk: 'none',
+        };
+      } else if (ann.classId === 'image') {
+        base = { background: '#DCEAC9', color: '#3D5630' };
+      } else {
+        base = { background: (ann.color || QUILL.accent) + '33' };
+      }
+    }
+    if (isCurrent) {
       return {
-        textDecorationLine: 'underline',
-        textDecorationColor: color,
-        textDecorationThickness: '3px',
-        textUnderlineOffset: '2px',
-        textDecorationSkipInk: 'none',
+        ...base,
+        background: 'color-mix(in srgb, var(--accent-light) 88%, white)',
+        boxShadow: '0 0 0 1px var(--accent-border-strong), inset 0 -1px 0 var(--accent-border-strong)',
+        borderRadius: 6,
       };
     }
-    if (ann.classId === 'image') {
-      return { background: '#DCEAC9', color: '#3D5630' };
-    }
-    return { background: (ann.color || QUILL.accent) + '33' };
-  }, [wordToAnnotation]);
+    return base;
+  }, [wordToAnnotation, currentMsIdx, followText]);
 
   if (!chapter) {
     return (

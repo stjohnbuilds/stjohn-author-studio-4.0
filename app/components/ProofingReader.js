@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { DEFAULT_ESTIMATED_WORDS_PER_PAGE, getPageNumberForWordIndex } from '../lib/manuscriptPaging';
 import { findPdfPageForQuote } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';
+import AudioDock from './AudioDock';
 // Audio-time ↔ manuscript-word-index helpers. Extracted to a shared
 // package so Quill, Duet, and the phone Script mode use the same
 // sync math without copy-pasting.

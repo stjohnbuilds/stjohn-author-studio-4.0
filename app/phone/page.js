@@ -1065,12 +1065,14 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [rate, setRate] = useState(1);
+  const [loadError, setLoadError] = useState('');
 
   // Reset everything when the parent's section changes.
   useEffect(() => {
     setFile(null);
     setIsPlaying(false);
     setTime(0);
+    setLoadError('');
     if (currentTimeRef) currentTimeRef.current = 0;
   }, [sectionKey, currentTimeRef]);
 

@@ -617,12 +617,7 @@ function ScriptChapterReader({ book, chapter, section, onBack, onSwitchSection, 
           <select
             value={section.id}
             onChange={(e) => {
-              const next = sections.find((s) => s.id === e.target.value);
-              if (next && next.id !== section.id) {
-                cancelFlag();
-                onBack();
-                // re-enter via parent — parent owns the activeSectionId
-              }
+              if (e.target.value !== section.id) onSwitchSection?.(e.target.value);
             }}
             style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #DDD0C4', background: 'white', fontSize: '0.82rem' }}
           >

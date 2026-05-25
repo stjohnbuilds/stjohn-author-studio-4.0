@@ -201,51 +201,60 @@ function PhoneApp({ session, onSignOut }) {
     savePhoneReaderSettings(next);
   }, []);
 
-  // Settings overlay — universally available from anywhere in the app.
-  if (settingsOpen) {
-    return (
+  // The settings panel renders as an OVERLAY on top of the current
+  // service, so closing it returns the user to exactly where they were
+  // (without unmounting the underlying service component and losing the
+  // active project / chapter / scroll position).
+  const settingsOverlay = settingsOpen ? (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: '#FBF7F2', overflow: 'auto' }}>
       <PhoneReaderSettings
         settings={readerSettings}
         onChange={updateReaderSettings}
         onClose={() => setSettingsOpen(false)}
       />
-    );
-  }
+    </div>
+  ) : null;
 
+  const openSettings = () => setSettingsOpen(true);
+
+  let body;
   if (!service) {
-    return (
+    body = (
       <ServicePicker
         session={session}
         onSignOut={onSignOut}
         onPick={(id) => setService(id)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettings}
       />
     );
-  }
-
-  if (service === 'quill') {
-    return (
+  } else if (service === 'quill') {
+    body = (
       <QuillPhoneService
         session={session}
         onSignOut={onSignOut}
         onBackToServices={() => setService(null)}
         readerSettings={readerSettings}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettings}
       />
     );
-  }
-  if (service === 'script') {
-    return (
+  } else if (service === 'script') {
+    body = (
       <ScriptPhoneService
         session={session}
         onSignOut={onSignOut}
         onBackToServices={() => setService(null)}
         readerSettings={readerSettings}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettings}
       />
     );
   }
-  return null;
+
+  return (
+    <>
+      {body}
+      {settingsOverlay}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -800,7 +800,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, saveStatus, uses
       onChangeChapter(ann.sectionId);
       return;
     }
-    const target = document.querySelector(`[data-quill-word-index="${ann.wordStart}"]`);
+    const target = getChapterReaderWordEl(ann.wordStart);
     if (target?.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 

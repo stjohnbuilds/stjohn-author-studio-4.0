@@ -390,26 +390,53 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
           }}
           chapterTranscripts={chapterTranscripts}
-          onTranscribe={async (chapterId) => {
-            const audio = chapterAudios[chapterId];
-            if (!audio?.file) return;
-            const chapter = (activeProject.chapters || []).find(c => c.id === chapterId);
-            if (!chapter) return;
-            setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'running', progress: 0 } }));
-            try {
-              const result = await transcribeAudio(audio.file, (p) => {
-                setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { ...(prev[chapterId] || {}), status: 'running', progress: p.progress || 0, message: p.message || '' } }));
+          onTranscribe={(chapterId) => runTranscribe(chapterId, chapterAudios, activeProject)}
+          onTranscribeAll={async () => {
+            const chapters = activeProject.chapters || [];
+            const queue = chapters.filter(c => chapterAudios[c.id]?.file && chapterTranscripts[c.id]?.status !== 'done' && chapterTranscripts[c.id]?.status !== 'running');
+            for (const c of queue) {
+              // eslint-disable-next-line no-await-in-loop
+              await runTranscribe(c.id, chapterAudios, activeProject);
+            }
+          }}
+          onBulkAttachAudio={(files) => {
+            // Match each file to a chapter by fuzzy filename comparison.
+            // Same approach Proof uses for bulk audio attach.
+            const chapters = activeProject.chapters || [];
+            const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+            for (const file of Array.from(files || [])) {
+              const fileBase = norm(file.name.replace(/\.[^.]+$/, ''));
+              if (!fileBase) continue;
+              // Find a chapter whose title (or chapterNumber) appears in the file name.
+              const match = chapters.find(c => {
+                const t = norm(c.title);
+                if (t && fileBase.includes(t)) return true;
+                const num = String(c.chapterNumber || '').padStart(2, '0');
+                if (num && fileBase.includes(`chapter${num}`)) return true;
+                if (num && fileBase.includes(`ch${num}`)) return true;
+                return false;
               });
-              // Align whisper words to chapter manuscript words. Same
-              // path Proof uses — see SessionsView line 1168-1169.
-              const manuscriptText = chapter.plainText || htmlToPlainText(chapter.textHtml || '');
-              const msWords = String(manuscriptText).split(/\s+/).filter(Boolean);
-              const whisperWords = result?.words || [];
-              const alignment = alignTranscriptToManuscript(msWords, whisperWords);
-              const syncTable = buildDirectSyncTable(alignment);
-              setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
-            } catch (err) {
-              setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'error', progress: 0, error: String(err?.message || err) } }));
+              if (match) {
+                const url = URL.createObjectURL(file);
+                setChapterAudios((prev) => {
+                  const old = prev[match.id];
+                  if (old?.url) URL.revokeObjectURL(old.url);
+                  return { ...prev, [match.id]: { url, fileName: file.name, file, duration: null } };
+                });
+                setChapterTranscripts((prev) => { const next = { ...prev }; delete next[match.id]; return next; });
+                // Probe duration
+                try {
+                  const probe = document.createElement('audio');
+                  probe.preload = 'metadata';
+                  probe.src = url;
+                  probe.addEventListener('loadedmetadata', () => {
+                    const dur = Number(probe.duration);
+                    if (Number.isFinite(dur) && dur > 0) {
+                      setChapterAudios((prev) => prev[match.id] ? { ...prev, [match.id]: { ...prev[match.id], duration: dur } } : prev);
+                    }
+                  }, { once: true });
+                } catch {}
+              }
             }
           }}
         />

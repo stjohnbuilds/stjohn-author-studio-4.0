@@ -2312,7 +2312,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 )}
 
                 {/* Sections */}
-                {isExpanded && (audioUploadMode === 'scene' || showSceneRows) && (ch.sections||[]).map((sec)=>{
+                {isExpanded && (audioUploadMode === 'scene' || showSceneRows) && displaySections.map((sec)=>{
                   const hasAudio=!!audioUrls[sec.id];
                   const isRest=restoring[sec.id];
                   const ncColor=book.narratorColors?.find(nc=>nc.characterName===sec.characterName);

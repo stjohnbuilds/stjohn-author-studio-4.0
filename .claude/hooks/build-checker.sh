@@ -79,13 +79,24 @@ while IFS= read -r FILE; do
       # — the git-backup hook auto-commits before each edit so HEAD is
       # the pre-edit state). Catches NEW duplicates without blocking
       # unrelated edits to files that already have legacy inline copies.
-      ADDED_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
+      ADDED_BOOK_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
         | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+[A-Za-z0-9_]*(BookDetail|HomeView|ChapterRow|StickyTopBar|ProjectList)[[:space:]]*\(')
-      if [ -n "$ADDED_DUPS" ]; then
+      if [ -n "$ADDED_BOOK_DUPS" ]; then
         HAS_BOOKDETAIL_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./BookDetail['\"]" "$FILE" 2>/dev/null)
         HAS_CHROME_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ReaderChrome['\"]" "$FILE" 2>/dev/null)
         if [ "$HAS_BOOKDETAIL_IMPORT" -eq 0 ] && [ "$HAS_CHROME_IMPORT" -eq 0 ]; then
-          DUP_FAILURES+="\\n  • $BASENAME added new inline component(s):\\n$(echo "$ADDED_DUPS" | sed 's/^/      /')\\n    ...but does not import ./BookDetail or ./ReaderChrome."
+          DUP_FAILURES+="\\n  • $BASENAME added new inline component(s):\\n$(echo "$ADDED_BOOK_DUPS" | sed 's/^/      /')\\n    ...but does not import ./BookDetail or ./ReaderChrome."
+        fi
+      fi
+      # Same check for reader-shaped duplicates: any newly added
+      # `function .*Reader(` / `function renderChapter*(` in a mode file
+      # must come with an import of ./ChapterReader.
+      ADDED_READER_DUPS=$(git -C "$PROJECT_ROOT" diff HEAD -- "$FILE" 2>/dev/null \
+        | grep -E '^\+[[:space:]]*(export[[:space:]]+default[[:space:]]+)?function[[:space:]]+([A-Za-z0-9_]*Reader|renderChapter[A-Za-z0-9_]*|renderWord[A-Za-z0-9_]*)[[:space:]]*\(')
+      if [ -n "$ADDED_READER_DUPS" ]; then
+        HAS_READER_IMPORT=$(grep -cE "from[[:space:]]+['\"]\\./ChapterReader['\"]" "$FILE" 2>/dev/null)
+        if [ "$HAS_READER_IMPORT" -eq 0 ]; then
+          DUP_FAILURES+="\\n  • $BASENAME added new inline reader function(s):\\n$(echo "$ADDED_READER_DUPS" | sed 's/^/      /')\\n    ...but does not import ./ChapterReader."
         fi
       fi
     fi

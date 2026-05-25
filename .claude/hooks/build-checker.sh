@@ -67,7 +67,10 @@ fi
 # (characters + dialogue, no audio). Remove from EXEMPT when its
 # book-detail is also unified.
 GUARDED_MODE_FILES='^(ProofingReader|PrebuildMode|SessionsView|QuillAndInkMode|PrepManuscriptMode|ManuscriptSetup)\.js$'
-EXEMPT_FILES='^(PrepManuscriptMode)\.js$'
+AUDIO_ALLOWED='^(AudioDock|ProofingReader)\.js$'
+WORD_RENDER_ALLOWED='^(ChapterReader|ProofingReader)\.js$'
+FILE_PICKER_ALLOWED='^(AudioDock|ImportFlow|ManuscriptSetup|SessionsView|QuillAndInkMode|BookDetail|PrebuildMode)\.js$'
+DUP_NAME_RE='(BookDetail|HomeView|ChapterRow|ReaderView|BookSetup|Setup|Panel|AudioDock|Picker|StickyTopBar|ProjectList)'
 DUP_FAILURES=""
 while IFS= read -r FILE; do
   [ -z "$FILE" ] && continue

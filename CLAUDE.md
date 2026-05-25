@@ -1,5 +1,55 @@
 # Project: StJohn Author Studio 4.0
 
+## ⛔ STOP — SOURCE-OF-TRUTH MAP — read before writing any UI
+
+There is ONE component per job. If you need any of these, **import the
+existing one, don't write a new one**. Marie has flagged this >16 times
+in a single chat. The build-checker hook will hard-block fresh copies.
+
+| Need | The ONE component | File |
+|---|---|---|
+| Book detail page (sticky bar + chapters + delete) | `<BookDetail>` | `app/components/BookDetail.js` |
+| Chapter row inside book detail | `<ChapterRow>` (named export of BookDetail.js) | same |
+| Manuscript reader (word render + selection + dock slot) | `<ChapterReader>` + `renderChapterBody` | `app/components/ChapterReader.js` |
+| Audio dock (play, speed, jumps, transcription/follow slots) | `<AudioDock>` | `app/components/AudioDock.js` |
+| Manuscript .docx upload + chapter picker + scene-split | `<ImportFlow>` | `app/components/ImportFlow.js` |
+| Sticky top bar, save badge, mode tokens, button styles | `ReaderChrome` exports | `app/components/ReaderChrome.js` |
+| Home/back morphing pill | `<HomeBackPill>` | same |
+| Profile / sign-out pill | `<ProfilePill>` | same |
+| Per-mode CSS var override | `modeAccentVars(tone)` | same |
+| Supabase client + per-table CRUD | `packages/cloud-sync/` | |
+| Audio engine helpers (sync table, time ↔ word idx) | `packages/audio-engine/` | |
+| Quill annotation engine | `packages/quill-engine/` | |
+| Manuscript engine (docx parse, dialogue detect) | `packages/manuscript-engine/` | |
+
+## ⛔ FORBIDDEN PATTERNS — the hook hard-blocks these
+
+The build-checker hook auto-blocks any commit/edit that does any of:
+
+- New `function .*BookDetail` / `HomeView` / `ChapterRow` / `ReaderView` /
+  `BookSetup` / `Setup` / `Panel` / `AudioDock` / `Picker` in any mode
+  file (`ProofingReader.js`, `SessionsView.js`, `PrebuildMode.js`,
+  `QuillAndInkMode.js`, `PrepManuscriptMode.js`, `ManuscriptSetup.js`) —
+  **regardless of imports**. Wrapping the shared component in a fresh
+  function so you can stuff custom JSX inside is the exact failure
+  mode this rule exists to stop.
+- New `<audio ` JSX outside `AudioDock.js`.
+- New inline word rendering (`<span class="w">` or your own splitter
+  via `wrapWords`-style DOM mutation) outside `ChapterReader.js`.
+- New inline `<input type="file" accept="audio/*">` outside the
+  shared audio / import components.
+- A single function in a mode file gaining >80 added JSX lines in one
+  edit (signal that a hidden duplicate UI is being built).
+
+If you THINK you need one of these, **YOU ARE WRONG**. The shared
+component already does this. Open it, add the prop/slot you need, then
+use it. If the shape genuinely doesn't fit, STOP and ask Marie before
+writing any UI code.
+
+The single hardest lesson of v4.0 so far: AI agents WILL build duplicate
+UIs unless physically prevented. The hook is the prevention. Don't ask
+for an exception — extend the shared component instead.
+
 ## What this app is
 
 One desktop app + one phone companion for Marie's self-published audiobook

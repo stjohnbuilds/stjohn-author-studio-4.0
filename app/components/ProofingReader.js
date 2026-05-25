@@ -1170,7 +1170,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       <div style={{ flex:1,minHeight:0,overflow:'hidden',padding:'12px 16px 0' }}>
         <div
           ref={textRef}
-          className="reader-text"
+          className={`reader-text ${READER_BODY_CLASS}`}
           style={{ position:'relative',height:'100%',width:readerContentWidth,margin:'0 auto',overflowY:'auto',padding:'0.5rem 0.35rem 2rem',fontSize:'16.5px',lineHeight:'1.92',minHeight:0,color:'var(--text)' }}
           onScroll={()=>{
             if(!autoScrollingRef.current) markManualScroll();
@@ -1179,14 +1179,14 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
           onWheel={()=>markManualScroll()}
           onTouchStart={()=>markManualScroll()}
           onDoubleClick={e=>{
-            const t=e.target.closest?.('.w');
+            const t=e.target.closest?.('[data-cr-unit]');
             if(!t)return;
             e.preventDefault();
-            const idx=parseInt(t.dataset.idx,10);
+            const idx=parseInt(t.getAttribute('data-cr-unit'),10);
             if(!Number.isFinite(idx))return;
             openWordActionMenu(idx, t);
           }}
-        />
+        >{renderedBody}</div>
       </div>
 
       {wordAction&&(

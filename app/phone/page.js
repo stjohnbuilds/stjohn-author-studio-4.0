@@ -760,6 +760,19 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     }
   }, [session?.user?.id]);
 
+  // Load IndexedDB cache, then refresh from cloud.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await readPhoneProjectCache('script', session?.user?.id);
+      if (cancelled) return;
+      if (cached?.length) setBooks(cached);
+      await refresh();
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
+
   // Re-fetch when the user returns to the app (focus / visibility) so
   // a flag saved on the other device a few minutes ago shows up.
   useEffect(() => {

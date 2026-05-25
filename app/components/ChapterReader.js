@@ -42,7 +42,8 @@ import {
 // Geometry helpers — exported so modes can use them for popover placement.
 // ---------------------------------------------------------------------------
 
-const READER_BODY_CLASS = 'chapter-reader-body';
+export const READER_BODY_CLASS = 'chapter-reader-body';
+export const READER_UNIT_ATTR = 'data-cr-unit';
 
 export function getChapterReaderWordEl(unitIndex) {
   if (typeof document === 'undefined' || unitIndex == null) return null;

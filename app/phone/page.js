@@ -1198,17 +1198,18 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   }
 
   function saveFlag() {
-    if (!selectedRange) return;
-    const start = Math.min(selectedRange.start, selectedRange.end);
-    const end = Math.max(selectedRange.start, selectedRange.end);
-    const fallbackQuote = words.slice(start, end + 1).map((s) => s.word).join(' ');
-    const editedQuote = (flagDraft.quote || fallbackQuote || '').trim();
-    const pageRaw = (flagDraft.page || '').trim();
+    if (!selectedRange || !selectionMeta) return;
+    const editedQuote = (flagDraft.quote || selectionMeta.quote || '').trim();
+    const pageRaw = (flagDraft.page || selectionMeta.page || '').trim();
     const flag = {
       id: `phone-flag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      idx: start,
-      wordEnd: end,
-      ts: Number(currentAudioTimeRef.current) || 0,
+      idx: selectionMeta.start,
+      wordEnd: selectionMeta.end,
+      // CRITICAL: timestamp comes from the SELECTED WORD's whisper
+      // alignment when available — not from where audio playback
+      // happens to be. Falls back to the live audio time only if no
+      // alignment is present for this word.
+      ts: Number.isFinite(Number(selectionMeta.ts)) ? Number(selectionMeta.ts) : (Number(currentAudioTimeRef.current) || 0),
       // Match the desktop schema exactly so CSV + cloud rows agree:
       // sentPlain = the quote text, note = "should say" correction,
       // narrator + page + type carry forward.
@@ -1221,8 +1222,8 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
       source: 'phone',
       createdAt: new Date().toISOString(),
     };
-    if (!pageRaw) {
-      setToast('Saved without a page number — add one in the desktop app when you can.');
+    if (!pageRaw && pageRaw !== '0') {
+      setToast('Saved without a page number — the manuscript may not have a page map yet.');
     }
     const nextBook = {
       ...book,

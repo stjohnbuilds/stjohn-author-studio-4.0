@@ -176,6 +176,34 @@ Prep and Duet have **no** Supabase tables yet — desktop-only for v4.0.
   `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0`.
 - Marie verifies with `cat .claude/hook-activity.log`.
 
+### Deep-check trigger (Marie's battery-test protocol)
+
+When Marie's prompt contains any of these phrases (case-insensitive):
+**deep check / deep scrub / deep test, battery test / battery check,
+verify everything, really test this, really thorough, thoroughly check,
+thoroughly test, thorough check, thorough test, scrub it, trigger the
+hook (check/test/hook), find the hook, do a proper test/check, test it
+properly, give it the works, run the battery / run the deep / run the
+thorough** — the `.claude/hooks/deep-check-trigger.sh` hook fires and
+injects the 7-step protocol. The model MUST run all 7 steps before
+declaring anything done:
+
+1. Boot preview, confirm no console errors.
+2. Build SANDBOX tests (off-screen DOM, never Marie's real data),
+   grouped as "batteries," each with a structured pass/fail.
+3. Drive the LIVE UI end-to-end with REAL events (click / mousemove /
+   key) — not just module function calls. Pure tests miss
+   React-state and browser-quirk bugs.
+4. For any failure: reproduce in a clean sandbox, fix, re-run entire
+   battery.
+5. Sweep browser console for errors at the very end.
+6. Clean up everything touched in Marie's real data.
+7. Report a confidence percentage AND list of what's still uncertain.
+   Do not self-certify.
+
+The protocol exists because AIs keep declaring "fixed" when it isn't.
+The battery method catches React/browser bugs unit tests miss.
+
 ## Commands
 
 ```

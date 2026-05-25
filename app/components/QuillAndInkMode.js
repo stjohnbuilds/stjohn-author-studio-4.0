@@ -360,8 +360,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             setChapterAudios((prev) => {
               const old = prev[chapterId];
               if (old?.url) URL.revokeObjectURL(old.url);
-              return { ...prev, [chapterId]: { url: URL.createObjectURL(file), fileName: file.name } };
+              return { ...prev, [chapterId]: { url: URL.createObjectURL(file), fileName: file.name, file } };
             });
+            // Drop any previous transcript when audio changes.
+            setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
           }}
           onDetachAudio={(chapterId) => {
             setChapterAudios((prev) => {
@@ -371,6 +373,27 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               delete next[chapterId];
               return next;
             });
+            setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
+          }}
+          chapterTranscripts={chapterTranscripts}
+          onTranscribe={async (chapterId) => {
+            const audio = chapterAudios[chapterId];
+            if (!audio?.file) return;
+            const chapter = (activeProject.chapters || []).find(c => c.id === chapterId);
+            if (!chapter) return;
+            setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'running', progress: 0 } }));
+            try {
+              const result = await transcribeAudio(audio.file, (p) => {
+                setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { ...(prev[chapterId] || {}), status: 'running', progress: p.progress || 0, message: p.message || '' } }));
+              });
+              // Align whisper words to chapter manuscript text.
+              const manuscriptText = chapter.plainText || htmlToPlainText(chapter.textHtml || '');
+              const alignment = alignTranscriptToManuscript(manuscriptText, result?.words || result?.segments || []);
+              const syncTable = buildDirectSyncTable(alignment);
+              setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
+            } catch (err) {
+              setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'error', progress: 0, error: String(err?.message || err) } }));
+            }
           }}
         />
       </div>

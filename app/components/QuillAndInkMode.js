@@ -109,58 +109,10 @@ function mergeProjectLists(local, cloud) {
   return Array.from(byId.values());
 }
 
-// Find the DOM node for word index N inside the rendered reader.
-function getQuillWordElement(index) {
-  if (typeof document === 'undefined' || index == null) return null;
-  return document.querySelector(`[data-quill-word-index="${index}"]`);
-}
-
-// Where to float the +/✎ action button: in the LEFT MARGIN of the line
-// the selection starts on, vertically centered on the first selected
-// word. Anchored to the block (paragraph / heading) so it sits in the
-// gutter — never above the word — matching the alpha at apps/quill-
-// and-ink ARCHIVED page.js line 1652 (buildSelectionActionPosition).
-function computeSelectionActionPos(wordEl) {
-  if (!wordEl) return null;
-  const wordRect = wordEl.getBoundingClientRect();
-  const block = wordEl.closest('p, h1, h2, h3, h4, h5, h6, blockquote, li, .quill-reader-body');
-  const blockRect = block?.getBoundingClientRect();
-  const reader = wordEl.closest('.quill-reader-body');
-  const readerRect = reader?.getBoundingClientRect();
-  // If the selected word has scrolled out of the visible reader area,
-  // hide the action button so it doesn't float over the chrome.
-  if (readerRect && (wordRect.bottom < readerRect.top + 4 || wordRect.top > readerRect.bottom - 4)) {
-    return null;
-  }
-  const controlSize = 32;
-  const gap = 12;
-  const lineLeft = blockRect ? blockRect.left : wordRect.left;
-  const left = Math.max(8, lineLeft - controlSize - gap);
-  const top = wordRect.top + wordRect.height / 2 - controlSize / 2;
-  return { top, left };
-}
-
-// Where to place the annotation popover: above the selected word if
-// there's room, otherwise below. Anchored to the LEFT EDGE of the
-// block so the popover doesn't trail off-screen on words near the
-// right edge. Viewport coords — popover is position:fixed.
-function computePopoverPos(wordEl) {
-  if (!wordEl || typeof window === 'undefined') return null;
-  const anchorRect = wordEl.getBoundingClientRect();
-  const block = wordEl.closest('p, h1, h2, h3, h4, h5, h6, blockquote, li, .quill-reader-body');
-  const blockRect = block?.getBoundingClientRect();
-  const viewportW = window.innerWidth || 800;
-  const viewportH = window.innerHeight || 600;
-  const width = Math.min(340, viewportW - 24);
-  const estHeight = 240;
-  const gap = 14;
-  let left = blockRect ? blockRect.left : anchorRect.left;
-  let top = anchorRect.top - estHeight - gap;
-  if (top < 12) top = anchorRect.bottom + gap;
-  left = Math.max(12, Math.min(left, viewportW - width - 12));
-  top = Math.max(12, Math.min(top, viewportH - estHeight - 12));
-  return { top, left, width };
-}
+// Geometry helpers (word-element lookup, popover placement) live in
+// ChapterReader now — imported as getChapterReaderWordEl /
+// computeChapterReaderPopoverPos at the top of this file. The
+// action-button position is owned by ChapterReader itself.
 
 // ===========================================================================
 // Root

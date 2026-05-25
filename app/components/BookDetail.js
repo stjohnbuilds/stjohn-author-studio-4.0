@@ -90,44 +90,51 @@ export default function BookDetail({
 
         {prePanels}
 
-        <section
-          style={{
-            background: 'rgba(255,255,255,0.86)',
-            border: '1px solid var(--border)',
-            borderRadius: 22,
-            padding: '1rem',
-            marginBottom: 14,
-          }}
-        >
-          <div
+        {/* The "Chapters" card only renders when the mode passes
+            children. Modes like Proof + Duet that have their own
+            audio-rich workflow panels render their chapter list
+            inside prePanels and leave children empty — we don't
+            render an empty Chapters card on top of that. */}
+        {children && (
+          <section
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 10,
-              gap: 10,
-              flexWrap: 'wrap',
+              background: 'rgba(255,255,255,0.86)',
+              border: '1px solid var(--border)',
+              borderRadius: 22,
+              padding: '1rem',
+              marginBottom: 14,
             }}
           >
             <div
               style={{
-                fontSize: '0.74rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: token.ink,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 10,
+                gap: 10,
+                flexWrap: 'wrap',
               }}
             >
-              Chapters
+              <div
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: token.ink,
+                }}
+              >
+                Chapters
+              </div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Click a chapter to open it
+              </span>
             </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Click a chapter to open it
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: '60vh', overflowY: 'auto' }}>
-            {children}
-          </div>
-        </section>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: '60vh', overflowY: 'auto' }}>
+              {children}
+            </div>
+          </section>
+        )}
 
         {postPanels}
 

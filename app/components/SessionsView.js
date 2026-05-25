@@ -466,7 +466,7 @@ function loadAudioDurationSeconds(url) {
 
 const btn=(style={})=>({ padding:'6px 12px',borderRadius:8,fontSize:'0.78rem',border:'1px solid var(--border)',background:'white',color:'var(--text)',cursor:'pointer',...style });
 
-export default function BookDetail({ book, isElectron, audioUploadMode = 'chapter', onProof, onUpdateBook, onToggleComplete, onDelete, onBack, onTransferExport, onRescanPageMap, persistentAudioUrl = null, persistentAudioLabel = '', persistentAudioState = null, onPersistentAudioStateChange, onReturnToScene, onClearPersistentAudio }) {
+export default function BookDetail({ book, isElectron, audioUploadMode = 'chapter', onProof, onUpdateBook, onToggleComplete, onDelete, onBack, onTransferExport, onRescanPageMap, persistentAudioUrl = null, persistentAudioLabel = '', persistentAudioState = null, onPersistentAudioStateChange, onReturnToScene, onClearPersistentAudio, usesCustomDragRegion = false }) {
   const [audioUrls, setAudioUrls] = useState({});
   const [audioFiles, setAudioFiles] = useState({});
   const [expanded, setExpanded] = useState({});

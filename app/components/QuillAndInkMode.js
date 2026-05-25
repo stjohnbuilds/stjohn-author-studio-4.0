@@ -534,6 +534,19 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
   const annCount = project.annotations?.length || 0;
   const audioCount = Object.keys(chapterAudios).filter(id => chapters.some(c => c.id === id)).length;
   const transcribedCount = Object.keys(chapterTranscripts).filter(id => chapters.some(c => c.id === id) && chapterTranscripts[id]?.status === 'done').length;
+  const totalDurationSec = Object.entries(chapterAudios)
+    .filter(([id]) => chapters.some(c => c.id === id))
+    .reduce((sum, [, a]) => sum + (Number(a?.duration) || 0), 0);
+  function fmtDur(totalSec) {
+    if (!totalSec || !Number.isFinite(totalSec)) return '—';
+    const s = Math.round(totalSec);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  }
   const subtitle = `${chapters.length} chapter${chapters.length === 1 ? '' : 's'} · ${annCount} annotation${annCount === 1 ? '' : 's'}${audioCount ? ` · ${audioCount} audio attached` : ''}`;
 
   // Shared book-detail panels brought over from Proof's pattern:

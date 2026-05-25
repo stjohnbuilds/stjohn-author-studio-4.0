@@ -514,9 +514,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
 // audio object has been wired in by the parent.
 // ---------------------------------------------------------------------------
 
-function ScriptChapterReader({ book, chapter, section, onBack, onSaveBook }) {
+function ScriptChapterReader({ book, chapter, section, onBack, onSwitchSection, onSaveBook }) {
   const sections = chapter.sections || [];
-  const sectionIndex = Math.max(0, sections.findIndex((s) => s.id === section.id));
   const plainText = useMemo(() => sectionPlainText(section), [section]);
   const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
 
@@ -524,6 +523,14 @@ function ScriptChapterReader({ book, chapter, section, onBack, onSaveBook }) {
   const [flagPanelOpen, setFlagPanelOpen] = useState(false);
   const [flagType, setFlagType] = useState('Edit');
   const [flagNote, setFlagNote] = useState('');
+
+  // Reset transient flag state when the user switches to a different section.
+  useEffect(() => {
+    setSelectedRange(null);
+    setFlagPanelOpen(false);
+    setFlagNote('');
+    setFlagType('Edit');
+  }, [section.id]);
 
   function onWordTap(idx) {
     if (selectedRange?.start === idx && selectedRange?.end === idx) {

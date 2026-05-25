@@ -329,7 +329,7 @@ export default function PrebuildMode({ modeToggle = null }) {
         heading="New duet audio prep"
         blurb="Upload the engineer manuscript. We'll detect chapters and the highlighted insertions."
         submitLabel="Create project"
-        allowSceneSplitting={false}
+        allowSceneSplitting={true}
         defaultSplitScenes={true}
         onCancel={() => setView('home')}
         onConfirm={(payload) => {

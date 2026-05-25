@@ -824,6 +824,44 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const audioRef = useRef(null);
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [followText, setFollowText] = useState(true);
+
+  // Search inside chapter — same shape as Proof's ChapterSearchBar.
+  // Cmd/Ctrl+F to open. Highlights matching words via unitDecoration.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchHits, setSearchHits] = useState([]); // array of unit indices
+  const [searchHitIdx, setSearchHitIdx] = useState(0);
+  const searchInputRef = useRef(null);
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setSearchOpen(true);
+        setTimeout(() => searchInputRef.current?.focus(), 50);
+      } else if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false);
+        setSearchQuery('');
+        setSearchHits([]);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen]);
+  // Recompute hits when query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchHits([]); setSearchHitIdx(0); return; }
+    const q = searchQuery.toLowerCase();
+    const hits = [];
+    wordSpans.forEach((w, i) => { if (String(w.text || '').toLowerCase().includes(q)) hits.push(i); });
+    setSearchHits(hits);
+    setSearchHitIdx(0);
+  }, [searchQuery, wordSpans]);
+  function searchStep(direction) {
+    if (!searchHits.length) return;
+    setSearchHitIdx((prev) => (prev + direction + searchHits.length) % searchHits.length);
+  }
+  // Reset search when chapter changes
+  useEffect(() => { setSearchOpen(false); setSearchQuery(''); setSearchHits([]); }, [chapter?.id]);
   const syncTable = chapterTranscript?.syncTable || null;
   useEffect(() => {
     setCurrentMsIdx(-1);

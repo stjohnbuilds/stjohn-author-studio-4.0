@@ -798,6 +798,21 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const plainText = chapter?.plainText || htmlToPlainText(chapter?.textHtml || '');
   const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
 
+  // Character chip strip below the sticky bar — same look as Proof's
+  // narrator strip. Pulls from project.annotationOptions where classId
+  // === 'character'. Visible only when characters exist.
+  const characters = (project.annotationOptions || []).filter(o => o.classId === 'character');
+  const characterStrip = characters.length > 0 ? (
+    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+      {characters.map((c) => (
+        <span key={c.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.9)', border: '1px solid var(--border-light)' }}>
+          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: c.color || 'var(--accent)' }} />
+          {c.label}
+        </span>
+      ))}
+    </div>
+  ) : null;
+
   // Audio is attached at the BOOK DETAIL level, per chapter. The parent
   // owns the audio state; this view just consumes the prop. Marie's
   // rule: audio NEVER leaves the device.

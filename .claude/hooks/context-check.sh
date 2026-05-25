@@ -21,6 +21,7 @@ else
 fi
 
 MSG+="GIT STATUS: Check for uncommitted changes before editing.\n"
+MSG+="SHARED COMPONENTS — there is ONE of each, do not write a new one: <BookDetail> (app/components/BookDetail.js), <ChapterReader>+renderChapterBody (app/components/ChapterReader.js), <AudioDock> (app/components/AudioDock.js), <ImportFlow> (app/components/ImportFlow.js), ReaderChrome exports incl. <HomeBackPill>/<ProfilePill>/MODE_TOKENS (app/components/ReaderChrome.js). The build-checker hook hard-blocks fresh function .*BookDetail/HomeView/ChapterRow/ReaderView/Setup/Panel/AudioDock/Picker in any mode file. See CLAUDE.md top section.\n"
 
 if [ -f "$PROJECT_ROOT/TODO.md" ]; then
   MSG+="TODO CHECK: Review TODO.md. If this task relates to an existing item, work from that.\n"

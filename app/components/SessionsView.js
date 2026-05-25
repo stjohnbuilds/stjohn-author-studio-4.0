@@ -2345,7 +2345,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             );
           })}
         </div>
-      </div>
+          </div>
+        )}
+      />
 
       {showFloatingNav && renderChapterNavigator(false)}
 

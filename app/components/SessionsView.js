@@ -1845,34 +1845,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           </div>
         );
       })()}
-      <button
-        onClick={onBack}
-        style={{
-          position:'fixed',
-          top:52,
-          left:16,
-          zIndex:1210,
-          background:'white',
-          border:'1px solid var(--border)',
-          borderRadius:'50%',
-          cursor:'pointer',
-          color:'var(--text-muted)',
-          fontSize:'1.25rem',
-          fontWeight:600,
-          width:48,
-          height:48,
-          display:'flex',
-          alignItems:'center',
-          justifyContent:'center',
-          boxShadow:'0 6px 16px rgba(0,0,0,0.08)',
-        }}
-        title="All books"
-        aria-label="Back to all books"
-      >
-        ⌂
-      </button>
-
-      <div style={{ width:showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))',margin:'0 auto',paddingTop:'1.2rem',paddingLeft:'1.1rem',paddingRight:'1.1rem',paddingBottom:persistentAudioUrl ? '8rem' : '3rem' }}>
+      <SharedBookDetail
+        tone="proof"
+        title={book.title}
+        subtitle={`${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags · ${book.fileName}`}
+        onBackHome={onBack}
+        containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}
+        prePanels={(
+          <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
         <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
           <div style={{ padding:'16px 16px 14px',background:'var(--accent-soft)',borderBottom:'1px solid var(--accent-border)' }}>

@@ -1568,7 +1568,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   }
 
   function openChapterProof(chapter) {
-    const firstSection = (chapter?.sections || []).find(sec => !!audioUrls[sec.id]);
+    // Proof: needs audio attached before opening (listen flow).
+    // Quill: open straight into the reader even without audio (annotate flow).
+    const firstSection = (chapter?.sections || []).find(sec => !!audioUrls[sec.id])
+      || (mode === 'quill' ? (chapter?.sections || [])[0] : null);
     if (!firstSection) return;
     openSceneProof(chapter, firstSection);
   }

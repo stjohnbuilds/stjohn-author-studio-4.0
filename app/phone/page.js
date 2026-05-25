@@ -334,8 +334,20 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
       const supabase = getSupabaseClient();
       if (!supabase) throw new Error('Supabase is not configured.');
       const list = await pullQuillProjects(supabase);
-      setProjects(list);
-      if (session?.user?.id) writePhoneProjectCache('quill', session.user.id, list);
+      // Never wipe a populated local cache with an empty cloud pull —
+      // a transient error or wrong account would otherwise look like
+      // "all my projects vanished." Trust the cloud only when it
+      // returns at least one project; otherwise keep what we have.
+      setProjects((current) => {
+        if (list?.length) {
+          if (session?.user?.id) writePhoneProjectCache('quill', session.user.id, list);
+          return list;
+        }
+        if (!current?.length && session?.user?.id) {
+          writePhoneProjectCache('quill', session.user.id, []);
+        }
+        return current;
+      });
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {

@@ -803,6 +803,12 @@ function ScriptChapterReader({ book, chapter, section, onBack, onSwitchSection, 
           </div>
         </div>
       )}
+      <PhoneAudioDock
+        tone={{ ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }}
+        sectionKey={section.id}
+        currentTimeRef={currentAudioTimeRef}
+        defaultFileName={section.audioFileName || ''}
+      />
     </main>
   );
 }

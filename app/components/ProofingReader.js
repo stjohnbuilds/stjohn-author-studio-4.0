@@ -1083,18 +1083,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
   return (
     <div style={{ display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'linear-gradient(180deg, #fbfaf7 0%, #ffffff 16%, #ffffff 100%)',paddingTop:isMacElectron?24:0 }}>
+      <HomeBackPill icon="←" tone="proof" usesCustomDragRegion={usesCustomDragRegion || isMacElectron} onClick={backToBook} />
       <div style={{ flexShrink:0,padding:'14px 16px 12px',borderBottom:'1px solid var(--border-light)',background:'rgba(255,255,255,0.92)',backdropFilter:'blur(16px)' }}>
         <div style={{ width:readerShellWidth,margin:'0 auto',display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:12,alignItems:'center' }}>
-          <div style={{ display:'flex',justifyContent:'flex-start' }}>
-            <button
-              onClick={backToBook}
-              aria-label="Back to book"
-              title="Back to book"
-              style={{ width:48,height:48,borderRadius:'50%',border:'1px solid var(--border)',background:'white',color:'var(--text-muted)',fontSize:'1.35rem',fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 8px 18px rgba(0,0,0,0.07)',WebkitAppRegion:'no-drag' }}
-            >
-              ←
-            </button>
-          </div>
+          <div />
 
           <div style={{ textAlign:'center' }}>
             {section.chapterTitle && (

@@ -1846,14 +1846,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         );
       })()}
       <SharedBookDetail
-        tone="proof"
+        tone={mode === 'quill' ? 'quill' : 'proof'}
         title={book.title}
-        subtitle={`${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags · ${book.fileName}`}
+        subtitle={mode === 'quill'
+          ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations · ${book.fileName || ''}`
+          : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags · ${book.fileName}`}
         onBackHome={onBack}
         usesCustomDragRegion={usesCustomDragRegion}
         onDelete={onDelete}
         deleteLabel={`Delete "${book.title}"`}
-        actionButtons={(
+        actionButtons={actionButtonsOverride !== null ? actionButtonsOverride : (
           <>
             <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
             <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>

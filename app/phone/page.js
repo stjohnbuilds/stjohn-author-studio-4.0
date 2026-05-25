@@ -65,6 +65,49 @@ function formatTime(seconds) {
   return `${minutes}:${String(remaining).padStart(2, '0')}`;
 }
 
+function csvEsc(value) {
+  const s = String(value ?? '');
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function buildFlagsCsv(book) {
+  const rows = [['Chapter', 'Audio File', 'Page', 'Timestamp', 'Narrator', 'Type', 'Quote', 'Note']];
+  (book?.chapters || []).forEach((ch) => {
+    (ch.sections || []).forEach((sec) => {
+      (sec.flags || []).forEach((fl) => {
+        rows.push([
+          ch.title || '',
+          sec.audioFileName || '',
+          fl.page || '',
+          formatTime(fl.ts),
+          fl.narrator || '',
+          fl.type || '',
+          fl.sentPlain || '',
+          fl.note || '',
+        ]);
+      });
+    });
+  });
+  return rows.map((row) => row.map(csvEsc).join(',')).join('\r\n');
+}
+
+function safeFileName(name) {
+  return String(name || 'project').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'project';
+}
+
+function downloadText(filename, content, type = 'text/plain') {
+  if (typeof window === 'undefined') return;
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function PhoneShell() {
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [authSession, setAuthSession] = useState(null);

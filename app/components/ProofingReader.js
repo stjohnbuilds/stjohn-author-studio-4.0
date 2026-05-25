@@ -4,6 +4,7 @@ import { DEFAULT_ESTIMATED_WORDS_PER_PAGE, getPageNumberForWordIndex } from '../
 import { findPdfPageForQuote } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';
 import AudioDock from './AudioDock';
+import { HomeBackPill } from './ReaderChrome';
 // Audio-time ↔ manuscript-word-index helpers. Extracted to a shared
 // package so Quill, Duet, and the phone Script mode use the same
 // sync math without copy-pasting.

@@ -344,6 +344,21 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
+  // Re-pull when the user returns to the app (window focus or tab
+  // visibility) so cross-device edits (e.g. flag saved on the other
+  // device 10 minutes ago) show up. Cheap, non-blocking.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onFocus = () => { refreshFromCloud(); };
+    const onVisibility = () => { if (document.visibilityState === 'visible') refreshFromCloud(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [refreshFromCloud]);
+
   const refreshFromCloud = useCallback(async () => {
     setError('');
     setLoading(true);

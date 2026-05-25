@@ -28,8 +28,8 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash .claude/hooks/build-checker.sh", "timeout": 30 },
-          { "type": "command", "command": "bash .claude/hooks/no-mess.sh" }
+          { "type": "command", "command": "bash .claude/hooks/no-mess.sh" },
+          { "type": "command", "command": "bash .claude/hooks/build-checker.sh", "timeout": 30 }
         ]
       }
     ]

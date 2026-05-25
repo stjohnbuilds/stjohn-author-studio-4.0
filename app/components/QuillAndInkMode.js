@@ -852,7 +852,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
     if (!searchQuery.trim()) { setSearchHits([]); setSearchHitIdx(0); return; }
     const q = searchQuery.toLowerCase();
     const hits = [];
-    wordSpans.forEach((w, i) => { if (String(w.text || '').toLowerCase().includes(q)) hits.push(i); });
+    wordSpans.forEach((w, i) => { if (String(w.word || w.text || '').toLowerCase().includes(q)) hits.push(i); });
     setSearchHits(hits);
     setSearchHitIdx(0);
   }, [searchQuery, wordSpans]);

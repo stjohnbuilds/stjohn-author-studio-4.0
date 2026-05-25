@@ -1219,42 +1219,101 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
       {panelOpen && selectedRange && (
         <ReaderPopover ink={PROOF_INK}>
           <div style={popoverHeader(PROOF_INK)}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
-              New flag · {formatTime(Number(currentAudioTimeRef.current) || 0)}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: PROOF_INK, fontSize: '0.88rem' }}>
+                {formatTime(Number(currentAudioTimeRef.current) || 0)}
+              </span>
+              <span style={{ fontSize: '0.66rem', background: PROOF_PASTEL, color: PROOF_INK, padding: '2px 8px', borderRadius: 999, fontWeight: 700, border: '1px solid ' + PROOF_INK + '33', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }} title={autoNarrator}>
+                {autoNarrator}
+              </span>
+            </div>
             <button type="button" onClick={clearSelection} aria-label="Cancel" style={popoverCloseStyle}>×</button>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {FLAG_TYPES.map((t) => (
-              <button
-                key={t}
-                onClick={() => setFlagType(t)}
-                style={{
-                  padding: '6px 11px',
-                  border: '1px solid ' + (flagType === t ? PROOF_INK : '#DDD0C4'),
-                  background: flagType === t ? PROOF_PASTEL : 'white',
-                  borderRadius: 999,
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: flagType === t ? PROOF_INK : '#6D6663',
-                  cursor: 'pointer',
-                }}
+
+          <FieldLabel>Quote</FieldLabel>
+          <textarea
+            value={flagDraft.quote}
+            onChange={(e) => setFlagDraft((prev) => ({ ...prev, quote: e.target.value }))}
+            rows={2}
+            style={{ ...popoverInputStyle, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.45 }}
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '78px 1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <FieldLabel>Page</FieldLabel>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="#"
+                value={flagDraft.page}
+                onChange={(e) => setFlagDraft((prev) => ({ ...prev, page: e.target.value }))}
+                style={smallFieldStyle}
+              />
+            </div>
+            <div>
+              <FieldLabel>Narrator / Engineer</FieldLabel>
+              <input
+                type="text"
+                list="phone-flag-narrators"
+                placeholder={autoNarrator}
+                value={flagDraft.narrator}
+                onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
+                style={smallFieldStyle}
+              />
+              <datalist id="phone-flag-narrators">
+                {narratorOptions.map((n) => <option key={n} value={n} />)}
+              </datalist>
+            </div>
+            <div>
+              <FieldLabel>Type</FieldLabel>
+              <select
+                value={flagDraft.type}
+                onChange={(e) => setFlagDraft((prev) => ({ ...prev, type: e.target.value }))}
+                style={smallFieldStyle}
               >
-                {t}
-              </button>
-            ))}
+                {FLAG_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
+
+          <FieldLabel>Should say / note</FieldLabel>
           <input
-            value={flagNote}
-            onChange={(e) => setFlagNote(e.target.value)}
-            placeholder="Flag note (optional)"
+            type="text"
+            value={flagDraft.note}
+            onChange={(e) => setFlagDraft((prev) => ({ ...prev, note: e.target.value }))}
+            placeholder="What the narrator should say…"
             style={popoverInputStyle}
           />
+
           <div style={popoverActionsStyle}>
             <button onClick={clearSelection} style={popoverSecondaryStyle}>Cancel</button>
             <button onClick={saveFlag} style={popoverPrimaryStyle(PROOF_ACCENT)}>Save flag</button>
           </div>
         </ReaderPopover>
+      )}
+
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            left: '50%',
+            bottom: 86,
+            transform: 'translateX(-50%)',
+            maxWidth: `min(${PHONE_READER_MAX_WIDTH}px, calc(100vw - 24px))`,
+            background: '#fff7e6',
+            color: '#7a5b18',
+            border: '1px solid #f4d28a',
+            borderRadius: 999,
+            padding: '8px 14px',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            boxShadow: '0 8px 22px rgba(76,72,70,0.16)',
+            zIndex: 1600,
+          }}
+        >
+          {toast}
+        </div>
       )}
 
       <PhoneAudioDock

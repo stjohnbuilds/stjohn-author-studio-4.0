@@ -171,8 +171,8 @@ export default function BookDetail({
 
         {postPanels}
 
-        {onDelete && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+        {false && onDelete && (
+          <div style={{ display: 'none' }}>
             <button
               type="button"
               onClick={() => {

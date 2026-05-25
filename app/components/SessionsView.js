@@ -2109,8 +2109,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             const chapterFlagCount = (ch.sections||[]).reduce((n, s) => n + (s.flags?.length || 0), 0);
             return (
               <div key={ch.id} ref={node => { chapterRefs.current[ch.id] = node; }} style={{ background:'white',overflow:'hidden',scrollMarginTop:88,borderTop:chIndex===0?'none':'1px solid var(--border)' }}>
-                {/* Chapter header */}
-                <div style={{ display:'flex',alignItems:'center',padding:'6px 10px',gap:7,background:chIndex % 2 === 0 ? 'var(--accent-surface)' : 'var(--accent-soft)',flexWrap:'wrap' }}>
+                {/* Chapter header — single line per chapter so 50 rows scroll fast. */}
+                <div style={{ display:'flex',alignItems:'center',padding:'3px 10px',gap:6,background:chIndex % 2 === 0 ? 'var(--accent-surface)' : 'var(--accent-soft)',flexWrap:'nowrap',minHeight:34 }}>
                   <button onClick={()=>setExpanded(e=>({...e,[ch.id]:!isExpanded}))} style={{ display:'flex',alignItems:'center',gap:10,background:'transparent',border:'none',cursor:'pointer',textAlign:'left',padding:0,flex:'1 1 260px',minWidth:220 }}>
                     <div style={{ display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0 }}>
                       <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:44,padding:'3px 8px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.67rem',fontWeight:700,color:'var(--text-muted)' }}>

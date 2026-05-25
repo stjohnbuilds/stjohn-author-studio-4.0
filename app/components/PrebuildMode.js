@@ -1122,14 +1122,6 @@ export default function PrebuildMode({ modeToggle = null }) {
               <input type="file" ref={reuploadRef} accept=".docx" style={{ display:'none' }} onChange={e => { if (e.target.files[0]) reuploadManuscript(e.target.files[0]); e.target.value = ''; }} />
               <button onClick={() => { setSelectedChapter(0); setView('reader'); }} style={{ ...btn(false), color:'var(--accent-dark)',borderColor:'var(--accent-border)',fontWeight:700 }}>Review manuscript</button>
               <button onClick={openExportPanel} disabled={!scannedCount} style={{ ...btnPrimary, padding:'10px 20px', opacity: scannedCount ? 1 : 0.4 }}>Export</button>
-              <button
-                onClick={deleteProject}
-                aria-label="Delete project"
-                title="Delete project"
-                style={{ width:38,height:38,borderRadius:'50%',border:'1px solid #f0b8b8',background:'white',color:'var(--danger)',fontSize:'1rem',fontWeight:800,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center' }}
-              >
-                🗑
-              </button>
               </div>
             </div>
             <div style={{ padding:'11px 14px 14px' }}>

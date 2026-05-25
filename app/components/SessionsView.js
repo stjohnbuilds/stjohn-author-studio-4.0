@@ -1580,7 +1580,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     if (!chapterSummaries.length) return null;
     const hasRunningQueueTask = bookQueueItems.some(task => task.status === 'running');
     const renderNavigationTab = () => (
-      <div style={{ padding:isInline ? '3px 0 0' : '3px 4px 5px',overflowY:'auto',maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
+      <div style={{ padding:isInline ? '3px 0 0' : '3px 4px 5px',overflowY:'auto',minHeight:isInline ? 180 : 320,maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
         {chapterSummaries.map(item => (
           <div key={`nav-${item.id}`} style={{ display:'grid',gridTemplateColumns:'1fr 20px',gap:6,alignItems:'center',padding:'1px 1px' }}>
             <button

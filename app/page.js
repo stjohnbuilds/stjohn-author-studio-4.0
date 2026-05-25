@@ -622,7 +622,19 @@ export default function Home() {
     };
   }
 
-  function deleteBook(id) { persist(books.filter(b => b.id !== id)); setView('home'); }
+  function deleteBook(id) {
+    const target = books.find(b => b.id === id);
+    persist(books.filter(b => b.id !== id));
+    setView('home');
+    if (target?.cloudId) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        deleteProofProject(supabase, target.cloudId).catch((e) => {
+          console.warn('[Proof] cloud delete failed:', e?.message || e);
+        });
+      }
+    }
+  }
 
   async function startProofing(section, url, startSec) {
     if (typeof window !== 'undefined') {

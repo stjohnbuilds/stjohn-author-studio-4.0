@@ -70,13 +70,13 @@ Always read `HANDOFF.md` first, then this file.
       Audio stays on the phone. Script reader captures the current
       audio time as the flag's `ts`. — completed 2026-05-25 (overnight)
 
-- [ ] **Deploy phone to Vercel.** **BLOCKED ON MARIE.** Auto-mode
-      classifier wouldn't approve the deploy because the original
-      ask ("can I just give it now?") wasn't read as a clear yes.
-      To unblock: open Terminal and paste `cd ~/Dev/StJohn-Author-Studio-4.0
-      && vercel --prod` then follow prompts. Will also need to set
-      `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-      in the Vercel project settings, otherwise login won't work.
+- [x] **Deploy phone to Vercel.** Live at
+      **https://stjohn-author-studio-4.vercel.app/phone**. Linked to the
+      Vercel project `marie-mackays-projects/stjohn-author-studio-4`,
+      env vars (`NEXT_PUBLIC_SUPABASE_URL` +
+      `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) set in production scope,
+      first deploy ready. Both `/` and `/phone` return 200. —
+      completed 2026-05-25
 
 - [ ] **Audio sync in Quill desktop reader.** Optional. Quill works
       without audio. If Marie wants audio while annotating on the

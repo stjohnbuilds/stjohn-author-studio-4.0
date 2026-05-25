@@ -1870,7 +1870,6 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>
                 )}
                 <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
-                <button style={btn({color:'var(--danger)',borderColor:'#f0b8b8'})} onClick={()=>{if(confirm(`Delete "${book.title}"?`))onDelete();}}>Delete</button>
               </div>
             </div>
           </div>

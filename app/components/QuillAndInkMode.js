@@ -56,10 +56,6 @@ function uid(prefix = 'id') {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function isBlockTag(tagName) {
-  return ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'UL', 'OL', 'LI'].includes(tagName);
-}
-
 async function loadProjects() {
   const electron = typeof window !== 'undefined' ? window.electron : null;
   if (electron?.readQuillData) {

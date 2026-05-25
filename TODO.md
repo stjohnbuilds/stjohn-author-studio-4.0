@@ -15,9 +15,19 @@ Always read `HANDOFF.md` first, then this file.
 
 ### Marie's morning testing checklist (do these in order)
 
-- [ ] **Create a real Supabase account.** Launch the app, click "Don't
-      have an account? Create one", use a real email. Confirm via the
-      email Supabase sends. Sign back in.
+- [ ] **Sign in.** Supabase is already wired to your existing
+      project (`evcusovtjfypfyfvnooy`). Use the same email/password you
+      use for your other apps in that Supabase. If you don't remember,
+      use "Forgot password" to reset.
+- [ ] **Look at the four mode colours.** Flip between Proof / Prep /
+      Duet / Quill. Each one should wear its own pastel colour, not
+      purple. Card headers should be flat, not a fade-to-white.
+- [ ] **Open a real Proof audiobook.** The book detail page was just
+      rebuilt to use the shared component. Walk through your usual
+      flow — confirm the title, action buttons, chapter list, audio
+      panels, and delete still work like before. If anything looks off
+      or behaves differently, tell me before I tackle the next big
+      migration (the reader itself).
 - [ ] **Try Quill on a real .docx.** Top-left mode toggle → Quill. New
       project → upload a manuscript. Open a chapter. Drag across a few
       words, tap the pink + button, pick a class, save. Verify the

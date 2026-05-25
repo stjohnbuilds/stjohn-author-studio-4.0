@@ -231,6 +231,42 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-05-25 overnight session — phone feature parity + desktop polish
+
+- [x] **Split toggle — no fake scene when chapter has no H2s.** Fixed
+      in `app/components/SessionsView.js`. Battery-tested 11 edge cases
+      (no h2, h2 only, multi-h2, h2 at start, h2 at end, multi-section,
+      empty html, null html, missing section, attribute variants).
+      All pass. — completed 2026-05-25 (overnight)
+- [x] **PinnedTabPanel shared component + tab-stability hook rule.**
+      Added `<PinnedTabPanel>` to `ReaderChrome.js`. Extended
+      `.claude/hooks/build-checker.sh` with a soft warn (Rule 6) when
+      a mode file adds new `*Tab` state + ternary content render
+      without using it. — completed 2026-05-25 (overnight)
+- [x] **Edit book data panel — chapter check/uncheck + mode extras.**
+      Edit panel in SessionsView now has chapter checkboxes (uncheck
+      to remove copyright pages etc.), mode-specific labels (Proof:
+      "narrator mapping", Quill: "characters", Duet: book + chapters
+      only), and a confirm prompt before destructive removals. —
+      completed 2026-05-25 (overnight)
+- [x] **Cloud sync for Proof Listen.** (see Active section) —
+      completed 2026-05-25 (overnight)
+- [x] **Phone Script mode (Proof on phone).** (see Active section) —
+      completed 2026-05-25 (overnight)
+- [x] **Phone CSV export.** (see Active section) — completed 2026-05-25
+      (overnight)
+- [x] **Phone audio playback (shared by Quill + Script).** (see Active
+      section) — completed 2026-05-25 (overnight)
+- [x] **Deep-dive batteries.** Sandbox + pure-function batteries for
+      A1 Split toggle (11/11), A3 chapter filter (6/6), A4 audio guard
+      (9/9), A4 sync helpers (6/6), A6 buildFlagsCsv (10/10). Live UI
+      smoke for phone Script flow (loads, navigates, empty state).
+      All passed. — completed 2026-05-25 (overnight)
+- [x] **Bug-fix sweep.** Renamed shadowing `flagCount` variable in
+      phone page. Added `onError` handler to PhoneAudioDock for
+      unsupported audio files. Added confirm guard to chapter-removal
+      save flow. — completed 2026-05-25 (overnight)
+
 ### 2026-05-24 overnight session — login + Quill + cloud-sync + phone
 
 - [x] **Studio landing page + Supabase login** — Sign in, create

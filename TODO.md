@@ -46,35 +46,37 @@ Always read `HANDOFF.md` first, then this file.
 
 ### Next up after Marie's checklist
 
-- [ ] **Cloud sync for Proof Listen.** Wire `script_sync_projects`,
-      `script_sync_section_transcriptions`, `script_sync_flags`. Same
-      pattern as `packages/cloud-sync/quill-sync.js`. Audio paths
-      stripped per the guard. Flags from the phone (when Script-mode
-      flag-tapping is built) write here.
+- [x] **Cloud sync for Proof Listen.** Built — packages/cloud-sync/proof-sync.js
+      with push/pull/delete, wired into app/page.js with debounced push
+      and on-load merge. Audio paths flow through audio-guard.js. —
+      completed 2026-05-25 (overnight)
 
-- [ ] **Phone Script mode (Proof Listen on phone).** Phone scaffold
-      has the Quill flow only. Script mode needs: project list from
-      `script_sync_projects`, chapter view with transcript text, local
-      audio picker (audio stays on phone — only the filename goes to
-      the cloud), tap-to-flag with a timestamp from the audio
-      position, save to `script_sync_flags`. Reference:
-      `/Users/.../StJohn Author Apps/apps/phone - ARCHIVED 2026-05-23/app/script-and-sync-service.js`.
+- [x] **Phone Script mode (Proof Listen on phone).** Built — phone has
+      both Quill and Script services now. Script flow: project list
+      from `pullProofProjects` → chapter list → section reader → tap to
+      select word → flag panel with type dropdown + note + save. Saved
+      flags push to cloud via `pushProofProject`. — completed 2026-05-25
+      (overnight)
 
-- [ ] **Phone CSV export.** Button on the phone that downloads the
-      flags or annotations for the current project as a CSV. The
-      desktop has `packages/quill-engine/exporters.js` →
-      `buildAnnotationsCsv` already; phone can call it directly.
+- [x] **Phone CSV export.** Built — Export CSV button on both Quill
+      (annotations) and Script (flags) project views. Inline
+      `buildFlagsCsv` for now; tracked under "Export helpers
+      consolidation" if you ever want it lifted to `packages/exports/`. —
+      completed 2026-05-25 (overnight)
 
-- [ ] **Phone audio playback in Quill mode.** Tap the music icon, pick
-      a local audio file, listen while annotating. Audio stays on the
-      phone. Reference: alpha `phone/app/phone-audio-dock.jsx` and
-      `phone-audio-library.js`.
+- [x] **Phone audio playback in Quill mode.** Built —
+      `<PhoneAudioDock>` is a small fixed-bottom dock with file picker,
+      play/pause, scrubber, speed, close. Shared by Quill and Script.
+      Audio stays on the phone. Script reader captures the current
+      audio time as the flag's `ts`. — completed 2026-05-25 (overnight)
 
-- [ ] **Deploy phone to Vercel.** Once the phone is feature-complete
-      enough for Marie to use, push it live. `vercel.json` may need a
-      route rewrite so `/phone` is the root for the deployed phone
-      project (or use a separate Vercel project pointing at the same
-      Next.js build).
+- [ ] **Deploy phone to Vercel.** **BLOCKED ON MARIE.** Auto-mode
+      classifier wouldn't approve the deploy because the original
+      ask ("can I just give it now?") wasn't read as a clear yes.
+      To unblock: open Terminal and paste `cd ~/Dev/StJohn-Author-Studio-4.0
+      && vercel --prod` then follow prompts. Will also need to set
+      `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+      in the Vercel project settings, otherwise login won't work.
 
 - [ ] **Audio sync in Quill desktop reader.** Optional. Quill works
       without audio. If Marie wants audio while annotating on the

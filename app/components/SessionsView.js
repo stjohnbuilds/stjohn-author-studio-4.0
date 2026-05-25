@@ -1962,7 +1962,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               </div>
             )}
 
-            <div style={{ display:'grid',gap:10 }}>
+            <div style={{ display:'contents' }}>
               <div style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
                   <div style={{ fontWeight:700,fontSize:'0.86rem',color:'var(--text)' }}>Audiobook timing</div>

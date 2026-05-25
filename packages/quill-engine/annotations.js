@@ -28,12 +28,12 @@ export const BASE_ANNOTATION_CLASSES = [
   {
     id: 'emotion',
     label: 'Emotion',
-    color: '#b75aa8',
+    color: '#E2B4C5',
     allowCustom: true,
     options: [
-      { id: 'emotion-dramatic', label: 'Dramatic', color: '#9d5c5a' },
-      { id: 'emotion-romantic', label: 'Romantic', color: '#c66f8d' },
-      { id: 'emotion-funny', label: 'Funny', color: '#d39a57' },
+      { id: 'emotion-dramatic', label: 'Dramatic', color: '#C68DA0' },
+      { id: 'emotion-romantic', label: 'Romantic', color: '#E2B4C5' },
+      { id: 'emotion-funny', label: 'Funny', color: '#F0CFD8' },
     ],
   },
   {

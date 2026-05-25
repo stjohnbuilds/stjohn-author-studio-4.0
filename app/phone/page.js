@@ -450,6 +450,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
   }
 
   if (activeBook) {
+    const flagCount = (activeBook.chapters || []).reduce((n, ch) => n + (ch.sections || []).reduce((m, s) => m + (s.flags?.length || 0), 0), 0);
     return (
       <main style={phoneRoot}>
         <PhoneHeader
@@ -457,8 +458,19 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices }) {
           left={<BackButton onClick={() => setActiveBookId(null)} />}
         />
         <section style={{ padding: '1rem' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK, marginBottom: 10 }}>
-            Chapters
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
+              Chapters
+            </div>
+            <button
+              onClick={() => {
+                if (!flagCount) { window.alert('No flags to export yet.'); return; }
+                downloadText(`${safeFileName(activeBook.title)}-flags.csv`, buildFlagsCsv(activeBook), 'text/csv');
+              }}
+              style={{ background: 'none', border: 'none', color: PROOF_INK, fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Export CSV
+            </button>
           </div>
           {!(activeBook.chapters || []).length && (
             <div style={{ textAlign: 'center', padding: '1.6rem 0', fontSize: '0.84rem', color: '#9B928E' }}>

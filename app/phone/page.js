@@ -1037,6 +1037,195 @@ function BackButton({ onClick }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// PhoneAudioDock — bottom audio strip shared by Quill + Script readers.
+// The audio file stays local to the phone; only the filename ever travels
+// to the cloud (via the section's audioFileName field on the desktop side).
+// Pass `currentTimeRef` so callers can capture the current audio time
+// without re-rendering on every tick.
+// ---------------------------------------------------------------------------
+
+function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, defaultFileName = '' }) {
+  const inputRef = useRef(null);
+  const audioRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [rate, setRate] = useState(1);
+
+  // Reset everything when the parent's section changes.
+  useEffect(() => {
+    setFile(null);
+    setIsPlaying(false);
+    setTime(0);
+    if (currentTimeRef) currentTimeRef.current = 0;
+  }, [sectionKey, currentTimeRef]);
+
+  // Manage object URL lifecycle for the picked file.
+  useEffect(() => {
+    if (!file) { setAudioUrl(''); return undefined; }
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = rate;
+  }, [rate, audioUrl]);
+
+  function handleTimeUpdate(e) {
+    const t = e.currentTarget.currentTime;
+    setTime(t);
+    if (currentTimeRef) currentTimeRef.current = t;
+  }
+
+  function handleLoadedMetadata(e) {
+    setDuration(Number(e.currentTarget.duration) || 0);
+  }
+
+  async function togglePlay() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) {
+      try { await a.play(); setIsPlaying(true); } catch { setIsPlaying(false); }
+    } else {
+      a.pause();
+      setIsPlaying(false);
+    }
+  }
+
+  function seek(t) {
+    const a = audioRef.current;
+    if (!a) return;
+    const next = Number(t) || 0;
+    a.currentTime = next;
+    setTime(next);
+    if (currentTimeRef) currentTimeRef.current = next;
+  }
+
+  function clear() {
+    if (audioRef.current) audioRef.current.pause();
+    setFile(null);
+    setIsPlaying(false);
+    setTime(0);
+    if (currentTimeRef) currentTimeRef.current = 0;
+  }
+
+  const ink = tone.ink || PROOF_INK;
+  const accent = tone.accent || PROOF_ACCENT;
+  const pastel = tone.pastel || PROOF_PASTEL;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: 8,
+        right: 8,
+        bottom: 8,
+        zIndex: 1400,
+        background: 'white',
+        border: '1px solid ' + ink + '33',
+        borderRadius: file ? 18 : 999,
+        padding: file ? '8px 10px' : '6px 8px',
+        boxShadow: '0 12px 28px rgba(76,72,70,0.18)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        maxWidth: 460,
+        margin: '0 auto',
+      }}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="audio/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setFile(f);
+          e.target.value = '';
+        }}
+      />
+      {!file ? (
+        <button
+          onClick={() => inputRef.current?.click()}
+          aria-label="Pick audio file"
+          title={defaultFileName ? `Suggested: ${defaultFileName}` : 'Pick an audio file on this device'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            background: pastel,
+            border: '1px solid ' + ink + '33',
+            borderRadius: 999,
+            color: ink,
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            margin: '0 auto',
+          }}
+        >
+          ♫ Pick audio
+        </button>
+      ) : (
+        <>
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={() => setIsPlaying(false)}
+            preload="metadata"
+          />
+          <button
+            onClick={togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            style={{ width: 36, height: 36, borderRadius: '50%', background: accent, color: 'white', border: 'none', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', flexShrink: 0 }}
+          >
+            {isPlaying ? '❚❚' : '▶'}
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0.1, duration)}
+              step={0.1}
+              value={Math.min(time, Math.max(0.1, duration))}
+              onChange={(e) => seek(e.target.value)}
+              style={{ width: '100%', accentColor: ink }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#6D6663', marginTop: 1 }}>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTime(time)}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{file.name}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTime(duration)}</span>
+            </div>
+          </div>
+          <select
+            value={rate}
+            onChange={(e) => setRate(Number(e.target.value))}
+            aria-label="Playback speed"
+            style={{ padding: '3px 4px', borderRadius: 6, border: '1px solid #DDD0C4', fontSize: '0.7rem', background: 'white', color: '#4C4846' }}
+          >
+            {[0.75, 1, 1.25, 1.5, 1.75, 2].map((r) => (
+              <option key={r} value={r}>{r}×</option>
+            ))}
+          </select>
+          <button
+            onClick={clear}
+            aria-label="Close audio"
+            style={{ background: 'none', border: 'none', color: '#9B928E', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function AccountChip({ email, onSignOut }) {
   const [open, setOpen] = useState(false);
   if (!email) return null;

@@ -132,6 +132,30 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   // Per-chapter transcription state — alignment from whisper, sync table
   // for audio↔word mapping, progress UI. { alignment, syncTable, progress, status }
   const [chapterTranscripts, setChapterTranscripts] = useState({});
+
+  // Run whisper transcription for a single chapter. Same path Proof uses
+  // (transcribeAudio → alignTranscriptToManuscript → buildSyncTable).
+  // Extracted so onTranscribe and onTranscribeAll both call it.
+  const runTranscribe = useCallback(async (chapterId, audios, project) => {
+    const audio = audios?.[chapterId];
+    if (!audio?.file) return;
+    const chapter = (project?.chapters || []).find(c => c.id === chapterId);
+    if (!chapter) return;
+    setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'running', progress: 0 } }));
+    try {
+      const result = await transcribeAudio(audio.file, (p) => {
+        setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { ...(prev[chapterId] || {}), status: 'running', progress: p?.progress || 0, message: p?.message || '' } }));
+      });
+      const manuscriptText = chapter.plainText || htmlToPlainText(chapter.textHtml || '');
+      const msWords = String(manuscriptText).split(/\s+/).filter(Boolean);
+      const whisperWords = result?.words || [];
+      const alignment = alignTranscriptToManuscript(msWords, whisperWords);
+      const syncTable = buildDirectSyncTable(alignment);
+      setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
+    } catch (err) {
+      setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'error', progress: 0, error: String(err?.message || err) } }));
+    }
+  }, []);
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
   // True for state changes that came from the cloud (initial hydrate

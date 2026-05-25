@@ -66,7 +66,7 @@ fi
 # Prep is exempt: PrepManuscriptMode is intentionally separate
 # (characters + dialogue, no audio). Remove from EXEMPT when its
 # book-detail is also unified.
-GUARDED_MODE_FILES='^(ProofingReader|PrebuildMode|SessionsView|QuillAndInkMode)\.js$'
+GUARDED_MODE_FILES='^(ProofingReader|PrebuildMode|SessionsView|QuillAndInkMode|PrepManuscriptMode|ManuscriptSetup)\.js$'
 EXEMPT_FILES='^(PrepManuscriptMode)\.js$'
 DUP_FAILURES=""
 while IFS= read -r FILE; do

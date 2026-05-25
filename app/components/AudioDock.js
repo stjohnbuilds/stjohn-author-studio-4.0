@@ -37,6 +37,9 @@ export default function AudioDock({
   showJumps = true,
   // Compact width inside the dock — defaults to the reader paper width.
   contentWidth = 'min(740px, calc(100vw - 40px))',
+  // Float fixed at viewport bottom (Quill via ChapterReader.bottomDock)
+  // or sit in normal document flow (Proof's flex column).
+  floating = true,
 }) {
   const internalRef = useRef(null);
   const audioRef = audioRefProp || internalRef;

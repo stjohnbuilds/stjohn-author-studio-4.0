@@ -227,14 +227,14 @@ and Reader. Sweep:
       files. Add to `SHARED_COMPONENTS.md`. Hook: block new
       `window.confirm(` additions in mode files.
 
-- [ ] **Cloud-sync helpers parity.** `packages/cloud-sync/` has
-      Quill wired (`quill-sync.js`). Audit: what does Proof / Prep need
-      to wire? Build `proof-sync.js` (push/pull for
-      `script_sync_projects`, `script_sync_section_transcriptions`,
-      `script_sync_flags`) mirroring `quill-sync.js`'s shape. Then
-      `prep-sync.js` if Marie wants Prep on phone too. Audio paths must
-      flow through `audio-guard.js` before any upload (already
-      enforced in `quill-sync.js`).
+- [ ] **Cloud-sync helpers parity — Proof only.** `packages/cloud-sync/`
+      has Quill wired (`quill-sync.js`). Build `proof-sync.js` (push/pull
+      for `script_sync_projects`, `script_sync_section_transcriptions`,
+      `script_sync_flags`) mirroring `quill-sync.js`'s shape. Audio
+      paths flow through `audio-guard.js` before any upload (already
+      enforced). **Prep and Duet stay desktop-only** — they don't go to
+      phone so they don't need cloud sync. Only Proof + Quill ship to
+      phone.
 
 - [ ] **Export helpers consolidation.** Quill has CSV + InDesign export
       in `packages/quill-engine/exporters.js`. Prep has CSV + DOCX in

@@ -19,6 +19,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ImportFlow from './ImportFlow';
 import BookDetail, { ChapterRow } from './BookDetail';
+import ChapterReader, {
+  getChapterReaderWordEl,
+  computeChapterReaderPopoverPos,
+} from './ChapterReader';
 import {
   MODE_TOKENS,
   HomeBackPill,
@@ -26,10 +30,6 @@ import {
   StickyTopBar,
   topBtnStyle,
   useDismissable,
-  READER_WIDTH,
-  READER_PAGE_BG,
-  READER_FONT_SIZE,
-  READER_LINE_HEIGHT,
 } from './ReaderChrome';
 import {
   htmlToPlainText,

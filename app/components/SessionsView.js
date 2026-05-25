@@ -2110,25 +2110,27 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             </div>
 
             {audioUploadMode === 'chapter' && (
-              <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 13px' }} data-tutorial="bulk-audio-card">
-                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:8 }}>
-                  <div>
-                    <div style={{ display:'flex',alignItems:'center',gap:6 }}>
-                      <div style={{ fontWeight:700,fontSize:'0.9rem',color:'var(--text)' }}>Bulk chapter audio</div>
-                      <InfoTip tip={'Choose one audio file per chapter from the selected start chapter onward. Each chapter still keeps its own file after import.'} />
-                    </div>
+              <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }} data-tutorial="bulk-audio-card">
+                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
+                  <div style={{ display:'flex',alignItems:'center',gap:6 }}>
+                    <div style={{ fontWeight:700,fontSize:'0.84rem',color:'var(--text)',whiteSpace:'nowrap' }}>Bulk audio</div>
+                    <InfoTip tip={'Choose one audio file per chapter from the selected start chapter onward. Each chapter still keeps its own file after import.'} />
                   </div>
-                  <button style={btn({background:'var(--accent-light)',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700})} onClick={bulkImportAudio}>
-                    Bulk import audio…
-                  </button>
-                </div>
-                <div style={{ display:'flex',gap:8,alignItems:'center',flexWrap:'wrap' }}>
-                  <label style={{ fontSize:'0.72rem',color:'var(--text-muted)',fontWeight:700 }}>Start chapter</label>
-                  <select value={bulkStartChapterId} onChange={e=>setBulkStartChapterId(e.target.value)} style={{ ...btn({ background:'white',borderColor:'var(--accent-border)' }), padding:'7px 10px', minWidth:260 }}>
-                    {(book.chapters||[]).map((chapter, index) => (
-                      <option key={chapter.id} value={chapter.id}>{chapterDisplayLabel(chapter, index)}</option>
-                    ))}
-                  </select>
+                  <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap' }}>
+                    <select
+                      value={bulkStartChapterId}
+                      onChange={e=>setBulkStartChapterId(e.target.value)}
+                      title="Start from this chapter"
+                      style={{ ...btn({ background:'white',borderColor:'var(--accent-border)' }), padding:'3px 8px', fontSize:'0.72rem', maxWidth:160 }}
+                    >
+                      {(book.chapters||[]).map((chapter, index) => (
+                        <option key={chapter.id} value={chapter.id}>{chapterDisplayLabel(chapter, index)}</option>
+                      ))}
+                    </select>
+                    <button style={btn({background:'var(--accent-light)',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700,fontSize:'0.7rem',padding:'4px 10px'})} onClick={bulkImportAudio}>
+                      Import…
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

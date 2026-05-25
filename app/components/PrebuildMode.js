@@ -1097,7 +1097,7 @@ export default function PrebuildMode({ modeToggle = null }) {
             {/* Header */}
             <div style={{ WebkitAppRegion:'drag',paddingTop:28 }} />
           <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
-            <div style={{ padding:'16px 16px 14px',background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderBottom:'1px solid var(--accent-border)',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
+            <div style={{ padding:'16px 16px 14px',background:'var(--accent-soft)',borderBottom:'1px solid var(--accent-border)',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
               <div>
               {editingTitle ? (
                 <div style={{ display:'flex',alignItems:'center',gap:8 }}>
@@ -1133,7 +1133,7 @@ export default function PrebuildMode({ modeToggle = null }) {
               </div>
             </div>
             <div style={{ padding:'11px 14px 14px' }}>
-              <div style={{ background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
+              <div style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
                   <div style={{ fontWeight:700,fontSize:'0.86rem',color:'var(--text)' }}>Engineer progress</div>
                   <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
@@ -1156,7 +1156,7 @@ export default function PrebuildMode({ modeToggle = null }) {
 
           {/* Step 1: Audio */}
           <div style={card}>
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',padding:'12px 14px',background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderBottom:'1px solid var(--accent-border)' }}>
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',padding:'12px 14px',background:'var(--accent-soft)',borderBottom:'1px solid var(--accent-border)' }}>
               <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',width:'100%',justifyContent:'flex-end' }}>
                 {chapterEditMode ? (
                   <>

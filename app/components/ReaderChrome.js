@@ -327,6 +327,102 @@ export function HomePill({ onClick, tone = 'prep', usesCustomDragRegion }) {
 }
 
 // ---------------------------------------------------------------------------
+// ProfilePill — small top-right circle showing the signed-in user's
+// initial. Click reveals a popover with the email + a Sign out button.
+// Lives at the same vertical line as the home/mode pill on the left, so
+// the top-of-app nav reads as one row.
+// ---------------------------------------------------------------------------
+
+export function ProfilePill({ email = '', onSignOut, usesCustomDragRegion = false, tone = 'prep' }) {
+  const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef(null);
+  useDismissable(open, () => setOpen(false), wrapRef);
+
+  const initial = (email || '').trim().charAt(0).toUpperCase() || '?';
+
+  return (
+    <div
+      ref={wrapRef}
+      className="ap-pill-slide-in"
+      style={{
+        position: 'fixed',
+        top: usesCustomDragRegion ? 40 : 16,
+        right: 16,
+        zIndex: 1500,
+        WebkitAppRegion: 'no-drag',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label={email ? `Signed in as ${email}` : 'Account'}
+        title={email ? `Signed in as ${email}` : 'Account'}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: '50%',
+          border: '1px solid var(--accent-border)',
+          background: 'rgba(255,255,255,0.92)',
+          color: token.ink,
+          fontSize: '0.95rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: '0 10px 26px var(--accent-shadow)',
+          backdropFilter: 'blur(12px)',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        {initial}
+      </button>
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 50,
+            right: 0,
+            minWidth: 220,
+            background: 'white',
+            border: '1px solid var(--accent-border)',
+            borderRadius: 14,
+            boxShadow: '0 18px 44px var(--accent-shadow-strong)',
+            padding: 12,
+            zIndex: 1600,
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4 }}>
+            Signed in as
+          </div>
+          <div style={{ fontSize: '0.84rem', color: 'var(--text)', wordBreak: 'break-all', marginBottom: 10 }}>
+            {email || 'Local mode'}
+          </div>
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onSignOut(); }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: '1px solid #f0b8b8',
+                background: 'white',
+                color: 'var(--danger)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+              }}
+            >
+              Sign out
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // useDismissable — close-on-outside-click + Escape, used everywhere a
 // popover or inline editor lives.
 // ---------------------------------------------------------------------------

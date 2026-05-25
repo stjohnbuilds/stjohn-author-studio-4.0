@@ -2037,11 +2037,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   border:'1px solid var(--border)',background:'white',color:'var(--text)',
                   cursor:'pointer',
                 }}
-                title="Show or hide scene rows under each chapter"
+                title="Split chapters into scenes — show or hide scene rows under each chapter"
               >
-                <span>Split chapters into scenes</span>
+                <span>Split</span>
                 <span style={{
-                  minWidth:40,
+                  minWidth:36,
                   padding:'4px 8px',
                   borderRadius:999,
                   background:showSceneRows ? 'var(--accent)' : 'var(--cream-dark)',
@@ -2054,18 +2054,20 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 </span>
               </button>
             )}
-            <button
-              data-tutorial="transcribe-all"
-              onClick={openTranscribeAllModal}
-              style={{
-                padding:'6px 14px',borderRadius:8,fontSize:'0.78rem',fontWeight:600,
-                border:'1px solid var(--accent)',background:'var(--accent)',color:'white',
-                cursor:'pointer',
-              }}
-              title="Queue chapter transcriptions in the background"
-            >
-              Transcribe All Chapters
-            </button>
+            {mode !== 'duet' && (
+              <button
+                data-tutorial="transcribe-all"
+                onClick={openTranscribeAllModal}
+                style={{
+                  padding:'6px 14px',borderRadius:8,fontSize:'0.78rem',fontWeight:600,
+                  border:'1px solid var(--accent)',background:'var(--accent)',color:'white',
+                  cursor:'pointer',
+                }}
+                title="Transcribe — queue chapter transcriptions in the background"
+              >
+                Transcribe
+              </button>
+            )}
             <InfoTip tip={'This queues chapters for transcription one at a time. Progress now lives in the side panel under Queue, so you can leave and come back without losing the status.'} side="bottom" />
             {activeBookQueueCount > 0 && (
               <span style={{ fontSize:'0.74rem',color:'var(--text-muted)' }}>

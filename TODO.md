@@ -147,25 +147,14 @@ Risk ranking (do in this order — lowest risk first, anchor mode last):
       regresses, the primitive needs more API surface — fix in
       ChapterReader, not in Quill.
 
-- [ ] **Step 3 — Migrate Prep** to use `<ChapterReader>`. Pass a custom
-      `splitUnits` that returns dialogue spans (using
-      `detectDialogueSpansInHtml` output) instead of individual words.
-      Delete `SectionBody`'s HTML walking from `PrepManuscriptMode.js`.
-      Re-test: chapter render, dialogue assignment, side voice chips,
-      narrator chapter list, .docx export with inline comments.
-      Side voice colour tints (`colorForAssignment`) become a
-      `wordDecorations` value. Risk: medium — Prep is well-isolated
-      but the dialogue-span model is the outlier; expect some
-      ChapterReader API tweaks here.
-
-- [ ] **Step 4 — Migrate Duet** to use `<ChapterReader>`. Audio sync
+- [ ] **Step 3 — Migrate Duet** to use `<ChapterReader>`. Audio sync
       stays mode-side. Reader handles word render + click; mode handles
       "place duet marker at audio.currentTime when word clicked." Audio
       attach + scan controls live in bottom dock slot. Re-test: import
       .docx, audio attach, duet marker placement, scan progress
       indicator, scan-all flow.
 
-- [ ] **Step 5 — Migrate Proof** to use `<ChapterReader>`. **Highest
+- [ ] **Step 4 — Migrate Proof** to use `<ChapterReader>`. **Highest
       risk — Marie's anchor mode that has been working since v3.0.**
       Proof's `ProofingReader.js` couples word render tightly to
       whisper alignment timing. Plan: keep audio-sync state in
@@ -176,6 +165,13 @@ Risk ranking (do in this order — lowest risk first, anchor mode last):
       `searchMatches` decoration. **Full real-file test pass after**:
       transcribe + sync, flag save, flag list, audio dock, search,
       chapter prev/next, persistent audio across chapter changes.
+
+**Prep stays on its own reader** — the dialogue-span model (operates on
+detected dialogue chunks, not individual words) is structurally
+different from word-drag-select. Forcing it into ChapterReader would
+fork the primitive. Same reasoning as Prep keeping its own
+`BookDetailView` instead of using shared `BookDetail`. If Marie wants
+Prep merged in too later, ChapterReader gains a `splitUnits` prop.
 
 - [ ] **Step 6 — Update docs and CLAUDE.md.** Add ChapterReader to
       `docs/SHARED_COMPONENTS.md` as the canonical reader; remove the

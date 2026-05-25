@@ -975,7 +975,7 @@ export default function Home() {
 
   if (appMode === 'prebuild') {
     return (
-      <div style={{ minHeight:'100vh', background:'var(--cream)' }}>
+      <div style={{ ...modeAccentVars('duet'), minHeight:'100vh', background:'var(--cream)' }}>
         {usesCustomDragRegion && (
           <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
         )}
@@ -986,24 +986,28 @@ export default function Home() {
 
   if (appMode === 'prep-manuscript') {
     return (
-      <PrepManuscriptMode
-        modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
-        usesCustomDragRegion={usesCustomDragRegion}
-      />
+      <div style={{ ...modeAccentVars('prep'), minHeight:'100vh' }}>
+        <PrepManuscriptMode
+          modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
+          usesCustomDragRegion={usesCustomDragRegion}
+        />
+      </div>
     );
   }
 
   if (appMode === 'quill') {
     return (
-      <QuillAndInkMode
-        modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
-        usesCustomDragRegion={usesCustomDragRegion}
-      />
+      <div style={{ ...modeAccentVars('quill'), minHeight:'100vh' }}>
+        <QuillAndInkMode
+          modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
+          usesCustomDragRegion={usesCustomDragRegion}
+        />
+      </div>
     );
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--cream)' }}>
+    <div style={{ ...modeAccentVars('proof'), minHeight:'100vh', background:'var(--cream)' }}>
       {usesCustomDragRegion && (
         <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
       )}

@@ -2076,9 +2076,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         </div>
 
         {/* Chapter/section list — scrolls inside its own container so the
-            user can't scroll the page past the top panels (Marie's
-            "banner peeking out" complaint). Capped at ~75vh of viewport. */}
-        <div style={{ background:'white',border:'1px solid var(--border)',borderRadius:18,overflow:'hidden auto',maxHeight:'75vh' }}>
+            user can't scroll the page past the top panels. ~75vh of
+            viewport. Simple outlined box, no Neapolitan striping. */}
+        <div style={{ background:'white',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden auto',maxHeight:'75vh' }}>
           {(book.chapters||[]).map((ch, chIndex)=>{
             const chDone=(ch.sections||[]).filter(s=>s.completed).length;
             const chTotal=(ch.sections||[]).length;

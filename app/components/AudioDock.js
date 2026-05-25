@@ -71,11 +71,9 @@ export default function AudioDock({
   return (
     <div
       style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1000,
+        ...(floating
+          ? { position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 }
+          : { flexShrink: 0 }),
         borderTop: '1px solid var(--border-light)',
         background: 'rgba(250,250,248,0.94)',
         padding: '8px 16px 10px',

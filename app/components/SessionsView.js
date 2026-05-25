@@ -2140,10 +2140,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
 
         {!showFloatingNav && renderChapterNavigator(true)}
 
-        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:'0.65rem',flexWrap:'wrap' }}>
-          <div>
-            <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:4 }}>Manuscript</div>
-            <div style={{ fontSize:'1.1rem',fontWeight:700,color:'var(--text)' }}>Chapters</div>
+        <div style={{ display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:10,marginBottom:'0.45rem',flexWrap:'wrap' }}>
+          <div style={{ display:'inline-flex',alignItems:'baseline',gap:10 }}>
+            <span style={{ fontSize:'1.02rem',fontWeight:700,color:'var(--text)' }}>Chapters</span>
+            <span style={{ fontSize:'0.7rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text-muted)' }}>Manuscript · {(book.chapters || []).length}</span>
           </div>
           <div style={{ display:'flex',alignItems:'center',gap:8 }}>
             {audioUploadMode === 'chapter' && (

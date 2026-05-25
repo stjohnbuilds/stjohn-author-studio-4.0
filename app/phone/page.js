@@ -1198,6 +1198,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
         syncEnabled={syncEnabled}
         onToggleSync={() => setSyncEnabled((s) => !s)}
         defaultFileName={section.audioFileName || ''}
+        presetAudioFile={presetAudioFile}
       />
     </main>
   );

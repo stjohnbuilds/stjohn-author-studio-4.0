@@ -254,7 +254,7 @@ export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', usesCusto
 export function HomeBackPill({ icon = '⌂', onClick, usesCustomDragRegion = false, tone = 'prep' }) {
   const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
   return (
-    <div style={{
+    <div className="ap-pill-slide-in" style={{
       position: 'fixed',
       top: usesCustomDragRegion ? 40 : 16,
       left: 16,

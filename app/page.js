@@ -401,6 +401,68 @@ export default function Home() {
     };
   }, []);
 
+  // Pull Proof books from Supabase once auth is ready + signed in. Merge
+  // with whatever loaded locally so a fresh machine sees cloud-only
+  // books and an offline-first machine doesn't lose its local edits.
+  useEffect(() => {
+    if (!hasSupabaseConfig || !authReady || !authSession?.user) return undefined;
+    const supabase = getSupabaseClient();
+    if (!supabase) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const cloudBooks = await pullProofProjects(supabase);
+        if (cancelled || !cloudBooks?.length) return;
+        cameFromProofCloudRef.current = true;
+        setBooks((current) => mergeProofBookLists(current, cloudBooks));
+      } catch (e) {
+        console.warn('[Proof] cloud pull failed:', e?.message || e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authReady, authSession]);
+
+  // Debounced cloud push whenever Proof books change. Fire-and-forget
+  // so a slow Supabase round-trip never blocks the local save. The
+  // cameFromProofCloudRef guard stops the cloud pull echoing back as a
+  // write.
+  useEffect(() => {
+    if (!hasSupabaseConfig || !authReady || !authSession?.user) return undefined;
+    if (!books?.length) return undefined;
+    if (cameFromProofCloudRef.current) {
+      cameFromProofCloudRef.current = false;
+      return undefined;
+    }
+    if (proofCloudPushTimerRef.current) clearTimeout(proofCloudPushTimerRef.current);
+    proofCloudPushTimerRef.current = setTimeout(async () => {
+      const supabase = getSupabaseClient();
+      const ownerId = authSession?.user?.id;
+      if (!supabase || !ownerId) return;
+      try {
+        const results = await Promise.all(books.map(async (book) => {
+          try {
+            const cloudId = await pushProofProject(supabase, book, ownerId);
+            return cloudId && cloudId !== book.cloudId ? { id: book.id, cloudId } : null;
+          } catch (e) {
+            console.warn('[Proof] cloud push failed for', book?.title, e?.message || e);
+            return null;
+          }
+        }));
+        const updates = results.filter(Boolean);
+        if (updates.length) {
+          cameFromProofCloudRef.current = true;
+          setBooks((all) => all.map((b) => {
+            const u = updates.find((x) => x.id === b.id);
+            return u ? { ...b, cloudId: u.cloudId } : b;
+          }));
+        }
+      } catch (e) {
+        console.warn('[Proof] cloud push batch failed:', e?.message || e);
+      }
+    }, 1200);
+    return () => { if (proofCloudPushTimerRef.current) clearTimeout(proofCloudPushTimerRef.current); };
+  }, [books, authReady, authSession]);
+
   async function handleSignOut() {
     const supabase = getSupabaseClient();
     if (!supabase) return;

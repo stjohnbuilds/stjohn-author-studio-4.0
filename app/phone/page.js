@@ -1067,34 +1067,17 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const plainText = useMemo(() => sectionPlainText(section), [section]);
   const words = useMemo(() => buildWordSpans(plainText), [plainText]);
 
-  // Default narrator for this section: prefer the desktop's per-section
-  // narratorName, then the character's name, then a name picked from the
-  // book's narratorColors map by character, then 'Narrator' fallback.
-  const autoNarrator = useMemo(() => {
-    const byCharacter = (book.narratorColors || []).find((nc) => nc.characterName === section.characterName);
-    return (
-      section.narratorName
-      || byCharacter?.narratorName
-      || section.characterName
-      || byCharacter?.characterName
-      || 'Narrator'
-    );
-  }, [section, book.narratorColors]);
-
-  // Narrator options surfaced in the picker — every distinct narrator
-  // declared on this book, plus the always-available "Narrator" /
-  // "Engineer" generics.
+  // Mirror the desktop's auto-fill: narrator from book.narratorColors
+  // mapping (Crescent → Illisa), page from book.manuscriptPaging.pageMap
+  // at the selected word's GLOBAL index, timestamp from whisper alignment
+  // for that word. All three derived per-word so the flag panel pre-fills
+  // accurately even if Marie hasn't played the audio yet.
+  const autoNarrator = useMemo(() => autoNarratorFor(book, section), [book, section]);
   const narratorOptions = useMemo(() => {
-    const out = new Set();
-    out.add('Narrator');
-    out.add('Engineer');
-    (book.narratorColors || []).forEach((nc) => {
-      if (nc.narratorName) out.add(nc.narratorName);
-      if (nc.characterName) out.add(nc.characterName);
-    });
-    if (autoNarrator) out.add(autoNarrator);
-    return Array.from(out);
-  }, [book.narratorColors, autoNarrator]);
+    const list = narratorChoicesFor(book);
+    if (autoNarrator && !list.includes(autoNarrator)) list.unshift(autoNarrator);
+    return list;
+  }, [book, autoNarrator]);
 
   const [selectedRange, setSelectedRange] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);

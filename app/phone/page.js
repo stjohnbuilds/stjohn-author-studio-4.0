@@ -1157,32 +1157,36 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
         style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) setFile(f);
+          if (f) { setLoadError(''); setFile(f); }
           e.target.value = '';
         }}
       />
       {!file ? (
-        <button
-          onClick={() => inputRef.current?.click()}
-          aria-label="Pick audio file"
-          title={defaultFileName ? `Suggested: ${defaultFileName}` : 'Pick an audio file on this device'}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 14px',
-            background: pastel,
-            border: '1px solid ' + ink + '33',
-            borderRadius: 999,
-            color: ink,
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            margin: '0 auto',
-          }}
-        >
-          ♫ Pick audio
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 4 }}>
+          <button
+            onClick={() => inputRef.current?.click()}
+            aria-label="Pick audio file"
+            title={defaultFileName ? `Suggested: ${defaultFileName}` : 'Pick an audio file on this device'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              background: pastel,
+              border: '1px solid ' + ink + '33',
+              borderRadius: 999,
+              color: ink,
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            ♫ Pick audio
+          </button>
+          {loadError && (
+            <div style={{ fontSize: '0.66rem', color: '#C4514A' }}>{loadError}</div>
+          )}
+        </div>
       ) : (
         <>
           <audio
@@ -1191,6 +1195,11 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
+            onError={() => {
+              setLoadError('Could not play that audio file.');
+              setFile(null);
+              setIsPlaying(false);
+            }}
             preload="metadata"
           />
           <button

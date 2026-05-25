@@ -866,6 +866,23 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
     a.download = `${bookTitle||'book'}-config.json`; a.click();
   }
 
+  // Phase 1: the same shared upload tray Prep / Duet / Quill use.
+  if (phase === 'import') {
+    return (
+      <ImportFlow
+        heading="Create new book"
+        blurb="Upload your manuscript .docx — Proof Listen will scan narrator highlights and (when possible) build a page map automatically."
+        submitLabel="Continue"
+        allowSceneSplitting={true}
+        defaultSplitScenes={false}
+        defaultChapterLevel={chapterLevel}
+        initialTitle={bookTitle}
+        onCancel={onBack}
+        onConfirm={handleImportConfirm}
+      />
+    );
+  }
+
   return (
     <div style={{ minHeight:'100vh',background:'var(--cream)' }}>
       <button

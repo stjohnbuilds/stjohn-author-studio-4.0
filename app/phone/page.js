@@ -1902,6 +1902,34 @@ const popoverInputStyle = {
   boxSizing: 'border-box',
 };
 
+const smallFieldStyle = {
+  width: '100%',
+  padding: '7px 10px',
+  borderRadius: 8,
+  border: '1px solid #DDD0C4',
+  fontSize: '0.86rem',
+  background: 'white',
+  color: '#4C4846',
+  boxSizing: 'border-box',
+};
+
+function FieldLabel({ children }) {
+  return (
+    <div
+      style={{
+        fontSize: '0.62rem',
+        fontWeight: 700,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: '#6D6663',
+        marginBottom: 4,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 const popoverActionsStyle = {
   display: 'flex',
   gap: 8,

@@ -511,14 +511,65 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
       )}
       {chapters.map((ch) => {
         const count = annotationsByChapter.get(ch.id) || 0;
+        const audio = chapterAudios[ch.id] || null;
         return (
           <ChapterRow
             key={ch.id}
             tone="quill"
             number={ch.chapterNumber}
             title={ch.title}
-            meta={`${count} annotation${count === 1 ? '' : 's'}`}
+            meta={`${count} annotation${count === 1 ? '' : 's'}${audio ? ` · 🎵 ${audio.fileName}` : ''}`}
             onClick={() => onOpenChapter(ch.id)}
+            rightControls={(
+              <span
+                onClick={(e) => e.stopPropagation()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <label
+                  title={audio ? 'Swap audio file' : 'Attach a local audio file (stays on this device)'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 30,
+                    height: 30,
+                    borderRadius: '50%',
+                    border: '1px solid var(--accent-border)',
+                    background: audio ? 'var(--accent-soft)' : 'white',
+                    color: audio ? 'var(--accent-dark)' : 'var(--text-muted)',
+                    fontSize: '0.86rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {audio ? '🎵' : '+'}
+                  <input
+                    type="file"
+                    accept="audio/*,.mp3,.m4a,.m4b,.wav,.flac,.opus"
+                    style={{ display: 'none' }}
+                    onChange={(e) => { onAttachAudio?.(ch.id, e.target.files?.[0]); e.target.value = ''; }}
+                  />
+                </label>
+                {audio && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDetachAudio?.(ch.id); }}
+                    title="Remove audio"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.7rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </span>
+            )}
           />
         );
       })}

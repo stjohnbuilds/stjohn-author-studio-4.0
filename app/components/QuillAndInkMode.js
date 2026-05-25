@@ -1177,8 +1177,12 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   // (was red — Marie hated red). Anything else with a colour gets a
   // tinted background. useCallback so ChapterReader's render memo
   // stays stable.
+  const searchHitsSet = useMemo(() => new Set(searchHits), [searchHits]);
+  const currentSearchHit = searchHits[searchHitIdx];
   const unitDecoration = useCallback((idx) => {
     const isCurrent = followText && currentMsIdx >= 0 && idx === currentMsIdx;
+    const isSearchHit = searchHitsSet.has(idx);
+    const isCurrentSearchHit = idx === currentSearchHit;
     const ann = wordToAnnotation.get(idx);
     // Start with the annotation style (if any), then merge the audio-
     // synced current-word highlight on top so it always wins visually.
@@ -1199,6 +1203,9 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         base = { background: (ann.color || QUILL.accent) + '33' };
       }
     }
+    // Search match wins over annotation, current-word wins over both.
+    if (isCurrentSearchHit) return { ...base, background: '#f59e0b', color: 'white', borderRadius: 3 };
+    if (isSearchHit) return { ...base, background: '#fff3a0', borderRadius: 3 };
     if (isCurrent) {
       return {
         ...base,
@@ -1208,7 +1215,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
       };
     }
     return base;
-  }, [wordToAnnotation, currentMsIdx, followText]);
+  }, [wordToAnnotation, currentMsIdx, followText, searchHitsSet, currentSearchHit]);
 
   if (!chapter) {
     return (

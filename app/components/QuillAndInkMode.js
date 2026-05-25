@@ -581,7 +581,7 @@ function QuillBookDetail({ project, saveStatus, usesCustomDragRegion, onBackHome
 // Reader view — word render, drag-to-highlight, annotation popover + list
 // ===========================================================================
 
-function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStatus, usesCustomDragRegion, updateProject }) {
+function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStatus, usesCustomDragRegion, updateProject, chapterAudio = null }) {
   const chapters = project.chapters || [];
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
   const chapter = chapters[chapterIndex] || null;
@@ -589,25 +589,11 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const plainText = chapter?.plainText || htmlToPlainText(chapter?.textHtml || '');
   const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
 
-  // Audio dock — Quill can play a local audio file while annotating.
-  // Audio NEVER leaves the device (Marie's rule). The URL is a local
-  // blob URL revoked when the chapter changes.
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [audioFileName, setAudioFileName] = useState('');
-  const audioFileInputRef = useRef(null);
-
-  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
-  // Clear audio when chapter changes — different chapter = different audio.
-  useEffect(() => {
-    setAudioUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
-    setAudioFileName('');
-  }, [chapter?.id]);
-
-  function pickAudioFile(file) {
-    if (!file) return;
-    setAudioUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
-    setAudioFileName(file.name);
-  }
+  // Audio is attached at the BOOK DETAIL level, per chapter. The parent
+  // owns the audio state; this view just consumes the prop. Marie's
+  // rule: audio NEVER leaves the device.
+  const audioUrl = chapterAudio?.url || null;
+  const audioFileName = chapterAudio?.fileName || '';
 
   // Selection state
   const [selectedRange, setSelectedRange] = useState(null);    // { start, end } (word indices, inclusive)

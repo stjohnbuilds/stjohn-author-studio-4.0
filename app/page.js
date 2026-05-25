@@ -14,6 +14,9 @@ import {
   hasSupabaseConfig,
   getSupabaseClient,
   signOutSupabaseAccount,
+  pushProofProject,
+  pullProofProjects,
+  deleteProofProject,
 } from '../packages/cloud-sync';
 
 // Detect Electron

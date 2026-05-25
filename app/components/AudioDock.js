@@ -241,6 +241,7 @@ export default function AudioDock({
           )}
           {rightActions}
         </div>
+        {extraRow}
       </div>
     </div>
   );

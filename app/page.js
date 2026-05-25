@@ -979,6 +979,7 @@ export default function Home() {
         {usesCustomDragRegion && (
           <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
         )}
+        <ProfilePill tone="duet" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
         <PrebuildMode modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />} />
       </div>
     );
@@ -987,6 +988,7 @@ export default function Home() {
   if (appMode === 'prep-manuscript') {
     return (
       <div style={{ ...modeAccentVars('prep'), minHeight:'100vh' }}>
+        <ProfilePill tone="prep" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
         <PrepManuscriptMode
           modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
           usesCustomDragRegion={usesCustomDragRegion}
@@ -998,6 +1000,7 @@ export default function Home() {
   if (appMode === 'quill') {
     return (
       <div style={{ ...modeAccentVars('quill'), minHeight:'100vh' }}>
+        <ProfilePill tone="quill" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
         <QuillAndInkMode
           modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
           usesCustomDragRegion={usesCustomDragRegion}
@@ -1008,6 +1011,7 @@ export default function Home() {
 
   return (
     <div style={{ ...modeAccentVars('proof'), minHeight:'100vh', background:'var(--cream)' }}>
+      <ProfilePill tone="proof" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
       {usesCustomDragRegion && (
         <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
       )}

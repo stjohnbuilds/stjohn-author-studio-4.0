@@ -113,6 +113,12 @@ const DEFAULT_WORD_RE = /[A-Za-z0-9']+/g;
 // a clickable span. Memoizable via the props that affect output.
 // ---------------------------------------------------------------------------
 
+// Exported so Proof's reader can render the same word-wrapped manuscript
+// without losing its custom layout (3-column top bar, narrator chip row,
+// search bar, persistent audio dock). Proof reads/writes the resulting
+// DOM via getChapterReaderWordEl + document.querySelector('.' + READER_BODY_CLASS).
+export function renderChapterBody(opts) { return renderChapter(opts); }
+
 function renderChapter({
   chapter,
   selectedRange,

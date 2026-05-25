@@ -85,6 +85,197 @@ Always read `HANDOFF.md` first, then this file.
       colour mapping, so the goal is for BookSetup to render
       `ImportFlow` plus the Proof-only panels.
 
+### URGENT — Reader unification (do this BEFORE any more reader bug-fixing)
+
+**Why this is urgent:** Marie has flagged this many times. The four
+mode files each render manuscript text their own way (`ProofingReader.js`,
+`SectionBody` inside `PrepManuscriptMode.js`, inline reader in
+`PrebuildMode.js`, `QuillReaderView` inside `QuillAndInkMode.js`).
+Bug-fixing any one of them now means re-doing the same fix in three
+other places, and then doing it AGAIN after we unify. We unify first,
+then bug-fix once.
+
+What's actually different across the four readers (audit done
+2026-05-24):
+
+|  | Shared today? |
+|---|---|
+| Sticky chrome (top bar, save badge) | Yes — `ReaderChrome.StickyTopBar` |
+| Paper container, font, line-height | Yes — `READER_WIDTH`, `READER_PAGE_BG` (Quill + Prep use it; Proof + Duet don't yet) |
+| HTML walker (parse manuscript blocks) | **No — 4 inline copies** |
+| Word splitter (regex `[A-Za-z0-9']+`) | **No — 4 inline copies** |
+| "Word as button" render | **No — 4 inline copies** |
+| Selection state + floating action button | **No — Quill has it, others differ** |
+| How a word LOOKS when annotated | Yes, differs per mode (highlight / flag pin / underline) — needs a `renderWord` callback |
+| What CLICK does on a word | Yes, differs per mode — needs interaction callbacks |
+| Bottom dock content | Yes, differs per mode — slot |
+| Selection unit (word vs dialogue span) | Yes, **Prep is the outlier** (operates on dialogue spans, not words) |
+
+Effort estimate: ~400 lines new (`ChapterReader.js`), ~150 lines deleted
+per mode = net code reduction. ~3-4 focused hours plus testing.
+
+Risk ranking (do in this order — lowest risk first, anchor mode last):
+
+- [ ] **Step 1 — Extract `<ChapterReader>` primitive.** New file
+      `app/components/ChapterReader.js`. Owns: shell (sticky bar slot,
+      paper container at READER_WIDTH, top action slot, bottom dock
+      slot), HTML walker (recursive renderNode for p / h1-h6 /
+      blockquote / ul / ol / li / strong / em / br), word splitter
+      (default = regex; configurable via `splitUnits(text)` prop so
+      Prep can pass its dialogue-span splitter), word-as-button render
+      with `data-word-index` attr, selection state (`{ start, end }`),
+      floating action-button overlay anchored to the line's left
+      margin (port `computeSelectionActionPos` from QuillAndInkMode).
+      Props: `tone`, `chapter`, `chapters`, `chapterIndex`,
+      `onChangeChapter`, `usesCustomDragRegion`, `wordDecorations` (Map
+      of word index → { background, borderBottom, color, etc.}),
+      `renderWordOverlay?` (optional per-word overlay JSX),
+      `onWordPointerDown`, `onWordPointerEnter`, `onSelectionAction`
+      (fired when user clicks the +/✎ button), `actionButtonIcon`,
+      `topActions` (slot), `bottomDock` (slot), `onBack`.
+      **No mode migrations in this step** — just build the primitive +
+      a smoke test that renders some HTML.
+
+- [ ] **Step 2 — Migrate Quill** to use `<ChapterReader>`. Lowest risk
+      because Quill was just rewired and the primitive's API was
+      designed from Quill's shape. Delete `renderChapterAsWords` +
+      word selection state from `QuillAndInkMode.js`. Keep
+      mode-specific: annotation popover, annotation save/delete,
+      cloud sync, bottom annotation dock. Re-test on a real .docx:
+      drag-select multi-word, + in left margin, popover, edit existing
+      annotation, dock chip jump-to, CSV + InDesign export. If anything
+      regresses, the primitive needs more API surface — fix in
+      ChapterReader, not in Quill.
+
+- [ ] **Step 3 — Migrate Prep** to use `<ChapterReader>`. Pass a custom
+      `splitUnits` that returns dialogue spans (using
+      `detectDialogueSpansInHtml` output) instead of individual words.
+      Delete `SectionBody`'s HTML walking from `PrepManuscriptMode.js`.
+      Re-test: chapter render, dialogue assignment, side voice chips,
+      narrator chapter list, .docx export with inline comments.
+      Side voice colour tints (`colorForAssignment`) become a
+      `wordDecorations` value. Risk: medium — Prep is well-isolated
+      but the dialogue-span model is the outlier; expect some
+      ChapterReader API tweaks here.
+
+- [ ] **Step 4 — Migrate Duet** to use `<ChapterReader>`. Audio sync
+      stays mode-side. Reader handles word render + click; mode handles
+      "place duet marker at audio.currentTime when word clicked." Audio
+      attach + scan controls live in bottom dock slot. Re-test: import
+      .docx, audio attach, duet marker placement, scan progress
+      indicator, scan-all flow.
+
+- [ ] **Step 5 — Migrate Proof** to use `<ChapterReader>`. **Highest
+      risk — Marie's anchor mode that has been working since v3.0.**
+      Proof's `ProofingReader.js` couples word render tightly to
+      whisper alignment timing. Plan: keep audio-sync state in
+      ProofingReader; compute `wordDecorations` per render so the
+      synced word lights up; pass `onWordClick` that opens flag form
+      at `audio.currentTime`. Flag pin rendering uses
+      `renderWordOverlay`. Search-inside-chapter (Proof-only) gets a
+      `searchMatches` decoration. **Full real-file test pass after**:
+      transcribe + sync, flag save, flag list, audio dock, search,
+      chapter prev/next, persistent audio across chapter changes.
+
+- [ ] **Step 6 — Update docs and CLAUDE.md.** Add ChapterReader to
+      `docs/SHARED_COMPONENTS.md` as the canonical reader; remove the
+      "What's NOT shared yet → Reader" bullet from that doc. Update
+      `CLAUDE.md` architecture rule #1 ("One shared reader") to point
+      at `app/components/ChapterReader.js` instead of the planned
+      `packages/reader-engine/`.
+
+- [ ] **Step 7 — Tighten build-checker hook.** Add a new guarded
+      pattern: any mode file that adds `function .*Reader(` or
+      `renderChapter\w*` without importing `./ChapterReader` is
+      blocked. Same git-diff-aware approach as the existing BookDetail
+      guard.
+
+- [ ] **Step 8 — Real-file end-to-end test pass.** Marie opens each
+      mode on a real book + manuscript, walks through the full
+      workflow she actually does:
+      - **Proof:** sign in, open book, attach audio, transcribe,
+        listen-along, flag a real mistake, save, see flag in list.
+      - **Prep:** open manuscript, assign characters to dialogue
+        across a chapter, add a side voice, export .docx with inline
+        comments, open in Word.
+      - **Duet:** open manuscript, attach audio, scan, place duet
+        markers at correct timestamps.
+      - **Quill:** drag-select, add Image/Highlight/Emotion annotation
+        with character markers, save, export CSV + InDesign .jsx, run
+        the .jsx in InDesign against a real layout.
+      Any regression → fix in ChapterReader, not in mode files.
+
+### Code-health audit pass (after reader unification, before phone work)
+
+Same-source mandate applied to the WHOLE codebase, not just BookDetail
+and Reader. Sweep:
+
+- [ ] **Extract shared `ModeHome` (project library) component.** Each
+      mode has its own home view (project cards + "+ New" button).
+      Quill's is the simplest baseline. Same pattern as `BookDetail`:
+      take title + accent + project list + onNew/onOpen handlers,
+      with a slot for mode-specific tiles (Prep's "scanning" badge,
+      Proof's audio-bookmark indicator). Migrate Proof, Duet, Quill,
+      and Prep to it. Add to `SHARED_COMPONENTS.md`. Tighten the
+      build-checker hook to block new inline `*HomeView` declarations
+      that don't import `./ModeHome`.
+
+- [ ] **Shared `<ConfirmDialog />`.** Every mode uses native
+      `window.confirm()` which looks like a browser alert and breaks
+      the visual language. Build a themed modal with the mode-tone
+      accent. Replace every `window.confirm` call across all mode
+      files. Add to `SHARED_COMPONENTS.md`. Hook: block new
+      `window.confirm(` additions in mode files.
+
+- [ ] **Cloud-sync helpers parity.** `packages/cloud-sync/` has
+      Quill wired (`quill-sync.js`). Audit: what does Proof / Prep need
+      to wire? Build `proof-sync.js` (push/pull for
+      `script_sync_projects`, `script_sync_section_transcriptions`,
+      `script_sync_flags`) mirroring `quill-sync.js`'s shape. Then
+      `prep-sync.js` if Marie wants Prep on phone too. Audio paths must
+      flow through `audio-guard.js` before any upload (already
+      enforced in `quill-sync.js`).
+
+- [ ] **Export helpers consolidation.** Quill has CSV + InDesign export
+      in `packages/quill-engine/exporters.js`. Prep has CSV + DOCX in
+      `app/components/prepExport.js`. Both should live under a single
+      `packages/exports/` with one consistent file pattern (one file
+      per export format, shared `downloadBlob` / `safeFileName`
+      helpers). Phone's CSV export later imports from the same place.
+
+- [ ] **Inline-style sweep.** Walk every mode file (and shared
+      components) and look for:
+      - inline `position: 'sticky'` → use `<StickyTopBar />`
+      - inline hex color codes → use `MODE_TOKENS[tone]`
+      - inline button `style={{ padding, border, background ... }}` →
+        use `topBtnStyle(tone, variant)` or `pillBtnStyle(tone)`
+      - direct `getSupabaseClient()` calls → must go through
+        `packages/cloud-sync/`
+      - direct `fs.writeFile` / `window.electron.*` calls outside
+        `packages/` — should be wrapped in a typed helper
+      Each pattern gets a build-checker hook rule blocking new
+      additions.
+
+- [ ] **`.claude/hooks/` health check.** Verify every hook handles
+      edge cases robustly: missing edit-log, missing git binary, large
+      file lists, log rotation past `MAX_LINES`, permission errors
+      writing logs, hook running outside project root. Verify
+      `settings.json` registers each hook on the right events. Run a
+      synthetic edit (touch a known mode file) and confirm
+      `hook-activity.log` shows the expected sequence:
+      `file-tracker` → `git-backup` → `build-checker` →
+      `context-check` → `no-mess`. Add a `.claude/hooks/_test.sh`
+      script that exercises each hook against a fake edit-log and
+      reports pass/fail.
+
+- [ ] **`packages/` audit.** Look for duplication BETWEEN packages.
+      `packages/manuscript-engine` does DOCX import and dialogue
+      detection; `packages/quill-engine` has its own DOCX-related
+      helpers (annotation export to InDesign reads DOCX structure
+      indirectly). Both should depend on a single canonical
+      manuscript-engine if there's overlap. Document the package
+      graph in `SHARED_COMPONENTS.md`.
+
 ### Same-source consolidation pass (Marie's "fix once, fixed everywhere")
 
 These came out of the 2026-05-24 session where Marie said every mode's

@@ -11,11 +11,11 @@ export const BASE_ANNOTATION_CLASSES = [
   {
     id: 'image',
     label: 'Image',
-    color: '#d82828',
+    color: '#8BB070',
     allowCustom: false,
     options: [
-      { id: 'image-inline', label: 'Inline Image', color: '#d82828' },
-      { id: 'image-full-spread', label: 'Full Spread', color: '#d82828' },
+      { id: 'image-inline', label: 'Inline Image', color: '#8BB070' },
+      { id: 'image-full-spread', label: 'Full Spread', color: '#8BB070' },
     ],
   },
   {

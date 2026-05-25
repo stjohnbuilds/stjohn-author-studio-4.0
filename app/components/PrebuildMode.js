@@ -1085,18 +1085,15 @@ export default function PrebuildMode({ modeToggle = null }) {
     };
 
     return (
-      <div style={{ minHeight:'100vh',background:'var(--cream)' }}>
-        <button
-          onClick={() => { setView('home'); setScanning(false); cancelRef.current = true; }}
-          aria-label="Back to audiobooks"
-          title="Back to audiobooks"
-          style={{ position:'fixed',top:52,left:16,zIndex:1210,width:48,height:48,borderRadius:'50%',border:'1px solid var(--border)',background:'white',color:'var(--text-muted)',fontSize:'1.35rem',fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 16px rgba(0,0,0,0.08)',WebkitAppRegion:'no-drag' }}
-        >
-          ←
-        </button>
-        <div style={{ width:showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))',margin:'0 auto',paddingTop:'2rem',paddingLeft:'1.1rem',paddingRight:'1.1rem',paddingBottom:'4rem' }}>
-          {/* Header */}
-          <div style={{ WebkitAppRegion:'drag',paddingTop:28 }} />
+      <BookDetail
+        tone="duet"
+        usesCustomDragRegion={true}
+        onBackHome={() => { setView('home'); setScanning(false); cancelRef.current = true; }}
+        containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}
+        prePanels={
+          <>
+            {/* Header */}
+            <div style={{ WebkitAppRegion:'drag',paddingTop:28 }} />
           <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:22,boxShadow:'0 18px 44px var(--accent-shadow)',overflow:'hidden',marginBottom:'1rem' }}>
             <div style={{ padding:'16px 16px 14px',background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)',borderBottom:'1px solid var(--accent-border)',display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
               <div>

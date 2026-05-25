@@ -1650,8 +1650,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 </div>
               </div>
             </button>
-            <div aria-label={item.isComplete ? 'Complete' : 'Incomplete'} title={item.isComplete ? 'Complete' : 'Incomplete'} style={{ color:item.isComplete ? 'var(--success)' : 'var(--danger)',fontSize:'0.86rem',fontWeight:900,textAlign:'center' }}>
-              {item.isComplete ? '✓' : '×'}
+            <div aria-label={item.isComplete ? 'Complete' : 'Incomplete'} title={item.isComplete ? 'Complete' : 'Not yet listened — not a delete button'} style={{ color:item.isComplete ? 'var(--success)' : 'var(--text-light)',fontSize:item.isComplete ? '0.86rem' : '0.7rem',fontWeight:item.isComplete ? 900 : 600,textAlign:'center',lineHeight:1 }}>
+              {item.isComplete ? '✓' : '○'}
             </div>
           </div>
         ))}

@@ -503,6 +503,15 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     characterName: nc.characterName || '',
     narratorName: nc.narratorName || '',
   })));
+  // Chapter inclusion edit state — Marie can uncheck chapters here to
+  // remove them from the book (e.g. a copyright page that snuck through
+  // import). Initialized fresh each time the editor opens so the list
+  // matches the current chapters.
+  const [editChapters, setEditChapters] = useState((book.chapters || []).map(ch => ({
+    id: ch.id,
+    title: ch.title,
+    included: true,
+  })));
 
   useEffect(() => {
     setBulkStartChapterId((book.chapters||[]).find(ch => ch.firstChapter)?.id || book.chapters?.[0]?.id || '');

@@ -1237,7 +1237,42 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         saveStatus={saveStatus}
         usesCustomDragRegion={usesCustomDragRegion}
         paperPaddingBottom={audioUrl ? 220 : 120}
-        headerExtra={characterStrip}
+        topActions={(
+          <button
+            type="button"
+            onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+            title="Search inside chapter (⌘/Ctrl+F)"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1rem', padding: '4px 8px' }}
+          >
+            🔍
+          </button>
+        )}
+        headerExtra={(
+          <>
+            {searchOpen && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.96)', border: '1px solid var(--border-light)', borderRadius: 14, boxShadow: '0 10px 24px rgba(0,0,0,0.04)', marginBottom: 8 }}>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  placeholder="Search manuscript…"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); searchStep(e.shiftKey ? -1 : 1); }
+                    if (e.key === 'Escape') { e.preventDefault(); setSearchOpen(false); setSearchQuery(''); setSearchHits([]); }
+                  }}
+                  style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: '0.9rem', fontFamily: 'inherit', outline: 'none', background: 'white' }}
+                />
+                {searchHits.length > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{searchHitIdx + 1} / {searchHits.length}</span>}
+                {searchHits.length === 0 && searchQuery.trim() && <span style={{ fontSize: '0.72rem', color: 'var(--danger)', whiteSpace: 'nowrap' }}>Not found</span>}
+                <button onClick={() => searchStep(-1)} disabled={searchHits.length < 2} style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}>↑</button>
+                <button onClick={() => searchStep(1)} disabled={searchHits.length < 2} style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}>↓</button>
+                <button onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchHits([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '0 4px' }}>✕</button>
+              </div>
+            )}
+            {characterStrip}
+          </>
+        )}
         bottomDock={audioUrl ? (
           <AudioDock
             audioRef={audioRef}

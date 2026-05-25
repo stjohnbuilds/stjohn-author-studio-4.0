@@ -358,13 +358,26 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           chapterAudios={chapterAudios}
           onAttachAudio={(chapterId, file) => {
             if (!file) return;
+            const url = URL.createObjectURL(file);
             setChapterAudios((prev) => {
               const old = prev[chapterId];
               if (old?.url) URL.revokeObjectURL(old.url);
-              return { ...prev, [chapterId]: { url: URL.createObjectURL(file), fileName: file.name, file } };
+              return { ...prev, [chapterId]: { url, fileName: file.name, file, duration: null } };
             });
             // Drop any previous transcript when audio changes.
             setChapterTranscripts((prev) => { const next = { ...prev }; delete next[chapterId]; return next; });
+            // Pull the duration once metadata is ready.
+            try {
+              const probe = document.createElement('audio');
+              probe.preload = 'metadata';
+              probe.src = url;
+              probe.addEventListener('loadedmetadata', () => {
+                const dur = Number(probe.duration);
+                if (Number.isFinite(dur) && dur > 0) {
+                  setChapterAudios((prev) => prev[chapterId] ? { ...prev, [chapterId]: { ...prev[chapterId], duration: dur } } : prev);
+                }
+              }, { once: true });
+            } catch {}
           }}
           onDetachAudio={(chapterId) => {
             setChapterAudios((prev) => {

@@ -1033,7 +1033,31 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         usesCustomDragRegion={usesCustomDragRegion}
         paperPaddingBottom={audioUrl ? 220 : 120}
         bottomDock={audioUrl ? (
-          <AudioDock audioUrl={audioUrl} label={audioFileName || ''} />
+          <AudioDock
+            audioRef={audioRef}
+            audioUrl={audioUrl}
+            label={audioFileName || ''}
+            rightActions={syncTable && syncTable.length >= 4 ? (
+              <button
+                type="button"
+                onClick={() => setFollowText((v) => !v)}
+                title={`Follow text is ${followText ? 'on' : 'off'}. When on, moving the audio keeps the text following along.`}
+                style={{
+                  minWidth: 132,
+                  padding: '7px 12px',
+                  border: '1px solid ' + (followText ? 'var(--accent)' : 'var(--border)'),
+                  borderRadius: 999,
+                  background: followText ? 'var(--accent-soft)' : 'white',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  color: followText ? 'var(--accent-dark)' : 'var(--text-muted)',
+                }}
+              >
+                Follow text: {followText ? 'On' : 'Off'}
+              </button>
+            ) : null}
+          />
         ) : null}
         unitDecoration={unitDecoration}
         onUnitPointerDown={onWordPointerDown}

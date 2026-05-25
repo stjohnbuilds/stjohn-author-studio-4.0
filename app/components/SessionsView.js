@@ -1998,7 +1998,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             </div>
 
             {audioUploadMode === 'chapter' && (
-              <div style={{ gridColumn:'1 / -1',background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 13px' }} data-tutorial="bulk-audio-card">
+              <div style={{ background:'var(--accent-surface)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'11px 13px' }} data-tutorial="bulk-audio-card">
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',marginBottom:8 }}>
                   <div>
                     <div style={{ display:'flex',alignItems:'center',gap:6 }}>

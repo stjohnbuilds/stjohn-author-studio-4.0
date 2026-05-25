@@ -1585,7 +1585,13 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
         style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) { setLoadError(''); setFile(f); }
+          if (f) {
+            setLoadError('');
+            setFile(f);
+            // Tell the parent so this pick survives navigation away
+            // from the section and back.
+            if (onManualPickAudio) onManualPickAudio(f);
+          }
           e.target.value = '';
         }}
       />

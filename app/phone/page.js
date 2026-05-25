@@ -1112,14 +1112,40 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     // autoNarrator depends on section — including it here is safe
   }, [section.id, autoNarrator]);
 
-  // Auto-fill the quote when a fresh selection opens the panel.
-  useEffect(() => {
-    if (!panelOpen || !selectedRange) return;
+  // Derived metadata for the SELECTED WORD. This is the heart of the
+  // fix — timestamp + page + quote come from the WORD, not from the
+  // audio playback state. So tapping a word at sentence 38 always
+  // produces ts=38, even if Marie hasn't pressed play yet.
+  const selectionMeta = useMemo(() => {
+    if (!selectedRange) return null;
     const start = Math.min(selectedRange.start, selectedRange.end);
     const end = Math.max(selectedRange.start, selectedRange.end);
     const quoteText = words.slice(start, end + 1).map((s) => s.word).join(' ');
-    setFlagDraft((prev) => ({ ...prev, quote: prev.quote || quoteText }));
-  }, [panelOpen, selectedRange, words]);
+    const alignedStart = wordStartTimeFromAlignment(section.whisperAlignment, start);
+    const globalIdx = globalWordIndexFor(book, section, start);
+    const page = pageNumberForWord(book?.manuscriptPaging?.pageMap, globalIdx);
+    return {
+      start,
+      end,
+      quote: quoteText,
+      // Timestamp priority: whisper alignment → live audio playback → 0.
+      ts: alignedStart != null ? alignedStart : Number(currentAudioTimeRef.current) || 0,
+      tsSource: alignedStart != null ? 'aligned' : (Number(currentAudioTimeRef.current) > 0 ? 'audio' : 'none'),
+      page: page != null ? String(page) : '',
+      globalIdx,
+    };
+  }, [selectedRange, words, section, book]);
+
+  // Pre-fill the draft when the panel opens (or the selection changes
+  // and the user hasn't typed yet — we don't clobber edits in progress).
+  useEffect(() => {
+    if (!panelOpen || !selectionMeta) return;
+    setFlagDraft((prev) => ({
+      ...prev,
+      quote: prev.quote || selectionMeta.quote,
+      page: prev.page || selectionMeta.page,
+    }));
+  }, [panelOpen, selectionMeta]);
 
   // Toast helper — small auto-dismiss notice for things like "page
   // number missing" that Marie wants surfaced.

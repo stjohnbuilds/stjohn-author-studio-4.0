@@ -1613,7 +1613,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     );
 
     const renderTranscriptionsTab = () => (
-      <div style={{ padding:isInline ? '4px 0 0' : '6px 6px 7px',overflowY:'auto',maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
+      <div style={{ padding:isInline ? '4px 0 0' : '6px 6px 7px',overflowY:'auto',minHeight:isInline ? 180 : 320,maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
         {!bookQueueItems.length ? (
           <div style={{ padding:'10px 8px',fontSize:'0.74rem',lineHeight:1.45,color:'var(--text-muted)' }}>
             No queued transcriptions yet.

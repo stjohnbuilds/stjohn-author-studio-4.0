@@ -344,7 +344,10 @@ export default function ChapterReader({
         {saveStatus !== undefined && <SaveBadge status={saveStatus} tone={tone} />}
       </StickyTopBar>
 
-      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: `20px 0 ${paperPaddingBottom}px` }}>
+      {/* Top padding clears the sticky bar (~54px + 40px drag offset).
+          20px was too tight — the first lines of the chapter hid
+          under the sticky bar (bug Marie screenshotted). */}
+      <div style={{ width: READER_WIDTH, margin: '0 auto', padding: `90px 0 ${paperPaddingBottom}px` }}>
         <div
           className={READER_BODY_CLASS}
           style={{

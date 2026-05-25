@@ -242,6 +242,25 @@ button, input, select, textarea { font: inherit; }
   }
 }
 
+/* Top-left nav pill slide-in. Used by both AppModeToggle (4-mode pill on
+   home) and HomeBackPill (single ⌂ pill on book detail / reader). When
+   the view changes the pills swap, and the matching slide-in makes it
+   feel like one container morphing rather than two pills popping. */
+@keyframes ap-pill-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.ap-pill-slide-in {
+  animation: ap-pill-slide-in 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 /* Word highlights — softened pastels */
 .hl-yellow    { background: #FFF8DC; }
 .hl-green     { background: #DFF2E3; }

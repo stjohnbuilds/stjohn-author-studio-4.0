@@ -1479,7 +1479,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 // PhoneAudioDock — shared audio strip (Quill + Script). Now with Sync.
 // ===========================================================================
 
-function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null }) {
+function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null, onManualPickAudio = null }) {
   const inputRef = useRef(null);
   const audioRef = useRef(null);
   const [file, setFile] = useState(null);

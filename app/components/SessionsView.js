@@ -2081,35 +2081,32 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               </div>
             )}
 
-            <div style={{ display:'contents' }}>
-              <div style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}>
-                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
-                  <div style={{ fontWeight:700,fontSize:'0.86rem',color:'var(--text)' }}>Audiobook timing</div>
-                  <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
-                    <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'4px 8px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
-                      <span style={{ fontSize:'0.66rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Total</span>
-                      <span style={{ fontSize:'0.88rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalAudiobookSeconds)}</span>
-                    </div>
-                    <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'4px 8px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
-                      <span style={{ fontSize:'0.66rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Remaining</span>
-                      <span style={{ fontSize:'0.88rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalTimeLeftSeconds)}</span>
-                    </div>
-                    {durationSummary.cachedKeys > 0 && (
-                      <button onClick={()=>setShowTimingDetails(true)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.7rem',fontWeight:700,padding:'4px 8px' })}>
-                        Breakdown
-                      </button>
-                    )}
+            <div
+              style={{ background:'var(--accent-soft)',borderRadius:16,border:'1px solid var(--accent-border)',padding:'8px 12px' }}
+              title={durationProbeRunning
+                ? 'Checking attached audio durations…'
+                : durationSummary.totalKeys === 0
+                  ? 'This will populate once the audio files have been attached.'
+                  : `Cached ${durationSummary.cachedKeys}/${durationSummary.totalKeys} attached audio durations.`}
+            >
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap' }}>
+                <div style={{ fontWeight:700,fontSize:'0.84rem',color:'var(--text)',whiteSpace:'nowrap' }}>Audiobook timing</div>
+                <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap' }}>
+                  <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'3px 8px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
+                    <span style={{ fontSize:'0.62rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Total</span>
+                    <span style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalAudiobookSeconds)}</span>
                   </div>
-                </div>
-                <div style={{ marginTop:4,fontSize:'0.66rem',color:'var(--text-light)' }}>
-                  {durationProbeRunning
-                    ? 'Checking attached audio durations…'
-                    : durationSummary.totalKeys === 0
-                      ? 'This will populate once the audio files have been attached.'
-                      : `Cached ${durationSummary.cachedKeys}/${durationSummary.totalKeys} attached audio durations.`}
+                  <div style={{ display:'inline-flex',alignItems:'baseline',gap:5,padding:'3px 8px',borderRadius:999,background:'white',border:'1px solid var(--accent-border)' }}>
+                    <span style={{ fontSize:'0.62rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Left</span>
+                    <span style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalTimeLeftSeconds)}</span>
+                  </div>
+                  {durationSummary.cachedKeys > 0 && (
+                    <button onClick={()=>setShowTimingDetails(true)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.68rem',fontWeight:700,padding:'3px 8px' })}>
+                      Breakdown
+                    </button>
+                  )}
                 </div>
               </div>
-
             </div>
 
             {audioUploadMode === 'chapter' && (

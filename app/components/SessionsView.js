@@ -522,6 +522,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       characterName: nc.characterName || '',
       narratorName: nc.narratorName || '',
     })));
+    setEditChapters((book.chapters || []).map(ch => ({
+      id: ch.id,
+      title: ch.title,
+      included: true,
+    })));
     setShowSceneRows(audioUploadMode === 'scene');
     setDurationCache(book.audioDurationCache || {});
     durationProbeRef.current = {};

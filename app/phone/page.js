@@ -70,7 +70,9 @@ const PROOF_INK = '#5C4A78';
 const PROOF_ACCENT = '#B8A0D4';
 const PROOF_PASTEL = '#EBDEF6';
 
-const FLAG_TYPES = ['Edit', 'Missing', 'Repeat', 'Noise', 'Pacing', 'Other'];
+// Match the desktop ProofingReader exactly so CSV exports + cloud syncs
+// agree on the categorical set.
+const FLAG_TYPES = ['Edit', 'Emphasis', 'Pronunciation', 'Special Edition', 'Unclear', 'Misread', 'Other'];
 
 const SERVICE_OPTIONS = [
   { id: 'quill', label: 'Quill & Ink', subtitle: 'Annotate the manuscript', ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL, enabled: true },

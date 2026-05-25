@@ -1524,6 +1524,133 @@ function AccountChip({ email, onSignOut }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// BookAudioFolderPicker — top-of-book "pick the whole audio folder once"
+// strip. After Marie picks a folder, each chapter's audio is matched by
+// `audioFileName` automatically when she opens that chapter. The audio
+// files NEVER leave her phone — only the filename ever crossed Supabase
+// (set on the desktop at import time).
+// ---------------------------------------------------------------------------
+
+function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, status, onPick, onClear }) {
+  const folderInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const hasFolder = (audioFiles || []).length > 0;
+  return (
+    <div
+      style={{
+        background: 'white',
+        border: '1px dashed ' + PROOF_INK + '44',
+        borderRadius: 14,
+        padding: '10px 12px',
+        marginBottom: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      <input
+        ref={folderInputRef}
+        type="file"
+        // Standard + WebKit dir attrs let the browser open a folder picker.
+        // On iOS Safari (which doesn't support webkitdirectory), the file
+        // input falls back to multi-file selection — Marie can multi-select
+        // the audio files inside the Files app and we'll match the same way.
+        webkitdirectory=""
+        directory=""
+        multiple
+        accept="audio/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const files = getAudioFiles(e.target.files);
+          e.target.value = '';
+          if (files.length) onPick(files);
+        }}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="audio/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const files = getAudioFiles(e.target.files);
+          e.target.value = '';
+          if (files.length) onPick(files);
+        }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
+            Audio folder
+          </div>
+          {hasFolder ? (
+            <div style={{ fontSize: '0.78rem', color: '#4C4846', marginTop: 2 }}>
+              {audioFiles.length} file{audioFiles.length === 1 ? '' : 's'} loaded · matched <strong>{matchedCount}</strong> of {totalSections} section{totalSections === 1 ? '' : 's'}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.78rem', color: '#6D6663', marginTop: 2 }}>
+              Pick the folder of audio files for this book — every chapter auto-attaches.
+            </div>
+          )}
+          {status && (
+            <div style={{ fontSize: '0.7rem', color: '#6D6663', marginTop: 4, fontStyle: 'italic' }}>{status}</div>
+          )}
+        </div>
+        {hasFolder && (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Clear audio folder"
+            style={{ background: 'none', border: 'none', color: '#9B928E', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, padding: '2px 6px' }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => folderInputRef.current?.click()}
+          style={{
+            flex: '1 1 auto',
+            padding: '10px 14px',
+            background: PROOF_PASTEL,
+            color: PROOF_INK,
+            border: '1px solid ' + PROOF_INK + '33',
+            borderRadius: 999,
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          📁 Pick folder
+        </button>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            flex: '1 1 auto',
+            padding: '10px 14px',
+            background: 'white',
+            color: PROOF_INK,
+            border: '1px solid ' + PROOF_INK + '33',
+            borderRadius: 999,
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+          title="On iPhone, use this to pick multiple audio files at once"
+        >
+          🎵 Pick files
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Constrained popover that sits at the bottom of the reader, matching the
 // reader's column width so it doesn't look like a system sheet.
 function ReaderPopover({ ink, children }) {

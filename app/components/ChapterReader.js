@@ -261,6 +261,7 @@ export default function ChapterReader({
 
   // Slots
   topActions = null,                // right side of sticky bar
+  headerExtra = null,               // BELOW sticky bar, ABOVE paper (narrator/character chip strip etc.)
   bottomDock = null,                // fixed dock at bottom
   paperPaddingBottom = 200,         // leave room for the dock
 }) {

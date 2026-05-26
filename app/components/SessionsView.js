@@ -921,6 +921,53 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     }
   }
 
+  // Remove one flag by section + flag id. Triggers the parent's
+  // debounced cloud push (which still does full delete-all-insert for
+  // flags today; phone uses single-row delete, desktop will too once
+  // ProofingReader is reworked).
+  function removeFlagFromBook(sectionId, flagId) {
+    const chapters = (book.chapters || []).map((ch) => ({
+      ...ch,
+      sections: (ch.sections || []).map((sec) => {
+        if (sec.id !== sectionId) return sec;
+        return { ...sec, flags: (sec.flags || []).filter((f) => (f.id || `${f.idx}:${f.ts}`) !== flagId) };
+      }),
+    }));
+    onUpdateBook({ chapters });
+  }
+
+  // Flat list of every flag across every chapter for the all-flags tab.
+  // Sorted by chapter position then by timestamp so engineers can scan
+  // top-to-bottom and the order matches the audiobook timeline.
+  const allFlagsAcrossBook = useMemo(() => {
+    const out = [];
+    (book.chapters || []).forEach((ch, chIdx) => {
+      (ch.sections || []).forEach((sec) => {
+        (sec.flags || []).forEach((fl, idx) => {
+          const id = fl.id || `${fl.idx}:${fl.ts}`;
+          out.push({
+            id,
+            sectionId: sec.id,
+            chapterId: ch.id,
+            chapterIndex: chIdx,
+            chapterTitle: ch.title || `Chapter ${chIdx + 1}`,
+            chapterDisplay: chapterDisplayNumber(ch, chIdx),
+            sectionTitle: sec.title || '',
+            audioFileName: sec.audioFileName || '',
+            ts: Number(fl.ts) || 0,
+            page: fl.page || '',
+            narrator: fl.narrator || '',
+            type: fl.type || 'Edit',
+            sentPlain: fl.sentPlain || '',
+            note: fl.note || '',
+            order: idx,
+          });
+        });
+      });
+    });
+    return out.sort((a, b) => (a.chapterIndex - b.chapterIndex) || (a.ts - b.ts));
+  }, [book.chapters]);
+
   function setChapterCompletion(chapterId, complete) {
     const chapters = (book.chapters || []).map(ch => {
       if (ch.id !== chapterId) return ch;

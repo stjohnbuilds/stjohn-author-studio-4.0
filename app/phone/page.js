@@ -892,7 +892,84 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     if (supabase && session?.user?.id) {
       pushProofProject(supabase, nextBook, session.user.id).catch((e) => {
         console.warn('[Phone] Proof push failed:', e?.message || e);
+        setError('Could not save to the cloud. Try Refresh.');
+      });
+    }
+  }
+
+  // Flag-only save — single Supabase row. Use this for add/edit so a
+  // concurrent device save doesn't clobber the rest of the project's
+  // flags. Updates local state + cache eagerly; cloud push is
+  // fire-and-forget but non-destructive (UPSERT one row).
+  function saveFlagToCloud(bookId, sectionId, flag) {
+    setBooks((all) => {
+      const next = all.map((b) => {
+        if (b.id !== bookId) return b;
+        return {
+          ...b,
+          chapters: (b.chapters || []).map((ch) => ({
+            ...ch,
+            sections: (ch.sections || []).map((s) => {
+              if (s.id !== sectionId) return s;
+              const localId = flag.id;
+              const existing = (s.flags || []).find((f) => (f.id || `${f.idx}:${f.ts}`) === localId);
+              const flags = existing
+                ? (s.flags || []).map((f) => ((f.id || `${f.idx}:${f.ts}`) === localId ? flag : f))
+                : [...(s.flags || []), flag];
+              return { ...s, flags };
+            }),
+          })),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      if (session?.user?.id) writePhoneProjectCache('script', session.user.id, next);
+      return next;
+    });
+    const supabase = getSupabaseClient();
+    const book = books.find((b) => b.id === bookId);
+    const cloudId = book?.cloudId;
+    if (supabase && session?.user?.id && cloudId) {
+      upsertProofFlag(supabase, cloudId, sectionId, flag, session.user.id).catch((e) => {
+        console.warn('[Phone] flag upsert failed:', e?.message || e);
         setError('Could not save flag to the cloud. Try Refresh.');
+      });
+    } else if (!cloudId) {
+      // Book hasn't been pushed yet — fall back to full project push so
+      // the project row gets created. Then the flag will be in the next
+      // pull. (Rare path; happens only for brand-new books on phone.)
+      const fullBook = books.find((b) => b.id === bookId);
+      if (fullBook && supabase && session?.user?.id) {
+        pushProofProject(supabase, fullBook, session.user.id).catch(() => {});
+      }
+    }
+  }
+
+  function removeFlagFromCloud(bookId, sectionId, flagId) {
+    setBooks((all) => {
+      const next = all.map((b) => {
+        if (b.id !== bookId) return b;
+        return {
+          ...b,
+          chapters: (b.chapters || []).map((ch) => ({
+            ...ch,
+            sections: (ch.sections || []).map((s) => {
+              if (s.id !== sectionId) return s;
+              return { ...s, flags: (s.flags || []).filter((f) => (f.id || `${f.idx}:${f.ts}`) !== flagId) };
+            }),
+          })),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+      if (session?.user?.id) writePhoneProjectCache('script', session.user.id, next);
+      return next;
+    });
+    const supabase = getSupabaseClient();
+    const book = books.find((b) => b.id === bookId);
+    const cloudId = book?.cloudId;
+    if (supabase && session?.user?.id && cloudId) {
+      deleteProofFlag(supabase, cloudId, flagId).catch((e) => {
+        console.warn('[Phone] flag delete failed:', e?.message || e);
+        setError('Could not delete flag from the cloud. Try Refresh.');
       });
     }
   }

@@ -17,6 +17,8 @@ import {
   pushProofProject,
   pullProofProjects,
   deleteProofProject,
+  addTombstone,
+  applyTombstonesToCloudList,
 } from '../packages/cloud-sync';
 
 // Detect Electron

@@ -2046,6 +2046,52 @@ function AccountChip({ email, onSignOut }) {
   );
 }
 
+// PendingFlagBanner — "X flag(s) waiting to sync to the cloud" notice
+// that surfaces whenever the local flag queue isn't empty. Click to
+// trigger a retry refresh. Matters because Marie had no way of knowing
+// when a push silently failed.
+
+function PendingFlagBanner({ count, onRetry, loading }) {
+  if (!count) return null;
+  return (
+    <div
+      style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        background: '#fff7e6',
+        color: '#7a5b18',
+        border: '1px solid #f4d28a',
+        borderRadius: 0,
+        padding: '8px 14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 10,
+        fontSize: '0.78rem',
+        fontWeight: 700,
+      }}
+    >
+      <span>
+        ⏳ {count} flag change{count === 1 ? '' : 's'} waiting to sync
+      </span>
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={loading}
+        style={{
+          padding: '5px 12px',
+          background: loading ? 'rgba(122,91,24,0.16)' : '#7a5b18',
+          color: 'white',
+          border: 'none',
+          borderRadius: 999,
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {loading ? 'Retrying…' : 'Retry now'}
+      </button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // BookTabStrip — Chapters / Flags toggle inside a book's detail screen.
 // Mirrors the desktop side-nav tab pills so the phone has the same

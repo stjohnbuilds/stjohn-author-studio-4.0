@@ -1846,27 +1846,40 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       >
         <div style={{ padding:isInline ? 0 : '8px 8px 6px',borderBottom:isInline ? 'none' : '1px solid var(--accent-border)' }}>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'flex-start' }}>
-            <div style={{ display:'inline-flex',alignItems:'center',gap:6,background:'white',border:'1px solid var(--accent-border)',borderRadius:999,padding:3,minWidth:176 }}>
+            <div style={{ display:'inline-flex',alignItems:'center',gap:4,background:'white',border:'1px solid var(--accent-border)',borderRadius:999,padding:3,minWidth:220 }}>
               <button
                 onClick={() => setSidePanelTab('navigation')}
-                style={{ flex:1,border:'none',background:sidePanelTab === 'navigation' ? 'var(--accent-light)' : 'transparent',color:sidePanelTab === 'navigation' ? 'var(--accent-dark)' : 'var(--text-muted)',padding:'5px 12px',borderRadius:999,fontSize:'0.69rem',fontWeight:700,cursor:'pointer',textAlign:'center' }}
+                style={{ flex:1,border:'none',background:sidePanelTab === 'navigation' ? 'var(--accent-light)' : 'transparent',color:sidePanelTab === 'navigation' ? 'var(--accent-dark)' : 'var(--text-muted)',padding:'5px 8px',borderRadius:999,fontSize:'0.68rem',fontWeight:700,cursor:'pointer',textAlign:'center' }}
               >
                 Nav
               </button>
               <button
+                onClick={() => setSidePanelTab('flags')}
+                aria-label={`All flags (${allFlagsAcrossBook.length})`}
+                title={`View every flag in this book (${allFlagsAcrossBook.length})`}
+                style={{ flex:1,border:'none',background:sidePanelTab === 'flags' ? 'var(--accent-light)' : 'transparent',color:sidePanelTab === 'flags' ? 'var(--accent-dark)' : 'var(--text-muted)',padding:'5px 8px',borderRadius:999,fontSize:'0.68rem',fontWeight:700,cursor:'pointer',textAlign:'center',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:4 }}
+              >
+                <span>Flags</span>
+                {allFlagsAcrossBook.length > 0 && (
+                  <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:16,height:14,padding:'0 4px',borderRadius:999,background:sidePanelTab === 'flags' ? 'var(--accent-dark)' : 'var(--cream-dark)',color:sidePanelTab === 'flags' ? 'white' : 'var(--text-muted)',fontSize:'0.6rem',fontWeight:800,lineHeight:1 }}>
+                    {allFlagsAcrossBook.length}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setSidePanelTab('transcriptions')}
-                style={{ flex:1,border:'none',background:sidePanelTab === 'transcriptions' ? 'var(--accent-light)' : 'transparent',color:sidePanelTab === 'transcriptions' ? 'var(--accent-dark)' : 'var(--text-muted)',padding:'5px 20px 5px 12px',borderRadius:999,fontSize:'0.69rem',fontWeight:700,cursor:'pointer',position:'relative',textAlign:'center' }}
+                style={{ flex:1,border:'none',background:sidePanelTab === 'transcriptions' ? 'var(--accent-light)' : 'transparent',color:sidePanelTab === 'transcriptions' ? 'var(--accent-dark)' : 'var(--text-muted)',padding:'5px 16px 5px 8px',borderRadius:999,fontSize:'0.68rem',fontWeight:700,cursor:'pointer',position:'relative',textAlign:'center' }}
               >
                 Queue
                 <span
                   aria-hidden="true"
                   style={{
                     position:'absolute',
-                    right:10,
+                    right:7,
                     top:'50%',
-                    width:9,
-                    height:9,
-                    marginTop:-4.5,
+                    width:8,
+                    height:8,
+                    marginTop:-4,
                     borderRadius:'50%',
                     border:hasRunningQueueTask ? '1.5px solid var(--warning)' : '1.5px solid transparent',
                     borderTopColor:hasRunningQueueTask ? 'transparent' : 'transparent',
@@ -1878,7 +1891,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             </div>
           </div>
         </div>
-        {sidePanelTab === 'navigation' ? renderNavigationTab() : renderTranscriptionsTab()}
+        {sidePanelTab === 'navigation' && renderNavigationTab()}
+        {sidePanelTab === 'flags' && renderFlagsTab()}
+        {sidePanelTab === 'transcriptions' && renderTranscriptionsTab()}
       </div>
     );
   }

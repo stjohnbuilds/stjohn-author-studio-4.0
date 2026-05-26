@@ -1406,7 +1406,13 @@ function SettingsCog({
   onTutorialEnabledChange,
   onRestartTutorial,
   showTutorialHint,
+  // Marie 2026-05-26: cog now lives on every mode. Profile goes at the
+  // top of the panel; Proof-only sections sit below.
+  mode = 'proof',
+  authEmail = '',
+  onSignOut,
 }) {
+  const isProof = mode === 'proof';
   const [whisperInfo, setWhisperInfo] = useState(null);
   const refreshWhisperInfo = useCallback(() => {
     if (typeof window !== 'undefined' && window.electron?.whisperGetInfo) {

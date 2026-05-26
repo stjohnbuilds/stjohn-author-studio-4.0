@@ -883,8 +883,22 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         if (list?.length) {
           // Fold any queued offline saves / deletes into the freshly
           // pulled cloud books so we never overwrite Marie's pending
-          // local work with the (stale) cloud version.
-          const merged = list.map((b) => b?.cloudId ? applyFlagQueueToBook(b.cloudId, b) : b);
+          // local work with the (stale) cloud version. Also preserve a
+          // local updatedAt that's newer than the cloud's so the
+          // last-touched-first sort doesn't snap back when a single-row
+          // flag op (which doesn't bump the project row) is the only
+          // recent activity.
+          const localById = new Map((current || []).map((b) => [b.id, b]));
+          const merged = list.map((b) => {
+            const withQueue = b?.cloudId ? applyFlagQueueToBook(b.cloudId, b) : b;
+            const local = localById.get(b.id);
+            const localTime = Date.parse(local?.updatedAt || '') || 0;
+            const cloudTime = Date.parse(withQueue?.updatedAt || '') || 0;
+            if (localTime > cloudTime) {
+              return { ...withQueue, updatedAt: local.updatedAt };
+            }
+            return withQueue;
+          });
           if (session?.user?.id) writePhoneProjectCache('script', session.user.id, merged);
           return merged;
         }

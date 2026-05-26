@@ -1169,6 +1169,8 @@ export default function PrebuildMode({ modeToggle = null }) {
         persistentAudioUrl={null}
         persistentAudioLabel=""
         persistentAudioState={null}
+        // intentional: Duet doesn't use the persistent home-level audio
+        // dock that Proof has. Engineer scan flow doesn't need it.
         onPersistentAudioStateChange={() => {}}
         onReturnToScene={() => {}}
         onClearPersistentAudio={() => {}}

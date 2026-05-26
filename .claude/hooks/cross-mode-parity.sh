@@ -53,10 +53,11 @@ MODE_FILES=(
 # are the ones that can drop fields silently — Check 2 only runs on
 # these. app/page.js is the Proof parent that owns the whole state via
 # a shallow merge, so all fields are handled by default — exempt.
+# Prep uses its own local BookDetailView (not the shared SessionsView),
+# so the forwarded-field contract doesn't apply to it — also exempt.
 SELECTIVE_HANDLER_MODE_FILES=(
   "app/components/PrebuildMode.js"
   "app/components/QuillAndInkMode.js"
-  "app/components/PrepManuscriptMode.js"
 )
 
 # Fields the shared book-page forwards back through onUpdateBook.

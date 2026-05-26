@@ -1134,9 +1134,12 @@ export default function PrebuildMode({ modeToggle = null }) {
             save(projects.map(p => p.id === proj.id ? u : p));
           }
           if (Array.isArray(updated.chapters)) {
-            // Mirror chapter `completed` flags back to Duet's project
-            // so the chapter-done ticks persist (and the chapter list
-            // stays in sync if any chapter is removed).
+            // Mirror the shared book-page edits back to Duet's project:
+            //   - chapter `completed` ticks
+            //   - chapter list (so unchecking removes from Duet too)
+            //   - audio file name + full path (so bulk-audio attaches
+            //     survive a full app restart). Paths stay local — the
+            //     audio-guard strips them before any cloud push.
             const byId = new Map(updated.chapters.map((ch) => [ch.id, ch]));
             const u = {
               ...proj,
@@ -1145,7 +1148,23 @@ export default function PrebuildMode({ modeToggle = null }) {
                 .map((ch) => {
                   const next = byId.get(ch.id);
                   const sec = (next?.sections || [])[0];
-                  return { ...ch, completed: !!(sec?.completed ?? ch.completed) };
+                  const patch = { ...ch, completed: !!(sec?.completed ?? ch.completed) };
+                  if (sec) {
+                    // SessionsView's section.audioFileName → Duet's
+                    // chapter.audioFile (just the name string). Path
+                    // mirrors directly. Only patch when the parent
+                    // actually carries audio fields.
+                    if (sec.audioFileName !== undefined) {
+                      patch.audioFile = sec.audioFileName || null;
+                    }
+                    if (sec.audioPath !== undefined) {
+                      patch.audioPath = sec.audioPath || null;
+                    }
+                    if (sec.audioPaths !== undefined) {
+                      patch.audioPaths = sec.audioPaths || null;
+                    }
+                  }
+                  return patch;
                 }),
             };
             updateProject(u);

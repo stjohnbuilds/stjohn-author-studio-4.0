@@ -1161,7 +1161,7 @@ ipcMain.handle('read-audio-file', (_, filePath) => {
 ipcMain.handle('export-csv', async (_, { content, defaultName }) => {
   const result = await dialog.showSaveDialog({
     title: 'Save CSV',
-    defaultPath: defaultName || 'proofing.csv',
+    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), defaultName || 'proofing.csv')),
     filters: [{ name: 'CSV', extensions: ['csv'] }],
   });
   if (result.canceled) return false;

@@ -69,11 +69,15 @@ export function loadTombstones(scope) {
   return readSet(scope);
 }
 
+function projectHitsSet(set, project) {
+  if (!project || !set?.size) return false;
+  if (project.id && set.has(String(project.id))) return true;
+  if (project.cloudId && set.has(String(project.cloudId))) return true;
+  return false;
+}
+
 export function isTombstoned(scope, project) {
-  if (!project) return false;
-  const set = readSet(scope);
-  return (project.id && set.has(String(project.id)))
-      || (project.cloudId && set.has(String(project.cloudId)));
+  return projectHitsSet(readSet(scope), project);
 }
 
 // Filter a cloud list against tombstones AND retry-delete the survivors
@@ -85,8 +89,7 @@ export function applyTombstonesToCloudList(scope, cloudList, supabase, deleteFn)
   if (!set.size) return cloudList || [];
   const kept = [];
   for (const p of cloudList || []) {
-    const tombstoned = (p.id && set.has(String(p.id))) || (p.cloudId && set.has(String(p.cloudId)));
-    if (!tombstoned) { kept.push(p); continue; }
+    if (!projectHitsSet(set, p)) { kept.push(p); continue; }
     // Cloud still has this — re-issue the delete in the background.
     if (supabase && p.cloudId && typeof deleteFn === 'function') {
       Promise.resolve(deleteFn(supabase, p.cloudId)).catch((e) => {

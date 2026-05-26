@@ -4,9 +4,12 @@
       {
         "hooks": [
           { "type": "command", "command": "bash .claude/hooks/context-check.sh" },
+          { "type": "command", "command": "bash .claude/hooks/progress-trigger.sh" },
           { "type": "command", "command": "bash .claude/hooks/deep-check-trigger.sh" },
           { "type": "command", "command": "bash .claude/hooks/handover-trigger.sh" },
-          { "type": "command", "command": "bash .claude/hooks/ui-check-trigger.sh" }
+          { "type": "command", "command": "bash .claude/hooks/ui-check-trigger.sh" },
+          { "type": "command", "command": "bash .claude/hooks/usability-check-trigger.sh" },
+          { "type": "command", "command": "bash .claude/hooks/goodnight-trigger.sh" }
         ]
       }
     ],

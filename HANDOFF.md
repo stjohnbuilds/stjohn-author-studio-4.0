@@ -1,4 +1,4 @@
-# HANDOFF — 2026-05-26 (after H18 partial test run)
+# HANDOFF — 2026-05-26 (after Quill polish + final-round checklist landed)
 
 ## 📋 COPY-PASTE BLOCK — paste this verbatim into a fresh chat to bootstrap
 
@@ -9,7 +9,8 @@ Before you do ANYTHING:
 1. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md (top to bottom).
 2. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md (this file).
 3. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md.
-4. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md.
+4. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/FINAL-ROUND-checklist.md.
+5. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md.
 
 Marie is a NON-CODER. Plain English, 2-4 sentences default. Banned words:
 refactor, abstraction, composition, polyfill, hydrate, memoize, lift state,
@@ -20,10 +21,17 @@ Mandatory on every response that touches files:
 - Run command in a code block: `cd ~/Dev/StJohn-Author-Studio-4.0 && npm start`
   followed by "paste and hit Enter".
 
-Your job for this session: the 26-test plan from Section 6 below. Run it
-FROM SCRATCH — don't trust anyone else's pass/fail notes. Fix anything
-that breaks before declaring a test done. Confidence % at the end, list
-what you're still unsure about. No self-certifying.
+The active list is dev/active/FINAL-ROUND-checklist.md. Part B is yours
+(deep dive, no code changes until you flag something to Marie). Part A
+is Marie's hands-on. When Marie flags a bug from Part A, fix that one
+thing — don't go rogue.
+
+Two Stop hooks now bounce instead of warn:
+- build-checker.sh: syntax errors exit 1; risky-path edits run npm test
+  (one retry) and exit 1 on second failure.
+- stop-no-self-cert.sh: blocks self-certifying phrases ("95% confident",
+  "self-certify", "trust me it works", "gate at X%", "grade myself").
+  Mark deliberate stubs with "// intentional:" within 5 lines above.
 ```
 
 ---
@@ -45,11 +53,14 @@ injection, side-effect, idempotent. Say what changed in normal words.
 ## 2. HARD RULES (these have bitten before)
 
 - **No dual-write.** ONE shared component per job — the list is in
-  `CLAUDE.md` at the top. The build-checker hook will hard-block any
+  `CLAUDE.md` at the top. The build-checker hook hard-blocks any
   new inline `function .*BookDetail/HomeView/ChapterRow/ReaderView/
   Setup/Panel/AudioDock/Picker` in a mode file.
-- **No self-certifying.** Battery-test on real files before saying
-  "done". End with a confidence % and a list of what you're unsure of.
+- **No self-certifying.** The `stop-no-self-cert.sh` Stop hook now
+  hard-blocks responses that contain "95% confident", "self-certify",
+  "trust me it works", "gate at X%", "grade myself". Mark exceptions
+  with `// intentional:` in code. In replies: state what you checked,
+  what passed, what failed, what's still uncertain.
 - **Plain English only.** See Section 1.
 - **"Files I changed:" footer is MANDATORY** on every response that
   edits files. The Stop-hook output gets swallowed by the UI — the
@@ -67,6 +78,8 @@ injection, side-effect, idempotent. Say what changed in normal words.
   paths recursively before any upload.
 - **No fake data.** Empty state says "Import a manuscript". No
   `sampleProjects` shim, ever.
+- **Never guess about the app.** Read the file end-to-end or drive
+  the UI before saying how it behaves. A single grep is not enough.
 
 ---
 
@@ -75,10 +88,9 @@ injection, side-effect, idempotent. Say what changed in normal words.
 1. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md`
 2. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md` (this file)
 3. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md`
-4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md`
-5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
-6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/H18-26-test-run/RESULTS.md`
-   — empty test scaffolding. Fill in from scratch as you run.
+4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/FINAL-ROUND-checklist.md`
+5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md`
+6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
 
 ---
 
@@ -96,27 +108,39 @@ buttons did nothing on real files. We're not doing that again.
 
 ## 5. CURRENT STATE
 
-- **% done:** ~85% overall. Phone Script mode + desktop Proof + cloud
-  round-trip are working end-to-end. Quill is wired but the
-  flag-field metadata mirror (Phase H6) hasn't been done.
-- **Latest pushed commit (remote `main`):** `e506fd0`
-- **Local HEAD:** `c47e613` — auto-backup commits from the pre-edit
-  hook. **NOT pushed.** Local is ahead of remote.
-- **Working tree dirty:** `app/phone/page.js` has uncommitted changes
-  (Phase H18a fix — see Section 6 issue list).
-- **Tests:** `npm test` runs Node's built-in test runner; suite is
-  small. Run it after any cloud-sync edit.
-- **Live phone URL:** `https://stjohn-author-studio-4.vercel.app/phone`
-  — last deployed earlier this session.
-- **Vercel root = phone:** `scripts/vercel-root-to-phone.js` runs in
-  the build step (only when `VERCEL=1`) and overwrites `out/index.html`
-  with the phone page. URL bar stays as `/`, no bounce, no separate
-  rewrite needed. Electron's build scripts (`electron-build-mac`,
-  `electron-build-win`) call `next build` directly instead of `npm run
-  build`, so the swap doesn't run there — Electron keeps the desktop
-  UI at `/`.
+- **% done:** functionally the build list is closed. Last 3% is
+  Marie's real-file walkthrough finding nothing broken. Edge-case
+  scan (Part B of the final-round checklist) sits alongside it.
+- **Latest pushed commit (origin/main):** `ca1c00c` — "Add FINAL
+  ROUND checklist as the primary active list". Local HEAD = remote.
+- **Working tree:** clean.
+- **Tests:** `npm test` runs `node --test 'tests/**/*.test.mjs'` —
+  small suite (manuscript-engine.test.mjs). The build-checker Stop
+  hook now runs this suite automatically when edits touch
+  `packages/`, `lib/`, `tests/`, `supabase/`, `main.js`, or
+  `preload.js`, with one retry on flake and exit 1 on second
+  failure.
+- **Typecheck:** no separate typecheck step — project is plain JS.
+  The Stop hook does `node --check` on each edited file.
+- **Live URLs:**
+  - Phone is the root: `https://stjohn-author-studio-4.vercel.app/`
+  - Direct: `https://stjohn-author-studio-4.vercel.app/phone`
+  - The root rewrite happens at build time via
+    `scripts/vercel-root-to-phone.js`, which runs only when
+    `VERCEL=1`. Electron's release scripts call `next build`
+    directly so the swap doesn't run there — Electron desktop
+    still serves `/` as the desktop UI.
+- **Stop hooks (bouncers, not signs on the wall):**
+  - `build-checker.sh` — syntax error exit 1; risky-path test
+    failure exit 1; shared-component duplication exit 2.
+  - `stop-no-self-cert.sh` — Tier A self-cert phrases exit 1;
+    Tier B soft warn (exit 0 + note). Mark deliberate
+    exceptions with `// intentional:` within 5 lines above.
+- **PostToolUse hooks:** `cross-mode-parity.sh` runs after every
+  edit to a mode file. Catches empty stubs AND missing branches in
+  selective handlers.
 - **Local dev:** `npm start` runs Next + Electron together. Phone
-  preview at `http://localhost:3000/phone`.
+  preview at `http://localhost:3000/`.
 
 ---
 
@@ -124,61 +148,45 @@ buttons did nothing on real files. We're not doing that again.
 
 ### ⭐ Job 0 — Walk the FINAL ROUND checklist
 
-`dev/active/FINAL-ROUND-checklist.md` (created 2026-05-26). Part A
-is Marie's hands-on across every mode with real files. Part B is
-Claude's deep dive (Supabase round-trip, edge cases, code health,
-hook health). Part C is the watch list. When that's all ticked,
-this app is done. Everything else below this line is older.
+`dev/active/FINAL-ROUND-checklist.md`. Three parts:
+- **Part A** — Marie's hands-on across every mode with real files.
+- **Part B** — Claude's deep dive (Supabase round-trip, edge cases,
+  code health, hook health). No code changes until something
+  surfaces.
+- **Part C** — watch list.
 
-### Job 1 — Re-run the 26-test plan from scratch ⚠️ Marie + Easy
+When this is fully ticked, archive it under `dev/archive/` with the
+run date and open a fresh `TODO.md`.
 
-The full plan lives in
-`/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/H18-26-test-run/RESULTS.md`
-(empty table). Walk every row. Mark ✓ pass / ⚠ minor / ❌ broken
-with a one-line note. Don't trust the previous session — re-test
-everything.
+### Job 1 — Fix anything Part A surfaces
 
-**14 phone tests:** service picker + cog → settings → sign-out →
-empty book list → book list with data → open book → Chapters/Flags
-tabs → open chapter → reader settings persist → Page Swipe mode →
-pick audio → tap-word → save flag → delete flag.
+Whatever bug Marie finds gets fixed one at a time. Don't bundle.
 
-**8 desktop tests:** home book list (last-touched first) → Resync
-button + last-synced text → open book (no banner) → Tutorial pill
-clickable → side nav Nav/Flags/Queue → Flags tab all-flags listed
-→ delete flag from desktop → home/back audio survives.
+### Job 2 — Fix anything Part B surfaces
 
-**4 cross-device tests:** phone save → desktop refresh sees it →
-phone delete → desktop refresh loses it → desktop delete book →
-phone loses it → phone offline save → online retry.
+Same rule. Each finding gets its own commit. Each commit gets a
+short reason in the message.
 
-### Job 2 — Phase H6: Quill annotation flag-field metadata ⚠️ Big
+### Job 3 — Build the Windows .ico + NSIS Setup installer
 
-The desktop Quill annotation panel and the phone Quill annotation
-panel don't share the same field shape as the Proof flag form.
-Mirror the H7 work (page from page map, narrator priority, time
-from whisper alignment) into the Quill side so a phone Quill save
-produces the same metadata a desktop Quill save would.
+After Parts A + B close. The portable EXE already ships
+(`dist/StJohn Author Studio (Portable).exe`, 268 MB). The proper
+NSIS Setup wizard needs `build/icon.ico` — generate one from the
+existing macOS .icns, then `npm run release:win` emits both.
 
-### Job 3 — Build a proper Windows .ico + NSIS Setup installer ⚠️ Easy
+### Job 4 — Phase H6 (only if Marie asks)
 
-The portable .exe works (268 MB, see Section 8). The NSIS Setup
-wizard installer failed because `build/icon.ico` doesn't exist.
-Either generate a 256×256 ICO from the existing macOS .icns, or
-add a placeholder. Then `npm run release:win` will emit BOTH a
-portable AND a Setup installer.
+Quill annotation flag-field metadata mirror — adds page number +
+narrator priority + whisper time to Quill annotations so the phone
+and desktop carry the same depth as Proof flags. Big work. Skip
+until requested.
 
-### Job 4 — Redeploy phone to Vercel ⚠️ Easy (needs Marie's OK)
+### Job 5 — Extract shared HTML walker (cleanup)
 
-After the test run + Phase H18a confirmation, push the fix to
-`main` and trigger a Vercel deploy. Marie's husband may also
-want the desktop EXE (portable is ready now).
-
-### Job 5 — Phone reader location memory restore ⚠️ Easy
-
-`packages/cloud-sync/flag-queue.js` and `stjohn-phone-reader-
-location-v1` localStorage key — confirm that re-opening a book
-puts Marie back where she was reading.
+Desktop `ChapterReader.js` and phone `PhoneReader.js` each have
+their own HTML walker. Both already use the engine helpers from
+`packages/quill-engine` for word splitting + selection context.
+The walker itself could move there too. ~1 hour. Lowest priority.
 
 ---
 
@@ -193,10 +201,13 @@ puts Marie back where she was reading.
   Tomes 2.0 DATA").
 - **Design calls.** Colours, layout polish, "does this look
   right" — Marie decides.
-- **Push authorisation.** Push is fine without asking, but if
-  it's force-push or a migration push, ask first.
+- **Push authorisation for force-push or migrations.** Regular
+  push is fine without asking. Force-push or schema migration —
+  ask first.
 - **InDesign export verification.** Marie is the only one who can
   open the .jsx in InDesign and confirm it lines up.
+- **Windows install verification.** Marie's husband runs the
+  installer on his Windows machine. We can't simulate that here.
 
 ---
 
@@ -208,16 +219,19 @@ puts Marie back where she was reading.
 |---|---|
 | Phone app (Script + Quill) | `app/phone/page.js` |
 | Desktop home + mode switcher | `app/page.js` |
-| Shared book detail (sticky bar + chapters) | `app/components/BookDetail.js` |
-| Shared manuscript reader | `app/components/ChapterReader.js` |
+| Shared book detail | `app/components/SessionsView.js` |
+| Original BookDetail (Quill home only) | `app/components/BookDetail.js` |
+| Shared manuscript reader (desktop) | `app/components/ChapterReader.js` |
 | Shared audio dock | `app/components/AudioDock.js` |
 | Shared import flow (.docx upload) | `app/components/ImportFlow.js` |
 | Top-bar pills + save badge + mode tokens | `app/components/ReaderChrome.js` |
 | Phone reader (HTML-preserving word walker) | `app/phone/_components/PhoneReader.js` |
+| Phone reader settings panel | `app/phone/_components/PhoneReaderSettings.js` |
 | Cloud sync (Supabase) | `packages/cloud-sync/` |
 | Audio engine | `packages/audio-engine/` |
 | Manuscript engine (.docx parse) | `packages/manuscript-engine/` |
 | Quill annotation engine | `packages/quill-engine/` |
+| Vercel-only root-to-phone swap | `scripts/vercel-root-to-phone.js` |
 
 ### Reference-only (READ but never edit)
 
@@ -231,13 +245,18 @@ puts Marie back where she was reading.
 - `.claude/settings.json` — wires hooks
 - `.claude/hooks/_log.sh` — shared audit logger
 - `.claude/hooks/context-check.sh` — UserPromptSubmit reminder
-- `.claude/hooks/deep-check-trigger.sh` — Marie's "deep check" 7-step
+- `.claude/hooks/deep-check-trigger.sh` — "deep check" 7-step
 - `.claude/hooks/handover-trigger.sh` — this template
 - `.claude/hooks/ui-check-trigger.sh` — 24-point usability check
 - `.claude/hooks/git-backup.sh` — auto-commits before edits
 - `.claude/hooks/file-tracker.sh` — logs every edited file
-- `.claude/hooks/no-mess.sh` — Stop-hook warning
-- `.claude/hooks/build-checker.sh` — Stop-hook duplication guard
+- `.claude/hooks/cross-mode-parity.sh` — empty stubs + missing
+  branches in selective handlers
+- `.claude/hooks/no-mess.sh` — Stop-hook checklist
+- `.claude/hooks/build-checker.sh` — Stop-hook bouncer (syntax +
+  duplication + risky-path tests)
+- `.claude/hooks/stop-no-self-cert.sh` — Stop-hook bouncer
+  (transcript scan, Tier A blocks, Tier B warns)
 - `.claude/hook-activity.log` — Marie verifies hooks ran by
   reading this
 
@@ -247,6 +266,8 @@ puts Marie back where she was reading.
   `dist/StJohn Author Studio (Portable).exe` (268 MB, single file,
   double-click to run, no install wizard).
 - Mac dist: `dist/mac-arm64/StJohn Author Studio.app`.
+- **Windows NSIS Setup wizard:** not yet built — needs
+  `build/icon.ico`. See Job 3.
 
 ### Commands Marie actually uses (paste-ready)
 
@@ -276,51 +297,39 @@ cat ~/Dev/StJohn-Author-Studio-4.0/.claude/hook-activity.log
 
 ---
 
-## ISSUES TO LOOK INTO (don't trust — verify as you re-test)
+## RECENT SESSION HISTORY (so the next AI knows what just happened)
 
-The previous session got partway through the 26-test plan and stopped.
-Re-run the FULL plan from scratch. While you do, keep an eye out for
-these specific things that came up:
+### 2026-05-26 session (this one) — Quill polish + Stop hook bouncers
 
-1. **Phone book-detail crash on open** — was fixed in
-   `app/phone/page.js` but the fix is uncommitted and unpushed.
-   A `useMemo` was sitting in the wrong place so React got
-   confused about how many hooks the component had. Confirm the
-   crash is gone before pushing.
-2. **Pick audio dock overlapping inline-flag card** in Page Swipe
-   mode — minor cosmetic. The bottom audio pill seems to overlap
-   the top of the inline flags list.
-3. **Phone auth safety timer** — 8s timeout was added on
-   `supabase.auth.getSession()` so the phone can't hang forever
-   on "Checking your account…". Confirm it kicks in by killing
-   network and reloading the phone — login form should appear
-   after 8 seconds at the latest.
-4. **Tap-to-flag via browser automation didn't fire.** The
-   double-tap-to-select code in `PhoneReader.js` uses
-   `pointerdown` with a 420ms window. Synthetic PointerEvents
-   from the browser preview tool didn't register — needs a real
-   finger / touch device or a `dblclick` MouseEvent path. May
-   need a tiny tweak so e2e tooling can drive it.
-5. **Sign-out + sign-in flow** isn't testable in dev-skip mode —
-   needs Marie's real Supabase credentials.
-6. **Empty book list state** wasn't observed — would need to
-   clear `stjohn-author-phone-project-cache-v1` to see it.
+- Fixed Quill's missing chapter handler — unticks, bulk audio, audio paths now propagate to disk + Supabase + phone
+- Fixed Duet's identical bug (chapter done tick + bulk audio path persistence)
+- Added the Split scenes toggle to Quill's import (was hidden)
+- Brought back "Edit book data" in Quill (was wiped by an actionButtonsOverride)
+- Replaced the "Beginning" label — pre-H2 text now folds into the first H2 scene
+- Added scene-level untick checkboxes inside Edit book data (expandable per chapter)
+- Added the round done-tick on each phone chapter card; syncs phone ↔ desktop via the desktop_project JSONB blob
+- Built `scripts/vercel-root-to-phone.js` — phone serves at `/` on Vercel without a redirect; Electron still serves desktop at `/` locally
+- Added `.claude/hooks/cross-mode-parity.sh` — catches empty stubs AND missing-branch bugs in selective handlers
+- Hardened `build-checker.sh` — syntax errors exit 1; risky-path test failures exit 1 after one retry
+- Added `.claude/hooks/stop-no-self-cert.sh` — bouncer for self-cert phrases
+- Saved memory rule: "never guess about the app" — read file end-to-end or drive the UI before claiming behaviour
+- Wrote `dev/active/FINAL-ROUND-checklist.md` — the primary active list going forward
+
+Latest commit: `ca1c00c` (pushed to `origin/main`).
 
 ---
 
 ## SUMMARY FOR MARIE (plain English)
 
-- **Caught a crash on the phone book detail.** When you tapped
-  into a book, the phone showed a red error screen instead of
-  the book. I tracked down why and moved one piece of code so
-  React stops getting confused. The fix is in your phone code
-  but isn't pushed to Vercel yet.
-- **Built the Windows EXE for your husband.** It's at
-  `dist/StJohn Author Studio (Portable).exe` (268 MB). One
-  file, he double-clicks it, no install wizard. The proper
-  wizard installer didn't build because we don't have a
-  Windows icon file yet — next session can fix that.
-- **Started the 26-test plan but didn't finish.** Next session
-  will re-run the whole thing from scratch. The empty test
-  table is at
-  `dev/active/H18-26-test-run/RESULTS.md`.
+- The full final-round checklist is at
+  `dev/active/FINAL-ROUND-checklist.md`. Part A is yours. Part B
+  is the AI's deep dive.
+- Phone is at the root URL now (no `/phone` needed).
+- Quill on phone has a round tick next to each chapter — tap to
+  mark done, syncs to desktop.
+- Quill on desktop has the Split toggle back, Edit book data is
+  back, scene-level unticking is new.
+- "Beginning" label is gone. Pre-H2 text reads inside the first
+  H2 scene.
+- The Stop hooks now BLOCK responses with bad code or self-cert
+  phrasing, not just warn.

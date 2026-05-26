@@ -42,6 +42,7 @@ import {
   clearDeletedFlag,
   applyFlagQueueToBook,
   retryFlagQueue,
+  loadFlagQueue,
 } from '../../packages/cloud-sync';
 import {
   buildWordSpans,

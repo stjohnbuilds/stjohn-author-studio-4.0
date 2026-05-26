@@ -1534,6 +1534,9 @@ function SettingsCog({
               </button>
             </div>
 
+            {/* Proof-only sections — Marie 2026-05-26: Prep/Quill/Duet
+                settings panel shows just profile + tutorial. */}
+            {isProof && (<>
             <div data-tutorial="save-location-card" style={{ border:'1px solid var(--border)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
               <div style={{ fontSize:'0.8rem', color:'var(--text)', fontWeight:600, marginBottom:6 }}>Save location</div>
               {isElectron ? (

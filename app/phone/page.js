@@ -958,8 +958,10 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
 
   // Flag-only save — single Supabase row. Use this for add/edit so a
   // concurrent device save doesn't clobber the rest of the project's
-  // flags. Updates local state + cache eagerly; cloud push is
-  // fire-and-forget but non-destructive (UPSERT one row).
+  // flags. Updates local state + cache eagerly. Also writes to a
+  // localStorage queue so if the cloud push fails (offline, slow
+  // network), the next refresh sees the pending flag and retries —
+  // the saved flag never silently disappears.
   function saveFlagToCloud(bookId, sectionId, flag) {
     setBooks((all) => {
       const next = all.map((b) => {
@@ -987,20 +989,32 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     const supabase = getSupabaseClient();
     const book = books.find((b) => b.id === bookId);
     const cloudId = book?.cloudId;
-    if (supabase && session?.user?.id && cloudId) {
-      upsertProofFlag(supabase, cloudId, sectionId, flag, session.user.id).catch((e) => {
-        console.warn('[Phone] flag upsert failed:', e?.message || e);
-        setError('Could not save flag to the cloud. Try Refresh.');
-      });
-    } else if (!cloudId) {
-      // Book hasn't been pushed yet — fall back to full project push so
-      // the project row gets created. Then the flag will be in the next
-      // pull. (Rare path; happens only for brand-new books on phone.)
+    if (!cloudId) {
+      // Brand-new book that hasn't been pushed yet — fall back to a
+      // full project push to create the project row, then we're done.
+      // (Rare path; happens only when the very first save of a new
+      // book also happens to be a flag, which the phone flow doesn't
+      // currently allow because books are created on desktop.)
       const fullBook = books.find((b) => b.id === bookId);
       if (fullBook && supabase && session?.user?.id) {
         pushProofProject(supabase, fullBook, session.user.id).catch(() => {});
       }
+      return;
     }
+    if (!supabase || !session?.user?.id) {
+      // Not signed in — queue for whenever we are.
+      recordPendingFlag(cloudId, sectionId, flag);
+      return;
+    }
+    // Optimistic queue write — if the push succeeds, we clear it; if
+    // it fails, the next refresh's retryFlagQueue picks it up.
+    recordPendingFlag(cloudId, sectionId, flag);
+    upsertProofFlag(supabase, cloudId, sectionId, flag, session.user.id)
+      .then(() => clearPendingFlag(cloudId, flag.id))
+      .catch((e) => {
+        console.warn('[Phone] flag upsert failed (queued for retry):', e?.message || e);
+        setError('Saved locally — will retry the cloud sync on the next refresh.');
+      });
   }
 
   function removeFlagFromCloud(bookId, sectionId, flagId) {
@@ -1025,11 +1039,18 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     const supabase = getSupabaseClient();
     const book = books.find((b) => b.id === bookId);
     const cloudId = book?.cloudId;
-    if (supabase && session?.user?.id && cloudId) {
-      deleteProofFlag(supabase, cloudId, flagId).catch((e) => {
-        console.warn('[Phone] flag delete failed:', e?.message || e);
-        setError('Could not delete flag from the cloud. Try Refresh.');
-      });
+    if (!cloudId) return;
+    // Queue the delete intent so the next refresh strips this flag from
+    // the cloud merge result AND retries the cloud delete if the first
+    // attempt fails.
+    recordDeletedFlag(cloudId, flagId);
+    if (supabase && session?.user?.id) {
+      deleteProofFlag(supabase, cloudId, flagId)
+        .then(() => clearDeletedFlag(cloudId, flagId))
+        .catch((e) => {
+          console.warn('[Phone] flag delete failed (queued for retry):', e?.message || e);
+          setError('Removed locally — will retry the cloud sync on the next refresh.');
+        });
     }
   }
 

@@ -10,3 +10,4 @@ export * from './cloud-slim.js';
 export * from './quill-sync.js';
 export * from './proof-sync.js';
 export * from './tombstones.js';
+export * from './flag-queue.js';

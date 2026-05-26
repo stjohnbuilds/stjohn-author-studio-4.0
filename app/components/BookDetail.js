@@ -58,6 +58,14 @@ export default function BookDetail({
 }) {
   const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
 
+  // Top padding 56px on Electron clears the custom drag region + macOS
+  // traffic-light buttons; 16px on web is plenty. The big sticky banner
+  // is gone — Marie's "there does not need to be a banner. There
+  // doesn't need to be a banner. There doesn't need to be a banner."
+  // The title now sits at the top of the scrolling content as plain
+  // text; the home / profile / settings pills float separately.
+  const topPad = usesCustomDragRegion ? 56 : 20;
+
   return (
     <>
       {onBackHome && (
@@ -68,19 +76,33 @@ export default function BookDetail({
           onClick={onBackHome}
         />
       )}
-      <StickyTopBar
-        tone={tone}
-        usesCustomDragRegion={usesCustomDragRegion}
-        title={title}
-        subtitle={subtitle}
-      >
-        {saveStatus !== undefined && <SaveBadge status={saveStatus} tone={tone} />}
-      </StickyTopBar>
 
-      {/* Top padding 90px clears the sticky bar (~54px + 40px drag
-          offset). Previously 20px let action buttons sit under the
-          sticky bar — the bug Marie screenshotted on book detail. */}
-      <div style={{ width: containerWidth, margin: '0 auto', padding: '90px 0 80px' }}>
+      <div style={{ width: containerWidth, margin: '0 auto', padding: `${topPad}px 0 80px` }}>
+        {(title || subtitle) && (
+          <div style={{ textAlign: 'center', marginBottom: 18, padding: '0 92px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: '1.28rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  lineHeight: 1.2,
+                  letterSpacing: '0.005em',
+                }}
+              >
+                {title}
+              </h1>
+              {saveStatus !== undefined && <SaveBadge status={saveStatus} tone={tone} />}
+            </div>
+            {subtitle && (
+              <div style={{ marginTop: 4, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                {subtitle}
+              </div>
+            )}
+          </div>
+        )}
+
         {(actionButtons || onDelete) && (
           <div
             style={{

@@ -1373,6 +1373,26 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     transcriptionQueuePumpPromise = (async () => {
       try {
         while (true) {
+          // Marie 2026-05-26: auto-resume any 'waiting' tasks. If Whisper
+          // is now free (no 'running' task), flip every waiting task back
+          // to 'queued' so the dispatcher picks them up. Wait a beat first
+          // so the child process has time to fully exit and clear
+          // activeWhisperChild in the main process.
+          const snapshot = getTranscriptionQueueState();
+          const hasRunning = (snapshot.tasks || []).some(t => t.status === 'running');
+          const stuck = (snapshot.tasks || []).filter(t => t.status === 'waiting');
+          if (stuck.length && !hasRunning) {
+            await new Promise(r => setTimeout(r, 1500));
+            for (const t of stuck) {
+              setTranscriptionTask(t.taskId, {
+                status: 'queued',
+                message: 'Queued for transcription.',
+                stage: 'queued',
+                progress: 0,
+                updatedAt: Date.now(),
+              });
+            }
+          }
           const nextTask = (getTranscriptionQueueState().tasks || []).find(task => task.status === 'queued');
           if (!nextTask) break;
 

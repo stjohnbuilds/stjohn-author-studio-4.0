@@ -342,6 +342,10 @@ function PhoneApp({ session, onSignOut }) {
         onBackToServices={() => setService(null)}
         readerSettings={readerSettings}
         onOpenSettings={openSettings}
+        audioFilesByBook={audioFilesByBook}
+        setAudioFilesByBook={setAudioFilesByBook}
+        audioSectionOverride={audioSectionOverride}
+        setAudioSectionOverride={setAudioSectionOverride}
       />
     );
   }

@@ -387,11 +387,13 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       chapters: (activeProject.chapters || []).map((ch) => {
         const audio = chapterAudios[ch.id] || null;
         const tx = chapterTranscripts[ch.id] || null;
-        // Fall back to the persisted audioFileName on the chapter when
-        // there's no live blob URL — that way the file name pulled from
-        // Supabase / disk still shows after a reload, even though the
-        // user needs to re-pick the audio file to actually play it.
+        // Fall back to persisted audio info on the chapter when there's
+        // no live blob URL — file name + path survive disk save, so the
+        // reader can show them after a reload. Cloud strips paths via
+        // audio-guard, so only the file name travels off-device.
         const persistedAudioName = ch.audioFileName || '';
+        const persistedAudioPath = ch.audioPath || '';
+        const persistedAudioPaths = ch.audioPaths || null;
         return {
           id: ch.id,
           title: ch.title,
@@ -401,7 +403,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             title: ch.title,
             html: ch.textHtml || ch.html || '',
             audioFileName: audio?.fileName || persistedAudioName || null,
-            audioPath: audio?.url || null,
+            audioPath: audio?.url || persistedAudioPath || null,
+            audioPaths: persistedAudioPaths || null,
             audioBlobUrl: audio?.url || null,
             flags: (activeProject.annotations || []).filter((a) => a.sectionId === ch.id),
             completed: !!ch.completed,

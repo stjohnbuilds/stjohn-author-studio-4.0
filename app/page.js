@@ -1243,7 +1243,6 @@ export default function Home() {
 
   return (
     <div style={{ ...modeAccentVars('proof'), minHeight:'100vh', background:'var(--cream)' }}>
-      <ProfilePill tone="proof" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
       {usesCustomDragRegion && (
         <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
       )}

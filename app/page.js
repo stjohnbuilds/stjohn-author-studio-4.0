@@ -168,6 +168,19 @@ function buildPersistentPlayerLabel(book, section) {
   return parts.join(' · ');
 }
 
+function formatRelativeFromNow(ts) {
+  const t = Number(ts);
+  if (!Number.isFinite(t) || t <= 0) return '';
+  const diff = Math.max(0, Date.now() - t);
+  if (diff < 30 * 1000) return 'just now';
+  if (diff < 60 * 1000) return 'a moment ago';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+  return new Date(t).toLocaleString();
+}
+
 function formatSaveLocation(dataLocation) {
   if (!dataLocation?.primaryPath) return 'Not available yet';
   return dataLocation.primaryPath;

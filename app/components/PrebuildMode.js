@@ -1104,7 +1104,10 @@ export default function PrebuildMode({ modeToggle = null }) {
           audioFileName: ch.audioFile?.name || null,
           audioPath: ch.audioPath || null,
           flags: [],
-          completed: !!ch.scanned,
+          // Manual tick overrides auto-scanned signal — so Marie can
+          // mark a chapter done even if it hasn't been scanned, or
+          // un-mark a scanned chapter she wants to revisit.
+          completed: typeof ch.completed === 'boolean' ? ch.completed : !!ch.scanned,
           characterName: null,
           narratorName: null,
           chapterTitle: ch.title,

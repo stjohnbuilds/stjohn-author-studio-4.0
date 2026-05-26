@@ -450,21 +450,28 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               updateActive((p) => ({ ...p, annotationOptions: [...existing, ...next] }));
             }
             if (Array.isArray(updated.chapters)) {
-              // Three things to sync back to Quill's project model:
+              // Four things to sync back to Quill's project model:
               // 1. Chapter list — so unchecking a chapter in Edit book data
               //    actually removes it.
-              // 2. audioFileName on each chapter — so the file name (not
-              //    the audio blob) gets saved to disk AND pushed to
-              //    Supabase (quill_chapters.audio_file_name) AND visible
-              //    on the phone. Audio blobs/paths stay local.
-              // 3. Bulk audio blob URL — mirror into the chapterAudios map
-              //    so the in-session reader can play it without reloading
-              //    the file. URL is memory-only by design.
+              // 2. audioFileName on each chapter — saved to disk AND pushed
+              //    to Supabase (quill_chapters.audio_file_name) AND visible
+              //    on the phone.
+              // 3. audioPath / audioPaths on each chapter — LOCAL ONLY.
+              //    audio-guard.js strips these before any cloud push, so
+              //    they stay on this device. Saving them means Marie's
+              //    attached audio survives a full app restart without
+              //    re-picking the file.
+              // 4. chapterAudios in-memory map for the live blob URL
+              //    so the reader can play right now.
               const keptIds = new Set(updated.chapters.map((ch) => ch.id));
               const audioByChapter = {};
               updated.chapters.forEach((ch) => {
                 const sec = (ch.sections || [])[0];
-                audioByChapter[ch.id] = sec?.audioFileName || '';
+                audioByChapter[ch.id] = {
+                  name: sec?.audioFileName || '',
+                  path: sec?.audioPath || '',
+                  paths: sec?.audioPaths || null,
+                };
               });
               updateActive((p) => ({
                 ...p,
@@ -472,11 +479,16 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                   .filter((ch) => keptIds.has(ch.id))
                   .map((ch) => {
                     const incoming = audioByChapter[ch.id];
-                    // Only update audioFileName when the parent actually
-                    // touched audio (incoming defined). Empty string means
-                    // "audio was cleared"; missing key means "no change".
+                    // Only update audio fields when the parent actually
+                    // touched audio (incoming defined). Empty fields mean
+                    // "audio was cleared"; missing entry means "no change".
                     if (incoming === undefined) return ch;
-                    return { ...ch, audioFileName: incoming || '' };
+                    return {
+                      ...ch,
+                      audioFileName: incoming.name || '',
+                      audioPath: incoming.path || '',
+                      audioPaths: incoming.paths || null,
+                    };
                   }),
               }));
               const audioPatch = {};

@@ -822,13 +822,27 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const refreshInflightRef = useRef(false);
   const lastRefreshAtRef = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async ({ force = false } = {}) => {
+    // Single-flight: if a refresh is already running, ignore the call.
+    // Stops the "Loading…" button from getting wedged by stacked
+    // requests and the focus-listener from queueing duplicates.
+    if (refreshInflightRef.current) return;
+    refreshInflightRef.current = true;
     setError('');
     setLoading(true);
+
+    // 10-second hard timeout. If Supabase hangs (slow network, sleeping
+    // tab), we resolve with an error so the button comes back.
+    const timeoutMs = 10000;
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Took too long. Tap Refresh to try again.')), timeoutMs);
+    });
+
     try {
       const supabase = getSupabaseClient();
       if (!supabase) throw new Error('Supabase is not configured.');
-      const list = await pullProofProjects(supabase);
+      const list = await Promise.race([pullProofProjects(supabase), timeout]);
       setBooks((current) => {
         if (list?.length) {
           if (session?.user?.id) writePhoneProjectCache('script', session.user.id, list);
@@ -839,12 +853,24 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         }
         return current;
       });
+      lastRefreshAtRef.current = Date.now();
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {
+      if (timer) clearTimeout(timer);
       setLoading(false);
+      refreshInflightRef.current = false;
     }
   }, [session?.user?.id]);
+
+  // Focus-triggered refresh is debounced to once per 30s so rapid
+  // in/out of the app doesn't pile up requests. Manual Refresh button
+  // always runs (subject to the single-flight guard).
+  const focusRefresh = useCallback(() => {
+    const sinceLast = Date.now() - lastRefreshAtRef.current;
+    if (sinceLast < 30000) return;
+    refresh();
+  }, [refresh]);
 
   // Load IndexedDB cache, then refresh from cloud.
   useEffect(() => {

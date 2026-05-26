@@ -150,11 +150,12 @@ per-section basis — audio attachments never get wiped by a cloud sync.
 ## Tables that exist but aren't used by StJohn 4.0
 
 - `app_data` — generic key/value JSONB, unused by current app
-- `loveworn_projects` / `loveworn_chapters` / `loveworn_annotations` —
-  pre-rename of Quill, contains 1 legacy row, safe to ignore
 - `godmode_*` / `xp_curve_tester_drafts` — different project entirely
 
 Leave these alone unless Marie asks to clean them up.
+
+The pre-rename Quill tables (`loveworn_projects` / `loveworn_chapters` /
+`loveworn_annotations`) were dropped on 2026-05-26.
 
 ## Cloud advisor notes (low priority, future cleanup)
 

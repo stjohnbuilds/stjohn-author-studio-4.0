@@ -1172,7 +1172,7 @@ ipcMain.handle('export-csv', async (_, { content, defaultName }) => {
 ipcMain.handle('export-markers-folder', async (_, { folderName, files }) => {
   const result = await dialog.showSaveDialog({
     title: 'Export Audition Markers',
-    defaultPath: folderName || 'audition-markers',
+    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), folderName || 'audition-markers')),
     buttonLabel: 'Export',
   });
   if (result.canceled || !result.filePath) return false;

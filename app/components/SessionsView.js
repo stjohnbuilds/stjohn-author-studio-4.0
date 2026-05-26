@@ -1421,15 +1421,32 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             console.error('Transcription failed:', error);
             const latestTask = getTranscriptionTask(nextTask.taskId);
             const cancelled = latestTask?.cancelRequested;
-            setTranscriptionTask(nextTask.taskId, {
-              status: cancelled ? 'cancelled' : 'error',
-              message: cancelled ? 'Cancelled.' : `Failed: ${error?.message || 'Unknown error'}`,
-              stage: cancelled ? 'cancelled' : 'error',
-              progress: 0,
-              finishedAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-            if (!cancelled) showToast(`Transcription failed for "${nextTask.chapterTitle}".`, 'error');
+            // Marie 2026-05-26: when Whisper is already running another
+            // chapter, the IPC throws "Whisper is already transcribing…".
+            // That's not an error to scare the user with — it just means
+            // wait. Show a friendly "Waiting…" state, no red toast.
+            const rawMsg = String(error?.message || '');
+            const isQueueClash = /whisper is already transcribing/i.test(rawMsg);
+            if (isQueueClash && !cancelled) {
+              setTranscriptionTask(nextTask.taskId, {
+                status: 'waiting',
+                message: 'Waiting for the current chapter to finish. Press Transcribe again once the running one is done.',
+                stage: 'waiting',
+                progress: 0,
+                finishedAt: Date.now(),
+                updatedAt: Date.now(),
+              });
+            } else {
+              setTranscriptionTask(nextTask.taskId, {
+                status: cancelled ? 'cancelled' : 'error',
+                message: cancelled ? 'Cancelled.' : `Failed: ${error?.message || 'Unknown error'}`,
+                stage: cancelled ? 'cancelled' : 'error',
+                progress: 0,
+                finishedAt: Date.now(),
+                updatedAt: Date.now(),
+              });
+              if (!cancelled) showToast(`Transcription failed for "${nextTask.chapterTitle}".`, 'error');
+            }
           }
         }
       } finally {

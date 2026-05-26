@@ -2363,13 +2363,22 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   host.innerHTML = onlyHtml;
                   const parts = [];
                   let curPart = null;
+                  // Buffer any nodes that come BEFORE the first H2. Marie
+                  // never wrote a scene called "Beginning" — the old code
+                  // invented that label for the pre-H2 prefix. Instead,
+                  // fold those nodes into the FIRST H2 scene so the text
+                  // stays readable but no synthetic row shows up.
+                  const prefixNodes = [];
                   Array.from(host.childNodes).forEach(node => {
                     const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
                     if (tag === 'h2') {
                       if (curPart) parts.push(curPart);
-                      curPart = { title: (node.textContent || '').trim() || 'Scene', nodes: [node.cloneNode(true)] };
+                      const nodes = prefixNodes.length
+                        ? [...prefixNodes.splice(0), node.cloneNode(true)]
+                        : [node.cloneNode(true)];
+                      curPart = { title: (node.textContent || '').trim() || 'Scene', nodes };
                     } else {
-                      if (!curPart) curPart = { title: 'Beginning', nodes: [node.cloneNode(true)] };
+                      if (!curPart) prefixNodes.push(node.cloneNode(true));
                       else curPart.nodes.push(node.cloneNode(true));
                     }
                   });

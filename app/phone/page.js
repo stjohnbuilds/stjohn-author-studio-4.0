@@ -1036,11 +1036,14 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     // Optimistic queue write — if the push succeeds, we clear it; if
     // it fails, the next refresh's retryFlagQueue picks it up.
     recordPendingFlag(cloudId, sectionId, flag);
+    setPendingCount(countAllFlagQueues());
     upsertProofFlag(supabase, cloudId, sectionId, flag, session.user.id)
-      .then(() => clearPendingFlag(cloudId, flag.id))
+      .then(() => { clearPendingFlag(cloudId, flag.id); setPendingCount(countAllFlagQueues()); })
       .catch((e) => {
-        console.warn('[Phone] flag upsert failed (queued for retry):', e?.message || e);
-        setError('Saved locally — will retry the cloud sync on the next refresh.');
+        const reason = e?.message || String(e);
+        console.warn('[Phone] flag upsert failed (queued for retry):', reason);
+        setError(`Flag is saved on this phone but the cloud upload failed: ${reason}. Tap Refresh to retry.`);
+        setPendingCount(countAllFlagQueues());
       });
   }
 

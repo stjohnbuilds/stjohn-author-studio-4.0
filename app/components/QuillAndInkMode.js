@@ -178,6 +178,23 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       const local = await loadProjects();
       if (cancelled) return;
       setAllProjects(local);
+      // Rebuild the in-memory audio map from each chapter's persisted
+      // audioPath, so a full app restart still plays attached audio
+      // without Marie re-picking the file. Audio paths only persist on
+      // disk (audio-guard strips them before any cloud push), so we
+      // only ever rebuild from local-loaded projects.
+      const rebuiltAudio = {};
+      for (const proj of local || []) {
+        for (const ch of proj?.chapters || []) {
+          if (ch?.audioPath) {
+            rebuiltAudio[ch.id] = {
+              fileName: ch.audioFileName || '',
+              url: ch.audioPath,
+            };
+          }
+        }
+      }
+      if (Object.keys(rebuiltAudio).length) setChapterAudios(rebuiltAudio);
       setHydrated(true);                     // ← render now, don't wait for cloud
       cameFromCloudRef.current = true;       // suppress the first persist round-trip
       const supabase = getSupabaseClient();

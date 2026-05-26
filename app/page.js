@@ -439,37 +439,50 @@ export default function Home() {
     };
   }, []);
 
+  // Cloud pull state — last-success timestamp + the imperative resync
+  // handler used by the Resync button on HomePage. The button matters
+  // because focus-pull doesn't fire when the window has been continuously
+  // focused (Marie's case: phone saved, desktop already open).
+  const [lastProofPullAt, setLastProofPullAt] = useState(0);
+  const [proofPullError, setProofPullError] = useState('');
+  const [proofPullInflight, setProofPullInflight] = useState(false);
+
+  const resyncProof = useCallback(async () => {
+    if (!hasSupabaseConfig || !authReady || !authSession?.user) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    setProofPullInflight(true);
+    try {
+      const rawCloudBooks = await pullProofProjects(supabase);
+      const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks || [], supabase, deleteProofProject);
+      if (cloudBooks.length) {
+        cameFromProofCloudRef.current = true;
+        setBooks((current) => mergeProofBookLists(current, cloudBooks));
+      }
+      setLastProofPullAt(Date.now());
+      setProofPullError('');
+    } catch (e) {
+      const msg = e?.message || String(e);
+      console.warn('[Proof] cloud pull failed:', msg);
+      setProofPullError(msg);
+    } finally {
+      setProofPullInflight(false);
+    }
+  }, [authReady, authSession]);
+
   // Pull Proof books from Supabase once auth is ready + signed in. Merge
   // with whatever loaded locally so a fresh machine sees cloud-only
   // books and an offline-first machine doesn't lose its local edits.
   //
   // ALSO re-pull when the window regains focus / becomes visible — this
   // catches the "I saved a flag on the phone while desktop was idle"
-  // case so the desktop doesn't push a stale book back over it. (Marie
-  // hit this and asked us to verify the cloud round-trip.)
+  // case so the desktop doesn't push a stale book back over it.
   useEffect(() => {
     if (!hasSupabaseConfig || !authReady || !authSession?.user) return undefined;
-    const supabase = getSupabaseClient();
-    if (!supabase) return undefined;
     let cancelled = false;
-    async function doPull() {
-      try {
-        const rawCloudBooks = await pullProofProjects(supabase);
-        if (cancelled || !rawCloudBooks?.length) return;
-        // Drop any book the user has tombstoned, and re-issue cloud
-        // delete for ids that came back — closes the "delete only
-        // sometimes sticks" race Marie hit.
-        const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks, supabase, deleteProofProject);
-        if (!cloudBooks.length) return;
-        cameFromProofCloudRef.current = true;
-        setBooks((current) => mergeProofBookLists(current, cloudBooks));
-      } catch (e) {
-        console.warn('[Proof] cloud pull failed:', e?.message || e);
-      }
-    }
-    doPull();
-    const onFocus = () => { doPull(); };
-    const onVisibility = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') doPull(); };
+    resyncProof();
+    const onFocus = () => { if (!cancelled) resyncProof(); };
+    const onVisibility = () => { if (!cancelled && typeof document !== 'undefined' && document.visibilityState === 'visible') resyncProof(); };
     if (typeof window !== 'undefined') {
       window.addEventListener('focus', onFocus);
       document.addEventListener('visibilitychange', onVisibility);
@@ -481,7 +494,7 @@ export default function Home() {
         document.removeEventListener('visibilitychange', onVisibility);
       }
     };
-  }, [authReady, authSession]);
+  }, [authReady, authSession, resyncProof]);
 
   // Debounced cloud push whenever Proof books change. Fire-and-forget
   // so a slow Supabase round-trip never blocks the local save. The

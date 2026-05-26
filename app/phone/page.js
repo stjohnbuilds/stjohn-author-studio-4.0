@@ -897,16 +897,22 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
       // After the pull lands, retry any cloud writes that failed
       // earlier. Single-flight per project — won't fan out duplicates.
       if (session?.user?.id) {
-        (list || []).forEach((b) => {
-          if (!b?.cloudId) return;
-          retryFlagQueue(b.cloudId, {
+        const promises = (list || []).map((b) => {
+          if (!b?.cloudId) return null;
+          return retryFlagQueue(b.cloudId, {
             supabase,
             ownerId: session.user.id,
             upsertFn: upsertProofFlag,
             deleteFn: deleteProofFlag,
           });
-        });
+        }).filter(Boolean);
+        // Recompute the pending banner once retries settle.
+        Promise.all(promises).finally(() => setPendingCount(countAllFlagQueues()));
       }
+      // Recompute immediately too so the banner reacts to the freshly
+      // pulled cloud (in case some pending items were resolved by the
+      // pull merging cloud changes).
+      setPendingCount(countAllFlagQueues());
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {

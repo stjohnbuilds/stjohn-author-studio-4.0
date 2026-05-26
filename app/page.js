@@ -1448,30 +1448,34 @@ function SettingsCog({
         ⚙
       </button>
       {showTutorialHint && (
-        <div
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Open Settings to start the tutorial"
           style={{
             position:'fixed',
             top:20,
-            right:78,
+            right:74,
             zIndex:1201,
-            display:'flex',
+            display:'inline-flex',
             alignItems:'center',
             gap:8,
-            padding:'7px 11px',
+            padding:'9px 14px',
             borderRadius:999,
-            border:'1px solid var(--accent-border)',
-            background:'linear-gradient(180deg, var(--accent-surface) 0%, #ffffff 100%)',
-            color:'var(--accent-dark)',
-            fontSize:'0.74rem',
+            border:'2px solid var(--accent-dark)',
+            background:'var(--accent-dark)',
+            color:'white',
+            fontSize:'0.82rem',
             fontWeight:700,
-            boxShadow:'0 12px 28px var(--accent-shadow)',
-            pointerEvents:'none',
+            cursor:'pointer',
+            boxShadow:'0 12px 28px rgba(0,0,0,0.18)',
             animation:'apTutorialHintFloat 1.8s ease-in-out infinite',
+            WebkitAppRegion:'no-drag',
           }}
         >
-          <span>Tutorial</span>
+          <span>Start tutorial</span>
           <span style={{ fontSize:'1rem' }}>→</span>
-        </div>
+        </button>
       )}
 
       {isOpen && (

@@ -444,6 +444,43 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               }));
               updateActive((p) => ({ ...p, annotationOptions: [...existing, ...next] }));
             }
+            if (Array.isArray(updated.chapters)) {
+              // Two things to sync back to Quill's project model:
+              // 1. Chapter list — so unchecking a chapter in Edit book data
+              //    actually removes it.
+              // 2. Bulk audio attachments — the first section of each
+              //    chapter carries the audio info; mirror it into the
+              //    chapterAudios map so it survives navigation.
+              const keptIds = new Set(updated.chapters.map((ch) => ch.id));
+              updateActive((p) => ({
+                ...p,
+                chapters: (p.chapters || []).filter((ch) => keptIds.has(ch.id)),
+              }));
+              const audioPatch = {};
+              updated.chapters.forEach((ch) => {
+                const sec = (ch.sections || [])[0];
+                if (sec?.audioFileName) {
+                  audioPatch[ch.id] = {
+                    fileName: sec.audioFileName,
+                    url: sec.audioBlobUrl || sec.audioPath || null,
+                  };
+                } else {
+                  audioPatch[ch.id] = null;
+                }
+              });
+              setChapterAudios((prev) => {
+                const next = { ...prev };
+                Object.entries(audioPatch).forEach(([id, val]) => {
+                  if (val) next[id] = val;
+                  else delete next[id];
+                });
+                // Also drop audio entries for chapters that were removed.
+                Object.keys(next).forEach((id) => {
+                  if (!keptIds.has(id)) delete next[id];
+                });
+                return next;
+              });
+            }
           }}
           onToggleComplete={() => { /* Quill doesn't gate chapters by completion */ }}
           onDelete={() => deleteProject(activeProject.id)}

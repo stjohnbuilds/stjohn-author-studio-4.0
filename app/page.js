@@ -1707,18 +1707,45 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
         </section>
 
         <section style={{ background:'rgba(255,255,255,0.72)', border:'1px solid var(--border)', borderRadius:22, padding:'1rem' }}>
-          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:books.length>0 ? 10 : 0,textAlign:'center' }}>
-            <div style={{ flex:1 }}>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:books.length>0 ? 10 : 0 }}>
+            <div style={{ flex:1,textAlign:'left' }}>
               <div style={{ fontSize:'0.74rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:2 }}>Your books</div>
               <div style={{ fontSize:'0.82rem',color:'var(--text-muted)' }}>
                 {books.length>0 ? `${books.length} saved ${books.length===1 ? 'book' : 'books'}` : 'Saved books will appear here'}
+                {lastResyncedLabel && <span style={{ marginLeft:8,fontSize:'0.72rem',color:'var(--text-light)' }}>· synced {lastResyncedLabel}</span>}
               </div>
             </div>
+            {onResync && (
+              <button
+                type="button"
+                onClick={onResync}
+                disabled={resyncing}
+                title="Pull the latest from the cloud (useful when a flag saved on the phone isn't showing up here yet)"
+                style={{
+                  padding:'7px 14px',
+                  borderRadius:999,
+                  border:'1px solid var(--accent-border)',
+                  background:resyncing ? 'var(--cream)' : 'white',
+                  color:'var(--accent-dark)',
+                  fontSize:'0.78rem',
+                  fontWeight:700,
+                  cursor:resyncing ? 'not-allowed' : 'pointer',
+                  whiteSpace:'nowrap',
+                }}
+              >
+                {resyncing ? 'Syncing…' : '↻ Resync'}
+              </button>
+            )}
           </div>
+          {resyncError && (
+            <div style={{ marginBottom:8,padding:'6px 10px',background:'#fdecea',color:'#a23a2f',border:'1px solid #f5c6c0',borderRadius:8,fontSize:'0.75rem' }}>
+              Cloud sync failed: {resyncError}
+            </div>
+          )}
 
           {books.length>0 ? (
             <div style={{ display:'flex',flexDirection:'column',gap:7,maxHeight:'min(46vh, 420px)',overflowY:'auto',paddingRight:4 }}>
-              {books.map(b=>{
+              {sortedBooks.map(b=>{
                 const sects=(b.chapters||[]).flatMap(c=>c.sections||[]);
                 const d=sects.filter(s=>s.completed).length;
                 return (

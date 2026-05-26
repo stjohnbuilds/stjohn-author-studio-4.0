@@ -70,8 +70,13 @@ const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 // side voices get progressively darker shades of the chosen base via
 // darkenHex() so a character + side voice still visually relate.
 // Marie can override any chip's base via the colour picker.
+// Marie 2026-05-26: "got this pink, this red, but it's not pink. I like
+// pink. Pink pink is default." Re-ordered so the first two characters
+// added are both pink-family before stepping out to peach / yellow.
 const CHARACTER_PALETTE = [
   '#F8D2DA', // pastel pink
+  '#F4DCEC', // pastel rose (pink-family, was 10th)
+  '#ECDEF6', // pastel lavender (pink→purple bridge, was 9th)
   '#F8E0D2', // pastel peach
   '#FBF1C8', // pastel yellow
   '#E4F0D8', // pastel mint
@@ -79,8 +84,6 @@ const CHARACTER_PALETTE = [
   '#D8EAEA', // pastel cyan
   '#DEE9F5', // pastel blue
   '#E2DCF6', // pastel periwinkle
-  '#ECDEF6', // pastel lavender
-  '#F4DCEC', // pastel rose
 ];
 
 // ===========================================================================

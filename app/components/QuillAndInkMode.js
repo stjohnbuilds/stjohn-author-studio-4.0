@@ -592,13 +592,66 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 // ===========================================================================
 
 function QuillHomeView({ projects, onOpen, onNew }) {
+  // ? info modal + image header — mirrors Duet's pattern in PrebuildMode.js.
+  // Marie 2026-05-26: "copy DUET which already has one, that exactly."
+  // headerImageOk: until the pink PNG (quill-and-ink-header.png) is dropped
+  // into public/branding/, fall back to a plain text title so no broken-image
+  // icon is shown.
+  const [showHomeInfo, setShowHomeInfo] = useState(false);
+  const [headerImageOk, setHeaderImageOk] = useState(true);
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '5.2rem 1.25rem 4rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '1.4rem' }}>
-        <div style={{ fontSize: '1.55rem', fontWeight: 600, color: QUILL.ink }}>Quill &amp; Ink</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
-          Annotate a manuscript for InDesign-friendly special-edition print design.
+      {showHomeInfo && (
+        <div
+          onClick={() => setShowHomeInfo(false)}
+          style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
+          >
+            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
+              <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Quill &amp; Ink</div>
+              <button onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:QUILL.ink,border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
+                Close
+              </button>
+            </div>
+            <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
+              <p style={{ margin:0 }}>
+                Quill &amp; Ink Design Studio helps you mark up a manuscript for special-edition print design. Drag across any words and tag them as Image, Highlight, Emotion, or a Character voice.
+              </p>
+              <p style={{ margin:0 }}>
+                Export to a CSV for reference plus an InDesign .jsx script that re-creates every annotation as a character style, ready to drop onto your typeset pages.
+              </p>
+            </div>
+          </div>
         </div>
+      )}
+      <div style={{ textAlign: 'center', marginBottom: '1.9rem', position: 'relative' }}>
+        <button
+          onClick={() => setShowHomeInfo(true)}
+          aria-label="About Quill & Ink"
+          title="About Quill & Ink"
+          style={{ position:'absolute',top:0,right:'max(4%, 0px)',width:42,height:42,borderRadius:'50%',border:'1px solid var(--accent-border)',background:'white',color:QUILL.ink,fontSize:'1.1rem',fontWeight:700,cursor:'pointer',boxShadow:'0 10px 24px var(--accent-shadow)',display:'flex',alignItems:'center',justifyContent:'center' }}
+        >
+          ?
+        </button>
+        {headerImageOk ? (
+          <img
+            src="/branding/quill-and-ink-header.png"
+            alt="Quill & Ink design studio — prepping manuscripts for special edition formatting"
+            onError={() => setHeaderImageOk(false)}
+            style={{ width:'min(420px, 92%)',height:'auto',display:'block',margin:'0 auto 0.85rem' }}
+          />
+        ) : (
+          <>
+            <div style={{ fontSize: '1.55rem', fontWeight: 600, color: QUILL.ink }}>Quill &amp; Ink</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+              Annotate a manuscript for InDesign-friendly special-edition print design.
+            </div>
+          </>
+        )}
+        <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>Quill &amp; Ink Design Studio</h1>
       </div>
 
       <section style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid var(--border)', borderRadius: 22, padding: '1rem', marginBottom: 14 }}>

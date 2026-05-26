@@ -15,6 +15,14 @@
 // blobs, base64, or buffers never reach Supabase.
 
 import { stripAudioPaths } from './audio-guard.js';
+import { slimBookForCloud } from './cloud-slim.js';
+
+// In-memory cache of the last-pushed hash per project. Lets us skip
+// no-op upserts when the user is just clicking around (e.g. expanding
+// a chapter doesn't change any cloud-relevant field, but the debounced
+// push still fires). Per-tab; doesn't survive page reload but Marie
+// doesn't reload often.
+const lastPushHashByCloudId = new Map();
 
 export async function pushProofProject(supabase, book, ownerId) {
   if (!supabase) throw new Error('Supabase client missing.');
@@ -23,6 +31,29 @@ export async function pushProofProject(supabase, book, ownerId) {
 
   const clean = stripAudioPaths(book);
   const sectionRefs = collectSections(clean);
+  // Strip data that lives in dedicated tables (flags, whisper alignment)
+  // from the desktop_book JSONB so it doesn't carry duplicates. This is
+  // where the bulk of the wire-payload savings come from on subsequent
+  // saves.
+  const slimBookBlob = slimBookForCloud(clean);
+  const desktopBookHash = hashString(JSON.stringify(slimBookBlob));
+
+  // Bail early if neither the book content nor the flag/transcription
+  // set changed. Cheap to compute, saves 5+ round-trips on no-op saves.
+  const allFlagsHash = hashString(JSON.stringify(
+    sectionRefs.flatMap(({ section }) => (section.flags || []).map((f) => ({ i: section.id, ...f })))
+  ));
+  const allTransHash = hashString(JSON.stringify(
+    sectionRefs.flatMap(({ section }) => (
+      (section.whisperAlignment && section.whisperAlignment.length)
+        ? [{ i: section.id, h: section.whisperTextHash || '', k: section.whisperAudioKey || '', a: section.whisperAlignment.length }]
+        : []
+    ))
+  ));
+  const compositeHash = `${desktopBookHash}|${allFlagsHash}|${allTransHash}`;
+  if (clean.cloudId && lastPushHashByCloudId.get(clean.cloudId) === compositeHash) {
+    return clean.cloudId; // nothing changed since last push
+  }
 
   // 1) Upsert the project row.
   const { data: projectRow, error: projectErr } = await supabase
@@ -32,8 +63,8 @@ export async function pushProofProject(supabase, book, ownerId) {
       owner_id: ownerId,
       title: clean.title || 'Untitled audiobook',
       ready: true,
-      desktop_book: clean,
-      desktop_book_hash: hashString(JSON.stringify(clean)),
+      desktop_book: slimBookBlob,
+      desktop_book_hash: desktopBookHash,
       section_count: sectionRefs.length,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'id' })

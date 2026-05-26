@@ -1271,6 +1271,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           </div>
         }
       />
+      <PendingFlagBanner count={pendingCount} onRetry={refresh} loading={loading} />
       <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
@@ -1284,7 +1285,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
             No audiobooks saved to the cloud yet. Open Proof Listen on the desktop first.
           </div>
         )}
-        {books.map((b) => {
+        {sortedBooks.map((b) => {
           const chapterCount = (b.chapters || []).length;
           const flagCount = (b.chapters || []).reduce((n, ch) => n + (ch.sections || []).reduce((m, s) => m + (s.flags?.length || 0), 0), 0);
           return (

@@ -938,6 +938,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
       const cached = await readPhoneProjectCache('script', session?.user?.id);
       if (cancelled) return;
       if (cached?.length) setBooks(cached);
+      // Show any queued items immediately on mount.
+      setPendingCount(countAllFlagQueues());
       await refresh();
     })();
     return () => { cancelled = true; };

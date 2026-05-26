@@ -505,7 +505,18 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               });
             }
           }}
-          onToggleComplete={() => { /* Quill doesn't gate chapters by completion */ }}
+          onToggleComplete={(sectionId) => {
+            // In Quill, each chapter renders as one section whose id
+            // equals the chapter id. Flip the chapter's `completed`
+            // flag — it persists through the normal save path (local
+            // disk + quill_chapters Supabase row).
+            updateActive((p) => ({
+              ...p,
+              chapters: (p.chapters || []).map((ch) =>
+                ch.id === sectionId ? { ...ch, completed: !ch.completed } : ch
+              ),
+            }));
+          }}
           onDelete={() => deleteProject(activeProject.id)}
           onBack={() => { setView('home'); setActiveProjectId(null); }}
           persistentAudioUrl={null}

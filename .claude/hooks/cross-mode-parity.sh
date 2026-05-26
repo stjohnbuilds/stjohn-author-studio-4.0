@@ -68,11 +68,24 @@ for mf in "${MODE_FILES[@]}"; do
   # Use grep -nE so the model sees file:line for every stub.
   hits=$(grep -nE "$STUB_RE" "$mf" 2>/dev/null || true)
   if [ -n "$hits" ]; then
-    WARNINGS+="\n  $mf:"
+    file_warnings=""
     while IFS= read -r line; do
-      WARNINGS+="\n    $line"
+      # Skip if the line itself OR the immediately preceding line is
+      # tagged "// intentional:" (or "/* intentional:") — that's how
+      # deliberate stubs are exempt from the warning. Forces a code
+      # comment explaining WHY, not just a silent stub.
+      lineno=$(echo "$line" | cut -d: -f1)
+      prev=$((lineno - 1))
+      if echo "$line" | grep -qE 'intentional:' \
+        || sed -n "${prev}p" "$mf" 2>/dev/null | grep -qE 'intentional:'; then
+        continue
+      fi
+      file_warnings+="\n    $line"
       TOTAL=$((TOTAL + 1))
     done <<< "$hits"
+    if [ -n "$file_warnings" ]; then
+      WARNINGS+="\n  $mf:$file_warnings"
+    fi
   fi
 done
 

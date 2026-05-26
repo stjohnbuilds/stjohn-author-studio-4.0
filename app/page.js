@@ -1213,6 +1213,9 @@ export default function Home() {
       )}
       {view==='home' && <AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
       <SettingsCog
+        mode="proof"
+        authEmail={authSession?.user?.email || ''}
+        onSignOut={handleSignOut}
         isOpen={settingsOpen}
         onToggle={() => setSettingsOpen(open => !open)}
         onClose={() => setSettingsOpen(false)}

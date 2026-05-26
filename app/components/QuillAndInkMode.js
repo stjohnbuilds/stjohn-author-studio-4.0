@@ -352,6 +352,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         blurb="Upload a .docx, pick the chapters you want to annotate."
         submitLabel="Import & open"
         accent={QUILL.accent}
+        allowSceneSplitting={true}
         onCancel={() => setView(activeProject ? 'bookDetail' : 'home')}
         onConfirm={commitImport}
       />

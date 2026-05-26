@@ -19,7 +19,6 @@ import React from 'react';
 import {
   HomeBackPill,
   SaveBadge,
-  StickyTopBar,
   topBtnStyle,
   MODE_TOKENS,
 } from './ReaderChrome.js';

@@ -1708,12 +1708,52 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
     return bt - at;
   });
   const lastResyncedLabel = lastResyncedAt ? formatRelativeFromNow(lastResyncedAt) : '';
+  // ? info modal + image header — mirrors Duet's pattern at PrebuildMode.js.
+  // Marie 2026-05-26: "copy DUET which already has one, that exactly."
+  const [showHomeInfo, setShowHomeInfo] = useState(false);
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>
-      <div style={{ marginBottom:'1.4rem', textAlign:'center' }}>
-        <div style={{ fontSize:'1.55rem',fontWeight:600,letterSpacing:'0.02em',color:'var(--accent-dark)' }}>StJohn Author Studio</div>
-        <div style={{ fontSize:'0.78rem',color:'var(--text-muted)',marginTop:4 }}>Proof Listen · Prep Manuscript · Duet Prep · Quill &amp; Ink</div>
-        <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>StJohn Author Studio</h1>
+      {showHomeInfo && (
+        <div
+          onClick={() => setShowHomeInfo(false)}
+          style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
+          >
+            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
+              <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Proof Listen</div>
+              <button onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:'var(--accent-dark)',border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
+                Close
+              </button>
+            </div>
+            <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
+              <p style={{ margin:0 }}>
+                Script and Sync Proof Listen helps you listen to your audiobook against the original manuscript and flag every spot where the narrator misread, skipped, or repeated a line.
+              </p>
+              <p style={{ margin:0 }}>
+                Each flag captures the misread quote, the page number, the narrator&apos;s timestamp, and your note. Export the full list of flags as a CSV (or Adobe Audition markers) for your engineer.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ marginBottom:'1.9rem', textAlign:'center', position:'relative' }}>
+        <button
+          onClick={() => setShowHomeInfo(true)}
+          aria-label="About Proof Listen"
+          title="About Proof Listen"
+          style={{ position:'absolute',top:0,right:'max(4%, 0px)',width:42,height:42,borderRadius:'50%',border:'1px solid var(--accent-border)',background:'white',color:'var(--accent-dark)',fontSize:'1.1rem',fontWeight:700,cursor:'pointer',boxShadow:'0 10px 24px var(--accent-shadow)',display:'flex',alignItems:'center',justifyContent:'center' }}
+        >
+          ?
+        </button>
+        <img
+          src="/branding/script-and-sync-header.png"
+          alt="Script and Sync — an audiobook proofing tool"
+          style={{ width:'min(420px, 92%)',height:'auto',display:'block',margin:'0 auto 0.85rem' }}
+        />
+        <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>Script and Sync Proof Listen</h1>
       </div>
       <div style={{ display:'grid', gap:14 }}>
         <section style={{ background:'rgba(255,255,255,0.78)', border:'1px solid var(--border)', borderRadius:22, padding:'1rem' }}>

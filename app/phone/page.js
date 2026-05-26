@@ -999,6 +999,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         onSwitchSection={(id) => setActiveSectionId(id)}
         onOpenSettings={onOpenSettings}
         onSaveBook={pushBook}
+        onSaveFlag={(flag) => saveFlagToCloud(activeBook.id, activeSection.id, flag)}
+        onRemoveFlag={(flagId) => removeFlagFromCloud(activeBook.id, activeSection.id, flagId)}
         presetAudioFile={presetAudioFile}
         onManualPickAudio={(file) => {
           if (!activeSection?.id) return;

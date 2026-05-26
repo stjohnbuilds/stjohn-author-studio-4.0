@@ -1131,7 +1131,7 @@ ipcMain.handle('get-audio-url', (_, filePath) => {
 ipcMain.handle('export-backup', async (_, books) => {
   const result = await dialog.showSaveDialog({
     title: 'Save backup',
-    defaultPath: 'audiobook-proofer-backup.json',
+    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), 'audiobook-proofer-backup.json')),
     filters: [{ name: 'JSON', extensions: ['json'] }],
   });
   if (result.canceled) return false;

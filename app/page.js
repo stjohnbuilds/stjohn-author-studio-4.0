@@ -1492,6 +1492,22 @@ function SettingsCog({
               <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:'1.1rem' }}>✕</button>
             </div>
 
+            {/* Profile card at top — Marie 2026-05-26: replaces the
+                floating M ProfilePill that overlapped the home pill. */}
+            <div style={{ border:'1px solid var(--accent-border)', background:'rgba(255,255,255,0.78)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
+              <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700, marginBottom:6 }}>Signed in as</div>
+              <div style={{ fontSize:'0.86rem', color:'var(--text)', wordBreak:'break-all', marginBottom: onSignOut ? 10 : 0 }}>{authEmail || 'Local mode'}</div>
+              {onSignOut && (
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  style={{ width:'100%', padding:'8px 12px', borderRadius:10, border:'1px solid #f0b8b8', background:'white', color:'var(--danger)', fontWeight:700, cursor:'pointer', fontSize:'0.8rem' }}
+                >
+                  Sign out
+                </button>
+              )}
+            </div>
+
             <div data-tutorial="tutorial-settings-card" style={{ border:'1px solid var(--accent-border)', background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:8 }}>
                 <div>

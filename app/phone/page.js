@@ -815,6 +815,12 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   // it here so navigating away and back doesn't lose it.
   const [audioSectionOverride, setAudioSectionOverride] = useState({});
   const [audioPickStatus, setAudioPickStatus] = useState('');
+  // Refresh robustness: single-flight + 10s timeout + 30s focus debounce.
+  // Marie hit "stuck on Loading…" because the Supabase call could hang
+  // and never resolved the loading state. These refs make refresh
+  // self-healing.
+  const refreshInflightRef = useRef(false);
+  const lastRefreshAtRef = useRef(0);
 
   const refresh = useCallback(async () => {
     setError('');

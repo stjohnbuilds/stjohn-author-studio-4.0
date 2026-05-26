@@ -31,7 +31,8 @@
       {
         "hooks": [
           { "type": "command", "command": "bash .claude/hooks/no-mess.sh" },
-          { "type": "command", "command": "bash .claude/hooks/build-checker.sh", "timeout": 30 }
+          { "type": "command", "command": "bash .claude/hooks/build-checker.sh", "timeout": 60 },
+          { "type": "command", "command": "bash .claude/hooks/stop-no-self-cert.sh", "timeout": 10 }
         ]
       }
     ]

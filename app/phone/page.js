@@ -1150,6 +1150,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           left={<BackButton ink={PROOF_INK} onClick={() => setActiveBookId(null)} />}
           right={<SettingsButton onClick={onOpenSettings} ink={PROOF_INK} />}
         />
+        <PendingFlagBanner count={pendingCount} onRetry={refresh} loading={loading} />
         <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
           {/* Per-book audio folder picker. Marie picks the folder once
               for the whole book; each chapter's audio is auto-matched

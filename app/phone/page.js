@@ -1246,6 +1246,16 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     );
   }
 
+  // Last-touched-first ordering: sort by updatedAt desc with new
+  // pending-saved flags bumping a book up. So the book Marie just
+  // flagged on the phone shows up at the top of the list.
+  const sortedBooks = useMemo(() => {
+    return [...(books || [])].sort((a, b) => {
+      const at = Date.parse(a?.updatedAt || '') || 0;
+      const bt = Date.parse(b?.updatedAt || '') || 0;
+      return bt - at;
+    });
+  }, [books]);
   return (
     <main style={phoneRoot(bgColor)}>
       <PhoneHeader

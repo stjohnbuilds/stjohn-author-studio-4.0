@@ -458,7 +458,12 @@ export default function PrebuildMode({ modeToggle = null }) {
 
               {projects.length > 0 ? (
                 <div style={{ display:'flex',flexDirection:'column',gap:7,maxHeight:'min(46vh, 420px)',overflowY:'auto',paddingRight:4 }}>
-                  {projects.map(proj => (
+                  {/* Last-touched first. Marie 2026-05-26: same as Proof + Phone. */}
+                  {[...projects].sort((a, b) => {
+                    const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || 0;
+                    const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
+                    return bt - at;
+                  }).map(proj => (
                     <button
                       key={proj.id}
                       onClick={() => { setActiveProject(proj); setView('project'); }}

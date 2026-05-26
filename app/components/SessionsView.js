@@ -1873,11 +1873,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               // Centered vertically — was top:88 spanning full height,
               // which felt like a sticky banner. Capped at 60vh so it
               // floats neatly to one side instead of dominating the page.
+              // Marie 2026-05-26: bumped width 224→252 and right 12→24
+              // because the Nav/Flags/Queue tab pill (minWidth 220) was
+              // clipping inside the old 224 width.
               position:'fixed',
-              right:12,
+              right:24,
               top:'50%',
               transform:'translateY(-50%)',
-              width:224,
+              width:252,
               height:'min(60vh, 560px)',
               overflow:'hidden',
               background:'rgba(255,255,255,0.96)',

@@ -680,6 +680,11 @@ export default function Home() {
 
   function deleteBook(id) {
     const target = books.find(b => b.id === id);
+    // Tombstone BEFORE any state changes so a focus-pull racing this
+    // delete doesn't resurrect the book. If the cloud delete fails or
+    // is slow, applyTombstonesToCloudList will retry it on every pull
+    // until the cloud row is gone.
+    addTombstone('proof', { id, cloudId: target?.cloudId });
     persist(books.filter(b => b.id !== id));
     setView('home');
     if (target?.cloudId) {

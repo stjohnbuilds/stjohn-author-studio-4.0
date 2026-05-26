@@ -1196,7 +1196,19 @@ export default function Home() {
   if (appMode === 'prep-manuscript') {
     return (
       <div style={{ ...modeAccentVars('prep'), minHeight:'100vh' }}>
-        <ProfilePill tone="prep" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
+        <SettingsCog
+          mode="prep"
+          authEmail={authSession?.user?.email || ''}
+          onSignOut={handleSignOut}
+          isOpen={settingsOpen}
+          onToggle={() => setSettingsOpen(open => !open)}
+          onClose={() => setSettingsOpen(false)}
+          isElectron={isElectron}
+          tutorialEnabled={tutorialEnabled}
+          onTutorialEnabledChange={handleTutorialEnabledChange}
+          onRestartTutorial={restartTutorial}
+          showTutorialHint={false}
+        />
         <PrepManuscriptMode
           modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
           usesCustomDragRegion={usesCustomDragRegion}

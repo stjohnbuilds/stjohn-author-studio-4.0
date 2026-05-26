@@ -507,11 +507,21 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   // remove them from the book (e.g. a copyright page that snuck through
   // import). Initialized fresh each time the editor opens so the list
   // matches the current chapters.
+  // editChapters carries BOTH the chapter-level tick AND a nested
+  // section-level tick list, so Marie can untick a whole chapter or
+  // just one scene inside it. Saving filters both levels.
   const [editChapters, setEditChapters] = useState((book.chapters || []).map(ch => ({
     id: ch.id,
     title: ch.title,
     included: true,
+    sections: (ch.sections || []).map(sec => ({
+      id: sec.id,
+      title: sec.title,
+      included: true,
+    })),
   })));
+  // Which chapters in the editor are expanded to reveal their scenes.
+  const [editExpandedChapters, setEditExpandedChapters] = useState({});
 
   useEffect(() => {
     setBulkStartChapterId((book.chapters||[]).find(ch => ch.firstChapter)?.id || book.chapters?.[0]?.id || '');

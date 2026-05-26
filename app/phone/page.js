@@ -238,9 +238,21 @@ export default function PhoneShell() {
     const supabase = getSupabaseClient();
     if (!supabase) { setAuthReady(true); return undefined; }
     let cancelled = false;
+    // 8s safety net: if Supabase auth never resolves (slow connection,
+    // bad token, whatever) drop the splash screen so the login form is
+    // reachable. The auth listener below will still pick up the session
+    // later if it arrives.
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) setAuthReady(true);
+    }, 8000);
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
+      clearTimeout(safetyTimer);
       setAuthSession(data?.session || null);
+      setAuthReady(true);
+    }).catch(() => {
+      if (cancelled) return;
+      clearTimeout(safetyTimer);
       setAuthReady(true);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -248,6 +260,7 @@ export default function PhoneShell() {
     });
     return () => {
       cancelled = true;
+      clearTimeout(safetyTimer);
       sub?.subscription?.unsubscribe?.();
     };
   }, []);

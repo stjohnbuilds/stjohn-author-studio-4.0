@@ -2120,23 +2120,63 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                       </button>
                     </div>
                   </div>
-                  <div style={{ maxHeight:200,overflow:'auto',background:'white',border:'1px solid var(--border)',borderRadius:10,padding:'4px 6px' }}>
-                    {(editChapters || []).map((c, i) => (
-                      <label
-                        key={c.id}
-                        style={{ display:'flex',alignItems:'center',gap:8,padding:'4px 6px',borderRadius:6,cursor:'pointer',fontSize:'0.78rem',color:c.included?'var(--text)':'var(--text-light)',background:i % 2 ? 'transparent' : 'rgba(0,0,0,0.015)' }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={c.included}
-                          onChange={()=>setEditChapters(cs => cs.map((cc, ci) => ci === i ? { ...cc, included: !cc.included } : cc))}
-                        />
-                        <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:28,padding:'1px 6px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.66rem',fontWeight:700,color:'var(--text-muted)' }}>
-                          {i + 1}
-                        </span>
-                        <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textDecoration:c.included?'none':'line-through' }}>{c.title}</span>
-                      </label>
-                    ))}
+                  <div style={{ maxHeight:260,overflow:'auto',background:'white',border:'1px solid var(--border)',borderRadius:10,padding:'4px 6px' }}>
+                    {(editChapters || []).map((c, i) => {
+                      const hasScenes = Array.isArray(c.sections) && c.sections.length > 1;
+                      const expanded = !!editExpandedChapters[c.id];
+                      const includedScenes = (c.sections || []).filter(s => s.included).length;
+                      const totalScenes = (c.sections || []).length;
+                      return (
+                        <div key={c.id} style={{ background:i % 2 ? 'transparent' : 'rgba(0,0,0,0.015)', borderRadius:6 }}>
+                          <div style={{ display:'flex',alignItems:'center',gap:8,padding:'4px 6px',fontSize:'0.78rem',color:c.included?'var(--text)':'var(--text-light)' }}>
+                            <input
+                              type="checkbox"
+                              checked={c.included}
+                              onChange={()=>setEditChapters(cs => cs.map((cc, ci) => ci === i ? { ...cc, included: !cc.included } : cc))}
+                            />
+                            <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:28,padding:'1px 6px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.66rem',fontWeight:700,color:'var(--text-muted)' }}>
+                              {i + 1}
+                            </span>
+                            <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textDecoration:c.included?'none':'line-through' }}>{c.title}</span>
+                            {hasScenes && (
+                              <button
+                                type="button"
+                                onClick={()=>setEditExpandedChapters(prev => ({ ...prev, [c.id]: !expanded }))}
+                                title={expanded ? 'Hide scenes' : `${includedScenes}/${totalScenes} scenes included — click to edit`}
+                                style={{ background:'transparent',border:'1px solid var(--border-light)',borderRadius:6,fontSize:'0.66rem',color:'var(--text-muted)',cursor:'pointer',padding:'2px 8px',whiteSpace:'nowrap' }}
+                              >
+                                {expanded ? '▴ scenes' : `▾ ${includedScenes}/${totalScenes} scenes`}
+                              </button>
+                            )}
+                          </div>
+                          {hasScenes && expanded && (
+                            <div style={{ paddingLeft:30, paddingRight:6, paddingBottom:4 }}>
+                              {(c.sections || []).map((sec, si) => (
+                                <label
+                                  key={sec.id}
+                                  style={{ display:'flex',alignItems:'center',gap:8,padding:'2px 6px',borderRadius:4,cursor:'pointer',fontSize:'0.74rem',color:sec.included ? 'var(--text)' : 'var(--text-light)' }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={sec.included}
+                                    onChange={()=>setEditChapters(cs => cs.map((cc, ci) => {
+                                      if (ci !== i) return cc;
+                                      return {
+                                        ...cc,
+                                        sections: (cc.sections || []).map((s, sj) => sj === si ? { ...s, included: !s.included } : s),
+                                      };
+                                    }))}
+                                  />
+                                  <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textDecoration:sec.included?'none':'line-through' }}>
+                                    {sec.title || `Scene ${si + 1}`}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {mode !== 'duet' && (

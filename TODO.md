@@ -78,10 +78,10 @@ Always read `HANDOFF.md` first, then this file.
       first deploy ready. Both `/` and `/phone` return 200. —
       completed 2026-05-25
 
-- [x] **Hide the desktop UI on Vercel.** Added `vercel.json` with a
-      `/` → `/phone` redirect so browser visitors never see the
-      half-working desktop UI (no transcription / no file system in
-      browser). Electron still serves `/` locally — it doesn't read
+- [x] **Phone IS the root on Vercel.** Added `vercel.json` with a
+      `/` → `/phone` REWRITE (not redirect) so the phone shows at
+      the root URL without bouncing. URL bar stays clean. Electron
+      still serves the desktop UI at `/` locally — it doesn't read
       `vercel.json`. — completed 2026-05-26
 
 - [ ] **Audio sync in Quill desktop reader.** Optional. Quill works

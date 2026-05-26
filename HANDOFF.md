@@ -108,10 +108,13 @@ buttons did nothing on real files. We're not doing that again.
   small. Run it after any cloud-sync edit.
 - **Live phone URL:** `https://stjohn-author-studio-4.vercel.app/phone`
   — last deployed earlier this session.
-- **Vercel root rewrite:** `vercel.json` rewrites `/` → `/phone` so
-  the phone IS the root page on Vercel. URL bar stays as `/`, no
-  bounce. Electron still serves the desktop UI at `/` locally
-  (Electron doesn't read `vercel.json`).
+- **Vercel root = phone:** `scripts/vercel-root-to-phone.js` runs in
+  the build step (only when `VERCEL=1`) and overwrites `out/index.html`
+  with the phone page. URL bar stays as `/`, no bounce, no separate
+  rewrite needed. Electron's build scripts (`electron-build-mac`,
+  `electron-build-win`) call `next build` directly instead of `npm run
+  build`, so the swap doesn't run there — Electron keeps the desktop
+  UI at `/`.
 - **Local dev:** `npm start` runs Next + Electron together. Phone
   preview at `http://localhost:3000/phone`.
 

@@ -1074,12 +1074,15 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     // the cloud merge result AND retries the cloud delete if the first
     // attempt fails.
     recordDeletedFlag(cloudId, flagId);
+    setPendingCount(countAllFlagQueues());
     if (supabase && session?.user?.id) {
       deleteProofFlag(supabase, cloudId, flagId)
-        .then(() => clearDeletedFlag(cloudId, flagId))
+        .then(() => { clearDeletedFlag(cloudId, flagId); setPendingCount(countAllFlagQueues()); })
         .catch((e) => {
-          console.warn('[Phone] flag delete failed (queued for retry):', e?.message || e);
-          setError('Removed locally — will retry the cloud sync on the next refresh.');
+          const reason = e?.message || String(e);
+          console.warn('[Phone] flag delete failed (queued for retry):', reason);
+          setError(`Removed on this phone but the cloud delete failed: ${reason}. Tap Refresh to retry.`);
+          setPendingCount(countAllFlagQueues());
         });
     }
   }

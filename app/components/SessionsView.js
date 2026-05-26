@@ -1705,6 +1705,56 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       </div>
     );
 
+    const renderFlagsTab = () => (
+      <div style={{ padding:isInline ? '4px 2px 4px' : '6px 6px 7px',overflowY:'auto',minHeight:isInline ? 180 : 320,maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
+        {allFlagsAcrossBook.length === 0 ? (
+          <div style={{ padding:'14px 10px',fontSize:'0.74rem',color:'var(--text-muted)',lineHeight:1.5 }}>
+            No flags yet. Open a chapter and tap a word to flag a moment.
+          </div>
+        ) : (
+          allFlagsAcrossBook.map((flag) => (
+            <div
+              key={`${flag.sectionId}-${flag.id}`}
+              style={{ display:'flex',alignItems:'flex-start',gap:6,padding:'6px 4px',borderBottom:'1px solid var(--border-light)' }}
+            >
+              <button
+                type="button"
+                onClick={() => scrollToChapter(flag.chapterId)}
+                title="Jump to this chapter"
+                style={{ flex:1,background:'transparent',border:'none',padding:'2px 4px',textAlign:'left',cursor:'pointer',minWidth:0 }}
+              >
+                <div style={{ display:'flex',alignItems:'baseline',gap:6,fontSize:'0.66rem',color:'var(--text-light)',fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
+                  <span>Ch {flag.chapterDisplay}</span>
+                  <span style={{ fontFamily:'monospace',color:'var(--accent-dark)' }}>{fmtTime(flag.ts)}</span>
+                  <span>· {flag.type}</span>
+                  {flag.page && flag.page !== '#' && <span>· p.{flag.page}</span>}
+                </div>
+                <div style={{ fontSize:'0.74rem',color:'var(--text)',fontStyle:'italic',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
+                  &ldquo;{flag.sentPlain || '(no quote)'}&rdquo;
+                </div>
+                {flag.note && (
+                  <div style={{ fontSize:'0.7rem',color:'var(--text-muted)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
+                    {flag.note}
+                  </div>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Delete this ${flag.type} flag on Ch ${flag.chapterDisplay}?`)) removeFlagFromBook(flag.sectionId, flag.id);
+                }}
+                aria-label="Delete flag"
+                title="Delete flag"
+                style={{ flexShrink:0,width:22,height:22,padding:0,borderRadius:999,border:'1px solid #f0b8b8',background:'white',color:'var(--danger)',cursor:'pointer',fontSize:'0.78rem',lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center' }}
+              >
+                ×
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    );
+
     const renderTranscriptionsTab = () => (
       <div style={{ padding:isInline ? '4px 0 0' : '6px 6px 7px',overflowY:'auto',minHeight:isInline ? 180 : 320,maxHeight:isInline ? 'min(210px, 34vh)' : `calc(100vh - ${persistentAudioUrl ? 214 : 178}px)` }}>
         {!bookQueueItems.length ? (

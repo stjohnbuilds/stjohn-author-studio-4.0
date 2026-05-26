@@ -522,6 +522,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           persistentAudioUrl={null}
           persistentAudioLabel=""
           persistentAudioState={null}
+          // intentional: Quill doesn't use the persistent home-level audio
+          // dock that Proof has. Audio plays inside the reader only.
           onPersistentAudioStateChange={() => {}}
           onReturnToScene={() => {}}
           onClearPersistentAudio={() => {}}

@@ -1175,7 +1175,19 @@ export default function Home() {
         {usesCustomDragRegion && (
           <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
         )}
-        <ProfilePill tone="duet" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
+        <SettingsCog
+          mode="duet"
+          authEmail={authSession?.user?.email || ''}
+          onSignOut={handleSignOut}
+          isOpen={settingsOpen}
+          onToggle={() => setSettingsOpen(open => !open)}
+          onClose={() => setSettingsOpen(false)}
+          isElectron={isElectron}
+          tutorialEnabled={tutorialEnabled}
+          onTutorialEnabledChange={handleTutorialEnabledChange}
+          onRestartTutorial={restartTutorial}
+          showTutorialHint={false}
+        />
         <PrebuildMode modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />} />
       </div>
     );

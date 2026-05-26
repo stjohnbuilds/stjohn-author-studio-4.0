@@ -1195,7 +1195,7 @@ ipcMain.handle('export-transfer-bundle', async (event, book) => {
   const safeTitle = sanitizeFileName(book.title || book.fileName || 'Audiobook');
   const result = await dialog.showSaveDialog({
     title: 'Create Transfer Folder',
-    defaultPath: path.join(transferRoot, `${safeTitle} Transfer`),
+    defaultPath: uniqueExportPath(path.join(transferRoot, `${safeTitle} Transfer`)),
     buttonLabel: 'Create Transfer Folder',
   });
   if (result.canceled || !result.filePath) return null;

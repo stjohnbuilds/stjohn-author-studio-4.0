@@ -6,6 +6,7 @@
 export * from './client.js';
 export * from './account.js';
 export * from './audio-guard.js';
+export * from './cloud-slim.js';
 export * from './quill-sync.js';
 export * from './proof-sync.js';
 export * from './tombstones.js';

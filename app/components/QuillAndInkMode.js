@@ -445,16 +445,34 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               updateActive((p) => ({ ...p, annotationOptions: [...existing, ...next] }));
             }
             if (Array.isArray(updated.chapters)) {
-              // Two things to sync back to Quill's project model:
+              // Three things to sync back to Quill's project model:
               // 1. Chapter list — so unchecking a chapter in Edit book data
               //    actually removes it.
-              // 2. Bulk audio attachments — the first section of each
-              //    chapter carries the audio info; mirror it into the
-              //    chapterAudios map so it survives navigation.
+              // 2. audioFileName on each chapter — so the file name (not
+              //    the audio blob) gets saved to disk AND pushed to
+              //    Supabase (quill_chapters.audio_file_name) AND visible
+              //    on the phone. Audio blobs/paths stay local.
+              // 3. Bulk audio blob URL — mirror into the chapterAudios map
+              //    so the in-session reader can play it without reloading
+              //    the file. URL is memory-only by design.
               const keptIds = new Set(updated.chapters.map((ch) => ch.id));
+              const audioByChapter = {};
+              updated.chapters.forEach((ch) => {
+                const sec = (ch.sections || [])[0];
+                audioByChapter[ch.id] = sec?.audioFileName || '';
+              });
               updateActive((p) => ({
                 ...p,
-                chapters: (p.chapters || []).filter((ch) => keptIds.has(ch.id)),
+                chapters: (p.chapters || [])
+                  .filter((ch) => keptIds.has(ch.id))
+                  .map((ch) => {
+                    const incoming = audioByChapter[ch.id];
+                    // Only update audioFileName when the parent actually
+                    // touched audio (incoming defined). Empty string means
+                    // "audio was cleared"; missing key means "no change".
+                    if (incoming === undefined) return ch;
+                    return { ...ch, audioFileName: incoming || '' };
+                  }),
               }));
               const audioPatch = {};
               updated.chapters.forEach((ch) => {

@@ -1169,20 +1169,26 @@ export default function PrebuildMode({ modeToggle = null }) {
             //   - audio file name + full path (so bulk-audio attaches
             //     survive a full app restart). Paths stay local — the
             //     audio-guard strips them before any cloud push.
-            const byId = new Map(updated.chapters.map((ch) => [ch.id, ch]));
+            //
+            // Marie 2026-05-26: adaptedBook now groups sibling split scenes
+            // into one parent chapter with multiple sections, but Duet's
+            // underlying project keeps each scene as a flat chapter. Walk
+            // sections (not chapters) when mapping back so every scene gets
+            // its updates — not just the first one.
+            const bySectionId = new Map();
+            for (const parent of updated.chapters) {
+              for (const sec of (parent?.sections || [])) {
+                if (sec?.id) bySectionId.set(sec.id, sec);
+              }
+            }
             const u = {
               ...proj,
               chapters: (proj.chapters || [])
-                .filter((ch) => byId.has(ch.id))
+                .filter((ch) => bySectionId.has(ch.id))
                 .map((ch) => {
-                  const next = byId.get(ch.id);
-                  const sec = (next?.sections || [])[0];
+                  const sec = bySectionId.get(ch.id);
                   const patch = { ...ch, completed: !!(sec?.completed ?? ch.completed) };
                   if (sec) {
-                    // SessionsView's section.audioFileName → Duet's
-                    // chapter.audioFile (just the name string). Path
-                    // mirrors directly. Only patch when the parent
-                    // actually carries audio fields.
                     if (sec.audioFileName !== undefined) {
                       patch.audioFile = sec.audioFileName || null;
                     }

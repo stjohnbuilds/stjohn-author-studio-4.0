@@ -454,8 +454,13 @@ export default function Home() {
     let cancelled = false;
     async function doPull() {
       try {
-        const cloudBooks = await pullProofProjects(supabase);
-        if (cancelled || !cloudBooks?.length) return;
+        const rawCloudBooks = await pullProofProjects(supabase);
+        if (cancelled || !rawCloudBooks?.length) return;
+        // Drop any book the user has tombstoned, and re-issue cloud
+        // delete for ids that came back — closes the "delete only
+        // sometimes sticks" race Marie hit.
+        const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks, supabase, deleteProofProject);
+        if (!cloudBooks.length) return;
         cameFromProofCloudRef.current = true;
         setBooks((current) => mergeProofBookLists(current, cloudBooks));
       } catch (e) {

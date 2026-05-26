@@ -43,6 +43,7 @@ import {
   applyFlagQueueToBook,
   retryFlagQueue,
   loadFlagQueue,
+  countAllFlagQueues,
 } from '../../packages/cloud-sync';
 import {
   buildWordSpans,

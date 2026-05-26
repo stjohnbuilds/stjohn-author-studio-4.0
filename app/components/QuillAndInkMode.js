@@ -293,13 +293,16 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 
   function deleteProject(id) {
     const target = allProjects.find((p) => p.id === id);
+    // Tombstone first so a racing pull can't resurrect the project.
+    addTombstone('quill', { id, cloudId: target?.cloudId });
     setAllProjects((all) => all.filter((p) => p.id !== id));
     if (activeProjectId === id) {
       setActiveProjectId(null);
       setActiveChapterId(null);
       setView('home');
     }
-    // Cloud delete is fire-and-forget.
+    // Cloud delete is fire-and-forget. If it fails, the tombstone
+    // retry-delete on the next pull will catch the cloud up.
     if (target?.cloudId) {
       const supabase = getSupabaseClient();
       if (supabase) {

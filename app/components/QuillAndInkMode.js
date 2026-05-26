@@ -404,7 +404,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             audioPath: audio?.url || null,
             audioBlobUrl: audio?.url || null,
             flags: (activeProject.annotations || []).filter((a) => a.sectionId === ch.id),
-            completed: false,
+            completed: !!ch.completed,
             characterName: null,
             narratorName: null,
             whisperAlignment: tx?.alignment || null,

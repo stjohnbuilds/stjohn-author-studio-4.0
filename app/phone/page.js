@@ -406,14 +406,25 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
   const [error, setError] = useState('');
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [activeChapterId, setActiveChapterId] = useState(null);
+  // Same refresh robustness pattern as ScriptPhoneService: single-flight,
+  // 10s timeout, 30s focus debounce. Stops the Refresh button from
+  // getting wedged on a slow Supabase call.
+  const refreshInflightRef = useRef(false);
+  const lastRefreshAtRef = useRef(0);
 
   const refreshFromCloud = useCallback(async () => {
+    if (refreshInflightRef.current) return;
+    refreshInflightRef.current = true;
     setError('');
     setLoading(true);
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Took too long. Tap Refresh to try again.')), 10000);
+    });
     try {
       const supabase = getSupabaseClient();
       if (!supabase) throw new Error('Supabase is not configured.');
-      const list = await pullQuillProjects(supabase);
+      const list = await Promise.race([pullQuillProjects(supabase), timeout]);
       // Never wipe a populated local cache with an empty cloud pull —
       // a transient error or wrong account would otherwise look like
       // "all my projects vanished." Trust the cloud only when it
@@ -428,12 +439,20 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
         }
         return current;
       });
+      lastRefreshAtRef.current = Date.now();
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {
+      if (timer) clearTimeout(timer);
       setLoading(false);
+      refreshInflightRef.current = false;
     }
   }, [session?.user?.id]);
+
+  const focusRefresh = useCallback(() => {
+    if (Date.now() - lastRefreshAtRef.current < 30000) return;
+    refreshFromCloud();
+  }, [refreshFromCloud]);
 
   // Load IndexedDB cache, then refresh from cloud.
   useEffect(() => {

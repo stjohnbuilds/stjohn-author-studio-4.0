@@ -1679,8 +1679,18 @@ function SettingsCog({
   );
 }
 
-function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport, authEmail, onSignOut }) {
+function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport, authEmail, onSignOut, onResync, resyncing, resyncError, lastResyncedAt }) {
   const saveLocationText = formatSaveLocation(dataLocation);
+  // Sort by updatedAt desc so the most recently-touched book is on top.
+  // Marie's note: "your audiobooks doesn't do last-touched first, which
+  // is very annoying. I would like the last thing we worked on to be
+  // first."
+  const sortedBooks = [...(books || [])].sort((a, b) => {
+    const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || 0;
+    const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
+    return bt - at;
+  });
+  const lastResyncedLabel = lastResyncedAt ? formatRelativeFromNow(lastResyncedAt) : '';
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>
       <div style={{ marginBottom:'1.4rem', textAlign:'center' }}>

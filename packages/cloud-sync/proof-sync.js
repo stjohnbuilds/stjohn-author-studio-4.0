@@ -233,6 +233,53 @@ export async function deleteProofProject(supabase, cloudProjectId) {
   await supabase.from('script_sync_projects').delete().eq('id', cloudProjectId);
 }
 
+// Single-row flag insert/update. Use this for flag-only saves so a
+// concurrent save from the other device doesn't get clobbered by a
+// full-book push. Phone uses this for saveFlag; desktop's flag flow
+// could too once the SessionsView wiring is reworked.
+export async function upsertProofFlag(supabase, cloudProjectId, sectionId, flag, ownerId) {
+  if (!supabase) throw new Error('Supabase client missing.');
+  if (!cloudProjectId) throw new Error('Project cloudId missing — push the project first.');
+  if (!sectionId) throw new Error('Section id missing.');
+  if (!flag) throw new Error('Flag missing.');
+  if (!ownerId) throw new Error('Sign in first.');
+  const localId = String(flag.id || `${sectionId}:${flag.ts ?? Date.now()}`);
+  const row = {
+    project_id: cloudProjectId,
+    owner_id: ownerId,
+    section_id: String(sectionId),
+    local_id: localId,
+    flag: {
+      ts: flag.ts ?? null,
+      page: flag.page ?? '',
+      narrator: flag.narrator ?? '',
+      type: flag.type ?? '',
+      sentPlain: flag.sentPlain ?? '',
+      note: flag.note ?? '',
+      ...flag,
+    },
+    flag_hash: hashString(JSON.stringify(flag)),
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase
+    .from('script_sync_flags')
+    .upsert(row, { onConflict: 'project_id,local_id' });
+  if (error) throw error;
+  return localId;
+}
+
+// Single-row flag delete by local_id. Doesn't touch any other flags on
+// the project.
+export async function deleteProofFlag(supabase, cloudProjectId, localId) {
+  if (!supabase || !cloudProjectId || !localId) return;
+  const { error } = await supabase
+    .from('script_sync_flags')
+    .delete()
+    .eq('project_id', cloudProjectId)
+    .eq('local_id', String(localId));
+  if (error) throw error;
+}
+
 function collectSections(book) {
   const out = [];
   (book.chapters || []).forEach((chapter, chapterIndex) => {

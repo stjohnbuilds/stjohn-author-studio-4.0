@@ -469,17 +469,18 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
 
   // Re-pull when the user returns to the app (focus / visibility) so a
   // flag saved on the other device a few minutes ago shows up.
+  // Debounced via focusRefresh — won't fire more than once per 30s.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const onFocus = () => { refreshFromCloud(); };
-    const onVisibility = () => { if (document.visibilityState === 'visible') refreshFromCloud(); };
+    const onFocus = () => { focusRefresh(); };
+    const onVisibility = () => { if (document.visibilityState === 'visible') focusRefresh(); };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [refreshFromCloud]);
+  }, [focusRefresh]);
 
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) || null,

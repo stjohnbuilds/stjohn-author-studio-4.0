@@ -34,6 +34,8 @@ import {
   pushQuillProject,
   pullProofProjects,
   pushProofProject,
+  upsertProofFlag,
+  deleteProofFlag,
 } from '../../packages/cloud-sync';
 import {
   buildWordSpans,

@@ -2033,12 +2033,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         usesCustomDragRegion={usesCustomDragRegion}
         onDelete={onDelete}
         deleteLabel={`Delete "${book.title}"`}
-        actionButtons={actionButtonsOverride !== null ? actionButtonsOverride : (
+        actionButtons={(
           <>
-            <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
-            <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
-            {isElectron && onTransferExport && (
-              <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>
+            {actionButtonsOverride !== null ? actionButtonsOverride : (
+              <>
+                <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
+                {isElectron && onTransferExport && (
+                  <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>
+                )}
+              </>
             )}
             <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
           </>

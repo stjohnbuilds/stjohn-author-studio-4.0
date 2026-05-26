@@ -36,6 +36,12 @@ import {
   pushProofProject,
   upsertProofFlag,
   deleteProofFlag,
+  recordPendingFlag,
+  clearPendingFlag,
+  recordDeletedFlag,
+  clearDeletedFlag,
+  applyFlagQueueToBook,
+  retryFlagQueue,
 } from '../../packages/cloud-sync';
 import {
   buildWordSpans,

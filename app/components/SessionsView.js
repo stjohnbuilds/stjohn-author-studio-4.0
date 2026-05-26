@@ -910,23 +910,36 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       if (!ok) return;
     }
 
+    // Build per-chapter included-section sets so a section unticked in
+    // the Edit panel actually drops out of the saved book.
+    const editById = new Map(editList.map(c => [c.id, c]));
     const chapters = (book.chapters || [])
       .filter(ch => includedIds.has(ch.id))
-      .map(ch => ({
-        ...ch,
-        sections: (ch.sections || []).map(sec => {
-          const byTitle = finalNarrators.find(nc => nameMatches(sec.title, nc.characterName));
-          const byExisting = !byTitle ? finalNarrators.find(nc => nameMatches(sec.characterName, nc.characterName)) : null;
-          const match = byTitle || byExisting;
-          if (!match) return sec;
-          return {
-            ...sec,
-            characterName: match.characterName,
-            narratorName: match.narratorName || null,
-            isCharPOV: true,
-          };
-        }),
-      }));
+      .map(ch => {
+        const editCh = editById.get(ch.id);
+        const editSectionList = Array.isArray(editCh?.sections) ? editCh.sections : null;
+        const includedSectionIds = editSectionList
+          ? new Set(editSectionList.filter(s => s.included).map(s => s.id))
+          : null;
+        const sectionsAfterUntick = includedSectionIds
+          ? (ch.sections || []).filter(sec => includedSectionIds.has(sec.id))
+          : (ch.sections || []);
+        return {
+          ...ch,
+          sections: sectionsAfterUntick.map(sec => {
+            const byTitle = finalNarrators.find(nc => nameMatches(sec.title, nc.characterName));
+            const byExisting = !byTitle ? finalNarrators.find(nc => nameMatches(sec.characterName, nc.characterName)) : null;
+            const match = byTitle || byExisting;
+            if (!match) return sec;
+            return {
+              ...sec,
+              characterName: match.characterName,
+              narratorName: match.narratorName || null,
+              isCharPOV: true,
+            };
+          }),
+        };
+      });
 
     onUpdateBook({ title, narratorColors: finalNarrators, chapters });
     setEditingMeta(false);

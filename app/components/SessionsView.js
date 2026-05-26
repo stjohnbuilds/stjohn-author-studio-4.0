@@ -536,7 +536,13 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       id: ch.id,
       title: ch.title,
       included: true,
+      sections: (ch.sections || []).map(sec => ({
+        id: sec.id,
+        title: sec.title,
+        included: true,
+      })),
     })));
+    setEditExpandedChapters({});
     setShowSceneRows(audioUploadMode === 'scene');
     setDurationCache(book.audioDurationCache || {});
     durationProbeRef.current = {};

@@ -142,14 +142,45 @@ done <<< "$FILES"
 
 if [ -n "$ERRORS" ]; then
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "FAILED" "$CHECKED file(s) checked, syntax errors found"
-  printf '{"systemMessage":"Build check FAILED on edited files:%s"}' "$ERRORS"
+  # HARD-BLOCK: response is blocked until syntax errors are fixed.
+  # Previously this was a "sign on the wall" (printed warning, exit 0)
+  # which let broken JS slip through. Now it's a bouncer.
+  echo "🛑 SYNTAX CHECK FAILED — response blocked."
+  printf '%b\n' "$ERRORS" | tail -40
+  exit 1
 elif [ -n "$DUP_FAILURES" ]; then
   bash "$SCRIPT_DIR/_log.sh" "build-checker" "BLOCKED" "inline-component duplication"
   # Record the blocked edit so Marie can inspect: cat .claude/blocked-edits.log
   echo "$(date '+%Y-%m-%d %H:%M:%S')  blocked: duplication$DUP_FAILURES" >> "$SCRIPT_DIR/../blocked-edits.log"
   printf '{"systemMessage":"BUILD-CHECKER BLOCK — shared-component duplication.%s\\n\\n    → Import from app/components/BookDetail.js (BookDetail, ChapterRow)\\n    → Or app/components/ReaderChrome.js (StickyTopBar, MODE_TOKENS, etc.)\\n    → See docs/SHARED_COMPONENTS.md for the full list and extension pattern (props / slots — never fork)."}' "$DUP_FAILURES"
   exit 2
-else
-  bash "$SCRIPT_DIR/_log.sh" "build-checker" "PASSED" "$CHECKED file(s) checked"
-  printf '{"systemMessage":"Build check passed (%d file(s) checked)."}' "$CHECKED"
 fi
+
+# ----------------------------------------------------------------------
+# Smart test run — only when risky paths changed.
+# ----------------------------------------------------------------------
+# CSS-only / shallow UI tweaks skip the test suite so iteration stays
+# fast. Edits inside packages/, lib/, tests/, main.js, preload.js, or
+# supabase/ trigger the suite. Retry once on flake; block on second
+# failure. Same bouncer pattern as the syntax block above.
+RISKY_PATHS='(^|/)(packages/|lib/|tests/|supabase/|main\.js$|preload\.js$)'
+if printf '%s\n' "$FILES" | grep -qE "$RISKY_PATHS"; then
+  TEST_OUTPUT=$(cd "$PROJECT_ROOT" && npm test 2>&1)
+  TEST_EXIT=$?
+  if [ $TEST_EXIT -ne 0 ]; then
+    # Retry once — Node's test runner occasionally flakes on first cold
+    # start (file watcher, module resolution). Real failures repeat.
+    TEST_OUTPUT=$(cd "$PROJECT_ROOT" && npm test 2>&1)
+    TEST_EXIT=$?
+  fi
+  if [ $TEST_EXIT -ne 0 ]; then
+    bash "$SCRIPT_DIR/_log.sh" "build-checker" "TESTS_FAILED" "tests failed twice on risky path edits"
+    echo "🛑 TESTS FAILED twice — response blocked."
+    printf '%s\n' "$TEST_OUTPUT" | tail -50
+    exit 1
+  fi
+  bash "$SCRIPT_DIR/_log.sh" "build-checker" "TESTS_PASSED" "risky-path tests green"
+fi
+
+bash "$SCRIPT_DIR/_log.sh" "build-checker" "PASSED" "$CHECKED file(s) checked"
+printf '{"systemMessage":"Build check passed (%d file(s) checked)."}' "$CHECKED"

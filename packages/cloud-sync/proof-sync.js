@@ -152,6 +152,10 @@ export async function pushProofProject(supabase, book, ownerId) {
     if (error) throw error;
   }
 
+  // Remember what we just pushed so the next save can short-circuit
+  // when nothing has actually changed.
+  lastPushHashByCloudId.set(cloudProjectId, compositeHash);
+
   return cloudProjectId;
 }
 

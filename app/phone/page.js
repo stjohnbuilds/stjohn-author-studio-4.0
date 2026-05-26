@@ -2025,6 +2025,134 @@ function AccountChip({ email, onSignOut }) {
 }
 
 // ---------------------------------------------------------------------------
+// BookTabStrip — Chapters / Flags toggle inside a book's detail screen.
+// Mirrors the desktop side-nav tab pills so the phone has the same
+// affordance for "show me every flag in the book."
+// ---------------------------------------------------------------------------
+
+function BookTabStrip({ tabs, active, onChange, tone, right }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'white', border: '1px solid ' + tone.ink + '33', borderRadius: 999, padding: 3 }}>
+        {tabs.map((t) => {
+          const on = t.id === active;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onChange(t.id)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px',
+                background: on ? tone.pastel : 'transparent',
+                color: on ? tone.ink : '#6D6663',
+                border: 'none',
+                borderRadius: 999,
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {t.label}
+              {typeof t.count === 'number' && t.count > 0 && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  minWidth: 18, height: 16, padding: '0 6px',
+                  borderRadius: 999,
+                  background: on ? tone.ink : '#EAE0D6',
+                  color: on ? 'white' : '#6D6663',
+                  fontSize: '0.62rem', fontWeight: 800, lineHeight: 1,
+                }}>{t.count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {right}
+    </div>
+  );
+}
+
+// BookFlagsList — flat scrollable list of every flag in the book, with
+// per-flag delete + tap-to-jump-to-chapter. Same data shape as desktop's
+// renderFlagsTab.
+function BookFlagsList({ book, onOpenFlag, onDeleteFlag }) {
+  const rows = useMemo(() => {
+    const out = [];
+    (book?.chapters || []).forEach((ch, ci) => {
+      (ch.sections || []).forEach((sec) => {
+        (sec.flags || []).forEach((fl) => {
+          const id = fl.id || `${fl.idx}:${fl.ts}`;
+          out.push({
+            id,
+            chapterId: ch.id,
+            sectionId: sec.id,
+            chapterIndex: ci,
+            chapterTitle: ch.title || `Chapter ${ci + 1}`,
+            ts: Number(fl.ts) || 0,
+            page: fl.page || '',
+            type: fl.type || 'Edit',
+            narrator: fl.narrator || '',
+            sentPlain: fl.sentPlain || '',
+            note: fl.note || '',
+          });
+        });
+      });
+    });
+    return out.sort((a, b) => (a.chapterIndex - b.chapterIndex) || (a.ts - b.ts));
+  }, [book]);
+
+  if (!rows.length) {
+    return (
+      <div style={emptyStyle}>
+        No flags yet. Open a chapter and tap a word to flag a moment.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {rows.map((flag) => (
+        <div key={flag.id} style={{ display: 'flex', alignItems: 'stretch', gap: 6, background: 'white', border: '1px solid #DDD0C4', borderRadius: 12, padding: '10px 12px' }}>
+          <button
+            type="button"
+            onClick={() => onOpenFlag(flag.chapterId, flag.sectionId)}
+            style={{ flex: 1, background: 'transparent', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer', minWidth: 0 }}
+            title="Jump to this flag"
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: '0.66rem', color: '#6D6663', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              <span>Ch {flag.chapterIndex + 1}</span>
+              <span style={{ fontFamily: 'monospace', color: PROOF_INK }}>{formatTime(flag.ts)}</span>
+              <span>· {flag.type}</span>
+              {flag.page && flag.page !== '#' && <span>· p.{flag.page}</span>}
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#4C4846', fontStyle: 'italic', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              &ldquo;{flag.sentPlain || '(no quote)'}&rdquo;
+            </div>
+            {flag.note && (
+              <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                {flag.note}
+              </div>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Delete this ${flag.type} flag on Ch ${flag.chapterIndex + 1}?`)) onDeleteFlag(flag.sectionId, flag.id);
+            }}
+            aria-label="Delete flag"
+            title="Delete flag"
+            style={{ flexShrink: 0, width: 28, height: 28, padding: 0, borderRadius: 999, border: '1px solid #f0b8b8', background: 'white', color: '#C4514A', cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // BookAudioFolderPicker — top-of-book "pick the whole audio folder once"
 // strip. After Marie picks a folder, each chapter's audio is matched by
 // `audioFileName` automatically when she opens that chapter. The audio

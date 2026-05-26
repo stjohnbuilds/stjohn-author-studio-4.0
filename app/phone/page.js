@@ -835,7 +835,7 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
 // ScriptPhoneService — Proof Listen on the phone. Tap-to-flag + audio.
 // ===========================================================================
 
-function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettings, onOpenSettings }) {
+function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettings, onOpenSettings, audioFilesByBook, setAudioFilesByBook, audioSectionOverride, setAudioSectionOverride }) {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -844,15 +844,10 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const [activeSectionId, setActiveSectionId] = useState(null);
   // 'chapters' or 'flags' — which tab is showing inside the book detail.
   const [bookView, setBookView] = useState('chapters');
-  // Per-book audio folder. Picked once on the chapter list; auto-matches
-  // each section by audioFileName. File[] state survives navigation
-  // between chapters of the same book but is lost on page reload (Blob
-  // refs can't be serialized — Marie picks the folder again per session).
-  const [audioFilesByBook, setAudioFilesByBook] = useState({});
-  // Per-section manual override — when Marie picks a single audio file
-  // inside the reader (not via the book-level folder picker), remember
-  // it here so navigating away and back doesn't lose it.
-  const [audioSectionOverride, setAudioSectionOverride] = useState({});
+  // Pending-flag count — how many flag pushes are sitting in the queue
+  // waiting to reach the cloud. Surfaces as a persistent banner so Marie
+  // sees when a save didn't make it through.
+  const [pendingCount, setPendingCount] = useState(0);
   const [audioPickStatus, setAudioPickStatus] = useState('');
   // Refresh robustness: single-flight + 10s timeout + 30s focus debounce.
   // Marie hit "stuck on Loading…" because the Supabase call could hang

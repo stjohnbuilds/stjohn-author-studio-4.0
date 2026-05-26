@@ -108,10 +108,10 @@ buttons did nothing on real files. We're not doing that again.
   small. Run it after any cloud-sync edit.
 - **Live phone URL:** `https://stjohn-author-studio-4.vercel.app/phone`
   — last deployed earlier this session.
-- **Vercel root redirect:** `vercel.json` redirects `/` → `/phone` so
-  the half-working desktop UI never gets served to browser visitors.
-  Electron still serves `/` locally (it doesn't read `vercel.json`).
-  Only the phone is intended to run in a browser.
+- **Vercel root rewrite:** `vercel.json` rewrites `/` → `/phone` so
+  the phone IS the root page on Vercel. URL bar stays as `/`, no
+  bounce. Electron still serves the desktop UI at `/` locally
+  (Electron doesn't read `vercel.json`).
 - **Local dev:** `npm start` runs Next + Electron together. Phone
   preview at `http://localhost:3000/phone`.
 

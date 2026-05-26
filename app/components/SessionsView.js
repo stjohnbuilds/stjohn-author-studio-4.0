@@ -2070,10 +2070,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         tone={mode === 'quill' ? 'quill' : 'proof'}
         title={book.title}
         subtitle={(() => {
-          const fileTail = book.fileName ? ` · ${book.fileName}` : '';
+          // Marie 2026-05-26: dropped the .docx filename tail — eats a
+          // second subtitle line on long names and adds nothing useful.
           return mode === 'quill'
-            ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations${fileTail}`
-            : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags${fileTail}`;
+            ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations`
+            : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags`;
         })()}
         onBackHome={onBack}
         usesCustomDragRegion={usesCustomDragRegion}

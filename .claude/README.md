@@ -24,6 +24,12 @@ verify a hook actually ran: `cat .claude/hook-activity.log`.
   handover phrases ("make a handover", "write the handover", "handoff
   doc", etc.) and injects the 8-section handover template. Claude
   writes the result to `HANDOFF.md`.
+- `hooks/ui-check-trigger.sh` — **UserPromptSubmit**. Watches for
+  UI / visual / usability check phrases ("usability check", "interface
+  check", "ui sweep", "walk the 24 points", "does this look right",
+  etc.) and injects the project-neutral 12+12 checklist plus the
+  "report each as ✓ pass / ⚠ minor / ❌ broken" reporting format so
+  Claude can't self-certify the look + feel.
 - `hooks/git-backup.sh` — **PreToolUse** on Write/Edit/NotebookEdit.
   Auto-commits any dirty working tree as
   `auto-backup: before Claude edit <timestamp>` before Claude edits, so

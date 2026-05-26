@@ -1153,46 +1153,71 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
               setAudioPickStatus('');
             }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
-              Chapters
-            </div>
-            <button
-              onClick={() => {
-                if (!totalFlags) { window.alert('No flags to export yet.'); return; }
-                downloadText(`${safeFileName(activeBook.title)}-flags.csv`, buildFlagsCsv(activeBook), 'text/csv');
-              }}
-              style={textBtnStyle(PROOF_INK)}
-            >
-              Export CSV
-            </button>
-          </div>
-          {!(activeBook.chapters || []).length && (
-            <div style={emptyStyle}>
-              No chapters yet — open the book on the desktop and let it sync.
-            </div>
-          )}
-          {(activeBook.chapters || []).map((ch, i) => {
-            const firstSection = (ch.sections || [])[0];
-            const chapterFlagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
-            return (
+          {/* Chapters / Flags tab strip. Lets Marie see every flag in
+              the book without having to dig into each chapter — the same
+              affordance the desktop has in its side nav. */}
+          <BookTabStrip
+            tabs={[
+              { id: 'chapters', label: 'Chapters', count: (activeBook.chapters || []).length },
+              { id: 'flags', label: 'Flags', count: totalFlags },
+            ]}
+            active={bookView}
+            onChange={setBookView}
+            tone={{ ink: PROOF_INK, pastel: PROOF_PASTEL }}
+            right={
               <button
-                key={ch.id}
-                onClick={() => { setActiveChapterId(ch.id); setActiveSectionId(firstSection?.id || null); }}
-                style={projectCardStyle(PROOF_ACCENT)}
+                onClick={() => {
+                  if (!totalFlags) { window.alert('No flags to export yet.'); return; }
+                  downloadText(`${safeFileName(activeBook.title)}-flags.csv`, buildFlagsCsv(activeBook), 'text/csv');
+                }}
+                style={textBtnStyle(PROOF_INK)}
               >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846' }}>
-                    {i + 1}. {ch.title}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
-                    {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {chapterFlagCount} flag{chapterFlagCount === 1 ? '' : 's'}
-                  </div>
-                </div>
-                <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+                Export CSV
               </button>
-            );
-          })}
+            }
+          />
+
+          {bookView === 'chapters' && (
+            <>
+              {!(activeBook.chapters || []).length && (
+                <div style={emptyStyle}>
+                  No chapters yet — open the book on the desktop and let it sync.
+                </div>
+              )}
+              {(activeBook.chapters || []).map((ch, i) => {
+                const firstSection = (ch.sections || [])[0];
+                const chapterFlagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
+                return (
+                  <button
+                    key={ch.id}
+                    onClick={() => { setActiveChapterId(ch.id); setActiveSectionId(firstSection?.id || null); }}
+                    style={projectCardStyle(PROOF_ACCENT)}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846' }}>
+                        {i + 1}. {ch.title}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                        {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {chapterFlagCount} flag{chapterFlagCount === 1 ? '' : 's'}
+                      </div>
+                    </div>
+                    <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {bookView === 'flags' && (
+            <BookFlagsList
+              book={activeBook}
+              onOpenFlag={(chapterId, sectionId) => {
+                setActiveChapterId(chapterId);
+                setActiveSectionId(sectionId);
+              }}
+              onDeleteFlag={(sectionId, flagId) => removeFlagFromCloud(activeBook.id, sectionId, flagId)}
+            />
+          )}
         </section>
       </main>
     );

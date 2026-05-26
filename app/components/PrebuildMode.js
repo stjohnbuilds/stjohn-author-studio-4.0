@@ -1130,8 +1130,37 @@ export default function PrebuildMode({ modeToggle = null }) {
             updateProject(u);
             save(projects.map(p => p.id === proj.id ? u : p));
           }
+          if (Array.isArray(updated.chapters)) {
+            // Mirror chapter `completed` flags back to Duet's project
+            // so the chapter-done ticks persist (and the chapter list
+            // stays in sync if any chapter is removed).
+            const byId = new Map(updated.chapters.map((ch) => [ch.id, ch]));
+            const u = {
+              ...proj,
+              chapters: (proj.chapters || [])
+                .filter((ch) => byId.has(ch.id))
+                .map((ch) => {
+                  const next = byId.get(ch.id);
+                  const sec = (next?.sections || [])[0];
+                  return { ...ch, completed: !!(sec?.completed ?? ch.completed) };
+                }),
+            };
+            updateProject(u);
+            save(projects.map((p) => p.id === proj.id ? u : p));
+          }
         }}
-        onToggleComplete={() => {}}
+        onToggleComplete={(sectionId) => {
+          // Duet renders one section per chapter (id = chapter id), so
+          // toggling the section toggles the chapter's done flag.
+          const u = {
+            ...proj,
+            chapters: (proj.chapters || []).map((ch) =>
+              ch.id === sectionId ? { ...ch, completed: !ch.completed } : ch
+            ),
+          };
+          updateProject(u);
+          save(projects.map((p) => p.id === proj.id ? u : p));
+        }}
         onDelete={deleteProject}
         onBack={() => { setView('home'); setScanning(false); cancelRef.current = true; }}
         persistentAudioUrl={null}

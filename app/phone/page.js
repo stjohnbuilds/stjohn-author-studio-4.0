@@ -596,23 +596,64 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
               Export CSV
             </button>
           </div>
-          {(activeProject.chapters || []).map((ch) => (
-            <button
-              key={ch.id}
-              onClick={() => setActiveChapterId(ch.id)}
-              style={projectCardStyle(QUILL_ACCENT)}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846' }}>
-                  {ch.chapterNumber}. {ch.title}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
-                  {(activeProject.annotations || []).filter((a) => a.sectionId === ch.id).length} annotations
-                </div>
+          {(activeProject.chapters || []).map((ch) => {
+            const isDone = !!ch.completed;
+            return (
+              <div
+                key={ch.id}
+                style={{ ...projectCardStyle(QUILL_ACCENT), display: 'flex', alignItems: 'stretch', padding: 0, overflow: 'hidden' }}
+              >
+                {/* Tick toggle — flips ch.completed and saves. The save
+                    path is pushProject → pushQuillProject which writes
+                    the completed flag into the desktop_project JSONB
+                    blob; pull merges it back, so desktop sees the same
+                    tick state. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextProject = {
+                      ...activeProject,
+                      chapters: (activeProject.chapters || []).map((c) => c.id === ch.id ? { ...c, completed: !c.completed } : c),
+                      updatedAt: new Date().toISOString(),
+                    };
+                    pushProject(nextProject);
+                  }}
+                  aria-label={isDone ? 'Mark chapter not done' : 'Mark chapter done'}
+                  title={isDone ? 'Mark not done' : 'Mark done'}
+                  style={{
+                    width: 40,
+                    flexShrink: 0,
+                    background: isDone ? QUILL_ACCENT : 'transparent',
+                    border: 'none',
+                    borderRight: '1px solid ' + QUILL_INK + '22',
+                    color: isDone ? 'white' : QUILL_INK,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {isDone ? '✓' : '○'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveChapterId(ch.id)}
+                  style={{ flex: 1, background: 'transparent', border: 'none', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846', textDecoration: isDone ? 'line-through' : 'none', textDecorationColor: '#9B928E' }}>
+                      {ch.chapterNumber}. {ch.title}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                      {(activeProject.annotations || []).filter((a) => a.sectionId === ch.id).length} annotations
+                    </div>
+                  </div>
+                  <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+                </button>
               </div>
-              <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
-            </button>
-          ))}
+            );
+          })}
         </section>
       </main>
     );

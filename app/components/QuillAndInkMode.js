@@ -53,6 +53,8 @@ import {
   pushQuillProject,
   pullQuillProjects,
   deleteQuillProject,
+  addTombstone,
+  applyTombstonesToCloudList,
 } from '../../packages/cloud-sync';
 
 const QUILL = MODE_TOKENS.quill;

@@ -185,8 +185,13 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       try {
         const { data } = await supabase.auth.getSession();
         if (!data?.session?.user) return;
-        const cloudProjects = await pullQuillProjects(supabase);
-        if (cancelled || !cloudProjects.length) return;
+        const rawCloudProjects = await pullQuillProjects(supabase);
+        if (cancelled || !rawCloudProjects.length) return;
+        // Drop anything the user has tombstoned, and re-issue cloud
+        // delete for ids that came back. This is what fixes Marie's
+        // "delete doesn't really stick" bug.
+        const cloudProjects = applyTombstonesToCloudList('quill', rawCloudProjects, supabase, deleteQuillProject);
+        if (!cloudProjects.length) return;
         cameFromCloudRef.current = true;     // the merge isn't a user edit
         setAllProjects((current) => mergeProjectLists(current, cloudProjects));
       } catch (e) {

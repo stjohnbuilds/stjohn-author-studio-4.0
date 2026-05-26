@@ -1345,6 +1345,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   }
 
   function deleteFlag(flagId) {
+    if (onRemoveFlag) { onRemoveFlag(flagId); return; }
     const nextBook = {
       ...book,
       chapters: (book.chapters || []).map((ch) => ch.id !== chapter.id ? ch : ({

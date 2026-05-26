@@ -1,52 +1,176 @@
 #!/usr/bin/env bash
-# UI / visual / usability-check trigger — Marie's 24-point walk.
+# UserPromptSubmit — Interface check hook (STRICT MODE).
+# Ported from Typing-and-Tomes-3.3-active/.claude/hooks/user-prompt-submit.sh
+# (Part 9) on 2026-05-26. Marie 2026-05-26: "make sure yours are the same
+# because theirs is good, very good."
 #
-# When her prompt contains any trigger phrase ("usability check",
-# "interface check", "visual check", "UI check", "walk the 24 points",
-# "look at the screen", "design check", etc.) this hook injects the
-# 12+12 checklist and the reporting format so the model walks every
-# point honestly and reports ✓ pass / ⚠ minor / ❌ broken.
-#
-# Like the other triggers (deep-check, handover), this exists because
-# AIs keep self-certifying UI as "done" without doing the actual walk.
-#
-# The checklist is intentionally project-neutral so it can be copied
-# to other projects unchanged. Project-specific components belong in
-# context-check.sh / build-checker.sh, not here.
+# Two AIs in a row missed obvious visual problems by giving vibe-level
+# verdicts ("the form is dense") instead of pointing at the specific
+# broken element. Strict mode forces the AI to NAME every section and
+# every orphan BEFORE judging. Whole-screen adjectives are not acceptable
+# — every finding must reference a specific named element.
 
-# Scope guard — refuse to run outside the 4.0 project root.
 EXPECTED_DIR="/Users/mariemackay/Dev/StJohn-Author-Studio-4.0"
 [ "${CLAUDE_PROJECT_DIR:-$(pwd)}" = "$EXPECTED_DIR" ] || exit 0
+cd "$EXPECTED_DIR" || exit 0
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Read the JSON payload that Claude Code sends on UserPromptSubmit.
-PAYLOAD=$(cat)
-PROMPT=""
+PROMPT_JSON="$(cat 2>/dev/null || true)"
 if command -v jq >/dev/null 2>&1; then
-  PROMPT=$(echo "$PAYLOAD" | jq -r '.prompt // empty' 2>/dev/null)
-fi
-if [ -z "$PROMPT" ]; then
-  PROMPT=$(echo "$PAYLOAD" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -1)
-fi
-if [ -z "$PROMPT" ]; then
-  printf '{"suppressOutput":true}'
-  exit 0
+  USER_PROMPT="$(printf '%s' "$PROMPT_JSON" | jq -r '.prompt // empty' 2>/dev/null || true)"
+else
+  USER_PROMPT="$(printf '%s' "$PROMPT_JSON" | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -1 || true)"
 fi
 
-# Match any trigger phrase (case-insensitive). One alternation so a
-# single grep handles them all.
-TRIGGER_RE='(usability|interface|visual|design|ui|ux)[[:space:]]+(check|sweep|walk|pass|audit|review)|walk[[:space:]]+the[[:space:]]+(24|twenty.four)|24[-[:space:]]?point|twenty.four[-[:space:]]?point|does[[:space:]]+(this|it)[[:space:]]+look[[:space:]]+(right|good|nice|ok)|how[[:space:]]+does[[:space:]]+(this|it)[[:space:]]+look|is[[:space:]]+(this|it)[[:space:]]+pretty|look[[:space:]]+at[[:space:]]+the[[:space:]]+(screen|page|ui|interface|design)|tidy[[:space:]]+up[[:space:]]+the[[:space:]]+(screen|page|ui|interface|design)|polish[[:space:]]+(pass|check|sweep)'
-
-if ! echo "$PROMPT" | grep -iEq "$TRIGGER_RE"; then
-  printf '{"suppressOutput":true}'
-  exit 0
+if printf '%s' "$USER_PROMPT" | grep -qiE 'interface[ -]?check|ui[ -]?check|visual[ -]?check|look[ -]?check|design[ -]?check|trigger.{0,30}(interface|visual|ui|design)|find.{0,30}(interface|visual|ui|design)|fire.{0,30}(interface|visual|ui|design)|do an? (interface|visual|ui|design)|run.{0,15}(interface|visual|ui|design)|walk[[:space:]]+the[[:space:]]+(24|twenty.four|13|thirteen)|does (this|it) look (right|good|nice|ok)|how does (this|it) look|is (this|it) pretty|look at the (screen|page|ui|interface|design)|tidy up the (screen|page|ui|interface|design)|polish (pass|check|sweep)'; then
+  echo ""
+  echo "🎨 INTERFACE CHECK — STRICT MODE"
+  echo ""
+  echo "Two AIs in a row missed obvious visual problems by giving vibe-level"
+  echo "verdicts (\"the form is dense\") instead of pointing at the specific"
+  echo "broken element. Strict mode forces you to NAME every section before"
+  echo "judging anything. You MUST complete every Stage in order. Do NOT skip"
+  echo "Stages A–C and jump straight to the 13 points — that's how the failure"
+  echo "mode happens."
+  echo ""
+  echo "Rule that applies to every Stage: every finding must point at a"
+  echo "specific named element. Whole-screen adjectives like \"looks clean\","
+  echo "\"feels dense\", \"a bit messy\" without an element name are NOT"
+  echo "acceptable findings — they are vibe-checks, not visual checks."
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "STAGE A — ELEMENT CENSUS (mandatory, do this first)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "Open the screen. Take a screenshot. Then list EVERY visible section"
+  echo "/ panel / row / card / button cluster, top-to-bottom, left-to-right."
+  echo "For each one write:"
+  echo "  • Name (e.g. \"Engineer progress band\", \"Bulk audio row\", \"Chapter list\")"
+  echo "  • One sentence: what's actually in it"
+  echo "  • Does it look like it belongs there as drawn? (yes / weird — say why)"
+  echo ""
+  echo "You may NOT proceed to Stage B until the Stage A list is written."
+  echo "Aim for 6–20 named sections per screen."
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "STAGE B — ORPHAN / ANOMALY HUNT (mandatory)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "Walk your Stage A list. For EACH section, answer:"
+  echo "  1. Does it have any element floating in empty space with no neighbour?"
+  echo "  2. Is anything off-centre relative to its label or column?"
+  echo "  3. Is anything tiny inside a huge empty area?"
+  echo "  4. Is any control unlabelled, or labelled twice, or with a label"
+  echo "     that mentions a different category (e.g. \"Narrator\" inside a"
+  echo "     Quill annotation form)?"
+  echo "  5. Is there a button or checkbox you couldn't explain to a stranger?"
+  echo ""
+  echo "If you find any → name BOTH the section AND the specific element."
+  echo "Example finding:"
+  echo "  ❌ Bulk audio row — the Import button sits tight against the chapter"
+  echo "     dropdown with no breathing room; no neighbour explains what it"
+  echo "     imports until you hover."
+  echo ""
+  echo "If you find none, you MUST write the literal sentence:"
+  echo "  \"No orphans found in the N sections I walked.\""
+  echo "(N = the count from Stage A.) Generic phrases like \"nothing stood"
+  echo "out\" are NOT acceptable — name the count."
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "STAGE C — STRANGER TEST (mandatory)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "If a stranger opened this screen for the first time, what is the"
+  echo "SINGLE WEIRDEST thing they'd notice? Name one specific element from"
+  echo "your Stage A list. Not \"the form is dense\". Not \"looks fine\"."
+  echo ""
+  echo "If the honest answer is \"nothing is weird\", you must defend it by"
+  echo "naming 3 specific elements that look professional and explaining"
+  echo "why each is good. \"Looks clean overall\" alone is not acceptable."
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "STAGE D — THE 13 POINTS (walk all of them, every finding NAMED)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "Now walk the 13 points. Each finding must reference a SPECIFIC"
+  echo "element from your Stage A list. Mark each ✓ pass / ⚠ minor / ❌ broken."
+  echo "If you give a verdict without naming the element, that's a failed"
+  echo "check — go back and name it."
+  echo ""
+  echo "1) FIRST IMPRESSION — clean, modern, calm? Purpose obvious at a glance?"
+  echo "   (Name 2 elements that contribute to the impression — good or bad.)"
+  echo ""
+  echo "2) SPACE USE — anything taking twice the space it needs? Wasted panels"
+  echo "   or headers? Tiny things floating in giant empty areas? Could the"
+  echo "   same job be done with less height or fewer boxes?"
+  echo "   (Name the worst offender by section.)"
+  echo ""
+  echo "3) CRAMPED AREAS — anything squeezed, overlapping, hard to scan?"
+  echo "   Buttons too close? Text has breathing room? Forms/menus/lists"
+  echo "   comfortable to read? (Name the cramped section.)"
+  echo ""
+  echo "4) ALIGNMENT — buttons/labels/fields/panels line up cleanly? Anything"
+  echo "   randomly placed? Consistent left edges, spacing, columns? Layout"
+  echo "   feels intentional? (Name the misaligned element if any.)"
+  echo ""
+  echo "5) VISUAL PRIORITY — most important thing easy to find? Primary"
+  echo "   actions stronger than secondary? Anything shouting that should be"
+  echo "   quiet, or faint when it matters? (Name the loudest and the"
+  echo "   most-important elements — compare them.)"
+  echo ""
+  echo "6) TEXT AND LABELS — short and clear? Wraps nicely? Long titles"
+  echo "   break the layout? Too much explanation on screen? Labels that"
+  echo "   mention the wrong category for this form? (Name the worst label.)"
+  echo ""
+  echo "7) LONG CONTENT — works with 1 item, 20 items, 100 items? Long"
+  echo "   titles, long names? Scrolling natural? (If you can't test live,"
+  echo "   mark uncertain — don't fake a verdict.)"
+  echo ""
+  echo "8) SMALL SCREENS — anything overflows on phone (375 wide)? Buttons"
+  echo "   tappable? Sticky headers/footers eating too much space? Layout"
+  echo "   stacks sensibly? Close X still visible? (Test at 375 wide.)"
+  echo ""
+  echo "9) CONTRAST / READABILITY — text easy to read? Important buttons"
+  echo "   visible enough? Anything too pale, tiny, low-contrast? Font"
+  echo "   size right for its area? (Name the faintest important thing.)"
+  echo ""
+  echo "10) CONSISTENCY — similar things look the same? Button styles"
+  echo "    consistent? Icon sizes consistent across the screen? Colours,"
+  echo "    spacing, borders, corners match the rest of the app? (Name"
+  echo "    any pair of similar things that look different.)"
+  echo ""
+  echo "11) TOOLTIP AND LAYERING — tooltips where needed and not clipped?"
+  echo "    Popups/dropdowns/menus stack in the right order? Anything hidden"
+  echo "    behind canvas, sidebar, modal, another panel?"
+  echo ""
+  echo "12) SCROLL BEHAVIOUR — scrolling feels natural? Sticky elements"
+  echo "    useful or just taking space? User can still see what they need"
+  echo "    while scrolling? Anything jumps unexpectedly?"
+  echo ""
+  echo "13) TIREDNESS — screen exhausting to look over? Too many boxes,"
+  echo "    borders, sections, competing elements? Could this be calmer"
+  echo "    with less decoration? Spacing tighter without becoming cramped?"
+  echo ""
+  echo "════════════════════════════════════════════════════════════════"
+  echo "STAGE E — REPORT FORMAT (mandatory)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo ""
+  echo "End the report with these exact lines:"
+  echo "  ✓ pass count: N"
+  echo "  ⚠ minor count: N"
+  echo "  ❌ broken count: N"
+  echo "  ? uncertain count: N"
+  echo "  Top 3 fixes worth doing (each must name a specific element)."
+  echo "  What I couldn't test live."
+  echo ""
+  echo "DO NOT write \"X% confidence\" — the no-self-cert Stop hook blocks"
+  echo "confidence percentages. Use plain words: \"fully checked\" /"
+  echo "\"code reads right but didn't run\" / \"didn't test\"."
+  echo ""
+  echo "FAILURE MODE TO AVOID: writing verdicts like \"the form is dense\","
+  echo "\"looks clean\", \"feels fine\" with no named element. That is what"
+  echo "let an orphan checkbox slip past two AIs. If your finding has no"
+  echo "element name, the check has failed and you must redo that point."
+  bash .claude/hooks/_log.sh "interface-trigger" "fired" "strict-mode 13-point checklist enforced"
 fi
 
-bash "$SCRIPT_DIR/_log.sh" "ui-check-trigger" "FIRED" "24-point checklist injected"
-
-# Echo the 24-point checklist back as a systemMessage so the model
-# can't proceed without walking every point. Project-neutral wording.
-cat <<'EOF'
-{"systemMessage":"USABILITY + INTERFACE CHECK (24 points, triggered).\n\nWalk EVERY numbered point on the feature you're working on right now. Report each as ✓ pass / ⚠ minor / ❌ broken with a short honest note. No self-certifying. If you cannot test a point (e.g. needs real auth), say so.\n\n🧭 USABILITY (12)\n1. MAIN GOAL — Can the user complete the goal in a natural order? Are steps clear from start to finish? Does the flow guide them or rush/drop them?\n2. EXPECTED BEHAVIOUR — Would a normal person get what they expect? Are button labels and next steps obvious? Anything surprising, hidden, or confusing?\n3. CLOSE / ESCAPE — Can popouts be closed easily? Clear × button, click-outside, Escape key? If they shouldn't close easily, is that because it's truly crucial?\n4. DATA SAFETY — If the user clicks away, closes, refreshes, or goes back — what happens? Is their work saved, drafted, or lost? Does the app warn first?\n5. ACCIDENTAL ACTIONS — Can they accidentally delete / overwrite / submit / cancel something important? Do destructive actions need confirmation? Can they undo?\n6. ERROR STATES — Plain English errors? Tells the user what to do next? Can they retry without starting over?\n7. EMPTY STATES — What does this look like with no data yet? Is the first useful action obvious? Does it avoid feeling broken?\n8. LOADING / WAITING — Spinner / disabled button / clear waiting state? Can the user tell if the app is working or stuck? Can they double-click and cause duplicates?\n9. RETURNING LATER — Is their place remembered? Are filters, drafts, tabs, or selections preserved? If state resets, is that expected and harmless?\n10. KEYBOARD / BASIC ACCESS — Can important actions be reached without awkward clicking? Enter submits when it makes sense? Escape closes popups? Focus placed sensibly when a popup opens?\n11. MOBILE COMMON SENSE — Would this flow still make sense on phone? Tappable buttons? Usable popups on small screens?\n12. MATCH THE APP — Does it behave like the rest of the app? Buttons, labels, flows, wording consistent? Feels like one app, not a bolted-on extra?\n\n🎨 INTERFACE (12)\n1. FIRST IMPRESSION — Clean, modern, calm? Is the purpose of the screen obvious at a glance?\n2. SPACE USE — Anything taking up twice the space it needs? Wasted panels / headers / empty areas?\n3. CRAMPED AREAS — Anything squeezed, overlapping, hard to scan? Buttons too close together? Text has breathing room?\n4. ALIGNMENT — Do buttons / labels / fields / panels line up cleanly? Consistent left edges, spacing, columns? Layout feels intentional?\n5. VISUAL PRIORITY — Most important thing easy to find? Primary actions stronger than secondary? Anything shouting that should be quiet, or too faint when it matters?\n6. TEXT AND LABELS — Short and clear? Text wraps nicely? Long titles / paragraphs don't break layout?\n7. LONG CONTENT — Long lists, long titles, 1 item vs 20 vs 100 — does scrolling feel natural?\n8. SMALL SCREENS — Anything overflows on phone / tablet? Buttons still tappable? Sticky headers / footers stealing too much space?\n9. CONTRAST / READABILITY — Text easy to read? Important buttons visible enough? Anything too pale, tiny, low-contrast?\n10. CONSISTENCY — Similar things look the same? Button styles consistent? Icons, colours, spacing, borders, corners consistent with the rest of the app?\n11. TOOLTIP AND LAYERING CHECK — If behaviour is not obvious, is there a small info hover or tooltip? Do tooltips appear above panels, menus, canvas areas, and other UI? Are tooltip boxes fully visible, not clipped or cut off? Do panels, popups, dropdowns, and menus stack in the correct order? Does anything disappear behind the canvas, sidebar, modal, or another panel?\n12. SCROLL BEHAVIOUR — Scrolling feels natural? Sticky elements useful or just taking space? User can still see what they need while scrolling? Anything jumps unexpectedly?\n13. TIREDNESS CHECK — Does the screen feel exhausting to look over? Too many boxes / borders / sections / competing elements? Could this be calmer with less decoration?\n\nAt the end, report a confidence percentage AND a list of what is still uncertain. Do not self-certify."}
-EOF
+exit 0

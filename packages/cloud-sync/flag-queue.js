@@ -107,6 +107,27 @@ export function hasFlagQueue(projectId) {
   return Object.keys(q.pending).length > 0 || Object.keys(q.deleted).length > 0;
 }
 
+// Total count of pending writes (saves + deletes) for a project. Used by
+// the phone's persistent "X flags waiting to sync" banner so Marie can
+// see when something's stuck.
+export function countFlagQueue(projectId) {
+  const q = loadFlagQueue(projectId);
+  return Object.keys(q.pending || {}).length + Object.keys(q.deleted || {}).length;
+}
+
+// Sum the queue counts across every project in storage — for a single
+// "X pending across all books" indicator.
+export function countAllFlagQueues() {
+  const store = readStore();
+  let total = 0;
+  Object.values(store || {}).forEach((b) => {
+    if (!b) return;
+    total += Object.keys(b.pending || {}).length;
+    total += Object.keys(b.deleted || {}).length;
+  });
+  return total;
+}
+
 // Fold the queue back into a freshly-pulled cloud book:
 //   • Pending flags get appended to their section (after the cloud's).
 //   • Deleted flag ids get filtered out of every section.

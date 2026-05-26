@@ -269,6 +269,13 @@ function clamp(value, min, max) {
 // book share the same local `id`, the one with the newer updated time
 // wins, but we always preserve the cloudId so subsequent pushes update
 // the same row instead of creating a duplicate.
+//
+// IMPORTANT: audio paths are stripped on every upload (audio-guard
+// keeps audio off Supabase). So the cloud copy NEVER has audioPath /
+// audioPaths. When the cloud version wins on time (e.g. after a flag
+// saved on the phone), we splice the local audioPath / audioPaths back
+// in by matching section.id — otherwise Marie's audio attachments get
+// wiped on every cloud-newer pull.
 function mergeProofBookLists(localBooks, cloudBooks) {
   const byId = new Map((localBooks || []).map((b) => [b.id, b]));
   for (const cb of cloudBooks || []) {
@@ -281,12 +288,41 @@ function mergeProofBookLists(localBooks, cloudBooks) {
     const localTime = Number(existing.updatedAt) || 0;
     const cloudTime = Date.parse(cb.updatedAt) || 0;
     if (cloudTime > localTime) {
-      byId.set(cb.id, { ...cb, cloudId: cb.cloudId });
+      byId.set(cb.id, mergePreservingLocalAudio(existing, cb));
     } else {
       byId.set(cb.id, { ...existing, cloudId: cb.cloudId || existing.cloudId });
     }
   }
   return Array.from(byId.values());
+}
+
+// When cloud wins on time, take the cloud book but overlay the local
+// audioPath / audioPaths / audioDurationCache so the user's audio
+// attachments survive every cloud sync. (Audio never travels to the
+// cloud — only the filename does.)
+function mergePreservingLocalAudio(localBook, cloudBook) {
+  const localSectionsById = new Map();
+  (localBook?.chapters || []).forEach((ch) => {
+    (ch.sections || []).forEach((sec) => {
+      if (sec?.id) localSectionsById.set(sec.id, sec);
+    });
+  });
+  return {
+    ...cloudBook,
+    cloudId: cloudBook.cloudId,
+    audioDurationCache: localBook?.audioDurationCache || cloudBook?.audioDurationCache,
+    chapters: (cloudBook.chapters || []).map((ch) => ({
+      ...ch,
+      sections: (ch.sections || []).map((sec) => {
+        const localSec = sec?.id ? localSectionsById.get(sec.id) : null;
+        if (!localSec) return sec;
+        const merged = { ...sec };
+        if (localSec.audioPath !== undefined) merged.audioPath = localSec.audioPath;
+        if (localSec.audioPaths !== undefined) merged.audioPaths = localSec.audioPaths;
+        return merged;
+      }),
+    })),
+  };
 }
 
 export default function Home() {

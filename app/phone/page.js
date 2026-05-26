@@ -871,8 +871,12 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
       const list = await Promise.race([pullProofProjects(supabase), timeout]);
       setBooks((current) => {
         if (list?.length) {
-          if (session?.user?.id) writePhoneProjectCache('script', session.user.id, list);
-          return list;
+          // Fold any queued offline saves / deletes into the freshly
+          // pulled cloud books so we never overwrite Marie's pending
+          // local work with the (stale) cloud version.
+          const merged = list.map((b) => b?.cloudId ? applyFlagQueueToBook(b.cloudId, b) : b);
+          if (session?.user?.id) writePhoneProjectCache('script', session.user.id, merged);
+          return merged;
         }
         if (!current?.length && session?.user?.id) {
           writePhoneProjectCache('script', session.user.id, []);
@@ -880,6 +884,19 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
         return current;
       });
       lastRefreshAtRef.current = Date.now();
+      // After the pull lands, retry any cloud writes that failed
+      // earlier. Single-flight per project — won't fan out duplicates.
+      if (session?.user?.id) {
+        (list || []).forEach((b) => {
+          if (!b?.cloudId) return;
+          retryFlagQueue(b.cloudId, {
+            supabase,
+            ownerId: session.user.id,
+            upsertFn: upsertProofFlag,
+            deleteFn: deleteProofFlag,
+          });
+        });
+      }
     } catch (e) {
       setError(e?.message || 'Could not load projects.');
     } finally {

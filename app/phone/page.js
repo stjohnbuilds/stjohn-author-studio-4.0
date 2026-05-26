@@ -1552,6 +1552,8 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
     setIsPlaying(false);
     setTime(0);
     if (currentTimeRef) currentTimeRef.current = 0;
+    // Clear any per-section override so re-entering doesn't restore it.
+    if (onManualPickAudio) onManualPickAudio(null);
   }
 
   const ink = tone.ink || PROOF_INK;

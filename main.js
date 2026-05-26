@@ -79,6 +79,28 @@ function uniquePaths(paths) {
   return [...new Set(paths.filter(Boolean))];
 }
 
+// Marie 2026-05-26: every export should suggest a fresh filename when one
+// already exists in the same folder — no more "Anarchy.csv already exists.
+// Replace?" prompts. Given a desired absolute path, return one that does
+// NOT collide by appending " (1)", " (2)", etc. before the extension.
+// Works for files and folders.
+function uniqueExportPath(targetPath) {
+  if (!targetPath) return targetPath;
+  try {
+    if (!fs.existsSync(targetPath)) return targetPath;
+    const dir = path.dirname(targetPath);
+    const ext = path.extname(targetPath);
+    const base = path.basename(targetPath, ext);
+    for (let i = 1; i < 1000; i += 1) {
+      const candidate = path.join(dir, `${base} (${i})${ext}`);
+      if (!fs.existsSync(candidate)) return candidate;
+    }
+    return targetPath;
+  } catch {
+    return targetPath;
+  }
+}
+
 function getGoogleDriveCandidates() {
   const home = app.getPath('home');
   const candidates = [];

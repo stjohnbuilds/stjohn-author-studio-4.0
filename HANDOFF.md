@@ -122,6 +122,14 @@ buttons did nothing on real files. We're not doing that again.
 
 ## 6. TOP 5 NEXT JOBS
 
+### ⭐ Job 0 — Walk the FINAL ROUND checklist
+
+`dev/active/FINAL-ROUND-checklist.md` (created 2026-05-26). Part A
+is Marie's hands-on across every mode with real files. Part B is
+Claude's deep dive (Supabase round-trip, edge cases, code health,
+hook health). Part C is the watch list. When that's all ticked,
+this app is done. Everything else below this line is older.
+
 ### Job 1 — Re-run the 26-test plan from scratch ⚠️ Marie + Easy
 
 The full plan lives in

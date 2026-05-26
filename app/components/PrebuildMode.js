@@ -1098,31 +1098,51 @@ export default function PrebuildMode({ modeToggle = null }) {
       id: proj.id,
       title: proj.title,
       fileName: proj.fileName || '',
-      chapters: chapters.map(ch => ({
-        id: ch.id,
-        title: ch.title,
-        chapterTitle: ch.title,
-        sections: [{
-          id: ch.id,
-          title: ch.title,
-          html: ch.html || ch.textHtml || '',
-          // Duet's ch.audioFile is a string (the file name) in most code
-          // paths, but historic code wrote it as { name } objects. Handle
-          // both so a mix of old + new project data still shows the name.
-          audioFileName: (typeof ch.audioFile === 'string' ? ch.audioFile : ch.audioFile?.name) || null,
-          audioPath: ch.audioPath || null,
-          audioPaths: ch.audioPaths || null,
-          flags: [],
-          // Manual tick overrides auto-scanned signal — so Marie can
-          // mark a chapter done even if it hasn't been scanned, or
-          // un-mark a scanned chapter she wants to revisit.
-          completed: typeof ch.completed === 'boolean' ? ch.completed : !!ch.scanned,
-          characterName: null,
-          narratorName: null,
-          chapterTitle: ch.title,
-          isFirstSectionInChapter: true,
-        }],
-      })),
+      // Marie 2026-05-26: when a Duet import splits on H2 sub-headings
+      // (defaultSplitScenes=true), each H2 scene becomes a separate flat
+      // entry in `chapters` with the same `splitGroup` as its siblings.
+      // Group them back into one parent chapter with multiple sections so
+      // the Split toggle on book detail actually shows scene rows. Without
+      // this, SessionsView tries to derive scenes by re-finding H2s in the
+      // section HTML — but the parser already consumed those H2s during
+      // import, so nothing renders.
+      chapters: (() => {
+        const groups = [];
+        let current = null;
+        for (const ch of chapters) {
+          const groupKey = ch.splitGroup != null ? `g:${ch.splitGroup}` : `c:${ch.id}`;
+          if (!current || current.key !== groupKey) {
+            current = { key: groupKey, parent: ch, items: [] };
+            groups.push(current);
+          }
+          current.items.push(ch);
+        }
+        return groups.map(group => ({
+          id: group.parent.id,
+          title: group.parent.parentTitle || group.parent.title,
+          chapterTitle: group.parent.parentTitle || group.parent.title,
+          sections: group.items.map((ch, i) => ({
+            id: ch.id,
+            title: ch.title,
+            html: ch.html || ch.textHtml || '',
+            // Duet's ch.audioFile is a string (the file name) in most code
+            // paths, but historic code wrote it as { name } objects. Handle
+            // both so a mix of old + new project data still shows the name.
+            audioFileName: (typeof ch.audioFile === 'string' ? ch.audioFile : ch.audioFile?.name) || null,
+            audioPath: ch.audioPath || null,
+            audioPaths: ch.audioPaths || null,
+            flags: [],
+            // Manual tick overrides auto-scanned signal — so Marie can
+            // mark a chapter done even if it hasn't been scanned, or
+            // un-mark a scanned chapter she wants to revisit.
+            completed: typeof ch.completed === 'boolean' ? ch.completed : !!ch.scanned,
+            characterName: null,
+            narratorName: null,
+            chapterTitle: ch.title,
+            isFirstSectionInChapter: i === 0,
+          })),
+        }));
+      })(),
       narratorColors: [],
     };
 

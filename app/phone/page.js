@@ -1003,6 +1003,19 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     return sections.find((s) => s.id === activeSectionId) || sections[0];
   }, [activeChapter, activeSectionId]);
 
+  // Last-touched-first ordering: sort by updatedAt desc so the book Marie
+  // just flagged on the phone shows up at the top of the list. Must sit
+  // up here with the other hooks — if it's below the early returns for
+  // activeChapter / activeBook, React's hook count flips between
+  // renders ("rendered fewer hooks than expected").
+  const sortedBooks = useMemo(() => {
+    return [...(books || [])].sort((a, b) => {
+      const at = Date.parse(a?.updatedAt || '') || 0;
+      const bt = Date.parse(b?.updatedAt || '') || 0;
+      return bt - at;
+    });
+  }, [books]);
+
   function pushBook(nextBook) {
     setBooks((all) => {
       const next = all.map((b) => b.id === nextBook.id ? nextBook : b);

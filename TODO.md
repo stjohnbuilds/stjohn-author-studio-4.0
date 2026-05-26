@@ -1,11 +1,10 @@
 # TODO — StJohn Author Studio 4.0
 
-Active and archived tasks. Cleaned up after the overnight 2026-05-24
-session. New work goes under **Active**. Completed work moves to
-**Archived** with a date.
+Active and archived tasks. New work goes under **Active**. Completed
+work moves to **Archived** with a date.
 
-Format: `- [x] Task name — completed YYYY-MM-DD`. Never leave a task as
-2–3 words. Add context.
+Format: `- [x] Task name — completed YYYY-MM-DD`. Never leave a task
+as 2–3 words. Add context.
 
 Always read `HANDOFF.md` first, then this file.
 
@@ -13,7 +12,24 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
-### Marie's testing checklist (do these in order)
+### ⭐ PRIMARY — Final round bug-fix assessment
+
+**The active checklist lives in
+`dev/active/FINAL-ROUND-checklist.md`** (created 2026-05-26).
+
+Part A is hands-on for Marie (every mode, real books, real audio).
+Part B is the deep dive for Claude (cloud round-trip, edge cases,
+code health, hook health). Part C is the watch list.
+
+When this checklist is fully ticked, archive it under `dev/archive/`
+with the run date and open a fresh TODO.md.
+
+Everything below this line was the OLD active list, kept here for
+context until the final-round walkthrough closes.
+
+---
+
+### OLD — Marie's testing checklist (superseded by FINAL-ROUND-checklist.md)
 
 - [x] **Sign in** — completed 2026-05-25. Supabase project
       `evcusovtjfypfyfvnooy` wired; Marie signs in with her existing

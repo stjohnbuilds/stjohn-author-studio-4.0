@@ -1321,6 +1321,14 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     if (!pageRaw && pageRaw !== '0') {
       setToast('Saved without a page number — the manuscript may not have a page map yet.');
     }
+    // Prefer single-row flag save (won't clobber desktop's other
+    // flags). Fall back to onSaveBook only if the parent didn't wire
+    // the flag-specific callback.
+    if (onSaveFlag) {
+      onSaveFlag(flag);
+      clearSelection();
+      return;
+    }
     const nextBook = {
       ...book,
       chapters: (book.chapters || []).map((ch) => ch.id !== chapter.id ? ch : ({

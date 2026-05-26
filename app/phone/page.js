@@ -280,6 +280,13 @@ function PhoneApp({ session, onSignOut }) {
   const [service, setService] = useState(null); // null | 'quill' | 'script'
   const [readerSettings, setReaderSettings] = useState(DEFAULT_PHONE_READER_SETTINGS);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Phone audio state lives HERE (the long-lived shell) so going to
+  // Choose-a-service and back doesn't drop the audio connection.
+  // Marie complained: "When I go back home, it disconnects all the audio
+  // on the phone app." Fix: parent owns it, ScriptPhoneService just
+  // reads + writes via props.
+  const [audioFilesByBook, setAudioFilesByBook] = useState({});
+  const [audioSectionOverride, setAudioSectionOverride] = useState({});
 
   // Load persisted settings once on mount.
   useEffect(() => {

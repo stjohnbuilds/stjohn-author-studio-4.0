@@ -1220,7 +1220,19 @@ export default function Home() {
   if (appMode === 'quill') {
     return (
       <div style={{ ...modeAccentVars('quill'), minHeight:'100vh' }}>
-        <ProfilePill tone="quill" email={authSession?.user?.email || ''} onSignOut={handleSignOut} usesCustomDragRegion={usesCustomDragRegion} />
+        <SettingsCog
+          mode="quill"
+          authEmail={authSession?.user?.email || ''}
+          onSignOut={handleSignOut}
+          isOpen={settingsOpen}
+          onToggle={() => setSettingsOpen(open => !open)}
+          onClose={() => setSettingsOpen(false)}
+          isElectron={isElectron}
+          tutorialEnabled={tutorialEnabled}
+          onTutorialEnabledChange={handleTutorialEnabledChange}
+          onRestartTutorial={restartTutorial}
+          showTutorialHint={false}
+        />
         <QuillAndInkMode
           modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
           usesCustomDragRegion={usesCustomDragRegion}

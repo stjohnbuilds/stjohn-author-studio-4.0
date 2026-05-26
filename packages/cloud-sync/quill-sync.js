@@ -172,6 +172,17 @@ export async function pullQuillProjects(supabase) {
   }
 
   return projects.map((p) => {
+    // The quill_chapters table doesn't have a `completed` column, but
+    // each chapter's `completed` flag IS in the desktop_project blob
+    // (slimProjectForCloud preserves it). Merge it back so the chapter
+    // tick syncs phone ↔ desktop without needing a schema migration.
+    const desktopBlob = (p.desktop_project && typeof p.desktop_project === 'object') ? p.desktop_project : null;
+    const completedById = new Map();
+    for (const dch of (desktopBlob?.chapters || [])) {
+      if (dch?.id && typeof dch.completed === 'boolean') {
+        completedById.set(dch.id, dch.completed);
+      }
+    }
     const projectChapters = (chaptersByProject.get(p.id) || [])
       .sort((a, b) => a.position - b.position)
       .map((ch) => ({
@@ -182,6 +193,7 @@ export async function pullQuillProjects(supabase) {
         plainText: ch.plain_text,
         textHtml: ch.text_html,
         audioFileName: ch.audio_file_name || '',
+        completed: completedById.has(ch.local_id) ? completedById.get(ch.local_id) : false,
       }));
     // Map cloud chapter UUID back to local id for annotations.
     const localIdByCloud = new Map(projectChapters.map((c) => [c.cloudId, c.id]));

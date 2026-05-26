@@ -4,6 +4,10 @@
 // Only the file *name* may travel up (so the phone can match a local
 // audio file by name). Anything that looks like a path, blob, or URL
 // gets stripped before the payload reaches the network.
+//
+// NOTE: this only deals with audio bytes/paths. To also trim per-cloud
+// duplicate data (flags + whisper alignment that's already in dedicated
+// tables), use slimBookForCloud / slimProjectForCloud in `cloud-slim.js`.
 
 const AUDIO_PATH_KEYS = new Set([
   'audioPath',

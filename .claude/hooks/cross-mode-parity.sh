@@ -70,14 +70,16 @@ for mf in "${MODE_FILES[@]}"; do
   if [ -n "$hits" ]; then
     file_warnings=""
     while IFS= read -r line; do
-      # Skip if the line itself OR the immediately preceding line is
-      # tagged "// intentional:" (or "/* intentional:") — that's how
-      # deliberate stubs are exempt from the warning. Forces a code
-      # comment explaining WHY, not just a silent stub.
+      # Skip if the line itself OR any of the 5 preceding lines contains
+      # "// intentional:" — that's how deliberate stubs are exempt from
+      # the warning. Forces a code comment explaining WHY, not a silent
+      # stub. 5-line lookback so one comment can cover a small cluster
+      # of related stubs (e.g. all 3 persistent-audio handlers).
       lineno=$(echo "$line" | cut -d: -f1)
-      prev=$((lineno - 1))
+      start=$((lineno - 5))
+      [ "$start" -lt 1 ] && start=1
       if echo "$line" | grep -qE 'intentional:' \
-        || sed -n "${prev}p" "$mf" 2>/dev/null | grep -qE 'intentional:'; then
+        || sed -n "${start},${lineno}p" "$mf" 2>/dev/null | grep -qE 'intentional:'; then
         continue
       fi
       file_warnings+="\n    $line"

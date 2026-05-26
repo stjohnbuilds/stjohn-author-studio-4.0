@@ -134,6 +134,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
     await supabase.from('quill_annotations').delete().eq('project_id', cloudProjectId);
   }
 
+  lastPushHashByCloudId.set(cloudProjectId, compositeHash);
   return cloudProjectId;
 }
 

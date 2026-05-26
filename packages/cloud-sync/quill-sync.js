@@ -14,6 +14,11 @@
 // matching). No paths, no blobs, no base64.
 
 import { stripAudioPaths } from './audio-guard.js';
+import { slimProjectForCloud } from './cloud-slim.js';
+
+// Same hash-gate pattern as proof-sync: skip no-op pushes when nothing
+// meaningful has changed since the last upload.
+const lastPushHashByCloudId = new Map();
 
 export async function pushQuillProject(supabase, project, ownerId) {
   if (!supabase) throw new Error('Supabase client missing.');
@@ -21,6 +26,17 @@ export async function pushQuillProject(supabase, project, ownerId) {
   if (!project?.id) throw new Error('Project id missing.');
 
   const clean = stripAudioPaths(project);
+  // Strip annotations + chapter alignment from desktop_project — both
+  // are stored in dedicated tables.
+  const slimProject = slimProjectForCloud(clean);
+  const projectHash = hashString(JSON.stringify(slimProject));
+  const annotationsHash = hashString(JSON.stringify(
+    (clean.annotations || []).map((a) => ({ i: a.id, c: a.classId, o: a.optionId, w: a.wordStart, e: a.wordEnd, n: a.note, t: a.timestamp }))
+  ));
+  const compositeHash = `${projectHash}|${annotationsHash}|${(clean.chapters || []).length}`;
+  if (clean.cloudId && lastPushHashByCloudId.get(clean.cloudId) === compositeHash) {
+    return clean.cloudId; // nothing changed
+  }
 
   // 1) Upsert the project row.
   const { data: projectRow, error: projectErr } = await supabase
@@ -30,8 +46,8 @@ export async function pushQuillProject(supabase, project, ownerId) {
       owner_id: ownerId,
       title: clean.title || 'Untitled',
       ready: true,
-      desktop_project: clean,
-      project_hash: hashString(JSON.stringify(clean)),
+      desktop_project: slimProject,
+      project_hash: projectHash,
       annotation_options: clean.annotationOptions || [],
       phone_settings: clean.phoneSettings || {},
       updated_at: new Date().toISOString(),

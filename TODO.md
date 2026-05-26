@@ -78,11 +78,14 @@ Always read `HANDOFF.md` first, then this file.
       first deploy ready. Both `/` and `/phone` return 200. —
       completed 2026-05-25
 
-- [x] **Phone IS the root on Vercel.** Added `vercel.json` with a
-      `/` → `/phone` REWRITE (not redirect) so the phone shows at
-      the root URL without bouncing. URL bar stays clean. Electron
-      still serves the desktop UI at `/` locally — it doesn't read
-      `vercel.json`. — completed 2026-05-26
+- [x] **Phone IS the root on Vercel.** Added build-time swap script
+      `scripts/vercel-root-to-phone.js` that copies the phone HTML
+      over `out/index.html` when `VERCEL=1`. URL bar stays as `/`,
+      no bounce, no redirect. Electron's release scripts call
+      `next build` directly so the swap doesn't run there — Electron
+      keeps the desktop UI at `/`. (First attempt used `vercel.json`
+      rewrites but static-export `index.html` was served before the
+      rewrite could apply.) — completed 2026-05-26
 
 - [ ] **Audio sync in Quill desktop reader.** Optional. Quill works
       without audio. If Marie wants audio while annotating on the

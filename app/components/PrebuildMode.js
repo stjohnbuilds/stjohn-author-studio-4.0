@@ -1101,8 +1101,12 @@ export default function PrebuildMode({ modeToggle = null }) {
           id: ch.id,
           title: ch.title,
           html: ch.html || ch.textHtml || '',
-          audioFileName: ch.audioFile?.name || null,
+          // Duet's ch.audioFile is a string (the file name) in most code
+          // paths, but historic code wrote it as { name } objects. Handle
+          // both so a mix of old + new project data still shows the name.
+          audioFileName: (typeof ch.audioFile === 'string' ? ch.audioFile : ch.audioFile?.name) || null,
           audioPath: ch.audioPath || null,
+          audioPaths: ch.audioPaths || null,
           flags: [],
           // Manual tick overrides auto-scanned signal — so Marie can
           // mark a chapter done even if it hasn't been scanned, or

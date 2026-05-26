@@ -22,7 +22,8 @@
       {
         "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "bash .claude/hooks/file-tracker.sh" }
+          { "type": "command", "command": "bash .claude/hooks/file-tracker.sh" },
+          { "type": "command", "command": "bash .claude/hooks/cross-mode-parity.sh", "timeout": 15 }
         ]
       }
     ],

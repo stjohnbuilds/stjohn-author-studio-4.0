@@ -1157,7 +1157,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
 // ScriptChapterView — reader + flag popover + audio dock with sync.
 // ---------------------------------------------------------------------------
 
-function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onSwitchSection, onOpenSettings, onSaveBook, presetAudioFile = null, onManualPickAudio = null }) {
+function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onSwitchSection, onOpenSettings, onSaveBook, onSaveFlag, onRemoveFlag, presetAudioFile = null, onManualPickAudio = null }) {
   const sections = chapter.sections || [];
   const html = sectionHtml(section);
   const plainText = useMemo(() => sectionPlainText(section), [section]);

@@ -609,7 +609,14 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         const persistedAudioPath = getChapterStoredAudioPath(ch) || '';
         const persistedAudioPaths = ch.audioPaths || null;
         const sectionHtml = ch.textHtml || ch.html || '';
-        const fallbackAudioKey = persistedAudioPath || persistedAudioName || '';
+        // Marie 2026-05-26 — match SessionsView.getSectionAudioKey
+        // format exactly (`path:<storedPath>` or `name:<normText>`),
+        // otherwise SessionsView's isChapterTranscriptionCurrent
+        // rejects the chapter and the ✓ Synced tick vanishes.
+        const normalizedFallbackName = String(persistedAudioName || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        const fallbackAudioKey = persistedAudioPath
+          ? `path:${persistedAudioPath}`
+          : (normalizedFallbackName ? `name:${normalizedFallbackName}` : '');
         const fallbackTextHash = hashText(sectionHtml);
         return {
           id: ch.id,

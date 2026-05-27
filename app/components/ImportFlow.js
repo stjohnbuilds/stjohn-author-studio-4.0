@@ -449,6 +449,7 @@ export default function ImportFlow({
       // store this on the project so page numbers work in flags + exports.
       pdfPaging,
       pdfFileName,
+      pdfSource, // 'user-pdf' | 'libreoffice' | null
     });
   }
 

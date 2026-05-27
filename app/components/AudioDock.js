@@ -99,14 +99,12 @@ export default function AudioDock({
           </div>
         )}
         {audioUrl ? (
+          // Marie 2026-05-26: `controlsList` hides the native 3-dot
+          // overflow menu (which is where the misleading "2x speed cap"
+          // lives — macOS browsers cap their built-in speed menu at 2x,
+          // and Marie kept seeing that as our limit). Our own Speed
+          // slider below the bar goes to 4x.
           <audio
-            ref={audioRef}
-            src={audioUrl}
-            // Marie 2026-05-26: `controlsList` hides the native 3-dot
-            // overflow menu (which is where the misleading "2x speed
-            // cap" lives — macOS browsers cap their built-in speed menu
-            // at 2x, and Marie kept seeing that as our limit). Our own
-            // Speed slider below the bar goes to 4x.
             ref={audioRef}
             src={audioUrl}
             controls

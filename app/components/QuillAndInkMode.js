@@ -1468,24 +1468,28 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
 	            label={audioFileName || ''}
 	            rightActions={syncTable && syncTable.length >= 4 ? (
 	              <>
-	                <span
-	                  title="This chapter has a saved transcription alignment."
+	                {/* Marie 2026-05-26: matches Proof's "T" transcription
+	                    toggle exactly. Replaces the old passive ✓ Synced
+	                    badge. ON = current word follows audio playback;
+	                    OFF = audio scrubs by time only. */}
+	                <button
+	                  type="button"
+	                  onClick={() => setUseWhisperSync((v) => !v)}
+	                  title={useWhisperSync ? 'Transcription on. Click to turn it off.' : 'Transcription off. Click to turn it on.'}
 	                  style={{
-	                    display: 'inline-flex',
-	                    alignItems: 'center',
-	                    minHeight: 31,
-	                    padding: '6px 10px',
+	                    width: 38,
+	                    height: 38,
+	                    border: '1px solid ' + (useWhisperSync ? '#8fbf8f' : 'var(--border)'),
 	                    borderRadius: 999,
-	                    background: 'rgba(255,255,255,0.96)',
-	                    border: '1px solid var(--accent-border-strong)',
-	                    color: 'var(--accent-dark)',
-	                    fontSize: '0.72rem',
-	                    fontWeight: 800,
-	                    whiteSpace: 'nowrap',
+	                    background: useWhisperSync ? '#e7f6e7' : 'white',
+	                    fontSize: '0.82rem',
+	                    fontWeight: 700,
+	                    cursor: 'pointer',
+	                    color: useWhisperSync ? '#2b7a2b' : 'var(--text-muted)',
 	                  }}
 	                >
-	                  ✓ Synced
-	                </span>
+	                  T
+	                </button>
 	                <button
 	                  type="button"
 	                  onClick={() => setFollowText((v) => !v)}

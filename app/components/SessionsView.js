@@ -547,6 +547,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       })),
     })));
     setEditExpandedChapters({});
+    setEditPageNudge(Number(book.pageNumberAdjustment) || 0);
     setShowSceneRows(audioUploadMode === 'scene');
     setDurationCache(book.audioDurationCache || {});
     durationProbeRef.current = {};

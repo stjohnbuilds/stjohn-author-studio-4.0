@@ -824,7 +824,15 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const adjustment = Number(pageNumberAdjustment) || 0;
 
     if (pdfMatch?.pageNumber) {
-      return String(pdfMatch.pageNumber + adjustment);
+      // Marie 2026-05-26 bug fix: when the PDF lookup found a page whose
+      // number was DETECTED from the printed footer, that number is
+      // already the user's printed page — adding `adjustment` on top
+      // double-counts and gives wrong answers (her test showed p.16
+      // returning as p.4 because -12 was being added to a printed 16).
+      // Only apply the user nudge when the PDF page number was inferred
+      // (no detected footer) — in that case the nudge is helping.
+      const safeAdjustment = pdfMatch.source === 'printed' ? 0 : adjustment;
+      return String(pdfMatch.pageNumber + safeAdjustment);
     }
 
     // Marie 2026-05-26: PDF quote-search is a fragile shortcut; the

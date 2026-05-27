@@ -271,6 +271,14 @@ export default function ImportFlow({
   // Same docx import flow, just with a more accurate page anchor.
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfBytes, setPdfBytes] = useState(null);
+  // Pre-scanned PDF paging (when user has uploaded a PDF) + the editable
+  // page-number adjustment with the auto-detected default. We pre-scan
+  // user PDFs immediately on upload so the user can see + adjust the
+  // suggested shift BEFORE clicking Save. For the docx-only LibreOffice
+  // path the scan runs on commit (too slow to block on upload).
+  const [preScannedPdfPaging, setPreScannedPdfPaging] = useState(null);
+  const [currentAdjustment, setCurrentAdjustment] = useState(0);
+  const [hasScanned, setHasScanned] = useState(false);
 
   const accentColor = accent || 'var(--accent)';
   const primaryBtn = {

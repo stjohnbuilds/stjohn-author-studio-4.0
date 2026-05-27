@@ -579,16 +579,20 @@ export default function ImportFlow({
               The default (LibreOffice auto-convert) drifts ±1-2 pages on
               long books because the rendering engines differ. If the user
               has the PDF downloaded from the same Google Doc, that PDF
-              IS what their narrators read from, so it gives exact pages. */}
+              IS what their narrators read from, so it gives exact pages.
+              Marie 2026-05-26 (refresh): the upload area now looks like
+              a real upload panel — big icon, "Click to choose or drop"
+              wording — instead of just an info row. */}
           {fullHtml && (
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: 12 }}>
               {pdfFile ? (
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', background: '#eaf5ec', borderRadius: 10,
+                  padding: '10px 14px', background: '#eaf5ec', borderRadius: 12,
                   border: '1px solid #b9d6bf', gap: 10,
                 }}>
-                  <span style={{ fontSize: '0.78rem', color: '#3d7a4a', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1.1rem' }}>📕</span>
+                  <span style={{ flex: 1, fontSize: '0.82rem', color: '#3d7a4a', fontWeight: 600, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     ✓ {pdfFile.name} — page numbers will come from this PDF
                   </span>
                   <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>
@@ -600,18 +604,18 @@ export default function ImportFlow({
                 </div>
               ) : (
                 <label style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', borderRadius: 10,
-                  border: '1px dashed var(--accent-border)', background: 'rgba(255,255,255,0.5)',
-                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                  padding: '18px 16px', borderRadius: 14,
+                  border: '2px dashed var(--accent-border)', background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.85) 100%)',
+                  cursor: 'pointer', gap: 6,
                 }}>
-                  <span style={{ fontSize: '1rem' }}>📄</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>Optional: upload the PDF for exact page numbers</span>
-                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Download the same Google Doc as PDF and drop it here. Without it, page numbers come from LibreOffice and may drift ±1-2 pages on long books.
-                    </span>
-                  </span>
+                  <div style={{ fontSize: '1.8rem', lineHeight: 1 }}>⬆️</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text)' }}>
+                    Optional — click to upload the matching PDF
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', maxWidth: 460, lineHeight: 1.4 }}>
+                    For exact page numbers, download the same Google Doc as PDF and add it here. Without it, page numbers come from a software conversion and may drift ±1-2 pages on long books.
+                  </div>
                   <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
                     onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
                 </label>

@@ -50,6 +50,7 @@ import {
 // One shared upload + chapter-picker for every mode. Replaces Prep's old
 // inline SetupView + Duet's PrebuildManuscriptUpload.
 import ImportFlow from './ImportFlow.js';
+import { buildSlimPageMap, extractManuscriptWordsFromHtml } from '../lib/pdfPaging.js';
 
 const TONE = 'prep';
 const PASTEL_PREP = MODE_TOKENS.prep.pastel;

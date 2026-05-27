@@ -582,7 +582,10 @@ export default function ImportFlow({
                 onChange={(e) => e.target.files?.[0] && handleDocx(e.target.files[0])} />
               {loading ? (
                 <>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+                  <svg width="22" height="22" viewBox="0 0 24 24" style={{ marginBottom: 8, color: 'var(--text-muted)', animation: 'ap-spin 0.9s linear infinite', display: 'block' }} aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.18" strokeWidth="1.5" fill="none" />
+                    <path d="M21 12 A9 9 0 0 0 12 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                  </svg>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Reading your manuscript…</p>
                 </>
               ) : (

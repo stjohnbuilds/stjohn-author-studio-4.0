@@ -300,3 +300,117 @@ export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
 
   return null;
 }
+
+// Marie 2026-05-26: the slim word-index → printed-page map. Built once
+// at PDF import; the ONLY thing we keep from the heavy `pdfPaging.pages`
+// array (which we strip from cloud uploads). Replaces the fragile
+// quote-search approach with a deterministic lookup.
+//
+// Returns an array of { wordStart, pageNumber } anchors, sorted by
+// wordStart. To look up "what page is word #N on?", find the last
+// anchor whose wordStart <= N.
+
+function tokenizeForMatch(text) {
+  // Same token rule as the reader: lowercase, alphanumeric + apostrophe.
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .match(/[a-z0-9']+/g) || [];
+}
+
+export function extractManuscriptWordsFromHtml(html) {
+  if (!html) return [];
+  const text = String(html)
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return tokenizeForMatch(text);
+}
+
+function findWordSequence(haystack, needle, startIdx) {
+  if (!needle.length || !haystack.length) return -1;
+  const end = haystack.length - needle.length;
+  for (let i = Math.max(0, startIdx); i <= end; i += 1) {
+    let match = true;
+    for (let j = 0; j < needle.length; j += 1) {
+      if (haystack[i + j] !== needle[j]) { match = false; break; }
+    }
+    if (match) return i;
+  }
+  return -1;
+}
+
+export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
+  if (!Array.isArray(pdfPages) || !pdfPages.length) return [];
+  const manuscriptWords = Array.isArray(manuscriptHtmlOrWords)
+    ? manuscriptHtmlOrWords.map((w) => tokenizeForMatch(w)[0] || '')
+    : extractManuscriptWordsFromHtml(manuscriptHtmlOrWords);
+  if (!manuscriptWords.length) return [];
+
+  const map = [{ wordStart: 0, pageNumber: Number(pdfPages[0]?.pageNumber) || 1 }];
+  let cursor = 0;
+
+  // Anchor length: 5 words is usually unique enough but short enough to
+  // survive a typo or line-wrap weirdness from pdf.js extraction. Skip
+  // pure-digit tokens (page-number footers we don't want to match).
+  const ANCHOR_LEN = 5;
+
+  for (const page of pdfPages) {
+    const pageNumber = Number(page?.pageNumber) || null;
+    if (!pageNumber) continue;
+
+    const pageWords = tokenizeForMatch(page.normalizedText || '')
+      .filter((w) => !/^\d+$/.test(w) && w.length >= 2);
+    if (pageWords.length < ANCHOR_LEN) continue;
+
+    // Try the first ANCHOR_LEN words; if they don't match, slide forward
+    // a few times — sometimes a chapter title at the top is wrapped /
+    // duplicated and the body text starts a few words in.
+    let foundIdx = -1;
+    for (let attempt = 0; attempt < 4 && foundIdx < 0; attempt += 1) {
+      const offset = attempt * 2;
+      if (offset + ANCHOR_LEN > pageWords.length) break;
+      const anchor = pageWords.slice(offset, offset + ANCHOR_LEN);
+      foundIdx = findWordSequence(manuscriptWords, anchor, cursor);
+    }
+
+    if (foundIdx < 0) continue; // skip pages we can't pin to a word
+    const last = map[map.length - 1];
+    if (!last || foundIdx > last.wordStart || pageNumber !== last.pageNumber) {
+      map.push({ wordStart: foundIdx, pageNumber });
+    }
+    cursor = foundIdx;
+  }
+
+  // Dedupe + sort by wordStart, preferring later anchors on ties.
+  const sorted = map
+    .slice()
+    .sort((a, b) => a.wordStart - b.wordStart || a.pageNumber - b.pageNumber);
+  const out = [];
+  for (const entry of sorted) {
+    const prev = out[out.length - 1];
+    if (prev && prev.wordStart === entry.wordStart) {
+      out[out.length - 1] = entry;
+      continue;
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
+export function pageForWordIndexFromSlimMap(wordIndex, slimMap) {
+  if (!Array.isArray(slimMap) || !slimMap.length) return null;
+  const target = Math.max(0, Math.floor(Number(wordIndex) || 0));
+  let page = slimMap[0].pageNumber;
+  for (const entry of slimMap) {
+    if (entry.wordStart > target) break;
+    page = entry.pageNumber;
+  }
+  return page;
+}

@@ -2269,11 +2269,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Book title</div>
                   <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'8px 10px',fontSize:'0.86rem',background:'white',color:'var(--text)' }} />
                 </div>
-                {/* Marie 2026-05-26: Page-number nudge. When the app's
-                    PDF-rendered page numbers are off by ±N pages from
-                    the user's Word doc (LibreOffice and Word render
-                    long books slightly differently), this slider shifts
-                    every reported page by that amount. */}
+                {/* Marie 2026-05-26: Page-number nudge — hidden for Quill
+                    (print-design mode, doesn't need page numbers). */}
+                {mode !== 'quill' && (
                 <div style={{ marginBottom:10 }}>
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Page-number nudge</div>
                   <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
@@ -2285,6 +2283,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     </span>
                   </div>
                 </div>
+                )}
                 {/* Chapter inclusion — uncheck to remove a chapter
                     from the book (e.g. a copyright page that snuck
                     through import). Available in every mode. */}

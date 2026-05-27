@@ -1829,6 +1829,31 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           </div>
         ) : (
           <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+            {/* Stop All — Marie 2026-05-26: clicking 45 individual × buttons
+                was the friction point. One Stop All cancels everything
+                running + queued + waiting in this book. */}
+            {bookQueueItems.some(t => t.status === 'running' || t.status === 'queued' || t.status === 'waiting') && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm('Stop every transcription in this book? Running, queued, and waiting items will all be cancelled.')) return;
+                  for (const t of bookQueueItems) {
+                    if (t.status === 'running') {
+                      setTranscriptionTask(t.taskId, { cancelRequested: true, message: 'Cancelling…', stage: 'cancel', updatedAt: Date.now() });
+                      if (typeof window !== 'undefined' && window.electron?.whisperCancel) {
+                        window.electron.whisperCancel().catch(() => {});
+                      }
+                    } else if (t.status === 'queued' || t.status === 'waiting') {
+                      removeTranscriptionTask(t.taskId);
+                    }
+                  }
+                }}
+                style={{ padding:'6px 10px',borderRadius:10,border:'1px solid #efc6c3',background:'white',color:'var(--danger)',fontWeight:700,fontSize:'0.74rem',cursor:'pointer',alignSelf:'flex-end' }}
+                title="Cancel every transcription in this book"
+              >
+                ■ Stop all
+              </button>
+            )}
             {bookQueueItems.map(task => {
               const isActive = task.status === 'running';
               const isQueued = task.status === 'queued';

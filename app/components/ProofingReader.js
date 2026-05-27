@@ -827,6 +827,14 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       return String(pdfMatch.pageNumber + adjustment);
     }
 
+    // Marie 2026-05-26 rule: if the book HAS a PDF page map but we
+    // couldn't locate this specific quote, show '?' instead of falling
+    // back to a word-count estimate. A wrong-but-confident number (e.g.
+    // saying p.52 for a quote that's really on p.340) destroys trust
+    // faster than an honest '?'. The word-count fallback is only valid
+    // when there is no PDF at all.
+    if (hasPdfPageMap) return '?';
+
     if (hasExactManuscriptMap && manuscriptWordIdx != null) {
       return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment);
     }

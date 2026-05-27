@@ -375,6 +375,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         submitLabel="Import & open"
         accent={QUILL.accent}
         allowSceneSplitting={true}
+        needsPageNumbers={false}
         onCancel={() => setView(activeProject ? 'bookDetail' : 'home')}
         onConfirm={commitImport}
       />

@@ -310,7 +310,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       pdfPaging: payload.pdfPaging || null,
       pdfFileName: payload.pdfFileName || '',
       pdfSource: payload.pdfSource || null, // 'user-pdf' | 'libreoffice' | null
-      pageNumberAdjustment: 0,
+      pageNumberAdjustment: Number(payload.pageNumberAdjustment) || 0,
     };
     setAllProjects((all) => [...all, project]);
     setActiveProjectId(project.id);

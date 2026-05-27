@@ -301,16 +301,50 @@ export default function ImportFlow({
 
   // Marie 2026-05-26: optional PDF path. User downloads the PDF from
   // the same Google Doc and uploads it here for exact page numbers.
+  // We pre-scan immediately so the suggested adjustment is visible
+  // before they click Save.
   async function handlePdfFile(file) {
-    if (!file) { setPdfFile(null); setPdfBytes(null); return; }
+    if (!file) {
+      setPdfFile(null);
+      setPdfBytes(null);
+      setPreScannedPdfPaging(null);
+      setHasScanned(false);
+      setCurrentAdjustment(0);
+      return;
+    }
     setErr('');
     try {
       const ab = await file.arrayBuffer();
+      const bytes = new Uint8Array(ab);
       setPdfFile(file);
-      setPdfBytes(new Uint8Array(ab));
+      setPdfBytes(bytes);
+      if (typeof window !== 'undefined' && window.electron?.extractPdfPaging) {
+        setScanning(true);
+        setPageScanStatus('Reading page numbers from your PDF…');
+        try {
+          const extracted = await window.electron.extractPdfPaging({
+            fileName: file.name,
+            data: bytes,
+            pageOffset: 0,
+          });
+          if (extracted?.pages?.length) {
+            setPreScannedPdfPaging(extracted);
+            setCurrentAdjustment(Number(extracted.suggestedAdjustment) || 0);
+            setHasScanned(true);
+            const adj = Number(extracted.suggestedAdjustment) || 0;
+            const beforeMsg = extracted.unnumberedBeforeFirstOne
+              ? ` We saw ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${adj} so footer "1" lines up with page 1.`
+              : '';
+            setPageScanStatus(`Page numbers read from your PDF — ${extracted.printedPageCount || 0} of ${extracted.pageCount || 0} numbered.${beforeMsg}`);
+          }
+        } finally {
+          setScanning(false);
+        }
+      }
     } catch (e) {
       console.error('PDF read failed:', e);
       setErr(e?.message || 'Could not read that PDF.');
+      setScanning(false);
     }
   }
 

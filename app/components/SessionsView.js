@@ -2279,7 +2279,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     <input type="number" value={editPageNudge} onChange={e=>setEditPageNudge(Math.trunc(Number(e.target.value)||0))} min={-50} max={50} style={{ width:70,textAlign:'center',border:'1px solid var(--border)',borderRadius:10,padding:'7px 8px',fontSize:'0.95rem',color:'var(--text)' }} />
                     <button type="button" onClick={()=>setEditPageNudge(n => Math.min(50, (Number(n)||0) + 1))} style={{ width:34,height:34,borderRadius:10,border:'1px solid var(--border)',background:'white',color:'var(--text)',fontSize:'1.1rem',fontWeight:700,cursor:'pointer' }}>+</button>
                     <span style={{ fontSize:'0.74rem',color:'var(--text-muted)',flex:1,minWidth:160 }}>
-                      Shifts every page number in this book by this amount. Use if a flag says &ldquo;p.&nbsp;313&rdquo; but Word shows p.&nbsp;314.
+                      If you open the Word document and you see that on the first page there isn&apos;t a number 1, but on the second page there is, then it needs to be shifted +1 or −1.
                     </span>
                   </div>
                 </div>

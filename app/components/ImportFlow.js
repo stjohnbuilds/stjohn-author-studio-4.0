@@ -260,6 +260,10 @@ export default function ImportFlow({
   // she doesn't want to tag, etc.) and the chapter's HTML is rebuilt
   // on commit from only the included sub-sections.
   const [showSubs, setShowSubs] = useState(false);
+  // Marie 2026-05-26: page-scan status during commit. The docx→PDF
+  // conversion takes ~10-30s for a long book and we want the user to see
+  // what's happening, not stare at a frozen "Save" button.
+  const [pageScanStatus, setPageScanStatus] = useState('');
 
   const accentColor = accent || 'var(--accent)';
   const primaryBtn = {

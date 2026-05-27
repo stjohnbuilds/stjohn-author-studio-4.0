@@ -827,19 +827,16 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       return String(pdfMatch.pageNumber + adjustment);
     }
 
-    // Marie 2026-05-26 rule: if the book HAS a PDF page map but we
-    // couldn't locate this specific quote, show '?' instead of falling
-    // back to a word-count estimate. A wrong-but-confident number (e.g.
-    // saying p.52 for a quote that's really on p.340) destroys trust
-    // faster than an honest '?'. The word-count fallback is only valid
-    // when there is no PDF at all.
-    if (hasPdfPageMap) return '?';
-
+    // Marie 2026-05-26: PDF quote-search is a fragile shortcut; the
+    // RIGHT source for "what page is word N on" is the word-index map
+    // built from the manuscript's rendered page breaks. Use that when
+    // PDF lookup fails — don't punish the user with '?' just because
+    // pdf.js text extraction couldn't find the exact string.
     if (hasExactManuscriptMap && manuscriptWordIdx != null) {
       return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment);
     }
 
-    // No exact map available — flag it. Marie's rule: never guess.
+    // No exact map available anywhere — flag it. Marie's rule: never guess.
     return '?';
   }
 

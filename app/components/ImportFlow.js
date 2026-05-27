@@ -408,7 +408,7 @@ export default function ImportFlow({
           pdfSource = 'user-pdf';
           pageNumberAdjustment = Number(extracted.suggestedAdjustment) || 0;
           const adjMsg = pageNumberAdjustment
-            ? ` · Chapter 1 was on printed page ${extracted.chapterOnePrintedAs}, shifted by ${pageNumberAdjustment} so it = page 1.`
+            ? ` · ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${pageNumberAdjustment}.`
             : '';
           setPageScanStatus(`Page numbers read from your PDF — ${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered.${adjMsg}`);
         }

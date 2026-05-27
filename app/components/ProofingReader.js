@@ -800,8 +800,11 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   }
 
   function getAutoPageNumber(wordIdx, quoteText){
+    // Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
+    // No 250-words-per-page estimates anywhere. If we can't find an exact
+    // page, the field comes back as '?' so it's obvious the book needs a
+    // PDF.
     const idx = Math.max(0, Number(wordIdx) || 0);
-    const wordsPerPage = Math.max(1, Number(section.estimatedWordsPerPage) || DEFAULT_ESTIMATED_WORDS_PER_PAGE);
     const effectivePdfPaging = pdfPaging || section.pdfPaging;
     const hasPdfPageMap = Array.isArray(effectivePdfPaging?.pages) && effectivePdfPaging.pages.length > 0;
     const sectionWordStart = Number(section.manuscriptWordStart);
@@ -809,37 +812,22 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const manuscriptWordIdx = Number.isFinite(sectionWordStart)
       ? Math.max(0, sectionWordStart - proofInitialWordOffset + idx)
       : null;
-    const hintPageNumber = manuscriptWordIdx != null && Array.isArray(manuscriptPaging?.pageMap) && manuscriptPaging.pageMap.length > 1
+    const hasExactManuscriptMap = Array.isArray(manuscriptPaging?.pageMap) && manuscriptPaging.pageMap.length > 1;
+    const hintPageNumber = manuscriptWordIdx != null && hasExactManuscriptMap
       ? getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap)
-      : manuscriptWordIdx != null
-        ? Math.floor(manuscriptWordIdx / wordsPerPage) + 1
-        : Number(section.estimatedPageStart) || null;
+      : null;
     const pdfMatch = findPdfPageForQuote(quoteText, effectivePdfPaging, hintPageNumber);
 
     if (pdfMatch?.pageNumber) {
       return String(pdfMatch.pageNumber);
     }
 
-    if (Array.isArray(manuscriptPaging?.pageMap) && manuscriptPaging.pageMap.length > 1 && manuscriptWordIdx != null) {
+    if (hasExactManuscriptMap && manuscriptWordIdx != null) {
       return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap));
     }
 
-    // When an exact PDF map exists but the quote does not resolve to one page,
-    // only fall back to exact manuscript paging. Avoid estimated pages here.
-    if (hasPdfPageMap) {
-      return '#';
-    }
-
-    if (manuscriptWordIdx != null) {
-      return String(Math.floor(manuscriptWordIdx / wordsPerPage) + 1);
-    }
-
-    const estimatedPageStart = Number(section.estimatedPageStart);
-    if (Number.isFinite(estimatedPageStart) && estimatedPageStart > 0) {
-      return String(estimatedPageStart + Math.floor(idx / wordsPerPage));
-    }
-
-    return '#';
+    // No exact map available — flag it. Marie's rule: never guess.
+    return '?';
   }
 
   function buildSheetCells(draft, timestampSec){

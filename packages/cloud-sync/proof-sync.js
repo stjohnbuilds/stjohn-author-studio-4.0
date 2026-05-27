@@ -24,6 +24,16 @@ import { slimBookForCloud } from './cloud-slim.js';
 // doesn't reload often.
 const lastPushHashByCloudId = new Map();
 
+// Marie 2026-05-26: a leftover book with cloudId "demo-book-1" (not a
+// UUID) was making the cloud push retry-loop forever with the Supabase
+// "invalid input syntax for type uuid" error. Guard it: if cloudId
+// doesn't look like a real UUID, treat it as missing — Postgres will
+// generate a fresh UUID on insert.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function safeCloudId(id) {
+  return typeof id === 'string' && UUID_RE.test(id) ? id : undefined;
+}
+
 export async function pushProofProject(supabase, book, ownerId) {
   if (!supabase) throw new Error('Supabase client missing.');
   if (!ownerId) throw new Error('Sign in first.');

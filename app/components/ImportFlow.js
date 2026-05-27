@@ -332,7 +332,7 @@ export default function ImportFlow({
   const allOn = chapters.length > 0 && chapters.every((c) => c.included);
   const anyOn = chapters.some((c) => c.included);
 
-  function commit() {
+  async function commit() {
     if (!fullHtml || totalSelected === 0) return;
     // Re-number from "first" toggles so the user can keep front matter
     // out of the chapter count. The first chapter (by document order)
@@ -357,6 +357,34 @@ export default function ImportFlow({
           chapterNumber,
         };
       });
+
+    // Marie 2026-05-26: auto-run docx→PDF page-number scan before
+    // handing off to the mode. Mirrors what Proof's ManuscriptSetup
+    // already does, so Quill / Duet / Prep imports also get accurate
+    // page numbers without forcing the user to upload a PDF separately.
+    let pdfPaging = null;
+    let pdfFileName = '';
+    if (bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
+      try {
+        setPageScanStatus('Scanning page numbers — this can take 10-30 seconds for long books…');
+        const converted = await window.electron.convertDocxToPageMap({
+          name: fileName || 'manuscript.docx',
+          data: bytes,
+          pageOffset: 0,
+        });
+        if (converted?.pdfPaging) {
+          pdfPaging = converted.pdfPaging;
+          pdfFileName = converted.fileName || (fileName || '').replace(/\.docx$/i, '.pdf');
+          setPageScanStatus(`Page numbers scanned (${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered).`);
+        } else {
+          setPageScanStatus('Page scan did not return a map. Importing without page numbers — you can rescan from book detail.');
+        }
+      } catch (e) {
+        console.warn('ImportFlow page scan failed:', e);
+        setPageScanStatus(`Page scan failed: ${e?.message || 'unknown error'}. Importing anyway — install LibreOffice to enable auto page numbers.`);
+      }
+    }
+
     onConfirm({
       title: (bookTitle || fileName.replace(/\.docx$/i, '') || 'Untitled').trim(),
       fileName,
@@ -366,6 +394,10 @@ export default function ImportFlow({
       chapters: numbered,
       splitScenes,
       chapterLevel,
+      // The PDF page map (if scanning succeeded) — every consumer can
+      // store this on the project so page numbers work in flags + exports.
+      pdfPaging,
+      pdfFileName,
     });
   }
 

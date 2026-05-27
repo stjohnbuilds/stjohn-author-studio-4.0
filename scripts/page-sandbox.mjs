@@ -1,33 +1,30 @@
 #!/usr/bin/env node
-// Page-number sandbox — run the SAME code the app uses to compute the
-// printed page number for any quote in a .docx.
+// Page-number sandbox — runs the SAME docx → PDF → page-map pipeline
+// the desktop app uses (LibreOffice headless → pdf.js → footer page-
+// number detection), then accepts quote lookups so Marie can compare
+// what the app would say vs the printed book.
 //
-// Marie 2026-05-26: she gives a quote, the app spits out a page number,
-// we compare to the printed book to confirm correctness.
+// Marie 2026-05-26: replaces the old direct-docx-XML version, which
+// only saw manual page breaks and gave wildly wrong numbers when the
+// docx came out of Google Docs (no rendered page-break markers).
 //
 // Usage:
-//   node scripts/page-sandbox.mjs "/path/to/manuscript.docx" "exact quote text"
+//   node scripts/page-sandbox.mjs "/path/to/manuscript.docx" "exact quote"
+//   node scripts/page-sandbox.mjs "/path/to/manuscript.docx"   (interactive)
 //
-// Or interactive — omit the quote and you can type quotes line by line:
-//   node scripts/page-sandbox.mjs "/path/to/manuscript.docx"
-//
-// What it does:
-//   1. Reads word/document.xml from the .docx
-//   2. Runs extractRenderedPageMapFromDocxXml — the SAME function the
-//      app uses at import time
-//   3. Builds a flat word list from the manuscript (matches the app's
-//      countWordsInText regex)
-//   4. For each quote: finds where the quote starts in the word list,
-//      asks the page map for that word's page number, prints the result
+// Requires: LibreOffice installed at /Applications/LibreOffice.app
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import readline from 'node:readline';
-import JSZip from 'jszip';
-import {
-  extractRenderedPageMapFromDocxXml,
-  getPageNumberForWordIndex,
-} from '../app/lib/manuscriptPaging.js';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+const execFileAsync = promisify(execFile);
+const require_ = createRequire(import.meta.url);
 
 const docxPath = process.argv[2];
 const quoteArg = process.argv.slice(3).join(' ').trim();
@@ -42,126 +39,126 @@ if (!fs.existsSync(docxPath)) {
 }
 
 // ────────────────────────────────────────────────────────────────────
-// 1. Load the .docx, pull out word/document.xml
+// 1. Convert .docx → PDF with LibreOffice (same binary the app uses)
 // ────────────────────────────────────────────────────────────────────
-const buf = fs.readFileSync(docxPath);
-const zip = await JSZip.loadAsync(buf);
-const docFile = zip.file('word/document.xml');
-if (!docFile) {
-  console.error('word/document.xml not found inside the .docx');
-  process.exit(1);
+function findSofficeBinary() {
+  const candidates = [
+    '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+    '/usr/local/bin/soffice',
+    '/opt/homebrew/bin/soffice',
+    '/usr/bin/soffice',
+  ];
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  return null;
 }
-const documentXml = await docFile.async('string');
 
-// ────────────────────────────────────────────────────────────────────
-// 2. Run the same page-map extractor the app uses
-// ────────────────────────────────────────────────────────────────────
-const paging = extractRenderedPageMapFromDocxXml(documentXml);
-
-// Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
-// No word-count estimates, ever. If the docx doesn't carry rendering
-// markers, the sandbox refuses to guess — same rule the app uses.
-const hasRichPageMap = paging?.mode === 'rendered' && Array.isArray(paging?.pageMap) && paging.pageMap.length >= 3;
-
-if (!hasRichPageMap) {
-  console.error('');
-  console.error('❌  This .docx does NOT carry usable page-break info.');
-  console.error('    The sandbox refuses to estimate (no 250-words-per-page fallback).');
-  console.error('');
-  if (paging?.mode === 'rendered') {
-    console.error(`    Only ${paging.pageMap.length} page entries were found — almost certainly`);
-    console.error('    just a couple of manual page breaks, not a full rendered layout.');
-  } else {
-    console.error('    No <w:lastRenderedPageBreak/> markers were found at all.');
-  }
-  console.error('');
-  console.error('    To make page numbers work for this manuscript, either:');
-  console.error('    1. Open the .docx in Microsoft Word and save again');
-  console.error('       (Word writes the markers after it lays out the pages), OR');
-  console.error('    2. Give the app the printed PDF so it can extract pages from there.');
-  console.error('');
+const soffice = findSofficeBinary();
+if (!soffice) {
+  console.error('LibreOffice not found. Install it from https://www.libreoffice.org/ and re-run.');
   process.exit(2);
 }
 
-const pageMap = paging.pageMap;
-const startPage = paging.startPageNumber;
-const totalWords = paging.totalWordCount;
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'page-sandbox-'));
+const docxName = path.basename(docxPath);
+const safeDocxName = docxName.replace(/[^a-z0-9._ -]/gi, '_');
+const localDocx = path.join(tmpDir, safeDocxName);
+fs.copyFileSync(docxPath, localDocx);
 
-console.log('────────────────────────────────────────────────────────');
-console.log(' File:        ', path.basename(docxPath));
-console.log(' Mode:         ✓ rendered (exact)');
-console.log(' Start page:  ', startPage);
-console.log(' Total words: ', totalWords);
-console.log(' Page entries:', pageMap.length);
-console.log(' Exact pages: ', paging.exactPageCount);
-console.log('────────────────────────────────────────────────────────');
-
-// ────────────────────────────────────────────────────────────────────
-// 3. Flatten the manuscript into an ordered word list matching the
-//    same regex the app uses (countWordsInText: /[A-Za-z0-9']+/g)
-// ────────────────────────────────────────────────────────────────────
-//    We rebuild a positional word list with running word indices so we
-//    can answer "what word index is this quote at?".
-
-function decodeXmlEntities(text) {
-  return String(text || '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'");
+console.log('Converting to PDF via LibreOffice…');
+const t0 = Date.now();
+await execFileAsync(soffice, [
+  '--headless', '--convert-to', 'pdf', '--outdir', tmpDir, localDocx,
+], { timeout: 180000, windowsHide: true });
+const pdfPath = path.join(tmpDir, safeDocxName.replace(/\.docx$/i, '.pdf'));
+if (!fs.existsSync(pdfPath)) {
+  console.error('LibreOffice did not produce a PDF at', pdfPath);
+  process.exit(3);
 }
-
-const textRunRx = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>/gi;
-const fullTextPieces = [];
-let m;
-while ((m = textRunRx.exec(documentXml)) !== null) {
-  fullTextPieces.push(decodeXmlEntities(m[1]));
-}
-const fullText = fullTextPieces.join(' ');
-const fullWords = fullText.match(/[A-Za-z0-9']+/g) || [];
-
-console.log(' Word list:   ', fullWords.length, 'words rebuilt from <w:t> runs');
-console.log('────────────────────────────────────────────────────────');
+console.log(`PDF generated in ${((Date.now() - t0) / 1000).toFixed(1)}s — ${pdfPath}`);
 
 // ────────────────────────────────────────────────────────────────────
-// 4. Quote lookup — find where a quote starts in the word list and
-//    look up the page number for that word index.
+// 2. Extract per-page text and detect printed page numbers
+//    (Mirror of main.js extractPdfPagingFromBuffer + helpers)
 // ────────────────────────────────────────────────────────────────────
-function findFirstWordIndex(quote) {
-  const quoteWords = String(quote).match(/[A-Za-z0-9']+/g) || [];
-  if (!quoteWords.length) return -1;
-  const needle = quoteWords.map(w => w.toLowerCase());
-  const hayLen = fullWords.length;
-  for (let i = 0; i <= hayLen - needle.length; i += 1) {
-    let ok = true;
-    for (let j = 0; j < needle.length; j += 1) {
-      if (fullWords[i + j].toLowerCase() !== needle[j]) { ok = false; break; }
-    }
-    if (ok) return i;
+const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+try {
+  const workerPath = require_.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
+} catch {}
+
+function groupPdfTextItemsIntoLines(items) {
+  const lines = [];
+  for (const item of items || []) {
+    if (!item || !item.str) continue;
+    const y = item.transform?.[5] ?? 0;
+    const x = item.transform?.[4] ?? 0;
+    let line = lines.find((entry) => Math.abs(entry.y - y) < 2);
+    if (!line) { line = { y, parts: [] }; lines.push(line); }
+    line.parts.push({ x, text: item.str });
   }
-  return -1;
+  return lines
+    .map((line) => ({ y: line.y, text: line.parts.sort((a, b) => a.x - b.x).map((p) => p.text).join(' ').replace(/\s+/g, ' ').trim() }))
+    .filter((line) => line.text);
 }
 
+function parseStandalonePageNumber(text) {
+  const raw = String(text || '').replace(/[\s\-–—]+/g, '').trim();
+  if (!/^\d{1,5}$/.test(raw)) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function detectPrintedPageNumberFromLines(lines) {
+  const bottomFirst = [...lines].sort((a, b) => a.y - b.y);
+  const topFirst = [...lines].sort((a, b) => b.y - a.y);
+  const candidates = [...bottomFirst.slice(0, 3), ...topFirst.slice(0, 2)];
+  for (const line of candidates) {
+    const value = parseStandalonePageNumber(line.text);
+    if (value != null) return value;
+  }
+  return null;
+}
+
+function normalizePdfSearchText(text) {
+  return String(text || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const pdfData = new Uint8Array(fs.readFileSync(pdfPath));
+const pdf = await pdfjs.getDocument({ data: pdfData, disableWorker: true }).promise;
+
+const pages = [];
+let printedCount = 0;
+for (let i = 1; i <= pdf.numPages; i++) {
+  const page = await pdf.getPage(i);
+  const tc = await page.getTextContent();
+  const lines = groupPdfTextItemsIntoLines(tc.items || []);
+  const fullText = lines.map((l) => l.text).join('\n').replace(/\s+/g, ' ').trim();
+  const printed = detectPrintedPageNumberFromLines(lines);
+  if (printed != null) printedCount++;
+  pages.push({ pageIndex: i, printed, normalized: normalizePdfSearchText(fullText) });
+}
+
+console.log('────────────────────────────────────────────────────────');
+console.log(' File:        ', docxName);
+console.log(' PDF pages:   ', pdf.numPages);
+console.log(' Printed#:    ', `${printedCount} of ${pdf.numPages} pages had a footer/header page number`);
+console.log('────────────────────────────────────────────────────────');
+
+// ────────────────────────────────────────────────────────────────────
+// 3. Look up a quote — return the printed page number from its PDF page
+// ────────────────────────────────────────────────────────────────────
 function lookupQuote(quote) {
-  const cleanQuote = String(quote || '').trim();
-  if (!cleanQuote) {
-    console.log('(empty quote, skipping)');
+  const clean = String(quote || '').trim();
+  if (!clean) return;
+  const needle = normalizePdfSearchText(clean);
+  const hit = pages.find((p) => p.normalized.includes(needle));
+  if (!hit) {
+    console.log(`❌  Quote not found in PDF: "${clean.slice(0, 80)}${clean.length > 80 ? '…' : ''}"`);
     return;
   }
-  const idx = findFirstWordIndex(cleanQuote);
-  if (idx < 0) {
-    console.log(`❌  Quote not found in manuscript:`);
-    console.log(`    "${cleanQuote.slice(0, 80)}${cleanQuote.length > 80 ? '…' : ''}"`);
-    return;
-  }
-  const page = getPageNumberForWordIndex(idx, pageMap);
-  // Show ±3 words of context for sanity
-  const ctxFrom = Math.max(0, idx - 2);
-  const ctxTo = Math.min(fullWords.length, idx + (cleanQuote.match(/[A-Za-z0-9']+/g) || []).length + 2);
-  const ctx = fullWords.slice(ctxFrom, ctxTo).join(' ');
-  console.log(`✓  Word index ${idx}  →  Page ${page}  (rendered)`);
-  console.log(`   …${ctx}…`);
+  const reported = hit.printed != null ? hit.printed : `(no printed#, PDF index ${hit.pageIndex})`;
+  console.log(`✓  "${clean}"`);
+  console.log(`   PDF page ${hit.pageIndex}  →  Printed page ${reported}`);
 }
 
 if (quoteArg) {
@@ -169,7 +166,6 @@ if (quoteArg) {
   process.exit(0);
 }
 
-// Interactive: read quotes from stdin
 console.log('Paste a quote and press Enter. Ctrl-C to quit.');
 console.log('');
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

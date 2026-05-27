@@ -2184,6 +2184,22 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Book title</div>
                   <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'8px 10px',fontSize:'0.86rem',background:'white',color:'var(--text)' }} />
                 </div>
+                {/* Marie 2026-05-26: Page-number nudge. When the app's
+                    PDF-rendered page numbers are off by ±N pages from
+                    the user's Word doc (LibreOffice and Word render
+                    long books slightly differently), this slider shifts
+                    every reported page by that amount. */}
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Page-number nudge</div>
+                  <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
+                    <button type="button" onClick={()=>setEditPageNudge(n => Math.max(-50, (Number(n)||0) - 1))} style={{ width:34,height:34,borderRadius:10,border:'1px solid var(--border)',background:'white',color:'var(--text)',fontSize:'1.1rem',fontWeight:700,cursor:'pointer' }}>−</button>
+                    <input type="number" value={editPageNudge} onChange={e=>setEditPageNudge(Math.trunc(Number(e.target.value)||0))} min={-50} max={50} style={{ width:70,textAlign:'center',border:'1px solid var(--border)',borderRadius:10,padding:'7px 8px',fontSize:'0.95rem',color:'var(--text)' }} />
+                    <button type="button" onClick={()=>setEditPageNudge(n => Math.min(50, (Number(n)||0) + 1))} style={{ width:34,height:34,borderRadius:10,border:'1px solid var(--border)',background:'white',color:'var(--text)',fontSize:'1.1rem',fontWeight:700,cursor:'pointer' }}>+</button>
+                    <span style={{ fontSize:'0.74rem',color:'var(--text-muted)',flex:1,minWidth:160 }}>
+                      Shifts every page number in this book by this amount. Use if a flag says &ldquo;p.&nbsp;313&rdquo; but Word shows p.&nbsp;314.
+                    </span>
+                  </div>
+                </div>
                 {/* Chapter inclusion — uncheck to remove a chapter
                     from the book (e.g. a copyright page that snuck
                     through import). Available in every mode. */}

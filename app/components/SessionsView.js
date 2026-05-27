@@ -945,7 +945,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         };
       });
 
-    onUpdateBook({ title, narratorColors: finalNarrators, chapters });
+    // Persist the page nudge alongside the rest of the book meta.
+    const pageNumberAdjustment = Math.trunc(Number(editPageNudge) || 0);
+    onUpdateBook({ title, narratorColors: finalNarrators, chapters, pageNumberAdjustment });
     setEditingMeta(false);
     if (removedCount > 0) {
       showToast(`Book updated — ${removedCount} chapter${removedCount === 1 ? '' : 's'} removed.`, 'success');

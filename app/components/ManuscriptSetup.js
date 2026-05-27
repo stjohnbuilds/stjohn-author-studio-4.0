@@ -984,7 +984,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
         {chapters.length > 0 && (
           <div style={card} data-tutorial="review-chapters">
             <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}>
-              <Badge n={scannedColors!==null?4:3} /><span style={{ fontWeight:600,fontSize:'0.925rem' }}>Review chapters</span>
+              <Badge n={scannedColors!==null?2:1} /><span style={{ fontWeight:600,fontSize:'0.925rem' }}>Review chapters</span>
               <InfoTip tip={'Untick anything you do not want to import. Use "Set as first" if front matter or bonus content means the next chapter should restart as Chapter 1.'} />
               <div style={{ display:'flex',alignItems:'center',gap:10,marginLeft:'auto' }}>
                 <button onClick={reparse} style={{ background:'none',border:'none',cursor:'pointer',fontSize:'0.78rem',color:'var(--accent)' }}>↻ Reparse with current names</button>

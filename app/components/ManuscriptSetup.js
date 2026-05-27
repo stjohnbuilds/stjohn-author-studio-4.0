@@ -933,40 +933,10 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
               ))}
             </div>
           </div>
-          <div style={{ marginBottom:'0.875rem',padding:'10px 12px',background:'white',border:'1px solid var(--border)',borderRadius:10 }}>
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
-              <div>
-                <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:3 }}>
-                  <label style={{ ...lbl, marginBottom:0 }}>Scene splitting</label>
-                  <InfoTip tip={'Leave this off when one audio file covers a full chapter. Turn it on only if you want separate POV or scene rows in the proofing list.'} />
-                </div>
-                <div style={{ fontSize:'0.78rem',color:'var(--text-muted)' }}>
-                  {splitScenes ? 'Each chapter will be imported as separate scene rows.' : 'Each chapter will stay as one proofing row by default.'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={()=>{
-                  const next = !splitScenes;
-                  setSplitScenes(next);
-                  if(fullHtml){setTimeout(()=>reparse({ splitScenes:next }),0);}
-                }}
-                style={{
-                  padding:'7px 14px',
-                  borderRadius:999,
-                  border:'1px solid ' + (splitScenes ? 'var(--accent)' : 'var(--border)'),
-                  background:splitScenes ? 'var(--accent-light)' : 'white',
-                  color:splitScenes ? 'var(--accent-dark)' : 'var(--text)',
-                  fontWeight:700,
-                  cursor:'pointer',
-                  fontSize:'0.8rem',
-                  whiteSpace:'nowrap',
-                }}
-              >
-                {splitScenes ? 'Split scenes on' : 'Split scenes off'}
-              </button>
-            </div>
-          </div>
+          {/* Marie 2026-05-26: duplicate Scene-splitting panel removed at
+              her explicit request. splitScenes state still drives parsing
+              behind the scenes; the chapter list's "Show sub-headings"
+              button is the surface the user actually needs. */}
           {!fullHtml ? (
             <label style={{ display:'flex',flexDirection:'column',alignItems:'center',border:'1.5px dashed var(--border)',borderRadius:12,padding:'2rem',cursor:'pointer',background:'var(--cream)',transition:'background 0.15s' }}
               onMouseEnter={e=>e.currentTarget.style.background='var(--accent-light)'}

@@ -387,6 +387,11 @@ export default function ImportFlow({
     let pdfPaging = null;
     let pdfFileName = '';
     let pdfSource = null;
+    // Auto-detected page nudge: when the PDF puts "Chapter 1" on
+    // printed page 2 (because front matter like an Epigraph counted),
+    // we shift everything by -1 so Chapter 1 lands on page 1 — matching
+    // what the user expects.
+    let pageNumberAdjustment = 0;
 
     if (pdfBytes && typeof window !== 'undefined' && window.electron?.extractPdfPaging) {
       setScanning(true);
@@ -401,7 +406,11 @@ export default function ImportFlow({
           pdfPaging = extracted;
           pdfFileName = pdfFile?.name || 'manuscript.pdf';
           pdfSource = 'user-pdf';
-          setPageScanStatus(`Page numbers read from your PDF — ${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered (exact).`);
+          pageNumberAdjustment = Number(extracted.suggestedAdjustment) || 0;
+          const adjMsg = pageNumberAdjustment
+            ? ` · Chapter 1 was on printed page ${extracted.chapterOnePrintedAs}, shifted by ${pageNumberAdjustment} so it = page 1.`
+            : '';
+          setPageScanStatus(`Page numbers read from your PDF — ${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered.${adjMsg}`);
         }
       } catch (e) {
         console.warn('ImportFlow PDF read failed:', e);

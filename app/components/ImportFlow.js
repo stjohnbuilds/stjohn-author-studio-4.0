@@ -247,6 +247,14 @@ export default function ImportFlow({
   // print-design mode). Caller passes false to hide the PDF upload +
   // page-shift strip entirely. Default true for Proof / Prep / Duet.
   needsPageNumbers = true,
+  // Marie 2026-05-26: optional extra step rendered between manuscript
+  // and chapter picker. Proof passes its narrator-mapping panel here
+  // so the user does everything on one screen.
+  extraStepSlot = null,
+  // Marie 2026-05-26: fires when a .docx finishes parsing. Parent uses
+  // it to scan highlight colours / kick off its own work without having
+  // to wait for confirm. Receives { fullHtml, fileName, sourceDocxBytes }.
+  onParsed = null,
 }) {
   const [bookTitle, setBookTitle] = useState(initialTitle);
   const [fileName, setFileName] = useState('');

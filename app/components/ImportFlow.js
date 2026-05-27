@@ -511,6 +511,13 @@ export default function ImportFlow({
                 }}>H{n}</button>
               ))}
             </div>
+            {/* Marie 2026-05-26: a quiet hint, not a deletion. Most users
+                never need to change this — the default is right for most
+                manuscripts. Only nudge it if the chapter list below looks
+                wrong. */}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+              Leave this on H1 unless the chapter list below looks wrong — only change it if your manuscript uses a different heading style for chapter titles.
+            </div>
           </div>
 
           {allowSceneSplitting && (

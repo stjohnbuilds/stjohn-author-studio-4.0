@@ -495,6 +495,21 @@ export default function ImportFlow({
       }
     }
 
+    // Marie 2026-05-26: build the SLIM word-index → printed-page map
+    // here, once, from the (heavy) pdfPaging.pages. This is what the
+    // app actually uses for page lookups; pdfPaging.pages stays on
+    // desktop for diagnostics but never goes to cloud (cloud-slim
+    // strips it). Quote-search is dead.
+    let pdfPageMap = null;
+    if (pdfPaging?.pages?.length && fullHtml) {
+      try {
+        pdfPageMap = buildSlimPageMap(pdfPaging.pages, fullHtml);
+      } catch (e) {
+        console.warn('buildSlimPageMap failed:', e);
+        pdfPageMap = null;
+      }
+    }
+
     onConfirm({
       title: (bookTitle || fileName.replace(/\.docx$/i, '') || 'Untitled').trim(),
       fileName,
@@ -504,6 +519,8 @@ export default function ImportFlow({
       chapters: numbered,
       splitScenes,
       chapterLevel,
+      // The slim word-index → printed-page map. Tiny. Phone reads this.
+      pdfPageMap,
       // The PDF page map (if scanning succeeded) — every consumer can
       // store this on the project so page numbers work in flags + exports.
       pdfPaging,

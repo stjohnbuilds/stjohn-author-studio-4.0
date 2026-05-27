@@ -154,7 +154,7 @@ for (let i = 1; i <= pdf.numPages; i++) {
 }
 
 console.log('────────────────────────────────────────────────────────');
-console.log(' File:        ', docxName);
+console.log(' File:        ', inputName);
 console.log(' PDF pages:   ', pdf.numPages);
 console.log(' Printed#:    ', `${printedCount} of ${pdf.numPages} pages had a footer/header page number`);
 console.log('────────────────────────────────────────────────────────');

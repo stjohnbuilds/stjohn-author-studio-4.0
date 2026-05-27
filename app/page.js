@@ -615,9 +615,13 @@ export default function Home() {
   }
 
   function saveBook(book) {
-    const updated = [book, ...books.filter(b => b.id !== book.id)];
+    // Marie 2026-05-26: stamp updatedAt so the most-recently-touched
+    // book sorts to the top of the home list. Without this, sort by
+    // updatedAt is meaningless because new books have no timestamp.
+    const stamped = { ...book, updatedAt: Date.now() };
+    const updated = [stamped, ...books.filter(b => b.id !== book.id)];
     persist(updated);
-    setActiveBook(book);
+    setActiveBook(stamped);
     setView('bookDetail');
   }
 
@@ -628,7 +632,8 @@ export default function Home() {
         const updates = typeof updatesOrUpdater === 'function'
           ? updatesOrUpdater(book)
           : updatesOrUpdater;
-        return { ...book, ...(updates || {}) };
+        // Stamp updatedAt on every edit so the home list re-sorts.
+        return { ...book, ...(updates || {}), updatedAt: Date.now() };
       });
       const normalized = normalizeBooks(updated);
       persistBooks(normalized).catch(() => {});
@@ -639,7 +644,7 @@ export default function Home() {
       const updates = typeof updatesOrUpdater === 'function'
         ? updatesOrUpdater(prev)
         : updatesOrUpdater;
-      return normalizeBookPaging({ ...prev, ...(updates || {}) });
+      return normalizeBookPaging({ ...prev, ...(updates || {}), updatedAt: Date.now() });
     });
   }
 

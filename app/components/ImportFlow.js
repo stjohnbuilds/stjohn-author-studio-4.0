@@ -760,6 +760,25 @@ export default function ImportFlow({
                 {pageScanStatus}
               </div>
             )}
+            {/* Marie 2026-05-26: inline page-number nudge during import.
+                When we've scanned a PDF and detected a non-zero offset,
+                show it here with +/- controls + an explainer so the user
+                can verify or change BEFORE they hit Save. */}
+            {hasScanned && (
+              <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 12, border: '1px solid var(--accent-border)', background: 'white' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                  Page-number shift{currentAdjustment !== 0 ? ` (${currentAdjustment > 0 ? '+' : ''}${currentAdjustment})` : ' (0 — no shift)'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => setCurrentAdjustment((n) => Math.max(-50, (Number(n) || 0) - 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>−</button>
+                  <input type="number" value={currentAdjustment} onChange={(e) => setCurrentAdjustment(Math.trunc(Number(e.target.value) || 0))} min={-50} max={50} style={{ width: 80, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 8px', fontSize: '0.95rem', color: 'var(--text)' }} />
+                  <button type="button" onClick={() => setCurrentAdjustment((n) => Math.min(50, (Number(n) || 0) + 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>+</button>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                  We saw the page-number footer says <strong>&ldquo;1&rdquo;</strong> on PDF page <strong>{(preScannedPdfPaging?.firstOneAtPdfPage) || '?'}</strong>, with <strong>{(preScannedPdfPaging?.unnumberedBeforeFirstOne) || 0}</strong> unnumbered page{(preScannedPdfPaging?.unnumberedBeforeFirstOne) === 1 ? '' : 's'} before it. Change this only if your manuscript&apos;s first &ldquo;1&rdquo; in the footer should land somewhere different from what the app picked.
+                </div>
+              </div>
+            )}
             <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim() || scanning} style={{
               ...primaryBtn,
               width: '100%',

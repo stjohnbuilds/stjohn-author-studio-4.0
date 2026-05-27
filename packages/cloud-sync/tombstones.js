@@ -118,11 +118,11 @@ export function isTombstoned(scope, project) {
 // helper for this scope (e.g. deleteProofProject / deleteQuillProject).
 // We return only the cloud projects that aren't tombstoned.
 export function applyTombstonesToCloudList(scope, cloudList, supabase, deleteFn) {
-  const set = readSet(scope);
-  if (!set.size) return cloudList || [];
+  const pairs = readPairs(scope);
+  if (!pairs.length) return cloudList || [];
   const kept = [];
   for (const p of cloudList || []) {
-    if (!projectHitsSet(set, p)) { kept.push(p); continue; }
+    if (!projectHitsPairs(pairs, p)) { kept.push(p); continue; }
     // Cloud still has this — re-issue the delete in the background.
     if (supabase && p.cloudId && typeof deleteFn === 'function') {
       Promise.resolve(deleteFn(supabase, p.cloudId)).catch((e) => {

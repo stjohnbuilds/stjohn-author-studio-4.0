@@ -1007,6 +1007,11 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const audioRef = useRef(null);
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [followText, setFollowText] = useState(true);
+  // Marie 2026-05-26: T (transcription sync) on/off toggle — parity with
+  // Proof's player. When OFF, audio scrubbing falls back to plain time
+  // (no whisper alignment lookup, no current-word highlight). Default
+  // ON since the user always wants sync if a transcription exists.
+  const [useWhisperSync, setUseWhisperSync] = useState(true);
 
   // Search inside chapter — same shape as Proof's ChapterSearchBar.
   // Cmd/Ctrl+F to open. Highlights matching words via unitDecoration.

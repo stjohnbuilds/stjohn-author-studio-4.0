@@ -636,6 +636,9 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
       const localPdfFileName = payload.pdfFileName || pdfFileName || '';
       const localPdfSource = payload.pdfSource || (localPdfPaging ? 'libreoffice' : null);
       const localPageNumberAdjustment = Number(payload.pageNumberAdjustment) || 0;
+      // Marie 2026-05-26: the slim word-index → page map. Source of
+      // truth for page lookups going forward. Built by ImportFlow.
+      const localPdfPageMap = Array.isArray(payload.pdfPageMap) ? payload.pdfPageMap : null;
 
       // ImportFlow's chapter shape → Proof's section shape (one section
       // per chapter — Proof doesn't split into scenes by default).

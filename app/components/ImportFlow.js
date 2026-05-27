@@ -658,7 +658,7 @@ export default function ImportFlow({
                     Optional — click to upload the matching PDF
                   </div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', maxWidth: 460, lineHeight: 1.4 }}>
-                    For exact page numbers, download the same Google Doc as PDF and add it here. Without it, page numbers come from a software conversion and may drift ±1-2 pages on long books.
+                    For exact page numbers, add the PDF version of this manuscript here — either downloaded from Google Docs as PDF, or saved from Word as PDF. Without it, page numbers come from a software conversion and may drift ±1-2 pages on long books.
                   </div>
                   <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
                     onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />

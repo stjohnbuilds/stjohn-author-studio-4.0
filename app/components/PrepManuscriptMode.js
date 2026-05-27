@@ -915,6 +915,72 @@ function BookDetailView({
           {onExportNarratorCsv && <button type="button" onClick={onExportNarratorCsv} style={pillBtn()}>Narrators CSV</button>}
         </section>
 
+        {/* Marie 2026-05-26: page-numbering banner, mirroring the one in
+            SessionsView. Same three states (green / amber / yellow) with
+            an Upload PDF button so Prep matches the other modes. */}
+        {(() => {
+          const pdfPages = project.pdfPaging?.pages?.length || 0;
+          const printedCount = project.pdfPaging?.printedPageCount || 0;
+          const hasPdfMap = pdfPages > 0;
+          const adj = Number(project.pageNumberAdjustment) || 0;
+          const fromUserPdf = project.pdfSource === 'user-pdf';
+
+          async function pickAndUploadPdf() {
+            if (typeof window === 'undefined' || !window.electron?.extractPdfPaging) {
+              alert('PDF upload needs the desktop app.');
+              return;
+            }
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/pdf,.pdf';
+            input.onchange = async () => {
+              const file = input.files?.[0];
+              if (!file) return;
+              try {
+                const ab = await file.arrayBuffer();
+                const extracted = await window.electron.extractPdfPaging({ fileName: file.name, data: new Uint8Array(ab), pageOffset: 0 });
+                if (extracted?.pages?.length && onUpdatePaging) {
+                  const suggested = Number(extracted.suggestedAdjustment) || 0;
+                  onUpdatePaging({ pdfPaging: extracted, pdfFileName: file.name, pdfSource: 'user-pdf', pageNumberAdjustment: suggested });
+                }
+              } catch (e) { alert(`PDF read failed: ${e?.message || e}`); }
+            };
+            input.click();
+          }
+
+          const baseBox = { marginBottom: 16, borderRadius: 12, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.78rem' };
+          if (hasPdfMap && fromUserPdf) {
+            return (
+              <div style={{ ...baseBox, background: '#eaf5ec', border: '1px solid #b9d6bf', color: '#3d7a4a' }}>
+                <span>✓</span>
+                <span style={{ flex: 1 }}><strong>Page numbers from your PDF.</strong> {printedCount}/{pdfPages} numbered.{adj !== 0 && ` · nudge ${adj > 0 ? `+${adj}` : adj}`}</span>
+                <button onClick={pickAndUploadPdf} style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #b9d6bf', background: 'white', color: '#3d7a4a', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>Replace PDF</button>
+              </div>
+            );
+          }
+          if (hasPdfMap) {
+            return (
+              <div style={{ ...baseBox, background: '#fdf3e0', border: '1px solid #e8c98a', color: '#8a6519', alignItems: 'flex-start' }}>
+                <span>○</span>
+                <div style={{ flex: 1, lineHeight: 1.45 }}>
+                  <strong>Page numbers auto-scanned via LibreOffice.</strong> {printedCount}/{pdfPages} numbered. May drift ±1-2 pages.
+                  <div style={{ marginTop: 4 }}>For exact, upload the PDF downloaded from the same Google Doc.</div>
+                </div>
+                <button onClick={pickAndUploadPdf} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #8a6519', background: 'white', color: '#8a6519', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Upload PDF</button>
+              </div>
+            );
+          }
+          return (
+            <div style={{ ...baseBox, background: '#fff4d6', border: '1px solid #e0c682', color: '#7a5a18', alignItems: 'flex-start' }}>
+              <span>⚠️</span>
+              <div style={{ flex: 1, lineHeight: 1.45 }}>
+                <strong>This book has no page numbers yet.</strong> Upload the printed PDF to fix.
+              </div>
+              <button onClick={pickAndUploadPdf} style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #8a6519', background: 'white', color: '#7a5a18', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Upload PDF</button>
+            </div>
+          );
+        })()}
+
         <section style={{ marginBottom: 18 }}>
           <h3 style={sectionHeading()}>Characters</h3>
           <CharacterGrid

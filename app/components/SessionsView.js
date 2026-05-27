@@ -2197,7 +2197,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     pageNumberAdjustment: suggested,
                   });
                   const msg = suggested
-                    ? `Page numbers from ${file.name}. Chapter 1 was on printed page ${extracted.chapterOnePrintedAs}; shifted by ${suggested} so it = page 1.`
+                    ? `Page numbers from ${file.name}. ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${suggested}.`
                     : `Page numbers now read from ${file.name} (exact).`;
                   showToast(msg, 'success');
                 } else {

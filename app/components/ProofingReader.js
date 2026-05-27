@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { getPageNumberForWordIndex } from '../lib/manuscriptPaging';
-import { findPdfPageForQuote } from '../lib/pdfPaging';
+import { findPdfPageForQuote, pageForWordIndexFromSlimMap } from '../lib/pdfPaging';
 import InfoTip from './InfoTip';
 import AudioDock from './AudioDock';
 import { HomeBackPill } from './ReaderChrome';

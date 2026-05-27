@@ -563,6 +563,50 @@ export default function ImportFlow({
             </div>
           )}
           {err && (<div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--danger)' }}>{err}</div>)}
+
+          {/* Marie 2026-05-26: optional PDF upload for exact page numbers.
+              The default (LibreOffice auto-convert) drifts ±1-2 pages on
+              long books because the rendering engines differ. If the user
+              has the PDF downloaded from the same Google Doc, that PDF
+              IS what their narrators read from, so it gives exact pages. */}
+          {fullHtml && (
+            <div style={{ marginTop: 10 }}>
+              {pdfFile ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', background: '#eaf5ec', borderRadius: 10,
+                  border: '1px solid #b9d6bf', gap: 10,
+                }}>
+                  <span style={{ fontSize: '0.78rem', color: '#3d7a4a', fontWeight: 600 }}>
+                    ✓ {pdfFile.name} — page numbers will come from this PDF
+                  </span>
+                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+                    Change
+                    <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                      onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
+                  </label>
+                  <button type="button" onClick={() => { setPdfFile(null); setPdfBytes(null); }} style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>Clear</button>
+                </div>
+              ) : (
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 10,
+                  border: '1px dashed var(--accent-border)', background: 'rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                }}>
+                  <span style={{ fontSize: '1rem' }}>📄</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text)' }}>Optional: upload the PDF for exact page numbers</span>
+                    <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                      Download the same Google Doc as PDF and drop it here. Without it, page numbers come from LibreOffice and may drift ±1-2 pages on long books.
+                    </span>
+                  </span>
+                  <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
+                    onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
+                </label>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Step 3: Chapter picker */}

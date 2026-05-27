@@ -100,6 +100,130 @@ function safeFileName(value = 'quill-and-ink-project') {
   return String(value || 'project').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'project';
 }
 
+function hashText(value) {
+  const input = String(value || '');
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `h${(hash >>> 0).toString(36)}`;
+}
+
+function getElectronPlatform() {
+  return typeof window !== 'undefined' ? window.electron?.platform || null : null;
+}
+
+function isPortableStoredAudioPath(storedPath) {
+  return typeof storedPath === 'string' && (storedPath.startsWith('gdrive://') || storedPath.startsWith('data://'));
+}
+
+function legacyPathMatchesCurrentPlatform(storedPath, platform = getElectronPlatform()) {
+  if (typeof storedPath !== 'string' || !storedPath) return false;
+  if (isPortableStoredAudioPath(storedPath)) return true;
+  if (platform === 'win32') return /^[A-Za-z]:[\\/]/.test(storedPath) || storedPath.startsWith('\\\\');
+  if (platform === 'darwin' || platform === 'linux') return storedPath.startsWith('/');
+  return true;
+}
+
+function getChapterStoredAudioPath(chapter, platform = getElectronPlatform()) {
+  if (chapter?.audioPaths && typeof chapter.audioPaths === 'object') {
+    const currentPath = chapter.audioPaths[platform];
+    return typeof currentPath === 'string' && currentPath ? currentPath : null;
+  }
+  const legacyPath = chapter?.audioPath;
+  return legacyPathMatchesCurrentPlatform(legacyPath, platform) ? legacyPath : null;
+}
+
+function chapterAlignment(chapter) {
+  if (Array.isArray(chapter?.whisperAlignment)) return chapter.whisperAlignment;
+  if (Array.isArray(chapter?.alignment)) return chapter.alignment;
+  return [];
+}
+
+function transcriptStateFromChapter(chapter) {
+  const alignment = chapterAlignment(chapter);
+  if (!alignment.length && !chapter?.whisperTranscript && !chapter?.transcribedAt) return null;
+  return {
+    status: 'done',
+    progress: 100,
+    alignment,
+    words: Array.isArray(chapter?.whisperWords) ? chapter.whisperWords : [],
+    transcript: chapter?.whisperTranscript || '',
+    syncTable: buildDirectSyncTable(alignment),
+  };
+}
+
+function transcriptionPatchFromSection(section) {
+  if (!section || typeof section !== 'object') return null;
+  const alignment = Array.isArray(section.whisperAlignment) ? section.whisperAlignment : [];
+  const hasTranscription = alignment.length || section.whisperTranscript || section.transcribedAt;
+  if (!hasTranscription) return null;
+  return {
+    alignment,
+    whisperAlignment: alignment,
+    whisperWords: Array.isArray(section.whisperWords) ? section.whisperWords : [],
+    whisperTranscript: section.whisperTranscript || '',
+    whisperMatchedCount: section.whisperMatchedCount ?? null,
+    whisperManuscriptWordCount: section.whisperManuscriptWordCount ?? null,
+    whisperMatchQuality: section.whisperMatchQuality ?? null,
+    whisperAudioKey: section.whisperAudioKey || null,
+    whisperTextHash: section.whisperTextHash || null,
+    whisperSourceUpdatedAt: section.whisperSourceUpdatedAt || null,
+    transcribedAt: section.transcribedAt || new Date().toISOString(),
+  };
+}
+
+function transcriptStateFromSection(section) {
+  const patch = transcriptionPatchFromSection(section);
+  if (!patch) return null;
+  return {
+    status: 'done',
+    progress: 100,
+    alignment: patch.alignment,
+    words: patch.whisperWords,
+    transcript: patch.whisperTranscript,
+    syncTable: buildDirectSyncTable(patch.alignment),
+  };
+}
+
+function buildTranscriptMap(projects) {
+  const out = {};
+  for (const project of projects || []) {
+    for (const chapter of project?.chapters || []) {
+      const state = transcriptStateFromChapter(chapter);
+      if (state) out[chapter.id] = state;
+    }
+  }
+  return out;
+}
+
+function mergeChapterFromCloud(localChapter, cloudChapter) {
+  if (!localChapter) return cloudChapter;
+  const localAlignment = chapterAlignment(localChapter);
+  const cloudAlignment = chapterAlignment(cloudChapter);
+  const hasCloudAlignment = cloudAlignment.length > 0 || cloudChapter?.transcribedAt;
+  return {
+    ...cloudChapter,
+    audioFileName: cloudChapter?.audioFileName || localChapter.audioFileName || '',
+    audioPath: localChapter.audioPath || '',
+    audioPaths: localChapter.audioPaths || null,
+    alignment: hasCloudAlignment ? cloudAlignment : localAlignment,
+    whisperAlignment: hasCloudAlignment ? cloudAlignment : localAlignment,
+    whisperWords: hasCloudAlignment
+      ? (Array.isArray(cloudChapter?.whisperWords) ? cloudChapter.whisperWords : [])
+      : (Array.isArray(localChapter?.whisperWords) ? localChapter.whisperWords : []),
+    whisperTranscript: hasCloudAlignment ? (cloudChapter?.whisperTranscript || '') : (localChapter.whisperTranscript || ''),
+    whisperMatchedCount: hasCloudAlignment ? cloudChapter?.whisperMatchedCount : localChapter.whisperMatchedCount,
+    whisperManuscriptWordCount: hasCloudAlignment ? cloudChapter?.whisperManuscriptWordCount : localChapter.whisperManuscriptWordCount,
+    whisperMatchQuality: hasCloudAlignment ? cloudChapter?.whisperMatchQuality : localChapter.whisperMatchQuality,
+    whisperAudioKey: hasCloudAlignment ? cloudChapter?.whisperAudioKey : localChapter.whisperAudioKey,
+    whisperTextHash: hasCloudAlignment ? cloudChapter?.whisperTextHash : localChapter.whisperTextHash,
+    whisperSourceUpdatedAt: hasCloudAlignment ? cloudChapter?.whisperSourceUpdatedAt : localChapter.whisperSourceUpdatedAt,
+    transcribedAt: hasCloudAlignment ? cloudChapter?.transcribedAt : localChapter.transcribedAt,
+  };
+}
+
 function mergeProjectLists(local, cloud) {
   const byId = new Map();
   for (const p of local) byId.set(p.id, p);
@@ -107,7 +231,15 @@ function mergeProjectLists(local, cloud) {
     const existing = byId.get(p.id);
     if (!existing) { byId.set(p.id, p); continue; }
     const newer = new Date(p.updatedAt || 0) > new Date(existing.updatedAt || 0);
-    byId.set(p.id, newer ? p : { ...existing, cloudId: p.cloudId || existing.cloudId });
+    if (!newer) {
+      byId.set(p.id, { ...existing, cloudId: p.cloudId || existing.cloudId });
+      continue;
+    }
+    const localChapterById = new Map((existing.chapters || []).map((ch) => [ch.id, ch]));
+    byId.set(p.id, {
+      ...p,
+      chapters: (p.chapters || []).map((ch) => mergeChapterFromCloud(localChapterById.get(ch.id), ch)),
+    });
   }
   return Array.from(byId.values());
 }
@@ -184,17 +316,26 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       // disk (audio-guard strips them before any cloud push), so we
       // only ever rebuild from local-loaded projects.
       const rebuiltAudio = {};
+      const electron = typeof window !== 'undefined' ? window.electron : null;
       for (const proj of local || []) {
         for (const ch of proj?.chapters || []) {
-          if (ch?.audioPath) {
+          const storedAudioPath = getChapterStoredAudioPath(ch);
+          if (storedAudioPath) {
+            let url = storedAudioPath;
+            if (electron?.getAudioUrl) {
+              try { url = await electron.getAudioUrl(storedAudioPath); }
+              catch { url = storedAudioPath; }
+            }
             rebuiltAudio[ch.id] = {
               fileName: ch.audioFileName || '',
-              url: ch.audioPath,
+              url,
             };
           }
         }
       }
       if (Object.keys(rebuiltAudio).length) setChapterAudios(rebuiltAudio);
+      const rebuiltTranscripts = buildTranscriptMap(local);
+      if (Object.keys(rebuiltTranscripts).length) setChapterTranscripts(rebuiltTranscripts);
       setHydrated(true);                     // ← render now, don't wait for cloud
       cameFromCloudRef.current = true;       // suppress the first persist round-trip
       const supabase = getSupabaseClient();
@@ -393,7 +534,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         usesCustomDragRegion={usesCustomDragRegion}
         updateProject={updateActive}
         chapterAudio={chapterAudios[activeChapterId] || null}
-        chapterTranscript={chapterTranscripts[activeChapterId] || null}
+        chapterTranscript={chapterTranscripts[activeChapterId] || transcriptStateFromChapter(activeChapter)}
       />
     );
   }
@@ -409,14 +550,18 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       fileName: activeProject.fileName || '',
       chapters: (activeProject.chapters || []).map((ch) => {
         const audio = chapterAudios[ch.id] || null;
-        const tx = chapterTranscripts[ch.id] || null;
+        const tx = chapterTranscripts[ch.id] || transcriptStateFromChapter(ch);
+        const alignment = tx?.alignment || chapterAlignment(ch);
         // Fall back to persisted audio info on the chapter when there's
         // no live blob URL — file name + path survive disk save, so the
         // reader can show them after a reload. Cloud strips paths via
         // audio-guard, so only the file name travels off-device.
         const persistedAudioName = ch.audioFileName || '';
-        const persistedAudioPath = ch.audioPath || '';
+        const persistedAudioPath = getChapterStoredAudioPath(ch) || '';
         const persistedAudioPaths = ch.audioPaths || null;
+        const sectionHtml = ch.textHtml || ch.html || '';
+        const fallbackAudioKey = persistedAudioPath || persistedAudioName || '';
+        const fallbackTextHash = hashText(sectionHtml);
         return {
           id: ch.id,
           title: ch.title,
@@ -426,15 +571,23 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             title: ch.title,
             html: ch.textHtml || ch.html || '',
             audioFileName: audio?.fileName || persistedAudioName || null,
-            audioPath: audio?.url || persistedAudioPath || null,
+            audioPath: persistedAudioPath || null,
             audioPaths: persistedAudioPaths || null,
             audioBlobUrl: audio?.url || null,
             flags: (activeProject.annotations || []).filter((a) => a.sectionId === ch.id),
             completed: !!ch.completed,
             characterName: null,
             narratorName: null,
-            whisperAlignment: tx?.alignment || null,
-            whisperWords: tx?.alignment || null,
+            whisperAlignment: alignment.length ? alignment : null,
+            whisperWords: tx?.words || ch.whisperWords || null,
+            whisperTranscript: tx?.transcript || ch.whisperTranscript || '',
+            whisperMatchedCount: ch.whisperMatchedCount ?? null,
+            whisperManuscriptWordCount: ch.whisperManuscriptWordCount ?? null,
+            whisperMatchQuality: ch.whisperMatchQuality ?? null,
+            whisperAudioKey: ch.whisperAudioKey || (alignment.length ? fallbackAudioKey : null),
+            whisperTextHash: ch.whisperTextHash || (alignment.length ? fallbackTextHash : null),
+            whisperSourceUpdatedAt: ch.whisperSourceUpdatedAt || null,
+            transcribedAt: ch.transcribedAt || null,
             chapterTitle: ch.title,
             isFirstSectionInChapter: true,
           }],
@@ -456,11 +609,20 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           book={adaptedBook}
           isElectron={typeof window !== 'undefined' && !!window.electron}
           usesCustomDragRegion={usesCustomDragRegion}
-          onProof={(chId) => { setActiveChapterId(chId); setView('reader'); }}
-          onUpdateBook={(updated) => {
+          onProof={(sectionOrId) => {
+            const chapterId = typeof sectionOrId === 'object' ? sectionOrId?.id : sectionOrId;
+            if (!chapterId) return;
+            setActiveChapterId(chapterId);
+            setView('reader');
+          }}
+          onUpdateBook={(updatesOrUpdater) => {
             // Bridge SessionsView's book-shape updates back to Quill's
             // project shape (chapter title edits etc.). Audio + narrator
             // edits map to chapterAudios / annotationOptions.
+            const updated = typeof updatesOrUpdater === 'function'
+              ? updatesOrUpdater(adaptedBook)
+              : updatesOrUpdater;
+            if (!updated || typeof updated !== 'object') return;
             if (updated.title && updated.title !== activeProject.title) {
               updateActive((p) => ({ ...p, title: updated.title }));
             }
@@ -487,16 +649,25 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               //    they stay on this device. Saving them means Marie's
               //    attached audio survives a full app restart without
               //    re-picking the file.
-              // 4. chapterAudios in-memory map for the live blob URL
+              // 4. whisper alignment/transcript metadata — saved locally
+              //    and pushed as small structured rows for the phone.
+              // 5. chapterAudios in-memory map for the live blob URL
               //    so the reader can play right now.
               const keptIds = new Set(updated.chapters.map((ch) => ch.id));
-              const audioByChapter = {};
+              const chapterPatchById = {};
+              const transcriptPatch = {};
               updated.chapters.forEach((ch) => {
                 const sec = (ch.sections || [])[0];
-                audioByChapter[ch.id] = {
+                const storedPath = getChapterStoredAudioPath(sec) || '';
+                const projectTranscription = transcriptionPatchFromSection(sec);
+                const transcriptState = projectTranscription ? transcriptStateFromSection(sec) : null;
+                if (transcriptState) transcriptPatch[ch.id] = transcriptState;
+                chapterPatchById[ch.id] = {
                   name: sec?.audioFileName || '',
-                  path: sec?.audioPath || '',
+                  path: storedPath,
                   paths: sec?.audioPaths || null,
+                  completed: !!sec?.completed,
+                  transcription: projectTranscription,
                 };
               });
               updateActive((p) => ({
@@ -504,17 +675,21 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                 chapters: (p.chapters || [])
                   .filter((ch) => keptIds.has(ch.id))
                   .map((ch) => {
-                    const incoming = audioByChapter[ch.id];
+                    const incoming = chapterPatchById[ch.id];
                     // Only update audio fields when the parent actually
                     // touched audio (incoming defined). Empty fields mean
                     // "audio was cleared"; missing entry means "no change".
                     if (incoming === undefined) return ch;
-                    return {
+                    const nextChapter = {
                       ...ch,
                       audioFileName: incoming.name || '',
                       audioPath: incoming.path || '',
                       audioPaths: incoming.paths || null,
+                      completed: incoming.completed,
                     };
+                    return incoming.transcription
+                      ? { ...nextChapter, ...incoming.transcription }
+                      : nextChapter;
                   }),
               }));
               const audioPatch = {};
@@ -523,7 +698,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                 if (sec?.audioFileName) {
                   audioPatch[ch.id] = {
                     fileName: sec.audioFileName,
-                    url: sec.audioBlobUrl || sec.audioPath || null,
+                    url: sec.audioBlobUrl || getChapterStoredAudioPath(sec) || null,
                   };
                 } else {
                   audioPatch[ch.id] = null;
@@ -541,6 +716,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                 });
                 return next;
               });
+              if (Object.keys(transcriptPatch).length) {
+                setChapterTranscripts((prev) => ({ ...prev, ...transcriptPatch }));
+              }
             }
           }}
           onToggleComplete={(sectionId) => {
@@ -1222,33 +1400,53 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
             {characterStrip}
           </>
         )}
-        bottomDock={audioUrl ? (
-          <AudioDock
-            audioRef={audioRef}
-            audioUrl={audioUrl}
-            label={audioFileName || ''}
-            rightActions={syncTable && syncTable.length >= 4 ? (
-              <button
-                type="button"
-                onClick={() => setFollowText((v) => !v)}
-                title={`Follow text is ${followText ? 'on' : 'off'}. When on, moving the audio keeps the text following along.`}
-                style={{
-                  minWidth: 132,
-                  padding: '7px 12px',
-                  border: '1px solid ' + (followText ? 'var(--accent)' : 'var(--border)'),
-                  borderRadius: 999,
-                  background: followText ? 'var(--accent-soft)' : 'white',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  color: followText ? 'var(--accent-dark)' : 'var(--text-muted)',
-                }}
-              >
-                Follow text: {followText ? 'On' : 'Off'}
-              </button>
-            ) : null}
-          />
-        ) : null}
+	        bottomDock={audioUrl ? (
+	          <AudioDock
+	            audioRef={audioRef}
+	            audioUrl={audioUrl}
+	            label={audioFileName || ''}
+	            rightActions={syncTable && syncTable.length >= 4 ? (
+	              <>
+	                <span
+	                  title="This chapter has a saved transcription alignment."
+	                  style={{
+	                    display: 'inline-flex',
+	                    alignItems: 'center',
+	                    minHeight: 31,
+	                    padding: '6px 10px',
+	                    borderRadius: 999,
+	                    background: 'rgba(255,255,255,0.96)',
+	                    border: '1px solid var(--accent-border-strong)',
+	                    color: 'var(--accent-dark)',
+	                    fontSize: '0.72rem',
+	                    fontWeight: 800,
+	                    whiteSpace: 'nowrap',
+	                  }}
+	                >
+	                  ✓ Synced
+	                </span>
+	                <button
+	                  type="button"
+	                  onClick={() => setFollowText((v) => !v)}
+	                  title={`Follow text is ${followText ? 'on' : 'off'}. When on, moving the audio keeps the text following along.`}
+	                  style={{
+	                    minWidth: 132,
+	                    padding: '7px 12px',
+	                    border: '1px solid ' + (followText ? 'var(--accent)' : 'var(--border)'),
+	                    borderRadius: 999,
+	                    background: followText ? 'var(--accent-soft)' : 'white',
+	                    fontSize: '0.74rem',
+	                    fontWeight: 700,
+	                    cursor: 'pointer',
+	                    color: followText ? 'var(--accent-dark)' : 'var(--text-muted)',
+	                  }}
+	                >
+	                  Follow text: {followText ? 'On' : 'Off'}
+	                </button>
+	              </>
+	            ) : null}
+	          />
+	        ) : null}
         unitDecoration={unitDecoration}
         onUnitPointerDown={onWordPointerDown}
         onUnitPointerEnter={onWordPointerEnter}

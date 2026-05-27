@@ -1,506 +1,269 @@
-# HANDOFF — 2026-05-26 evening (after page-number rebuild + Marie crashing out)
+# HANDOFF - StJohn Author Studio 4.0
 
-## 📋 COPY-PASTE BLOCK — paste this verbatim into a fresh chat to bootstrap
+## Copy-Paste Bootstrap For Next Chat
 
-```
-You're continuing work on StJohn Author Studio 4.0 for Marie.
+```text
+You are continuing work on StJohn Author Studio 4.0 for Marie Mackay.
 
-Before you do ANYTHING:
-1. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md (top to bottom).
-2. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md (this file).
-3. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md.
-4. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/FINAL-ROUND-checklist.md.
-5. Read /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md.
+Before touching code, read these files:
+1. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md
+2. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md
+3. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md
+4. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md
+5. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md
+6. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/context.md
+7. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/tasks.md
 
-Marie is a NON-CODER. Plain English, 2-4 sentences default. Banned words:
-refactor, abstraction, composition, polyfill, hydrate, memoize, lift state,
-scope guard, prop drilling, dependency injection, side-effect, idempotent.
+Current emergency:
+Marie opened the freshly rebuilt app, transcribed in Quill, saw the tick appear, switched to another app, came back, and the transcription tick was gone. This means the Quill transcription still is not reliably sticking in visible app state. Paths/transcriptions must be solved before any other polish.
 
-Mandatory on every response that touches files:
-- "Files I changed:" footer at the end.
-- Run command in a code block: `cd ~/Dev/StJohn-Author-Studio-4.0 && npm start`
-  followed by "paste and hit Enter".
-
-⚠️ TOP-OF-LIST READ-THIS-FIRST: The previous AI kept failing at the
-explainer text under the page-number shift control. Marie said it
-verbatim multiple times. Use HER WORDING exactly:
-
-  "If you open the Word document and you see that on the first page
-   there isn't a number 1, but on the second page there is, then it
-   needs to be shifted +1 or −1."
-
-Put that wording into the explainer in ImportFlow.js (the small grey
-text under the +/- input) and into SessionsView.js's banner. Plain
-English, no jargon, no "footer", no "PDF page index". The user is
-looking at their Word doc — describe it from their seat.
-
-Also: Marie said she's exhausted. Don't ask clarifying questions
-unless you genuinely can't proceed. Don't theorize. Don't propose
-options. Do the work. If something breaks, say so. If you don't know,
-say so. Don't be cute. Don't suggest workflows that skip page
-numbers — they are non-negotiable for her.
+Do not tell Marie it is fixed until you have verified the exact flow:
+Quill -> attach audio -> transcribe -> tick appears -> switch away/back -> tick remains -> quit/reopen -> tick remains -> log out/in -> tick remains -> phone can see/use cloud transcription data.
 ```
 
----
+## 1. Who Marie Is And How To Talk To Her
 
-## 1. WHO IS THE USER
+Marie is a non-coder author building this app for her audiobook proofing, Quill annotation, special-edition, and audio-prep workflow.
 
-**Marie.** Self-published audiobook + special-edition print author.
-Non-coder. Plain English only. Talk to her like she's 10 — short
-sentences, no jargon, no "three options with paragraphs". She's been
-through dozens of AI sessions on this app, many of them frustrating.
-Trust = earned by showing the work running on her real files.
+She is exhausted from weeks of bug fixing. Keep replies short, concrete, and plain English. Do not over-explain unless she asks. Say what happened, what you changed, what she should test next.
 
-**Banned coder vocab:** refactor, abstraction, composition, polyfill,
-hydrate, memoize, lift state, scope guard, prop drilling, dependency
-injection, side-effect, idempotent. Say what changed in normal words.
+Do not use coder language with her. Avoid words like refactor, abstraction, hydration, memoization, prop drilling, side effect, idempotent, or anything that sounds like process instead of progress.
 
-**Source format:** every manuscript Marie ever uses comes from Google
-Docs, downloaded as a Word .docx. Not Microsoft Word saves. Not direct
-PDF exports unless she explicitly does one. The app must work for that
-flow.
+When she is testing live and upset, do not brainstorm aloud. Identify the failure, fix or inspect it, and give a calm status update.
 
----
+## 2. Hard Rules That The Next AI Must Follow
 
-## 2. HARD RULES (these have bitten before — read them)
+- Quality over speed. Do not rush or slap on a patch that only hides the symptom.
+- Read the source before changing it. Use existing app patterns.
+- Preserve Marie's data. Do not wipe saved books/projects, paths, or local JSON.
+- Audio and PDF files must not be uploaded to Supabase. Only small metadata/text/alignment/flags/annotations may sync.
+- Local file paths should stay local to the machine. They can persist locally but should not be cloud-shared.
+- Phone cannot use Mac paths. It should use cloud text/alignment plus locally picked/matched phone audio.
+- Page numbers are non-negotiable for Proof flags/export.
+- Quill transcription must behave like Proof: visible done state, tick/percent, open reader, synced/follow text state, survive restart/logout/login, and be useful on phone.
+- After code edits, run `npm run test`. If packaging changed or Marie needs the app, rebuild at least Mac.
+- If you edit files, mention the files changed in the final.
+- Do not create multiple handover files. Update this file only unless Marie asks.
 
-- **PAGE NUMBERS ARE NON-NEGOTIABLE.** Don't suggest workflows that
-  skip them. Don't suggest the user "navigate by chapter + timestamp
-  instead". Don't ever say "for absolute accuracy, upload a PDF" as if
-  it's a fallback — make it the offered path and explain it without
-  judgement.
-- **No dual-write.** ONE shared component per job — the list is in
-  `CLAUDE.md` at the top. The build-checker hook hard-blocks any
-  new inline `function .*BookDetail/HomeView/ChapterRow/ReaderView/
-  Setup/Panel/AudioDock/Picker` in a mode file.
-- **No self-certifying.** The `stop-no-self-cert.sh` Stop hook
-  hard-blocks responses that contain "95% confident", "self-certify",
-  "trust me it works", "gate at X%", "grade myself". Mark exceptions
-  with `// intentional:` in code.
-- **No guessing on numbers Marie has to verify.** Page numbers,
-  timing, narrator alignment — these get checked against her real
-  files. If you can't prove it's exact, say so honestly. Don't ship
-  a heuristic and call it accurate.
-- **Plain English only.**
-- **"Files I changed:" footer is MANDATORY** on every response that
-  edits files.
-- **Always give the run command** at the end of any code-touching
-  reply: `cd ~/Dev/StJohn-Author-Studio-4.0 && npm start` in a code
-  block + "paste and hit Enter".
-- **Clickable links wherever possible.**
-- **Bottom toolbar is sacred** — audio dock area. Don't pile other
-  stuff there.
-- **Double-confirm destructive actions.**
-- **Never suggest stopping or pausing** — keep going to the end.
-- **Push is fine without asking.**
-- **Audio NEVER touches Supabase.** `audio-guard.js` strips audio
-  paths recursively before any upload.
-- **No fake data.** Empty state says "Import a manuscript". No
-  `sampleProjects` shim, ever.
-- **Never guess about the app.** Read the file end-to-end or drive
-  the UI before saying how it behaves.
-- **Electron's main.js requires a full app restart** to pick up
-  changes. Renderer hot-reload doesn't see main.js edits. If Marie
-  reports "I changed it but I don't see the change", main.js is the
-  first suspect — tell her to close the app and `npm start` again.
+## 3. Files To Read First, With Exact Paths
 
----
+Read these first:
 
-## 3. READ THESE FILES (IN ORDER)
-
-1. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md`
-2. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md` (this file)
+1. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md`
+2. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md`
 3. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md`
-4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/dev/active/FINAL-ROUND-checklist.md`
-5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md`
-6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
+4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md`
+5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
+6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md`
+7. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/INTERNAL_FUNCTION_TREE.md`
+8. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/plan.md`
+9. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/context.md`
+10. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/tasks.md`
 
----
+Then inspect these code files for the current bug:
 
-## 4. BROAD VISION
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/app/components/QuillAndInkMode.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/app/components/SessionsView.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/app/page.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/app/phone/page.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/packages/cloud-sync/quill-sync.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/packages/cloud-sync/proof-sync.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/packages/cloud-sync/cloud-slim.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/main.js`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/preload.js`
 
-One desktop app + one phone companion for Marie's self-published
-audiobook and special-edition print workflow. Four desktop modes
-(Proof Listen / Prep Manuscript / Duet Prep / Quill & Ink) and two
-phone modes (Script / Quill) share ONE reader brain, ONE cloud sync,
-ONE audio engine. This is attempt #4. Marie has been working on this
-or earlier versions for a long time — she's tired and wants it
-finished.
+Useful local data files:
 
----
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Save Data/books.json`
+- `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Save Data/quill-projects.json`
 
-## 5. CURRENT STATE
+## 4. Broad Vision Of The App
 
-- **% done:** functionally most of the work is in. The blockers right
-  now are around page numbers (see Top Jobs) and Marie's hands-on
-  walkthrough.
-- **Latest pushed commit (origin/main):** `83cfd2d` — "Refresh
-  HANDOFF.md — final-round handover".
-- **Local HEAD:** `f91f3b1` (auto-backup). MANY uncommitted local
-  changes from this evening's session — see `git log --oneline -50`
-  to see the trail of `auto-backup:` commits. The git-backup hook
-  has been firing on every edit.
-- **Working tree (right now):** modified `app/components/ImportFlow.js`
-  (the page-shift card + sub-heading toggle restoration). Possibly
-  also modified files from earlier in the session that the auto-backup
-  didn't capture cleanly. Check `git status` before doing anything.
-- **Tests:** `npm test` runs `node --test 'tests/**/*.test.mjs'` —
-  4 tests, all pass.
-- **Typecheck:** plain JS, no separate step. The Stop hook does
-  `node --check` on each edited file.
-- **Live URLs:**
-  - Phone (root): `https://stjohn-author-studio-4.vercel.app/`
-  - Phone (direct): `https://stjohn-author-studio-4.vercel.app/phone`
-- **Hooks installed (all firing healthy):** git-backup, file-tracker,
-  cross-mode-parity, build-checker (bouncer), context-check,
-  deep-check-trigger, handover-trigger, ui-check-trigger (strict),
-  usability-check-trigger, goodnight-trigger, progress-trigger,
-  no-mess, stop-no-self-cert. See `.claude/hook-activity.log` for
-  proof they're running.
-- **LibreOffice:** required for the auto docx → PDF page-number scan.
-  Installed locally on Marie's Mac at `/Applications/LibreOffice.app/`.
-  For shipping, Marie's husband on Windows: Word's COM automation
-  serves the same purpose.
+StJohn Author Studio 4.0 is one desktop app plus a phone companion.
 
----
+Desktop modes:
 
-## 6. TOP NEXT JOBS — priority order
+- Proof Listen: audiobook proofing, flags, timestamps, page numbers, narrator fields, CSV/marker export.
+- Quill & Ink: manuscript annotation, audio/transcription support, phone annotation support, CSV/InDesign export.
+- Prep Manuscript: manuscript prep.
+- Duet/Prebuild: multi-cast audio prep and marker generation.
 
-### ⭐ Job 0 — Fix the page-number-shift explainer text
+Phone modes:
 
-Marie repeated her exact wording multiple times. Use THIS verbatim
-in the explainer under the +/- control in ImportFlow.js and in the
-status banner in SessionsView.js:
+- Proof Listen phone side: open synced books, pick local phone audio, flag while listening, export/sync flags.
+- Quill phone side: annotate synced manuscript data.
 
-> "If you open the Word document and you see that on the first page
->  there isn't a number 1, but on the second page there is, then it
->  needs to be shifted +1 or −1."
+Cloud goal:
 
-The current explainer mentions "footer" and "PDF page" — don't.
-Speak from the user's seat: they have a Word doc open, they're
-looking at page 1, they're checking what number shows. That's the
-mental model. Edit the small grey text in ImportFlow.js around
-lines 700–720 and SessionsView.js's amber banner.
+- Supabase stores small useful data only: projects, chapter text/html, annotations, flags, transcription/alignment data, audio file names.
+- Supabase must not store audio/PDF files or local file paths.
 
-### Job 1 — Verify the page-number flow end-to-end with Marie
+## 5. Current State
 
-The system right now:
-- ImportFlow auto-converts docx → PDF via LibreOffice (slow, ±1-2
-  drift on long books).
-- Optional: user uploads a PDF. The PDF route is more accurate.
-- Both paths auto-detect "where does the first '1' footer appear"
-  and apply a negative offset so the user's page 1 lines up.
-- The +/- control lets the user manually shift.
+Latest local commit:
 
-Marie reported "0 — no shift" after uploading her Anarchy PDF.
-Expected −1. Almost certainly Electron didn't restart to pick up
-the new `extractPdfPagingFromBuffer` code in main.js (which now
-returns `suggestedAdjustment`, `firstOneAtPdfPage`,
-`unnumberedBeforeFirstOne`). Tell Marie: close the Electron app
-completely, then `npm start` again. Then she re-uploads the PDF
-on the book detail.
+- `a209222`
 
-Test files live in her Downloads:
-- `Anarchy Manuscript for Audiobook (4).docx`
-- `Anarchy Manuscript for Audiobook (1).pdf`
+Working tree:
 
-Sandbox script:
-```
-node scripts/page-sandbox.mjs "<docx-or-pdf path>" "quote to find"
-```
+- There are many uncommitted edits from the current bug-fix/package pass.
+- `git status --short` currently shows modified app files plus generated/untracked `build/` and `docs/dev/`.
+- Do not revert user or generated changes without Marie explicitly asking.
 
-### Job 2 — Cloud safety audit doc
+Last verified test status:
 
-Marie wants a thorough cloud-safety audit doc to give to a separate
-AI for a fresh review. The doc must include:
-- App purpose (one paragraph)
-- Files to read (the cloud-sync package + audio-guard + tombstones)
-- What needs verifying: audio never goes to Supabase, annotations +
-  flags round-trip phone ↔ desktop correctly, flag queue retries on
-  failure, tombstones stop deleted books resurrecting, no orphan
-  Supabase columns.
-- Specific test scenarios (sign out mid-save, two-device race,
-  airplane mode, etc.)
+- `npm run test` passed after the latest code changes.
+- Result: 4 tests passed, 0 failed.
 
-Don't audit it yourself — write the audit BRIEF so a fresh AI can.
-Save as `docs/CLOUD_SAFETY_AUDIT.md`.
+Build/package status:
 
-### Job 3 — Quill walkthrough (Marie does, you fix what surfaces)
+- Mac release rebuilt after the latest source fixes:
+  `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio.app`
+- Windows portable rebuilt:
+  `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio (Windows).exe`
+- Windows installer rebuilt:
+  `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio Setup.exe`
+- Mac bundle verification passed with `codesign --verify --deep --strict`.
 
-End-to-end with a real .docx in Quill mode: import → reader →
-annotate → export to InDesign → cloud round-trip. Marie does the
-clicking; you fix bugs she finds.
+Known live URL from prior project state:
 
-### Job 4 — Proof walkthrough (Marie does, you fix what surfaces)
+- Phone/root: `https://stjohn-author-studio-4.vercel.app/`
+- Phone direct: `https://stjohn-author-studio-4.vercel.app/phone`
+- These were not re-verified in this handover pass.
 
-Same with a real audiobook .docx + audio in Proof mode. Marie may
-import into Adobe Audition to test the engineer export.
+What was done in the last session:
 
-### Job 5 — Tutorial debug pass
+- Packaged Mac and Windows releases.
+- Added playback speed up to `4x` on desktop and phone:
+  - `app/components/AudioDock.js`
+  - `app/components/ProofingReader.js`
+  - `app/page.js`
+  - `app/phone/page.js`
+  - `app/components/SessionsView.js`
+- Changed Quill so the shared transcription queue's function-style update is handled by the Quill bridge.
+- Added a visible `✓ Synced` chip inside the Quill reader when sync alignment exists.
+- Changed Proof cloud merge so a cloud copy without transcription data should not wipe local transcription data.
+- Closed the settings panel during sign-out/sign-in so it does not stay open.
+- Improved Proof PDF page-map persistence and phone page-number lookup.
+- Improved Quill local audio path persistence.
+- Wrote external audit prompt here:
+  `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/dev/active/quill-proof-persistence-page-fixes/external-ai-audit-prompt.md`
 
-Walk the tutorial end to end in Proof mode. Look for broken steps,
-out-of-date copy, missed UI changes since it was written. Fix what's
-broken. Don't rewrite the whole thing.
+Critical current bug:
 
-### Job 6 — Settings panel scrub
+- After using the rebuilt app, Marie reported:
+  - Quill transcribe shows a tick immediately.
+  - She switches away to another app.
+  - She comes back.
+  - The transcription tick is gone.
+- This means the Quill transcription still is not reliably sticking in visible state.
+- Do not assume the previous bridge fix solved it. It did not fully solve Marie's real flow.
 
-Look at every item in the Settings panel. For each:
-- Does it still do what its label says?
-- Is Backup and Restore actually working?
-- The page-matching settings (Column G, Start row 6, Page offset −1)
-  — what do they actually do? Document or remove. Marie has never
-  used them.
-Remove the obsolete. Add a short hover-tip on each remaining setting.
+Likely areas to inspect:
 
-### Job 7 — Trigger interface check on every Prep page
+- `QuillAndInkMode.js` bridge from `SessionsView` back into Quill project shape.
+- Whether `onUpdateBook(currentBook => ...)` writes transcript fields into `allProjects`.
+- Whether `persistProjects(allProjects)` writes the finished fields to `Save Data/quill-projects.json`.
+- Whether a later cloud push/pull or cloudId backfill replaces the just-transcribed local chapter with a slimmer copy.
+- Whether `isChapterTranscriptionCurrent()` in `SessionsView.js` rejects the saved transcription because `whisperAudioKey` or `whisperTextHash` changes after focus/state refresh.
+- Whether `chapterTranscripts` memory has the tick but the persisted chapter does not.
+- Whether `quill-sync.js` can store alignment but loses `whisperAudioKey`, `whisperTextHash`, `transcribedAt`, `whisperWords`, or quality fields on pull.
 
-Marie asked: "Just at the end of this, trigger utility and interface
-hook for prep as a general thing. Like, go through every page of
-prep that exists. Just make it a bit prettier, man."
+## 6. Top 5 Next Jobs In Priority Order
 
-Walk Prep's: home, import, book detail, reader. For each, run the
-🎨 INTERFACE CHECK — STRICT MODE protocol (the one that forces
-Stage A element census before judging). Fix what surfaces. Stop
-when each Prep screen has ✓ pass / ⚠ minor — no ❌ broken.
+1. Fix Quill transcription tick disappearing after app switch.
 
-### Job 8 — Friendly "Install LibreOffice" prompt
+   Reproduce exactly. Add temporary logging if needed. Check `Save Data/quill-projects.json` immediately after transcription, after switching apps, after restart, and after logout/login. The tick must remain because the project data says it is transcribed, not only because the queue says "done".
 
-When auto-conversion fails because neither LibreOffice nor Word is
-found, show a clear message with a download link, not a silent
-failure or a yellow banner saying "no page numbers". This is task
-#23 still pending.
+2. Verify Quill transcription cloud-to-phone path.
 
-### Job 9 — Polish Proof's ManuscriptSetup
+   After the tick sticks locally, confirm Supabase gets the small alignment/transcription data and the phone can use it. Audio paths must not go to Supabase. Audio file names may go up. Phone still needs local phone audio.
 
-Proof has its own import UI in `ManuscriptSetup.js`. It works
-functionally but doesn't match ImportFlow's new look (upload-style
-PDF panel, page-shift card, line-work icon, heading-level note).
-Bring it in line. Don't break the narrator-mapping or PDF-paging
-logic that's already there.
+3. Verify Proof logout/login does not wipe transcriptions.
 
-### Job 10 — Windows installer .ico + NSIS Setup
+   Marie reported Proof does better than Quill but "it ALL vanished when I log in and log out." The merge patch is in place, but it needs real testing. Test Proof: transcribe, tick remains, logout/login, tick remains, restart, tick remains.
 
-The portable EXE ships (`dist/StJohn Author Studio (Portable).exe`,
-268 MB). For the proper NSIS installer, `build/icon.ico` is needed
-— generate from the existing macOS .icns. Then `npm run release:win`
-emits both portable and installer.
+4. Rebuild packages after the real Quill persistence fix.
 
----
+   Once fixed and tested, run `npm run test`, rebuild Mac with `npm run release:mac`, verify Mac bundle, and rebuild Windows with `npm run release:win` if time.
 
-## 7. WHAT ONLY MARIE CAN DO
+5. Continue the phone/export/Supabase audit.
 
-- **Hands-on testing on her real .docx + real audio + real Adobe
-  Audition.** Whisper alignment, narrator voice mapping, the feel of
-  double-tap selection, the InDesign export. Software can't simulate
-  her.
-- **Supabase migrations.** Only Marie has dashboard / service-role
-  key. Project: `evcusovtjfypfyfvnooy` ("Typing and Tomes 2.0 DATA").
-- **Design calls.** Colours, layout polish, "does this look right" —
-  Marie decides.
-- **Push authorisation for force-push or schema migration.** Regular
-  push is fine without asking. Force-push or migration — ask first.
-- **Verifying page numbers against her actual Word doc.** The app
-  can detect offsets but Marie has to confirm against the file she
-  reads. No AI scan substitutes.
-- **Windows install verification.** Husband's machine. Can't
-  simulate here.
+   Confirm phone flags include page number, timestamp, narrator/dropdown or typed narrator, type, quote, note, chapter/audio file. Confirm cloud is limited to small data and no PDF/audio bytes or local paths.
 
----
+## 7. What Only Marie Can Decide Or Do
 
-## 8. WHERE THINGS LIVE
+- Marie must choose the actual book/audio/PDF files to test.
+- Marie must confirm whether old Quill "done" queue items should be rerun or whether they must be recovered.
+- Marie must log into the real Supabase-backed account for cross-device tests if credentials/session are not already present.
+- Marie must confirm whether Windows packaging is needed immediately after every hotfix or whether Mac-only is enough for same-night testing.
+- Marie must judge whether page numbers are acceptable against her real PDF/Word doc.
 
-### Code (write here)
+## 8. Where Things Live And The Commands She Actually Uses
 
-| What | Where |
-|---|---|
-| Phone app (Script + Quill) | `app/phone/page.js` |
-| Desktop home + mode switcher | `app/page.js` |
-| Shared book detail (Proof/Quill/Duet) | `app/components/SessionsView.js` |
-| Original BookDetail (Quill chapter row) | `app/components/BookDetail.js` |
-| Shared manuscript reader (desktop) | `app/components/ChapterReader.js` |
-| Shared audio dock | `app/components/AudioDock.js` |
-| Shared import flow (.docx upload + optional PDF) | `app/components/ImportFlow.js` |
-| Proof's own import flow (older, hasn't been merged yet) | `app/components/ManuscriptSetup.js` |
-| Prep's book detail | `app/components/PrepManuscriptMode.js` (BookDetailView fn) |
-| Duet | `app/components/PrebuildMode.js` |
-| Top-bar pills + save badge + mode tokens | `app/components/ReaderChrome.js` |
-| Cloud sync (Supabase) | `packages/cloud-sync/` |
-| Audio engine | `packages/audio-engine/` |
-| Manuscript engine (.docx parse) | `packages/manuscript-engine/` |
-| Quill annotation engine | `packages/quill-engine/` |
-| Manuscript paging (rendered + helpers) | `app/lib/manuscriptPaging.js` |
-| PDF paging (footer detection + find by quote) | `app/lib/pdfPaging.js` |
-| Electron main process | `main.js` |
-| Electron preload | `preload.js` |
+Project root:
 
-### Branding assets
-
-`public/branding/`:
-- `script-and-sync-header.png` — Proof (mauve)
-- `script-and-sync-header-for-duet.png` — Duet (blue)
-- `script-and-sync-header-for-prep.png` — Prep (green)
-- `quill-and-ink-header.png` — Quill (pink)
-
-### Reference (READ but never edit)
-
-- `~/Library/CloudStorage/.../Script and Sync 3.0` — Proof base
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/script-and-sync`
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/quill-and-ink`
-- `~/Library/CloudStorage/.../StJohn Author Apps/apps/phone`
-- `~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My Drive/Game Dev/GitHub/Old or Tests/Audioproofer 5.0/`
-  — the version Marie remembers being accurate on pages. The
-  page-conversion code there is byte-identical to the current 4.0.
-
-### Sandbox / diagnostics
-
-- `scripts/page-sandbox.mjs` — runs the SAME docx→PDF→footer-page
-  detection the app uses. Accepts a .docx (LibreOffice path) or a
-  .pdf (direct path). Use for "what page does the app think this
-  quote is on?" tests.
-- `scripts/page-diagnostic.mjs` — dumps printed page numbers + top/
-  bottom line of each PDF page. Use to debug front-matter weirdness.
-- `scripts/pull-page-text.mjs` — pulls a clean ~10-word phrase from
-  each PDF page so test quotes are Cmd+F-able in Word.
-
-### Hooks + safety nets
-
-- `.claude/settings.json` — wires hooks
-- `.claude/hooks/_log.sh` — shared logger
-- `.claude/hooks/context-check.sh`
-- `.claude/hooks/progress-trigger.sh`
-- `.claude/hooks/deep-check-trigger.sh`
-- `.claude/hooks/handover-trigger.sh`
-- `.claude/hooks/ui-check-trigger.sh` (strict mode)
-- `.claude/hooks/usability-check-trigger.sh`
-- `.claude/hooks/goodnight-trigger.sh`
-- `.claude/hooks/git-backup.sh`
-- `.claude/hooks/file-tracker.sh`
-- `.claude/hooks/cross-mode-parity.sh`
-- `.claude/hooks/no-mess.sh`
-- `.claude/hooks/build-checker.sh` (bouncer)
-- `.claude/hooks/stop-no-self-cert.sh` (bouncer)
-- `.claude/hook-activity.log` — Marie verifies hooks ran by reading
-  this
-
-### Builds
-
-- **Mac:** `dist/mac-arm64/StJohn Author Studio.app`
-- **Windows portable EXE (ready to ship):**
-  `dist/StJohn Author Studio (Portable).exe` (268 MB)
-- **Windows NSIS Setup wizard:** not yet built — needs
-  `build/icon.ico`.
-
-### Commands Marie actually uses
-
-```
-cd ~/Dev/StJohn-Author-Studio-4.0 && npm start
+```bash
+cd "/Users/mariemackay/Dev/StJohn-Author-Studio-4.0"
 ```
 
-```
-cd ~/Dev/StJohn-Author-Studio-4.0 && npm run dev
-```
+Start editable app:
 
-```
-cd ~/Dev/StJohn-Author-Studio-4.0 && npm test
+```bash
+npm start
 ```
 
-```
-cd ~/Dev/StJohn-Author-Studio-4.0 && npm run release:mac
-```
+Run tests:
 
-```
-cd ~/Dev/StJohn-Author-Studio-4.0 && npm run release:win
+```bash
+npm run test
 ```
 
+Build Mac release:
+
+```bash
+npm run release:mac
 ```
-cat ~/Dev/StJohn-Author-Studio-4.0/.claude/hook-activity.log
+
+Build Windows release:
+
+```bash
+npm run release:win
 ```
 
----
+Fresh packaged app:
 
-## RECENT SESSION HISTORY (so the next AI knows what just happened)
+```text
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio.app
+```
 
-### 2026-05-26 evening — page-number rebuild + Marie crashed out
+Windows releases:
 
-- Rebuilt the page-number system from scratch:
-  - Removed all word-count estimates ("250 words per page" hack is
-    gone everywhere).
-  - PDF rendering is the ONLY accepted page-number source.
-  - Default: LibreOffice docx → PDF auto-conversion in main.js
-    (`convertDocxBufferToPdf`), then pdf.js extracts page text and
-    detects the printed number from each page's footer.
-  - Optional: user uploads a PDF directly. App uses that PDF instead
-    of the LibreOffice render. Same code path either way after
-    extraction (`extractPdfPagingFromBuffer`).
-  - Auto-detection: app walks the PDF and finds where the footer
-    first says "1". Counts unnumbered pages before it. Sets
-    `suggestedAdjustment = -(count)` so the first footer "1" lines
-    up with page 1.
-  - User can override with a +/- nudge during import (in ImportFlow)
-    or after import (in SessionsView's Edit book data, and on the
-    yellow / amber / green banner).
-- Verified end-to-end with Marie's `Anarchy Manuscript for Audiobook
-  (4).docx` and `Anarchy Manuscript for Audiobook (1).pdf`:
-  - LibreOffice path: 5 quotes, 4 off by 1, 1 not found.
-  - User PDF path: 5 quotes, 3 exact, 2 off by 1 because the PDF
-    counts the Epigraph as page 1 but Marie's Word doc counts
-    Chapter 1 as page 1. The auto-detect handles this — sets
-    adjustment to −1.
-  - Marie reported "0 — no shift" on her end after PDF upload.
-    Almost certainly because she didn't restart Electron, so the
-    new main.js wasn't loaded. Tell her: close the app, `npm start`
-    again.
-- Wired auto-conversion into ImportFlow (Quill / Duet / Prep imports
-  now run docx → PDF behind the scenes during commit).
-- Added the Upload PDF button to SessionsView (Proof / Quill / Duet
-  book detail) and Prep's BookDetailView.
-- Polished ImportFlow:
-  - Real upload-panel styling for PDF (line-work SVG icon, no emoji).
-  - Page-number shift card always visible during import (before this
-    it was hidden until a scan completed — Marie missed it).
-  - Quiet hint on the H1/H2/H3 chapter level selector.
-- Tried removing the duplicate "Show sub-headings" button — Marie
-  freaked because the same panel is used by Prep + Duet + Quill.
-  REVERTED. Don't remove that button without explicit sign-off.
-- New scripts: `scripts/page-sandbox.mjs`, `scripts/page-diagnostic.mjs`,
-  `scripts/pull-page-text.mjs`.
-- Mass file edits to: `main.js`, `app/lib/manuscriptPaging.js`,
-  `app/lib/pdfPaging.js` (via dependent code),
-  `app/components/ImportFlow.js`, `app/components/SessionsView.js`,
-  `app/components/ManuscriptSetup.js`,
-  `app/components/ProofingReader.js`, `app/components/PrebuildMode.js`,
-  `app/components/PrepManuscriptMode.js`,
-  `app/components/QuillAndInkMode.js`.
+```text
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio (Windows).exe
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Script and Sync Releases/StJohn Author Studio Setup.exe
+```
 
-### Earlier in 2026-05-26
+Local saved data:
 
-- 4 mode headers wired (Proof, Duet, Prep, Quill PNGs in
-  `public/branding/`).
-- 4 T&T hooks ported (goodnight, usability, progress, strict
-  interface).
-- Bug list cleared: book ordering, default character colours, export
-  collision suffixes, Duet Split toggle, settings cog rework,
-  tightened book detail, transcription queue UX, page-offset toggle.
+```text
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Save Data/books.json
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/Save Data/quill-projects.json
+```
 
-### 2026-05-25 and earlier — see prior commits + git log
+Cloud sync code:
 
----
+```text
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/packages/cloud-sync/
+```
 
-## SUMMARY FOR MARIE (plain English)
+Supabase project URL in local env:
 
-- Page numbers now come ONLY from a real PDF. No estimates.
-- The app auto-converts your .docx to PDF behind the scenes using
-  LibreOffice. That gives most page numbers right, off by 1 or 2
-  on long books.
-- For exact, upload your PDF (download from Google Docs). The app
-  uses that directly.
-- Either way, the app auto-detects where footer "1" sits and shifts
-  everything so your first numbered page lines up.
-- You can nudge ± by hand during import OR later in Edit book data.
-- IF the new auto-detect isn't firing for you, **close the app
-  completely and run `npm start` again** — the Electron main process
-  doesn't see updates without a restart.
+```text
+https://evcusovtjfypfyfvnooy.supabase.co
+```
 
-You crashed out on this — that's fair. The fix list above is small.
-The next AI picks up at Job 0 (the explainer text rewrite using your
-exact wording) and works through.
+Important practical reminder:
+
+- If you change `main.js`, fully quit and restart the Electron app. Renderer reload is not enough.
+- If you change packaged output, rebuild the release app before telling Marie to test it.

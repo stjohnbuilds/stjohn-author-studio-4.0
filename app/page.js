@@ -10,6 +10,7 @@ import QuillAndInkMode from './components/QuillAndInkMode';
 import LoginScreen from './components/LoginScreen';
 import { modeAccentVars, ProfilePill } from './components/ReaderChrome';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
+import { buildSlimPageMap } from './lib/pdfPaging';
 import {
   hasSupabaseConfig,
   getSupabaseClient,
@@ -188,7 +189,9 @@ function formatSaveLocation(dataLocation) {
   return dataLocation.primaryPath;
 }
 
-const LISTEN_SPEED_PRESETS = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3];
+const LISTEN_SPEED_MIN = 0.5;
+const LISTEN_SPEED_MAX = 4;
+const LISTEN_SPEED_PRESETS = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4];
 const APP_MODE_STORAGE_KEY = 'ap-app-mode-v1';
 const TUTORIAL_STORAGE_KEY = 'ap-tutorial-enabled-v3';
 const TUTORIAL_STEPS = [
@@ -279,6 +282,76 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function timestampMs(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsed = Date.parse(value || '');
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function bookSortTime(book) {
+  return timestampMs(book?.updatedAt) || timestampMs(book?.lastOpenedAt) || Number(book?.id) || 0;
+}
+
+function buildPdfPageMapForBook(pdfPages, chapters) {
+  if (!Array.isArray(pdfPages) || !pdfPages.length) return null;
+  const html = (chapters || [])
+    .flatMap(chapter => chapter?.sections || [])
+    .map(section => section?.html || '')
+    .filter(Boolean)
+    .join('');
+  if (!html) return null;
+  try {
+    const map = buildSlimPageMap(pdfPages, html);
+    return Array.isArray(map) && map.length ? map : null;
+  } catch (error) {
+    console.warn('Could not rebuild PDF page map:', error);
+    return null;
+  }
+}
+
+function hasSectionTranscription(section) {
+  return !!(
+    section &&
+    ((Array.isArray(section.whisperAlignment) && section.whisperAlignment.length) ||
+      (Array.isArray(section.whisperWords) && section.whisperWords.length) ||
+      section.whisperTranscript ||
+      section.transcribedAt)
+  );
+}
+
+function mergeLocalSectionTranscription(localSection, cloudSection) {
+  if (!localSection || !cloudSection) return cloudSection;
+  const merged = { ...cloudSection };
+  const cloudHasTranscription = hasSectionTranscription(cloudSection);
+  const localHasTranscription = hasSectionTranscription(localSection);
+  if (!cloudHasTranscription && localHasTranscription) {
+    [
+      'whisperTranscript',
+      'whisperWords',
+      'whisperAlignment',
+      'whisperMatchedCount',
+      'whisperManuscriptWordCount',
+      'whisperMatchQuality',
+      'whisperAudioKey',
+      'whisperTextHash',
+      'whisperSourceUpdatedAt',
+      'transcribedAt',
+    ].forEach((field) => {
+      if (localSection[field] !== undefined) merged[field] = localSection[field];
+    });
+    return merged;
+  }
+  if (
+    (!Array.isArray(merged.whisperWords) || !merged.whisperWords.length) &&
+    Array.isArray(localSection.whisperWords) &&
+    localSection.whisperWords.length
+  ) {
+    merged.whisperWords = localSection.whisperWords;
+  }
+  return merged;
+}
+
 // Merge local Proof books with the cloud-pulled list. Cloud books carry
 // a `cloudId` (the Supabase row uuid). When a local book and a cloud
 // book share the same local `id`, the one with the newer updated time
@@ -300,8 +373,8 @@ function mergeProofBookLists(localBooks, cloudBooks) {
       byId.set(cb.id, cb);
       continue;
     }
-    const localTime = Number(existing.updatedAt) || 0;
-    const cloudTime = Date.parse(cb.updatedAt) || 0;
+    const localTime = bookSortTime(existing);
+    const cloudTime = bookSortTime(cb);
     if (cloudTime > localTime) {
       byId.set(cb.id, mergePreservingLocalAudio(existing, cb));
     } else {
@@ -326,6 +399,19 @@ function mergePreservingLocalAudio(localBook, cloudBook) {
     ...cloudBook,
     cloudId: cloudBook.cloudId,
     audioDurationCache: localBook?.audioDurationCache || cloudBook?.audioDurationCache,
+    pdfPaging: (
+      localBook?.pdfPaging?.pages?.length && cloudBook?.pdfPaging && !cloudBook.pdfPaging.pages
+    )
+      ? { ...cloudBook.pdfPaging, pages: localBook.pdfPaging.pages }
+      : (cloudBook?.pdfPaging || localBook?.pdfPaging || null),
+    pdfPageMap: Array.isArray(cloudBook?.pdfPageMap) && cloudBook.pdfPageMap.length
+      ? cloudBook.pdfPageMap
+      : (Array.isArray(localBook?.pdfPageMap) ? localBook.pdfPageMap : null),
+    pdfFileName: cloudBook?.pdfFileName || localBook?.pdfFileName || '',
+    pdfSource: cloudBook?.pdfSource || localBook?.pdfSource || null,
+    pageNumberAdjustment: Number.isFinite(Number(cloudBook?.pageNumberAdjustment))
+      ? cloudBook.pageNumberAdjustment
+      : (Number(localBook?.pageNumberAdjustment) || 0),
     chapters: (cloudBook.chapters || []).map((ch) => ({
       ...ch,
       sections: (ch.sections || []).map((sec) => {
@@ -334,7 +420,7 @@ function mergePreservingLocalAudio(localBook, cloudBook) {
         const merged = { ...sec };
         if (localSec.audioPath !== undefined) merged.audioPath = localSec.audioPath;
         if (localSec.audioPaths !== undefined) merged.audioPaths = localSec.audioPaths;
-        return merged;
+        return mergeLocalSectionTranscription(localSec, merged);
       }),
     })),
   };
@@ -373,6 +459,8 @@ export default function Home() {
   const bookDetailScrollRef = useRef(0);
   const cameFromProofCloudRef = useRef(false);
   const proofCloudPushTimerRef = useRef(null);
+  const lastSignedOutUserIdRef = useRef(null);
+  const restoredLocalForSessionRef = useRef('');
   const clientPlatform = typeof navigator === 'undefined'
     ? 'unknown'
     : String(navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
@@ -400,7 +488,7 @@ export default function Home() {
     } catch {}
     try {
       const speed = Number(localStorage.getItem('ap-default-listening-speed'));
-      if (Number.isFinite(speed) && speed >= 0.5 && speed <= 3) {
+      if (Number.isFinite(speed) && speed >= LISTEN_SPEED_MIN && speed <= LISTEN_SPEED_MAX) {
         if (LISTEN_SPEED_PRESETS.includes(speed)) {
           setReaderDefaultListeningSpeed(speed);
         } else {
@@ -446,7 +534,11 @@ export default function Home() {
       setAuthReady(true);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthSession(session || null);
+      if (session) {
+        handleSignedIn(session);
+      } else {
+        setAuthSession(null);
+      }
     });
     return () => {
       cancelled = true;
@@ -461,6 +553,26 @@ export default function Home() {
   const [lastProofPullAt, setLastProofPullAt] = useState(0);
   const [proofPullError, setProofPullError] = useState('');
   const [proofPullInflight, setProofPullInflight] = useState(false);
+
+  async function restoreLocalBooksForSignedInSession(session) {
+    const userId = session?.user?.id || '';
+    if (!userId) return;
+    if (lastSignedOutUserIdRef.current && lastSignedOutUserIdRef.current !== userId) return;
+    if (restoredLocalForSessionRef.current === userId) return;
+    restoredLocalForSessionRef.current = userId;
+    try {
+      const localBooks = await loadBooks();
+      if (localBooks.length) setBooks(localBooks);
+    } catch (error) {
+      console.warn('Could not restore local books after sign-in:', error);
+    }
+  }
+
+  function handleSignedIn(session) {
+    setAuthSession(session || null);
+    setSettingsOpen(false);
+    restoreLocalBooksForSignedInSession(session);
+  }
 
   const resyncProof = useCallback(async () => {
     if (!hasSupabaseConfig || !authReady || !authSession?.user) return;
@@ -555,6 +667,8 @@ export default function Home() {
   async function handleSignOut() {
     const supabase = getSupabaseClient();
     if (!supabase) return;
+    lastSignedOutUserIdRef.current = authSession?.user?.id || null;
+    restoredLocalForSessionRef.current = '';
     await signOutSupabaseAccount(supabase);
     // Marie 2026-05-26 — DATA-SAFETY BUG FIX: previously this only
     // cleared the auth token. The `books` state (and every other
@@ -568,6 +682,7 @@ export default function Home() {
     setBooks([]);
     setActiveBook(null);
     setActiveSection(null);
+    setSettingsOpen(false);
     setView('home');
     setAudioUrl(null);
     setBookPlayerState({ currentTime: 0, isPlaying: false, playbackRate: 1 });
@@ -604,7 +719,7 @@ export default function Home() {
   }
 
   function handleReaderDefaultListeningSpeedChange(next) {
-    const speed = Math.max(0.5, Math.min(3, Number(next) || 2));
+    const speed = Math.max(LISTEN_SPEED_MIN, Math.min(LISTEN_SPEED_MAX, Number(next) || 2));
     const snapped = LISTEN_SPEED_PRESETS.reduce((best, val) => (
       Math.abs(val - speed) < Math.abs(best - speed) ? val : best
     ), 2);
@@ -651,6 +766,22 @@ export default function Home() {
     // tombstone would silently hide it on the next pull AND the retry-
     // delete would keep killing the cloud row. Permanent ghost.
     try { clearTombstone('proof', { id: book.id, cloudId: book.cloudId }); } catch {}
+  }
+
+  function openExistingBook(book) {
+    if (!book?.id) return;
+    const touched = normalizeBookPaging({
+      ...book,
+      lastOpenedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    setBooks(prevBooks => {
+      const normalized = normalizeBooks(prevBooks.map(entry => entry.id === book.id ? touched : entry));
+      persistBooks(normalized).catch(() => {});
+      return normalized;
+    });
+    setActiveBook(touched);
+    setView('bookDetail');
   }
 
   function updateBook(bookId, updatesOrUpdater) {
@@ -708,6 +839,10 @@ export default function Home() {
     if (!nextPdfPaging?.pageCount) {
       throw new Error('The manuscript was converted, but no PDF page map was generated.');
     }
+    const nextPdfPageMap = buildPdfPageMapForBook(nextPdfPaging.pages, book.chapters);
+    if (!nextPdfPageMap?.length) {
+      throw new Error('The manuscript was converted, but the app could not match the PDF pages back to the manuscript text.');
+    }
 
     const updated = books.map(entry => entry.id === bookId ? {
       ...entry,
@@ -720,6 +855,7 @@ export default function Home() {
         printedPageCount: nextPdfPaging.printedPageCount,
         pages: nextPdfPaging.pages,
       },
+      pdfPageMap: nextPdfPageMap,
     } : entry);
     await persist(updated);
     if (activeBook?.id === bookId) {
@@ -734,11 +870,12 @@ export default function Home() {
           printedPageCount: nextPdfPaging.printedPageCount,
           pages: nextPdfPaging.pages,
         },
+        pdfPageMap: nextPdfPageMap,
       }) : prev);
     }
 
     return {
-      message: `Exact page map regenerated from ${manuscriptSource.fileName || 'the manuscript'} (${nextPdfPaging.pageCount} PDF pages).`,
+      message: `Exact page map regenerated from ${manuscriptSource.fileName || 'the manuscript'} (${nextPdfPaging.pageCount} PDF pages, ${nextPdfPageMap.length} anchors).`,
     };
   }
 
@@ -1196,7 +1333,7 @@ export default function Home() {
   if (hasSupabaseConfig && !authSession) {
     return (
       <LoginScreen
-        onSignedIn={(session) => setAuthSession(session)}
+        onSignedIn={handleSignedIn}
         usesCustomDragRegion={usesCustomDragRegion}
       />
     );
@@ -1311,10 +1448,10 @@ export default function Home() {
         onRestartTutorial={restartTutorial}
         showTutorialHint={!tutorialActive && !settingsOpen && view !== 'reading'}
       />
-      {view==='home'       && <HomePage books={books} isElectron={isElectron} dataLocation={dataLocation} onChangeDataLocation={handleChangeDataLocation} onNew={()=>setView('newBook')} onOpen={b=>{setActiveBook(b);setView('bookDetail');}} onImport={importBooks} onExport={exportBackup} onElectronImport={handleImport} authEmail={authSession?.user?.email || ''} onSignOut={handleSignOut} onResync={resyncProof} resyncing={proofPullInflight} resyncError={proofPullError} lastResyncedAt={lastProofPullAt} />}
+      {view==='home'       && <HomePage books={books} isElectron={isElectron} dataLocation={dataLocation} onChangeDataLocation={handleChangeDataLocation} onNew={()=>setView('newBook')} onOpen={openExistingBook} onImport={importBooks} onExport={exportBackup} onElectronImport={handleImport} authEmail={authSession?.user?.email || ''} onSignOut={handleSignOut} onResync={resyncProof} resyncing={proofPullInflight} resyncError={proofPullError} lastResyncedAt={lastProofPullAt} />}
       {view==='newBook'    && <BookSetup onSave={saveBook} onBack={()=>setView('home')} pageOffset={pagefinderPageOffset} isElectron={isElectron} onImportTransfer={handleTransferImport} />}
       {view==='bookDetail' && activeBook && <BookDetail book={activeBook} isElectron={isElectron} audioUploadMode={audioUploadMode} onProof={startProofing} onUpdateBook={u=>updateBook(activeBook.id,u)} onToggleComplete={toggleComplete} onDelete={()=>deleteBook(activeBook.id)} onBack={()=>{setActiveBook(null);setAudioUrl(null);setBookPlayerLabel('');setView('home');}} onTransferExport={() => handleTransferExport(activeBook)} onRescanPageMap={(file)=>rescanBookPageMap(activeBook.id, file)} persistentAudioUrl={audioUrl} persistentAudioLabel={bookPlayerLabel} persistentAudioState={bookPlayerState} onPersistentAudioStateChange={setBookPlayerState} onReturnToScene={returnToActiveScene} onClearPersistentAudio={()=>{setAudioUrl(null);setBookPlayerLabel('');setBookPlayerState({ currentTime: 0, isPlaying: false, playbackRate: 1 });}} usesCustomDragRegion={usesCustomDragRegion} />}
-      {view==='reading'    && activeSection && activeBook && <ProofingReader section={activeSection} audioUrl={audioUrl} narratorColors={activeBook.narratorColors} manuscriptPaging={activeBook.manuscriptPaging} pdfPaging={activeBook.pdfPaging} pdfPageMap={activeBook.pdfPageMap || null} pageNumberAdjustment={Number(activeBook.pageNumberAdjustment) || 0} includeChapterPreroll={readerIncludeChapterPreroll} defaultListeningSpeed={readerDefaultListeningSpeed} onSaveFlags={(cid,sid,f)=>saveFlags(cid,sid,f)} onBack={(snapshot)=>{ if(snapshot) setBookPlayerState({ currentTime: Math.max(0, Number(snapshot.currentTime) || 0), isPlaying: !!snapshot.isPlaying, playbackRate: Math.max(0.5, Math.min(3, Number(snapshot.playbackRate) || 1)) }); setBookPlayerLabel(buildPersistentPlayerLabel(activeBook, activeSection)); setView('bookDetail'); restoreBookDetailScroll();}} canPrevChapter={canNavigateReaderChapter(-1)} canNextChapter={canNavigateReaderChapter(1)} onPrevChapter={()=>navigateReaderChapter(-1)} onNextChapter={()=>navigateReaderChapter(1)} sceneOptions={readerSceneOptions} onJumpToScene={jumpToReaderScene} usesCustomDragRegion={usesCustomDragRegion} />}
+      {view==='reading'    && activeSection && activeBook && <ProofingReader section={activeSection} audioUrl={audioUrl} narratorColors={activeBook.narratorColors} manuscriptPaging={activeBook.manuscriptPaging} pdfPaging={activeBook.pdfPaging} pdfPageMap={activeBook.pdfPageMap || null} pageNumberAdjustment={Number(activeBook.pageNumberAdjustment) || 0} includeChapterPreroll={readerIncludeChapterPreroll} defaultListeningSpeed={readerDefaultListeningSpeed} onSaveFlags={(cid,sid,f)=>saveFlags(cid,sid,f)} onBack={(snapshot)=>{ if(snapshot) setBookPlayerState({ currentTime: Math.max(0, Number(snapshot.currentTime) || 0), isPlaying: !!snapshot.isPlaying, playbackRate: Math.max(LISTEN_SPEED_MIN, Math.min(LISTEN_SPEED_MAX, Number(snapshot.playbackRate) || 1)) }); setBookPlayerLabel(buildPersistentPlayerLabel(activeBook, activeSection)); setView('bookDetail'); restoreBookDetailScroll();}} canPrevChapter={canNavigateReaderChapter(-1)} canNextChapter={canNavigateReaderChapter(1)} onPrevChapter={()=>navigateReaderChapter(-1)} onNextChapter={()=>navigateReaderChapter(1)} sceneOptions={readerSceneOptions} onJumpToScene={jumpToReaderScene} usesCustomDragRegion={usesCustomDragRegion} />}
       {transferNotice && (
         <TransferNoticeModal notice={transferNotice} onClose={() => setTransferNotice(null)} />
       )}
@@ -1745,7 +1882,7 @@ function SettingsCog({
                   onChange={e=>onReaderDefaultListeningSpeedChange(e.target.value)}
                   style={{ border:'1px solid var(--border)', borderRadius:10, padding:'5px 10px', fontSize:'0.86rem', fontFamily:'inherit', background:'white', color:'var(--text)' }}
                 >
-                  {[0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3].map(v=><option key={v} value={String(v)}>{v.toFixed(2)}x</option>)}
+                  {LISTEN_SPEED_PRESETS.map(v=><option key={v} value={String(v)}>{v.toFixed(2)}x</option>)}
                 </select>
               </div>
             </div>
@@ -1802,9 +1939,7 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
   // for old books that pre-date the updatedAt stamping fix — keeps
   // them in import-order at the bottom instead of all collapsing to 0.
   const sortedBooks = [...(books || [])].sort((a, b) => {
-    const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || Number(a?.id) || 0;
-    const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || Number(b?.id) || 0;
-    return bt - at;
+    return bookSortTime(b) - bookSortTime(a);
   });
   const lastResyncedLabel = lastResyncedAt ? formatRelativeFromNow(lastResyncedAt) : '';
   // ? info modal + image header — mirrors Duet's pattern at PrebuildMode.js.

@@ -33,7 +33,17 @@ export async function pushQuillProject(supabase, project, ownerId) {
   const annotationsHash = hashString(JSON.stringify(
     (clean.annotations || []).map((a) => ({ i: a.id, c: a.classId, o: a.optionId, w: a.wordStart, e: a.wordEnd, n: a.note, t: a.timestamp }))
   ));
-  const compositeHash = `${projectHash}|${annotationsHash}|${(clean.chapters || []).length}`;
+  const chaptersHash = hashString(JSON.stringify(
+    (clean.chapters || []).map((ch, idx) => ({
+      i: ch.id,
+      p: idx,
+      t: ch.title,
+      h: hashString(ch.textHtml || ''),
+      a: hashString(JSON.stringify(getChapterAlignment(ch))),
+      n: ch.audioFileName || '',
+    }))
+  ));
+  const compositeHash = `${projectHash}|${annotationsHash}|${chaptersHash}`;
   if (clean.cloudId && lastPushHashByCloudId.get(clean.cloudId) === compositeHash) {
     return clean.cloudId; // nothing changed
   }
@@ -67,9 +77,13 @@ export async function pushQuillProject(supabase, project, ownerId) {
     plain_text: ch.plainText || '',
     text_html: ch.textHtml || '',
     word_count: (ch.plainText || '').split(/\s+/).filter(Boolean).length,
-    alignment: ch.alignment || [],
+    alignment: getChapterAlignment(ch),
     audio_file_name: ch.audioFileName || '',
-    content_hash: hashString(ch.textHtml || ''),
+    content_hash: hashString(JSON.stringify({
+      html: ch.textHtml || '',
+      alignment: getChapterAlignment(ch),
+      audioFileName: ch.audioFileName || '',
+    })),
     updated_at: new Date().toISOString(),
   }));
   if (chapterRows.length) {
@@ -151,7 +165,7 @@ export async function pullQuillProjects(supabase) {
   const projectIds = projects.map((p) => p.id);
   const { data: chapters } = await supabase
     .from('quill_chapters')
-    .select('id, project_id, local_id, title, position, plain_text, text_html, audio_file_name')
+    .select('id, project_id, local_id, title, position, plain_text, text_html, alignment, audio_file_name')
     .in('project_id', projectIds);
   const { data: annotations } = await supabase
     .from('quill_annotations')
@@ -185,16 +199,21 @@ export async function pullQuillProjects(supabase) {
     }
     const projectChapters = (chaptersByProject.get(p.id) || [])
       .sort((a, b) => a.position - b.position)
-      .map((ch) => ({
-        id: ch.local_id,
-        cloudId: ch.id,
-        chapterNumber: ch.position + 1,
-        title: ch.title,
-        plainText: ch.plain_text,
-        textHtml: ch.text_html,
-        audioFileName: ch.audio_file_name || '',
-        completed: completedById.has(ch.local_id) ? completedById.get(ch.local_id) : false,
-      }));
+      .map((ch) => {
+        const alignment = Array.isArray(ch.alignment) ? ch.alignment : [];
+        return {
+          id: ch.local_id,
+          cloudId: ch.id,
+          chapterNumber: ch.position + 1,
+          title: ch.title,
+          plainText: ch.plain_text,
+          textHtml: ch.text_html,
+          alignment,
+          whisperAlignment: alignment,
+          audioFileName: ch.audio_file_name || '',
+          completed: completedById.has(ch.local_id) ? completedById.get(ch.local_id) : false,
+        };
+      });
     // Map cloud chapter UUID back to local id for annotations.
     const localIdByCloud = new Map(projectChapters.map((c) => [c.cloudId, c.id]));
     const projectAnnotations = (annotationsByProject.get(p.id) || []).map((ann) => ({
@@ -251,4 +270,10 @@ function hashString(input) {
     hash = Math.imul(hash, 0x01000193);
   }
   return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function getChapterAlignment(chapter) {
+  if (Array.isArray(chapter?.alignment)) return chapter.alignment;
+  if (Array.isArray(chapter?.whisperAlignment)) return chapter.whisperAlignment;
+  return [];
 }

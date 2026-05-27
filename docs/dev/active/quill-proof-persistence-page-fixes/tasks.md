@@ -1,0 +1,24 @@
+# Tasks
+
+- [x] Re-check source docs before step 1.
+- [x] Trace Proof local persistence.
+- [x] Trace Quill local persistence.
+- [x] Fix Quill local audio/path persistence.
+- [ ] Verify Quill local persistence.
+- [x] Re-check source docs before step 2.
+- [x] Trace Quill transcription state and cloud write/read.
+- [x] Fix Quill transcript/alignment persistence for phone.
+- [ ] Verify Quill transcript persistence and no audio upload.
+- [x] Re-check source docs before step 3.
+- [x] Trace Proof import/rescan page-map path.
+- [x] Fix Proof page-map persistence.
+- [x] Fix Proof reader page lookup accuracy.
+- [ ] Verify Proof pages on a late chapter.
+- [x] Re-check source docs before step 4.
+- [x] Fix last-worked ordering.
+- [ ] Verify last-worked ordering.
+- [x] Re-check source docs before step 5.
+- [x] Run tests.
+- [x] Build/package Mac.
+- [x] Write external-AI audit prompt/script.
+- [ ] Ask Marie before archiving/closing this plan.

@@ -361,6 +361,8 @@ const cbtn=(style={})=>({padding:'6px 12px',borderRadius:8,fontSize:'0.78rem',bo
 const SYNC_RATE_BOOST = 1.18;
 const SYNC_PLAYBACK_CALIBRATION = 0.925;
 const WHISPER_LEAD_SEC = 0.0;
+const PLAYBACK_SPEED_MIN = 0.5;
+const PLAYBACK_SPEED_MAX = 4;
 
 export default function ProofingReader({ section, audioUrl, narratorColors, manuscriptPaging = null, pdfPaging = null, pdfPageMap = null, pageNumberAdjustment = 0, includeChapterPreroll = true, defaultListeningSpeed = 2, onSaveFlags, onBack, canPrevChapter = false, canNextChapter = false, onPrevChapter, onNextChapter, sceneOptions = [], onJumpToScene = null, usesCustomDragRegion = false }) {
   const isMacElectron = typeof window !== 'undefined' && !!window.electron && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
@@ -509,7 +511,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
       audio.currentTime = nextStart;
       offRef.current = nextOffset;
-      audio.playbackRate = Math.max(0.5, Math.min(3, defaultListeningSpeed || 2));
+      audio.playbackRate = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, defaultListeningSpeed || 2));
       startSync();
     };
     audio.addEventListener('loadedmetadata',onMeta,{once:true});
@@ -534,7 +536,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const audio = audioRef.current;
     if(!audio) return;
     const onRateChange = ()=>{
-      const pbr = Math.max(0.25, Math.min(3, Number(audio.playbackRate) || 1));
+      const pbr = Math.max(0.25, Math.min(PLAYBACK_SPEED_MAX, Number(audio.playbackRate) || 1));
       playbackRateRef.current = pbr;
       syncSpeedRef.current = pbr;
       setSyncSpeed(pbr);
@@ -728,7 +730,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   }
   function nudge(n){offRef.current+=n;}
   function applyPlaybackSpeed(v){
-    const clamped = Math.max(0.5, Math.min(3, Number(v) || 1));
+    const clamped = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, Number(v) || 1));
     const audio = audioRef.current;
     if(audio){
       audio.playbackRate = clamped;

@@ -883,6 +883,7 @@ function BookDetailView({
   onAddSideVoice, onRemoveSideVoice,
   onRemoveChapter,
   onExportDocx, onExportDialogueCsv, onExportNarratorCsv,
+  onUpdatePaging,
   progress,
 }) {
   const [editingChapters, setEditingChapters] = useState(false);

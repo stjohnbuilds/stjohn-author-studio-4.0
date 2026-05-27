@@ -933,7 +933,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
         {scannedColors !== null && (
           <div style={card} data-tutorial="narrator-mapping">
             <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}>
-              <Badge n={3} />
+              <Badge n={1} />
               <span style={{ fontWeight:600,fontSize:'0.925rem' }}>Character ↔ narrator mapping (primary)</span>
               <InfoTip tip={`Match each POV character heading to the narrator name you want on flags. Highlight colors are optional; H${Math.min(chapterLevel+1,3)} headings are still the main matcher.`} />
               {scannedColors.length > 0

@@ -380,13 +380,38 @@ export default function ImportFlow({
         };
       });
 
-    // Marie 2026-05-26: auto-run docx→PDF page-number scan before
-    // handing off to the mode. Mirrors what Proof's ManuscriptSetup
-    // already does, so Quill / Duet / Prep imports also get accurate
-    // page numbers without forcing the user to upload a PDF separately.
+    // Marie 2026-05-26: page-number source priority —
+    //   1. User-supplied PDF (exact match to their reader)
+    //   2. LibreOffice auto-convert of the docx (close, ±1-2 pages)
+    //   3. None (yellow warning banner on book detail)
     let pdfPaging = null;
     let pdfFileName = '';
-    if (bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
+    let pdfSource = null;
+
+    if (pdfBytes && typeof window !== 'undefined' && window.electron?.extractPdfPaging) {
+      setScanning(true);
+      try {
+        setPageScanStatus('Reading page numbers from your PDF…');
+        const extracted = await window.electron.extractPdfPaging({
+          fileName: pdfFile?.name || 'manuscript.pdf',
+          data: pdfBytes,
+          pageOffset: 0,
+        });
+        if (extracted?.pages?.length) {
+          pdfPaging = extracted;
+          pdfFileName = pdfFile?.name || 'manuscript.pdf';
+          pdfSource = 'user-pdf';
+          setPageScanStatus(`Page numbers read from your PDF — ${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered (exact).`);
+        }
+      } catch (e) {
+        console.warn('ImportFlow PDF read failed:', e);
+        setPageScanStatus(`PDF read failed: ${e?.message || 'unknown error'}. Falling back to docx auto-convert.`);
+      } finally {
+        setScanning(false);
+      }
+    }
+
+    if (!pdfPaging && bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
       setScanning(true);
       try {
         setPageScanStatus('Scanning page numbers — this can take 10-30 seconds for long books…');
@@ -398,7 +423,8 @@ export default function ImportFlow({
         if (converted?.pdfPaging) {
           pdfPaging = converted.pdfPaging;
           pdfFileName = converted.fileName || (fileName || '').replace(/\.docx$/i, '.pdf');
-          setPageScanStatus(`Page numbers scanned (${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered).`);
+          pdfSource = 'libreoffice';
+          setPageScanStatus(`Page numbers scanned via LibreOffice (${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered). May drift ±1-2 pages.`);
         } else {
           setPageScanStatus('Page scan did not return a map. Importing without page numbers — you can rescan from book detail.');
         }

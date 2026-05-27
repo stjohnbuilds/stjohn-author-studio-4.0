@@ -626,7 +626,6 @@ export default function ImportFlow({
                   padding: '10px 14px', background: '#eaf5ec', borderRadius: 12,
                   border: '1px solid #b9d6bf', gap: 10,
                 }}>
-                  <span style={{ fontSize: '1.1rem' }}>📕</span>
                   <span style={{ flex: 1, fontSize: '0.82rem', color: '#3d7a4a', fontWeight: 600, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     ✓ {pdfFile.name} — page numbers will come from this PDF
                   </span>
@@ -642,9 +641,14 @@ export default function ImportFlow({
                   display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
                   padding: '18px 16px', borderRadius: 14,
                   border: '2px dashed var(--accent-border)', background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.85) 100%)',
-                  cursor: 'pointer', gap: 6,
+                  cursor: 'pointer', gap: 8,
                 }}>
-                  <div style={{ fontSize: '1.8rem', lineHeight: 1 }}>⬆️</div>
+                  {/* Marie 2026-05-26: line-work upload icon, no emoji. */}
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-dark)' }}>
+                    <path d="M12 16V4" />
+                    <path d="M7 9l5-5 5 5" />
+                    <path d="M5 18v2a1 1 0 001 1h12a1 1 0 001-1v-2" />
+                  </svg>
                   <div style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text)' }}>
                     Optional — click to upload the matching PDF
                   </div>
@@ -654,6 +658,25 @@ export default function ImportFlow({
                   <input type="file" accept="application/pdf,.pdf" style={{ display: 'none' }}
                     onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
                 </label>
+              )}
+              {/* Page-number nudge sits RIGHT under the PDF upload so it's
+                  not buried below the chapter picker. Shown after a PDF
+                  scan completes (auto-set to the suggested offset; user
+                  can override here). */}
+              {hasScanned && (
+                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 12, border: '1px solid var(--accent-border)', background: 'white' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                    Page-number shift {currentAdjustment !== 0 ? `(${currentAdjustment > 0 ? '+' : ''}${currentAdjustment})` : '(0 — no shift)'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => setCurrentAdjustment((n) => Math.max(-50, (Number(n) || 0) - 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>−</button>
+                    <input type="number" value={currentAdjustment} onChange={(e) => setCurrentAdjustment(Math.trunc(Number(e.target.value) || 0))} min={-50} max={50} style={{ width: 80, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 8px', fontSize: '0.95rem', color: 'var(--text)' }} />
+                    <button type="button" onClick={() => setCurrentAdjustment((n) => Math.min(50, (Number(n) || 0) + 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>+</button>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                    The PDF&apos;s footer says &ldquo;1&rdquo; on its page <strong>{(preScannedPdfPaging?.firstOneAtPdfPage) || '?'}</strong>, with <strong>{(preScannedPdfPaging?.unnumberedBeforeFirstOne) || 0}</strong> unnumbered page{(preScannedPdfPaging?.unnumberedBeforeFirstOne) === 1 ? '' : 's'} before it. Change this only if your manuscript counts the first &ldquo;1&rdquo; differently from what the app picked.
+                  </div>
+                </div>
               )}
             </div>
           )}

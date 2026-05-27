@@ -265,6 +265,12 @@ export default function ImportFlow({
   // what's happening, not stare at a frozen "Save" button.
   const [pageScanStatus, setPageScanStatus] = useState('');
   const [scanning, setScanning] = useState(false);
+  // Marie 2026-05-26: optional user-supplied PDF. When provided, the app
+  // uses THIS as the page-number source instead of LibreOffice's render
+  // (LibreOffice can drift ±1-2 pages vs the user's actual reader).
+  // Same docx import flow, just with a more accurate page anchor.
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfBytes, setPdfBytes] = useState(null);
 
   const accentColor = accent || 'var(--accent)';
   const primaryBtn = {

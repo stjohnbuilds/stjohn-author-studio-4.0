@@ -75,20 +75,21 @@ if (isDirectPdf) {
     process.exit(2);
   }
   const safeDocxName = inputName.replace(/[^a-z0-9._ -]/gi, '_');
-const localDocx = path.join(tmpDir, safeDocxName);
-fs.copyFileSync(docxPath, localDocx);
+  const localDocx = path.join(tmpDir, safeDocxName);
+  fs.copyFileSync(inputPath, localDocx);
 
-console.log('Converting to PDF via LibreOffice…');
-const t0 = Date.now();
-await execFileAsync(soffice, [
-  '--headless', '--convert-to', 'pdf', '--outdir', tmpDir, localDocx,
-], { timeout: 180000, windowsHide: true });
-const pdfPath = path.join(tmpDir, safeDocxName.replace(/\.docx$/i, '.pdf'));
-if (!fs.existsSync(pdfPath)) {
-  console.error('LibreOffice did not produce a PDF at', pdfPath);
-  process.exit(3);
+  console.log('Converting to PDF via LibreOffice…');
+  const t0 = Date.now();
+  await execFileAsync(soffice, [
+    '--headless', '--convert-to', 'pdf', '--outdir', tmpDir, localDocx,
+  ], { timeout: 180000, windowsHide: true });
+  pdfPath = path.join(tmpDir, safeDocxName.replace(/\.docx$/i, '.pdf'));
+  if (!fs.existsSync(pdfPath)) {
+    console.error('LibreOffice did not produce a PDF at', pdfPath);
+    process.exit(3);
+  }
+  console.log(`PDF generated in ${((Date.now() - t0) / 1000).toFixed(1)}s — ${pdfPath}`);
 }
-console.log(`PDF generated in ${((Date.now() - t0) / 1000).toFixed(1)}s — ${pdfPath}`);
 
 // ────────────────────────────────────────────────────────────────────
 // 2. Extract per-page text and detect printed page numbers

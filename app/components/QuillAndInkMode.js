@@ -544,6 +544,29 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     if (!activeProject) return;
     downloadText(`${safeFileName(activeProject.title)}-indesign.jsx`, buildInDesignJsx(activeProject), 'application/javascript');
   }
+  // Marie 2026-05-26: SAFETY NET — download the full project as JSON
+  // (annotations + chapter html + characters + audio file names) so a
+  // mid-session crash, sign-out bug, or rogue cloud merge can never
+  // wipe her annotation work. The dump is the literal shape Quill reads
+  // back — restore by placing it at:
+  //   ~/Documents/StJohn Author Studio/Save Data/quill-projects.json
+  // (replacing or merging into the existing array).
+  function exportProjectBackup() {
+    if (!activeProject) return;
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const safe = safeFileName(activeProject.title);
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      formatVersion: 1,
+      note: 'Quill raw project backup. Drop the `project` object into Save Data/quill-projects.json (inside the array) to restore.',
+      project: activeProject,
+    };
+    downloadText(
+      `${safe}-quill-backup-${stamp}.json`,
+      JSON.stringify(payload, null, 2),
+      'application/json'
+    );
+  }
 
   // ===========================================================================
   // Render

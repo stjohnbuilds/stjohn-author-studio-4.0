@@ -12,6 +12,161 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🔥 BLOCKER — Page-number architecture rebuild (slim word-index → page map)
+
+**Why this is the blocker.** Page numbers are the primary value of the
+app. The current architecture stores the full text of every PDF page
+in `pdfPaging.pages` and does a quote-search at flag time. This:
+- Fails on Marie's books (returns wrong pages — e.g. p.16 came back as p.4)
+- Causes the Supabase CloudSync timeout (massive blob for a 419-page book)
+- Forces the phone to either receive the same heavy blob or lose page numbers
+- Doesn't match Marie's mental model: PDF is for page numbers; words live in the manuscript.
+
+**The fix Marie signed off on.** Replace the heavy `pdfPaging.pages`
+with a slim word-index → printed-page map. PDF is used once at import
+to build the map, then discarded from the cloud blob. At flag time,
+page lookup is a single array lookup. No quote searching anywhere.
+
+**Plan (in order — every AI picking this up follows these steps):**
+
+1. **Add `buildSlimPageMap(pdfPages, manuscriptWords)` to
+   `app/lib/pdfPaging.js`.** Walk each PDF page, take the first 5–8
+   non-footer words of its extracted text, find that sequence in the
+   manuscript word array starting from a moving cursor. Record
+   `{ wordStart: matched index, pageNumber: page.pageNumber }`.
+   Output is an array sortable by wordStart.
+
+2. **Wire it into ImportFlow.** When ImportFlow has both `pdfPaging`
+   AND parsed manuscript words, run `buildSlimPageMap` and attach the
+   result as `pdfPageMap` on the payload that goes to `onConfirm`.
+
+3. **Adopt the slim map in ManuscriptSetup and the other modes.** Save
+   `pdfPageMap` on the book/project. Treat it as the primary truth for
+   word-index → page lookup. Keep `pdfPaging` for diagnostics on
+   desktop ONLY (file name, page count, printed-count) — strip its
+   heavy `pages` array.
+
+4. **Strip `pdfPaging.pages` from cloud uploads in
+   `packages/cloud-sync/cloud-slim.js`.** `slimBookForCloud` and
+   `slimProjectForCloud` must drop `pdfPaging.pages` while keeping
+   `pdfPageMap` (which is small and the phone needs it).
+
+5. **Rewrite `getAutoPageNumber` in `app/components/ProofingReader.js`.**
+   Look up by word index against `pdfPageMap` (primary), fall back to
+   `manuscriptPaging.pageMap` (when no PDF was attached), `?`
+   otherwise. Delete the quote-search code path.
+
+6. **Delete (or quarantine) `findPdfPageForQuote` in
+   `app/lib/pdfPaging.js`.** Nothing should call it. Leave only the
+   page-extraction code that builds `pdfPages` for the map builder.
+
+7. **Wire phone lookup to the same map.** `app/phone/page.js` looks up
+   the flag's word index against the synced `pdfPageMap`. No
+   quote search on phone. No PDF on phone.
+
+8. **Acceptance test (Marie's hands):** open Anarchy. Tap a word she
+   knows is on page 16. Popup shows 16. Tap a word on page 340. Popup
+   shows 340. Save flag offline → online → CloudSync push completes
+   without "statement timeout." Phone shows the same page numbers.
+
+**Files this touches (and ONLY these):**
+- `app/lib/pdfPaging.js` — add `buildSlimPageMap`, remove `findPdfPageForQuote`
+- `app/components/ImportFlow.js` — pass `pdfPageMap` through `onConfirm`
+- `app/components/ManuscriptSetup.js` — save `pdfPageMap` on book
+- `app/components/QuillAndInkMode.js`, `PrebuildMode.js`, `PrepManuscriptMode.js` — adopt pdfPageMap when applicable (Quill probably doesn't care; Duet may not need it; Prep maybe)
+- `app/components/ProofingReader.js` — rewrite `getAutoPageNumber`
+- `packages/cloud-sync/cloud-slim.js` — strip `pdfPaging.pages`, keep `pdfPageMap`
+- `app/phone/page.js` — page lookup via map
+
+**Decisions already made (don't re-litigate):**
+- No new Supabase tables. Same 6 tables.
+- No data migration. Old cloud books still pull; if they have heavy `pdfPaging.pages`, ignore it on pull (don't store it locally).
+- `pageNumberAdjustment` survives ONLY as a manual nudge for the manuscript word-count fallback (when no PDF). Never applied to map results.
+- PDF is desktop-only. Never uploaded to Supabase. Never sent to phone.
+- Quill: no PDF, no pdfPageMap, no page numbers anywhere. (Already true.)
+
+---
+
+### 🔴 CLOUD SAFETY AUDIT FINDINGS — fix list (from independent audit 2026-05-26)
+
+Independent AI audited cloud-sync code against `docs/CLOUD_SAFETY_AUDIT.md`.
+Results: 15 ✓ safe / 8 ⚠ risks / 4 ❌ bugs / 5 ? unknown. The four ❌
+bugs need fixing before release. The eight ⚠ risks need a judgement
+call each.
+
+#### ❌ Bugs (fix before release)
+
+- [ ] **Sign-out leaves previous user's data in desktop `books` state.**
+      `handleSignOut` in `app/page.js:553-558` only clears
+      `authSession`, not `books`. Next user signing in sees the
+      previous user's books briefly, AND the debounced push at
+      `app/page.js:516-551` may attempt to push prev-user rows under
+      the new user's ownerId within 1200ms. Fix: `setBooks([])` and
+      clear all cloudId-bearing state on sign-out, OR unmount the
+      books-owning component when `authSession` is null.
+
+- [ ] **Quill chapter `alignment` is pushed but never pulled.**
+      `quill-sync.js:71` writes `alignment` into `quill_chapters`,
+      but `quill-sync.js:154` SELECT omits it AND `slimProjectForCloud`
+      strips it from the blob. After any push-then-pull round-trip,
+      every chapter's audio alignment is gone. Fresh machines lose
+      audio-to-word sync. Fix: add `alignment` to the SELECT, OR stop
+      writing it (decide if Quill audio alignment is still a feature).
+
+- [ ] **Tombstone permanent-ghost: `clearTombstone` is exported but
+      never called.** If Marie deletes a project and re-imports/re-creates
+      one with the same local id, the tombstone permanently hides it
+      AND the retry-delete keeps killing the cloud row on every pull.
+      Fix: call `clearTombstone(scope, id)` from project-create /
+      project-import flows in both `app/page.js` (Proof) and
+      `app/components/QuillAndInkMode.js` (Quill).
+
+- [ ] **Race between full-book push and single-flag push.** Full-book
+      push deletes-then-inserts all flags (`proof-sync.js:117-122`).
+      If a single-flag upsert lands between the delete and the insert
+      on another device, that flag is wiped. Fix: change full-book
+      flag sync to upsert-with-merge instead of delete-then-insert,
+      OR add a row-version check.
+
+#### ⚠ Risks (decide and fix or accept)
+
+- [ ] **Audio-extension list drift.** CLAUDE.md lists 6 extensions;
+      `audio-guard.js:32` regex covers 8 (adds `.ogg`, `.aac`).
+      Reconcile to one source of truth. Low risk for Marie.
+- [ ] **Flag-queue has no cap / no backoff.** Permanent server-side
+      failure = perpetual pending banner. Add max-retry-count or
+      exponential backoff.
+- [ ] **Desktop has no per-flag offline queue.** Only the full-book
+      debounced push. If Marie saves a flag and closes the laptop
+      within 1200ms before push fires, the flag may not survive.
+      Decide: wire `recordPendingFlag` into desktop save, OR document
+      this as "always wait 2s before quitting after saving."
+- [ ] **`lastPushHashByCloudId` survives sign-out** (Map at module
+      scope). Theoretical collision risk across users. Add
+      `clearHashCache()` to sign-out.
+- [ ] **`quill_chapters.content_hash` and `quill_annotations.content_hash`
+      written but never read.** Dead columns. Drop or use.
+- [ ] **`pullProofProjects` / `pullQuillProjects` don't pass ownerId
+      — trust RLS.** Verify RLS policies on the 6 tables in the
+      Supabase dashboard; if any are missing, every signed-in user
+      sees every other user's projects.
+- [ ] **Tombstone retry-delete has no rate limit.** Re-issues on
+      every pull until the cloud row is gone. Add a per-session
+      attempt cap.
+- [ ] **Local-id-in-NOT-IN-string injection theoretical.** `local_id`
+      values are UUIDs so safe today; defensive fix is `.not('local_id',
+      'in', \`(${ids.map(...).join(',')})\`)` validation.
+
+#### ? Unknown (live test required)
+
+- [ ] Phone → desktop Proof-flag round-trip — needs two-device test.
+- [ ] Payload size on a fully-transcribed 50-chapter book — measure.
+- [ ] Behavior under concurrent full-book + single-flag push — stress test.
+- [ ] RLS policies on the 6 Supabase tables — check the dashboard.
+- [ ] Hidden flag queue in `app/page.js` / `SessionsView.js` — re-grep.
+
+---
+
 ### ⭐ PRIMARY — Final round bug-fix assessment
 
 **The active checklist lives in

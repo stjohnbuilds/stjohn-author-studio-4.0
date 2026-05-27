@@ -460,6 +460,7 @@ export default function ImportFlow({
       pdfPaging,
       pdfFileName,
       pdfSource, // 'user-pdf' | 'libreoffice' | null
+      pageNumberAdjustment, // auto-set so Chapter 1 = page 1; user can override in Edit book data
     });
   }
 

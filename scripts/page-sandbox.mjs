@@ -26,20 +26,29 @@ import { pathToFileURL } from 'node:url';
 const execFileAsync = promisify(execFile);
 const require_ = createRequire(import.meta.url);
 
-const docxPath = process.argv[2];
+// Accept either a .docx (auto-convert via LibreOffice) OR a .pdf
+// (use as-is). The third argument onwards is the quote.
+const inputPath = process.argv[2];
 const quoteArg = process.argv.slice(3).join(' ').trim();
 
-if (!docxPath) {
-  console.error('Usage: node scripts/page-sandbox.mjs <docx-path> [quote]');
+if (!inputPath) {
+  console.error('Usage:');
+  console.error('  node scripts/page-sandbox.mjs <docx-or-pdf-path> [quote]');
+  console.error('');
+  console.error('  docx → LibreOffice auto-converts → page lookup');
+  console.error('  pdf  → used directly → page lookup (most accurate)');
   process.exit(1);
 }
-if (!fs.existsSync(docxPath)) {
-  console.error('File not found:', docxPath);
+if (!fs.existsSync(inputPath)) {
+  console.error('File not found:', inputPath);
   process.exit(1);
 }
 
+const isDirectPdf = /\.pdf$/i.test(inputPath);
+
 // ────────────────────────────────────────────────────────────────────
-// 1. Convert .docx → PDF with LibreOffice (same binary the app uses)
+// 1. Get the PDF — either use the supplied .pdf directly, or convert
+//    .docx → PDF via LibreOffice (same binary the app uses).
 // ────────────────────────────────────────────────────────────────────
 function findSofficeBinary() {
   const candidates = [
@@ -52,15 +61,20 @@ function findSofficeBinary() {
   return null;
 }
 
-const soffice = findSofficeBinary();
-if (!soffice) {
-  console.error('LibreOffice not found. Install it from https://www.libreoffice.org/ and re-run.');
-  process.exit(2);
-}
-
+let pdfPath;
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'page-sandbox-'));
-const docxName = path.basename(docxPath);
-const safeDocxName = docxName.replace(/[^a-z0-9._ -]/gi, '_');
+const inputName = path.basename(inputPath);
+
+if (isDirectPdf) {
+  pdfPath = inputPath;
+  console.log(`Using PDF directly: ${inputName}`);
+} else {
+  const soffice = findSofficeBinary();
+  if (!soffice) {
+    console.error('LibreOffice not found. Install it from https://www.libreoffice.org/ and re-run.');
+    process.exit(2);
+  }
+  const safeDocxName = inputName.replace(/[^a-z0-9._ -]/gi, '_');
 const localDocx = path.join(tmpDir, safeDocxName);
 fs.copyFileSync(docxPath, localDocx);
 

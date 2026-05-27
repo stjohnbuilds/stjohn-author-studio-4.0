@@ -745,6 +745,26 @@ async function extractPdfPagingFromBuffer({ fileName, data, pageOffset = -1 }) {
     loadingTask.destroy?.();
   }
 
+  // Marie 2026-05-26: auto-detect a sensible default offset by finding
+  // "Chapter 1" in the body and seeing what printed number is on its
+  // page. If Chapter 1 sits on printed page 2 (because front-matter
+  // like Epigraph counted), suggested offset = -1. The user can
+  // confirm or override during import.
+  let suggestedOffset = 0;
+  let chapterOnePage = null;
+  let chapterOnePrintedNumber = null;
+  const chapterOneRe = /\bchapter\s*(?:1|one|i)\b/i;
+  for (const page of pages) {
+    if (chapterOneRe.test(page.normalizedText)) {
+      chapterOnePage = page.pageIndex;
+      chapterOnePrintedNumber = page.pageNumber;
+      // We want Chapter 1's reported page to be 1. If it's currently
+      // reported as N, we need adj = -(N - 1) to shift everything down.
+      suggestedOffset = -(page.pageNumber - 1);
+      break;
+    }
+  }
+
   return {
     mode: 'pdf-text',
     fileName,
@@ -752,6 +772,12 @@ async function extractPdfPagingFromBuffer({ fileName, data, pageOffset = -1 }) {
     pageCount: pdf.numPages,
     printedPageCount: pages.filter(page => page.pageNumberSource === 'printed').length,
     pages,
+    // Suggested per-book page-number adjustment so Chapter 1 lands on
+    // page 1. Picked up by ImportFlow + the Upload PDF flow on book
+    // detail; both surface it to the user as a confirm/override step.
+    suggestedAdjustment: suggestedOffset,
+    chapterOneAt: chapterOnePage,
+    chapterOnePrintedAs: chapterOnePrintedNumber,
   };
 }
 

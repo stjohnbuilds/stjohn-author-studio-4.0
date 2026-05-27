@@ -243,6 +243,10 @@ export default function ImportFlow({
   defaultSplitScenes = false,
   defaultChapterLevel = 1,
   initialTitle = '',
+  // Marie 2026-05-26: Quill doesn't need page numbers at all (it's a
+  // print-design mode). Caller passes false to hide the PDF upload +
+  // page-shift strip entirely. Default true for Proof / Prep / Duet.
+  needsPageNumbers = true,
 }) {
   const [bookTitle, setBookTitle] = useState(initialTitle);
   const [fileName, setFileName] = useState('');

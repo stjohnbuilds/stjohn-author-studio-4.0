@@ -155,17 +155,12 @@ function lookupQuote(quote) {
     console.log(`    "${cleanQuote.slice(0, 80)}${cleanQuote.length > 80 ? '…' : ''}"`);
     return;
   }
-  let page;
-  if (mode === 'rendered') {
-    page = getPageNumberForWordIndex(idx, pageMap);
-  } else {
-    page = Math.floor(idx / DEFAULT_ESTIMATED_WORDS_PER_PAGE) + 1;
-  }
+  const page = getPageNumberForWordIndex(idx, pageMap);
   // Show ±3 words of context for sanity
   const ctxFrom = Math.max(0, idx - 2);
   const ctxTo = Math.min(fullWords.length, idx + (cleanQuote.match(/[A-Za-z0-9']+/g) || []).length + 2);
   const ctx = fullWords.slice(ctxFrom, ctxTo).join(' ');
-  console.log(`✓  Word index ${idx}  →  Page ${page}  (${mode})`);
+  console.log(`✓  Word index ${idx}  →  Page ${page}  (rendered)`);
   console.log(`   …${ctx}…`);
 }
 

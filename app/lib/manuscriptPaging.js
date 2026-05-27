@@ -173,10 +173,9 @@ export function annotateManuscriptPositions(chapters, options = {}) {
 export function normalizeBookPaging(book) {
   if (!book || !Array.isArray(book.chapters)) return book;
 
-  const wordsPerPage = Math.max(1, Number(book.manuscriptPaging?.wordsPerPage) || DEFAULT_ESTIMATED_WORDS_PER_PAGE);
+  // Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
   const pageMap = Array.isArray(book.manuscriptPaging?.pageMap) ? book.manuscriptPaging.pageMap : null;
   const paging = annotateManuscriptPositions(book.chapters, {
-    wordsPerPage,
     pageMap,
     startPageNumber: Number(book.manuscriptPaging?.startPageNumber) || 1,
   });
@@ -186,12 +185,13 @@ export function normalizeBookPaging(book) {
     chapters: paging.chapters,
     manuscriptPaging: {
       mode: paging.mode,
-      wordsPerPage: paging.wordsPerPage,
       totalWordCount: paging.totalWordCount,
-      estimatedPageCount: paging.estimatedPageCount,
       exactPageCount: paging.exactPageCount,
       pageMap: paging.mode === 'rendered' ? paging.pageMap : undefined,
-      startPageNumber: paging.pageMap[0]?.pageNumber || 1,
+      startPageNumber: paging.pageMap?.[0]?.pageNumber || 1,
+      // Whether this book has a usable page map. The UI surfaces a warning
+      // when this is false.
+      hasUsablePageMap: paging.mode === 'rendered',
     },
   };
 }

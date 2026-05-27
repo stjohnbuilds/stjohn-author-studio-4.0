@@ -693,6 +693,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
           startPageNumber: paging.startPageNumber,
         },
         pdfPaging: localPdfPaging,
+        pdfPageMap: localPdfPageMap,
         pdfFileName: localPdfFileName,
         pdfSource: localPdfSource,
         pageNumberAdjustment: localPageNumberAdjustment,

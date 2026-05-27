@@ -2186,12 +2186,20 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   pageOffset: 0,
                 });
                 if (extracted?.pages?.length) {
+                  // Auto-apply the suggested Chapter 1 = page 1 offset
+                  // (returned by extractPdfPagingFromBuffer in main.js).
+                  // User can still tweak it in Edit book data.
+                  const suggested = Number(extracted.suggestedAdjustment) || 0;
                   onUpdateBook({
                     pdfPaging: extracted,
                     pdfFileName: file.name,
                     pdfSource: 'user-pdf',
+                    pageNumberAdjustment: suggested,
                   });
-                  showToast(`Page numbers now read from ${file.name} (exact).`, 'success');
+                  const msg = suggested
+                    ? `Page numbers from ${file.name}. Chapter 1 was on printed page ${extracted.chapterOnePrintedAs}; shifted by ${suggested} so it = page 1.`
+                    : `Page numbers now read from ${file.name} (exact).`;
+                  showToast(msg, 'success');
                 } else {
                   showToast('That PDF did not yield a usable page map.', 'error');
                 }

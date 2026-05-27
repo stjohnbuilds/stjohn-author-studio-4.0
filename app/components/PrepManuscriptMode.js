@@ -695,6 +695,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           project={activeProject}
           saveStatus={saveStatus}
           usesCustomDragRegion={usesCustomDragRegion}
+          onUpdatePaging={(patch) => updateActive((p) => ({ ...p, ...patch }))}
           onDelete={() => {
             if (window.confirm(`Delete "${activeProject.title}"? This can't be undone.`)) deleteProject(activeProject.id);
           }}

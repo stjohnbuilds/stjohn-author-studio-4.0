@@ -366,6 +366,7 @@ export default function ImportFlow({
     let pdfPaging = null;
     let pdfFileName = '';
     if (bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
+      setScanning(true);
       try {
         setPageScanStatus('Scanning page numbers — this can take 10-30 seconds for long books…');
         const converted = await window.electron.convertDocxToPageMap({
@@ -383,6 +384,8 @@ export default function ImportFlow({
       } catch (e) {
         console.warn('ImportFlow page scan failed:', e);
         setPageScanStatus(`Page scan failed: ${e?.message || 'unknown error'}. Importing anyway — install LibreOffice to enable auto page numbers.`);
+      } finally {
+        setScanning(false);
       }
     }
 

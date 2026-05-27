@@ -362,7 +362,7 @@ const SYNC_RATE_BOOST = 1.18;
 const SYNC_PLAYBACK_CALIBRATION = 0.925;
 const WHISPER_LEAD_SEC = 0.0;
 
-export default function ProofingReader({ section, audioUrl, narratorColors, manuscriptPaging = null, pdfPaging = null, pageNumberAdjustment = 0, includeChapterPreroll = true, defaultListeningSpeed = 2, onSaveFlags, onBack, canPrevChapter = false, canNextChapter = false, onPrevChapter, onNextChapter, sceneOptions = [], onJumpToScene = null, usesCustomDragRegion = false }) {
+export default function ProofingReader({ section, audioUrl, narratorColors, manuscriptPaging = null, pdfPaging = null, pdfPageMap = null, pageNumberAdjustment = 0, includeChapterPreroll = true, defaultListeningSpeed = 2, onSaveFlags, onBack, canPrevChapter = false, canNextChapter = false, onPrevChapter, onNextChapter, sceneOptions = [], onJumpToScene = null, usesCustomDragRegion = false }) {
   const isMacElectron = typeof window !== 'undefined' && !!window.electron && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
   const [flags, setFlags] = useState(section.flags||[]);
   const [flagPanel, setFlagPanel] = useState(null);

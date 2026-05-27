@@ -818,7 +818,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       ? getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap)
       : null;
     const pdfMatch = findPdfPageForQuote(quoteText, effectivePdfPaging, hintPageNumber);
-    const adjustment = Number(section.pageNumberAdjustment) || 0;
+    // pageNumberAdjustment comes from the book — passed in by the parent
+    // when this reader opens. Lets Marie nudge ±N pages to match her
+    // Word doc when LibreOffice rendering drifts by a hair.
+    const adjustment = Number(pageNumberAdjustment) || 0;
 
     if (pdfMatch?.pageNumber) {
       return String(pdfMatch.pageNumber + adjustment);

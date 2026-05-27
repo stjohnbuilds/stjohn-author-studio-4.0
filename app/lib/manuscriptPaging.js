@@ -124,7 +124,9 @@ export function extractRenderedPageMapFromDocxXml(documentXml) {
 }
 
 export function annotateManuscriptPositions(chapters, options = {}) {
-  const wordsPerPage = Math.max(1, Number(options.wordsPerPage) || DEFAULT_ESTIMATED_WORDS_PER_PAGE);
+  // Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
+  // No more 250-words-per-page estimates. When the rendered map is
+  // missing, exactPageStart/End come back null and the UI flags it.
   const pageMap = normalizePageMap(options.pageMap, options.startPageNumber || 1);
   const hasExactPageMap = Array.isArray(options.pageMap) && options.pageMap.length > 1;
   let wordCursor = 0;
@@ -137,10 +139,8 @@ export function annotateManuscriptPositions(chapters, options = {}) {
       const lastWordIndex = manuscriptWordCount > 0
         ? manuscriptWordStart + manuscriptWordCount - 1
         : manuscriptWordStart;
-      const estimatedPageStart = Math.floor(manuscriptWordStart / wordsPerPage) + 1;
-      const estimatedPageEnd = Math.floor(lastWordIndex / wordsPerPage) + 1;
-      const exactPageStart = getPageNumberForWordIndex(manuscriptWordStart, pageMap);
-      const exactPageEnd = getPageNumberForWordIndex(lastWordIndex, pageMap);
+      const exactPageStart = hasExactPageMap ? getPageNumberForWordIndex(manuscriptWordStart, pageMap) : null;
+      const exactPageEnd = hasExactPageMap ? getPageNumberForWordIndex(lastWordIndex, pageMap) : null;
 
       wordCursor += manuscriptWordCount;
 
@@ -148,11 +148,13 @@ export function annotateManuscriptPositions(chapters, options = {}) {
         ...section,
         manuscriptWordStart,
         manuscriptWordCount,
-        estimatedPageStart,
-        estimatedPageEnd: Math.max(estimatedPageStart, estimatedPageEnd),
-        estimatedWordsPerPage: wordsPerPage,
+        // Estimated fields kept but explicitly null — older code that
+        // checks them will fall through to a "?" placeholder.
+        estimatedPageStart: null,
+        estimatedPageEnd: null,
+        estimatedWordsPerPage: null,
         exactPageStart,
-        exactPageEnd: Math.max(exactPageStart, exactPageEnd),
+        exactPageEnd: hasExactPageMap ? Math.max(exactPageStart, exactPageEnd) : null,
       };
     }),
   }));
@@ -160,11 +162,11 @@ export function annotateManuscriptPositions(chapters, options = {}) {
   return {
     chapters: annotatedChapters,
     totalWordCount: wordCursor,
-    estimatedPageCount: Math.max(1, Math.ceil(Math.max(wordCursor, 1) / wordsPerPage)),
+    estimatedPageCount: null,
     exactPageCount: hasExactPageMap ? pageMap.length : null,
-    wordsPerPage,
-    pageMap,
-    mode: hasExactPageMap ? 'rendered' : 'estimated',
+    wordsPerPage: null,
+    pageMap: hasExactPageMap ? pageMap : null,
+    mode: hasExactPageMap ? 'rendered' : 'unknown',
   };
 }
 

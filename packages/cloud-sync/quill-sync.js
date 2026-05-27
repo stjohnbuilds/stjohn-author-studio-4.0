@@ -191,9 +191,22 @@ export async function pullQuillProjects(supabase) {
     // (slimProjectForCloud preserves it). Merge it back so the chapter
     // tick syncs phone ↔ desktop without needing a schema migration.
     const desktopBlob = (p.desktop_project && typeof p.desktop_project === 'object') ? p.desktop_project : null;
+    // Marie 2026-05-26 — merge BACK the per-chapter transcription
+    // metadata that lives in the desktop_project blob. The dedicated
+    // quill_chapters table only stores alignment + audio_file_name
+    // (+ position, title, html). The other transcription metadata
+    // (whisperAudioKey, whisperTextHash, transcribedAt, whisperWords,
+    // whisperTranscript, whisperMatchQuality) lives in the blob.
+    // Without this merge, `isChapterTranscriptionCurrent` in
+    // SessionsView rejects the chapter on first render after sign-in
+    // (because the keys are missing) and the ✓ Synced tick disappears.
+    // Bug Marie reported: "transcription tick gone after logout/login."
+    const blobChaptersById = new Map();
     const completedById = new Map();
     for (const dch of (desktopBlob?.chapters || [])) {
-      if (dch?.id && typeof dch.completed === 'boolean') {
+      if (!dch?.id) continue;
+      blobChaptersById.set(dch.id, dch);
+      if (typeof dch.completed === 'boolean') {
         completedById.set(dch.id, dch.completed);
       }
     }
@@ -201,6 +214,7 @@ export async function pullQuillProjects(supabase) {
       .sort((a, b) => a.position - b.position)
       .map((ch) => {
         const alignment = Array.isArray(ch.alignment) ? ch.alignment : [];
+        const blobCh = blobChaptersById.get(ch.local_id) || {};
         return {
           id: ch.local_id,
           cloudId: ch.id,
@@ -212,6 +226,17 @@ export async function pullQuillProjects(supabase) {
           whisperAlignment: alignment,
           audioFileName: ch.audio_file_name || '',
           completed: completedById.has(ch.local_id) ? completedById.get(ch.local_id) : false,
+          // Transcription metadata round-tripped via the blob — required
+          // for the tick check on sign-in.
+          whisperAudioKey: blobCh.whisperAudioKey || '',
+          whisperTextHash: blobCh.whisperTextHash || '',
+          transcribedAt: blobCh.transcribedAt || null,
+          whisperSourceUpdatedAt: blobCh.whisperSourceUpdatedAt || null,
+          whisperWords: Array.isArray(blobCh.whisperWords) ? blobCh.whisperWords : [],
+          whisperTranscript: blobCh.whisperTranscript || '',
+          whisperMatchedCount: typeof blobCh.whisperMatchedCount === 'number' ? blobCh.whisperMatchedCount : null,
+          whisperManuscriptWordCount: typeof blobCh.whisperManuscriptWordCount === 'number' ? blobCh.whisperManuscriptWordCount : null,
+          whisperMatchQuality: blobCh.whisperMatchQuality ?? null,
         };
       });
     // Map cloud chapter UUID back to local id for annotations.

@@ -907,89 +907,27 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
             </button>
           )}
         </div>
-        <p style={{ fontSize:'0.8rem',color:'var(--text-muted)',margin:'0 0 1.2rem' }}>Upload your manuscript and review the structure before audio setup.</p>
+        <p style={{ fontSize:'0.8rem',color:'var(--text-muted)',margin:'0 0 1.2rem' }}>Map your narrators to the highlight colours, review the chapters, then save the book.</p>
 
-        {/* Step 1: Title */}
-        <div style={{ ...card, padding:'1rem 1rem 1.1rem', minHeight:118 }} data-tutorial="book-title">
-          <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}><Badge n={1} /><span style={{ fontWeight:600,fontSize:'0.925rem' }}>Book title</span></div>
-          <input type="text" value={bookTitle} onChange={e=>setBookTitle(e.target.value)} placeholder="e.g. The Lincoln Pack" style={inp} />
-        </div>
-
-        {/* Step 2: Upload */}
-        <div style={card} data-tutorial="manuscript-upload">
-          <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}>
-            <Badge n={2} /><span style={{ fontWeight:600,fontSize:'0.925rem' }}>Manuscript</span>
-            <InfoTip tip={'Script and Sync imports manuscript files as .docx only right now. If your manuscript is in Google Docs, Pages, PDF, .doc, or .rtf, export it to .docx first.'} />
+        {/* Marie 2026-05-26: Phase-2 used to repeat Title, Manuscript upload,
+            H1/H2/H3 picker, and the Page-numbers panel — all of which the
+            user just filled in on the ImportFlow screen. Removed. Phase 2
+            is now ONLY the narrator mapping + chapter review + save. A
+            small file/page summary at the top reminds the user what book
+            they're configuring. */}
+        {fullHtml && (
+          <div style={{ ...card, padding:'10px 14px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }} data-tutorial="manuscript-upload">
+            <span style={{ fontSize:'0.84rem', color:'var(--text)', fontWeight:600 }}>✓ {bookTitle || fileName}</span>
+            <span style={{ fontSize:'0.74rem', color:'var(--text-muted)' }}>{fileName} · {chapters.length} chapter{chapters.length===1?'':'s'} · {totalSections} section{totalSections===1?'':'s'}</span>
+            {pdfPaging ? (
+              <span style={{ fontSize:'0.72rem', color:'var(--accent-dark)', fontWeight:700, marginLeft:'auto' }}>
+                ✓ Page numbers from PDF ({(pdfPaging.printedPageCount || 0)} of {pdfPaging.pageCount})
+              </span>
+            ) : (
+              <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginLeft:'auto' }}>No PDF attached — page numbers unavailable</span>
+            )}
           </div>
-          <div style={{ marginBottom:'0.875rem' }}>
-            <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:5 }}>
-              <label style={{ ...lbl, marginBottom:0 }}>Which heading level marks chapter numbers?</label>
-              <InfoTip tip={'Choose the heading level used for chapter starts. The next heading level down is treated as the POV or scene break when present.'} />
-            </div>
-            <div style={{ display:'flex',gap:6,alignItems:'center' }}>
-              {[1,2,3].map(n=>(
-                <button key={n} onClick={()=>{setChapterLevel(n);if(fullHtml){setTimeout(()=>reparse({ chapterTag:`h${n}` }),0);}}}
-                  style={{ padding:'6px 16px',borderRadius:8,border:'1px solid var(--border)',background:chapterLevel===n?'var(--accent)':'white',color:chapterLevel===n?'white':'var(--text)',cursor:'pointer',fontWeight:chapterLevel===n?600:400,fontSize:'0.875rem' }}>H{n}</button>
-              ))}
-            </div>
-          </div>
-          {/* Marie 2026-05-26: duplicate Scene-splitting panel removed at
-              her explicit request. splitScenes state still drives parsing
-              behind the scenes; the chapter list's "Show sub-headings"
-              button is the surface the user actually needs. */}
-          {!fullHtml ? (
-            <label style={{ display:'flex',flexDirection:'column',alignItems:'center',border:'1.5px dashed var(--border)',borderRadius:12,padding:'2rem',cursor:'pointer',background:'var(--cream)',transition:'background 0.15s' }}
-              onMouseEnter={e=>e.currentTarget.style.background='var(--accent-light)'}
-              onMouseLeave={e=>e.currentTarget.style.background='var(--cream)'}>
-              <input type="file" accept=".docx" style={{ display:'none' }} onChange={e=>e.target.files[0]&&handleDocx(e.target.files[0])} />
-              {loading?<>
-                  <svg width="22" height="22" viewBox="0 0 24 24" style={{ marginBottom:8,color:'var(--text-muted)',animation:'ap-spin 0.9s linear infinite',display:'block' }} aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.18" strokeWidth="1.5" fill="none" />
-                    <path d="M21 12 A9 9 0 0 0 12 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                  </svg>
-                  <p style={{ color:'var(--text-muted)',fontSize:'0.875rem' }}>Scanning manuscript…</p>
-                </>
-                :<><div style={{ fontSize:28,marginBottom:10 }}>📄</div>
-                  <p style={{ fontWeight:600,fontSize:'0.875rem',color:'var(--text)',marginBottom:0 }}>Upload manuscript .docx</p></>}
-            </label>
-          ) : (
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'var(--success-light)',borderRadius:10,border:'1px solid #d3ddd6' }}>
-              <span style={{ fontSize:'0.875rem',color:'var(--success)',fontWeight:500 }}>✓ {fileName} · {chapters.length} chapters · {totalSections} sections</span>
-              <label style={{ fontSize:'0.75rem',color:'var(--text-muted)',cursor:'pointer',textDecoration:'underline' }}>Re-upload<input type="file" accept=".docx" style={{ display:'none' }} onChange={e=>e.target.files[0]&&handleDocx(e.target.files[0])} /></label>
-            </div>
-          )}
-          {fullHtml && (
-            <div style={{ marginTop:'0.875rem',padding:'12px 14px',background:'white',border:'1px solid var(--border)',borderRadius:10 }}>
-              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:6 }}>
-                <div style={{ display:'flex',alignItems:'center',gap:6 }}>
-                  <div style={{ fontSize:'0.86rem',fontWeight:800,color:'var(--accent-dark)' }}>Page numbers</div>
-                  <InfoTip tip={'Script and Sync first tries to scan page numbers from the .docx. If that does not work cleanly, upload a matching PDF of the same manuscript here.'} />
-                </div>
-                <label style={{ fontSize:'0.78rem',color:'var(--accent)',cursor:'pointer',textDecoration:'underline',whiteSpace:'nowrap' }}>
-                  {pdfPaging ? 'Replace PDF' : 'Upload PDF manually'}
-                  <input type="file" accept="application/pdf,.pdf" style={{ display:'none' }} onChange={e=>e.target.files[0]&&handlePdf(e.target.files[0])} />
-                </label>
-              </div>
-              {pdfStatus && (
-                <div style={{ fontSize:'0.72rem',color:'var(--accent)',fontWeight:700,marginTop:4,lineHeight:1.5 }}>
-                  {pdfStatus}
-                </div>
-              )}
-              {pdfPaging ? (
-                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:8 }}>
-                  <span style={{ fontSize:'0.84rem',color:'var(--accent-dark)',fontWeight:800,lineHeight:1.45 }}>
-                    {(pdfPaging.printedPageCount || 0) > 0
-                      ? `Found ${pdfPaging.printedPageCount || 0} printed page numbers across ${pdfPaging.pageCount} PDF pages`
-                      : `No printed page numbers were found across ${pdfPaging.pageCount} PDF pages`}
-                  </span>
-                  <button onClick={()=>{setPdfPaging(null);setPdfFileName('');setPdfStatus('');}} style={{ background:'none',border:'none',cursor:'pointer',fontSize:'0.75rem',color:'var(--text-muted)',textDecoration:'underline',padding:0 }}>
-                    Remove
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Step 3: Assign highlight colours (shown after upload) */}
         {scannedColors !== null && (

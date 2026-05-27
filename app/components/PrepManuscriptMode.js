@@ -337,6 +337,12 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       characters: replacing ? (replacing.characters || []) : [],
       chapters,
       sourceDocxBase64,
+      // Marie 2026-05-26: PDF page map from auto-scan during import.
+      // Preserved on replace so the user doesn't need to re-scan when
+      // swapping in a corrected .docx.
+      pdfPaging: payload.pdfPaging || (replacing ? replacing.pdfPaging : null),
+      pdfFileName: payload.pdfFileName || (replacing ? replacing.pdfFileName : '') || '',
+      pageNumberAdjustment: replacing ? (replacing.pageNumberAdjustment || 0) : 0,
     };
 
     setAllProjects((all) => {

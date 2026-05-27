@@ -548,29 +548,11 @@ export default function ImportFlow({
             </div>
           </div>
 
-          {allowSceneSplitting && (
-            <div style={{ marginBottom: '0.75rem', padding: '10px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div>
-                  <div style={lbl}>Split chapters on sub-headings</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {splitScenes ? `Each chapter will be split by H${Math.min(chapterLevel + 1, 6)} sub-headings.` : 'Each chapter stays as one row.'}
-                  </div>
-                </div>
-                <button type="button" onClick={() => {
-                  const next = !splitScenes;
-                  setSplitScenes(next);
-                  if (fullHtml) setTimeout(() => reparse(fullHtml, chapterLevel, next), 0);
-                }} style={{
-                  padding: '7px 14px', borderRadius: 999,
-                  border: '1px solid ' + (splitScenes ? accentColor : 'var(--border)'),
-                  background: splitScenes ? 'rgba(0,0,0,0.04)' : 'white',
-                  color: splitScenes ? accentColor : 'var(--text)',
-                  fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
-                }}>{splitScenes ? 'Split scenes on' : 'Split scenes off'}</button>
-              </div>
-            </div>
-          )}
+          {/* Marie 2026-05-26: the duplicate "Split chapters on sub-headings"
+              panel was removed at her explicit request — multiple times. The
+              "Show sub-headings" button on the chapter list below does what
+              the user actually needs. The structural splitScenes default is
+              still set per mode by the caller (defaultSplitScenes prop). */}
 
           {!fullHtml ? (
             <label style={{

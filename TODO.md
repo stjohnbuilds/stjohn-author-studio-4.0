@@ -411,6 +411,64 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-05-26 evening — Marie's crash-out triage + Proof one-screen rebuild
+
+- [x] **Page-shift explainer text uses Marie's exact wording.** Replaced
+      the "footer / PDF page index" jargon in `ImportFlow.js` and the
+      Edit-book-data nudge in `SessionsView.js` with her verbatim
+      sentence: "If you open the Word document and you see that on the
+      first page there isn't a number 1, but on the second page there
+      is, then it needs to be shifted +1 or −1." — completed 2026-05-26
+- [x] **Page-shift card slimmed to a single pill strip.** Was a tall
+      card with title + input + paragraph. Now one row: label + − + N +
+      with a one-line tip. — completed 2026-05-26
+- [x] **Hourglass ⏳ replaced with a thin spinning ring** in 3 places —
+      `ImportFlow.js` (manuscript reading), `ManuscriptSetup.js`
+      (manuscript scanning), `SessionsView.js` (Restoring chip on chapter
+      rows). — completed 2026-05-26
+- [x] **Quill has no page-number UI anywhere.** Added `needsPageNumbers`
+      prop to `ImportFlow`; Quill passes `false`. `SessionsView` gates
+      the page banner and the page nudge in Edit-book-data when mode is
+      `'quill'`. Quill is print-design — never needed pages. —
+      completed 2026-05-26
+- [x] **The duplicate "Split chapters on sub-headings" panel is gone**
+      from both `ImportFlow.js` AND `ManuscriptSetup.js`. Marie asked
+      for this multiple times. The structural `splitScenes` state still
+      drives parsing behind the scenes; the "Show sub-headings" button
+      on the chapter list is the surface the user needs. — completed
+      2026-05-26
+- [x] **Proof import is ONE screen now (Phase 2 eliminated).**
+      `ImportFlow` got two new props: `extraStepSlot` (JSX rendered as
+      Step 3 when present) and `onParsed` (fires when the docx parses
+      so the parent can react). `ManuscriptSetup` now renders ImportFlow
+      with the narrator-mapping panel passed as the extra step;
+      `handleImportConfirm` does the final save directly. No more
+      second screen. — completed 2026-05-26
+- [x] **PDF wording explains both sources.** Now says "either downloaded
+      from Google Docs as PDF, or saved from Word as PDF." Marie asked
+      about Word's Save-as-PDF; it works fine, same format. —
+      completed 2026-05-26
+- [x] **Cloud safety audit brief written** at `docs/CLOUD_SAFETY_AUDIT.md`.
+      A self-contained 6-section brief for an independent AI to audit
+      the cloud-sync package end-to-end. Marie handed it off and got
+      back results (4 bugs / 8 risks / 5 unknowns — captured in Active
+      section above). — completed 2026-05-26
+- [x] **Page-number 340 → 52 double-count fix.** When the PDF lookup
+      returns a page whose number came from the detected printed footer
+      (`source === 'printed'`), the user nudge is NO LONGER added on
+      top. The nudge was being double-counted: 16 + (−12) = 4 was the
+      symptom. Adjustment now only applies to inferred / word-count
+      fallback paths. — completed 2026-05-26
+- [x] **Flag-popup quote whitespace collapse + Sheets-row normalize.**
+      `sentPlain` in `ProofingReader.js` now collapses internal whitespace
+      runs to single spaces before going in the textarea, so pasting
+      into Word/Sheets doesn't carry double spaces from the source .docx.
+      `copySheetRow` normalizes the same way. — completed 2026-05-26
+- [x] **Hard red warning when page lookup truly fails.** When BOTH the
+      manuscript word-index map AND the PDF lookup can't determine a
+      page, the flag popup shows a red banner + red-bordered page field.
+      Marie's rule: never silently show a guess. — completed 2026-05-26
+
 ### 2026-05-25 overnight session 2 — phone v1 functionality parity
 
 Marie's ask after seeing the deployed phone: "It's 80% there. Pull

@@ -827,6 +827,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               <button type="button" style={topBtnStyle('quill', 'solid')} onClick={exportAll}>Export CSV + InDesign</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportCsv}>CSV only</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportJsx}>InDesign .jsx only</button>
+              {/* Marie 2026-05-26: raw JSON safety-net backup. Click any
+                  time mid-session — re-importable later if anything
+                  in the app, cloud, or local file gets corrupted. */}
+              <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportProjectBackup} title="Save the full raw project (annotations, characters, chapter HTML) as a JSON backup">💾 Backup (raw JSON)</button>
             </>
           )}
         />

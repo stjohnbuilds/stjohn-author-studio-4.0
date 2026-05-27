@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { transcribeAudio } from '../lib/transcriptionWorker';
 import { alignTranscriptToManuscript } from '../lib/fuzzyMatcher';
+import { buildSlimPageMap, extractManuscriptWordsFromHtml } from '../lib/pdfPaging';
 import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './ManuscriptSetup';
 import InfoTip from './InfoTip';
 import SharedBookDetail from './BookDetail';

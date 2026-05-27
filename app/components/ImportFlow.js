@@ -672,15 +672,9 @@ export default function ImportFlow({
                   <input type="number" value={currentAdjustment} onChange={(e) => setCurrentAdjustment(Math.trunc(Number(e.target.value) || 0))} min={-50} max={50} style={{ width: 80, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 8px', fontSize: '0.95rem', color: 'var(--text)' }} />
                   <button type="button" onClick={() => setCurrentAdjustment((n) => Math.min(50, (Number(n) || 0) + 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>+</button>
                 </div>
-                {hasScanned ? (
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                    The PDF&apos;s footer says &ldquo;1&rdquo; on its page <strong>{(preScannedPdfPaging?.firstOneAtPdfPage) || '?'}</strong>, with <strong>{(preScannedPdfPaging?.unnumberedBeforeFirstOne) || 0}</strong> unnumbered page{(preScannedPdfPaging?.unnumberedBeforeFirstOne) === 1 ? '' : 's'} before it. Change this only if your manuscript counts the first &ldquo;1&rdquo; differently.
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                    Adds or subtracts pages from every reported page number. Auto-set once we scan the PDF (or LibreOffice output on Save) so the first footer &ldquo;1&rdquo; lines up. Leave at 0 unless you know it&apos;s off.
-                  </div>
-                )}
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                  If you open the Word document and you see that on the first page there isn&apos;t a number 1, but on the second page there is, then it needs to be shifted +1 or −1.
+                </div>
               </div>
             </div>
           )}

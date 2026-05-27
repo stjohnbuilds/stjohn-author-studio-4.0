@@ -608,14 +608,21 @@ export default function ImportFlow({
         )}
 
         {chapters.length > 0 && (
-          <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim()} style={{
-            ...primaryBtn,
-            width: '100%',
-            opacity: (!anyOn || !bookTitle.trim()) ? 0.5 : 1,
-            cursor: (!anyOn || !bookTitle.trim()) ? 'not-allowed' : 'pointer',
-          }}>
-            {submitLabel} ({totalSelected} chapter{totalSelected === 1 ? '' : 's'})
-          </button>
+          <>
+            {pageScanStatus && (
+              <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--accent-border)', background: '#f7f3ff', fontSize: '0.78rem', color: 'var(--text)' }}>
+                {pageScanStatus}
+              </div>
+            )}
+            <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim() || !!pageScanStatus} style={{
+              ...primaryBtn,
+              width: '100%',
+              opacity: (!anyOn || !bookTitle.trim() || !!pageScanStatus) ? 0.5 : 1,
+              cursor: (!anyOn || !bookTitle.trim() || !!pageScanStatus) ? 'not-allowed' : 'pointer',
+            }}>
+              {pageScanStatus ? 'Working…' : `${submitLabel} (${totalSelected} chapter${totalSelected === 1 ? '' : 's'})`}
+            </button>
+          </>
         )}
       </div>
     </div>

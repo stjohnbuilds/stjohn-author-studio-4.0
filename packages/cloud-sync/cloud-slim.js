@@ -49,6 +49,16 @@ function omit(obj, keys) {
   return out;
 }
 
+// Marie 2026-05-26: strip the heavy `pdfPaging.pages` array (the full
+// text of every PDF page, only used for the dead quote-search code) but
+// keep the SLIM `pdfPageMap` (word-index → printed-page anchors) plus
+// the small metadata (pageCount, printedPageCount, fileName).
+function slimPdfPagingForCloud(pdfPaging) {
+  if (!pdfPaging || typeof pdfPaging !== 'object') return pdfPaging;
+  const { pages, ...rest } = pdfPaging;
+  return rest;
+}
+
 // Slim a Proof book before it's stored as `desktop_book` JSONB.
 // Keeps everything needed to reconstruct the book (title, chapter
 // metadata, HTML, narrator colors, etc.) but drops fields that are
@@ -57,6 +67,7 @@ export function slimBookForCloud(book) {
   if (!book || typeof book !== 'object') return book;
   return {
     ...book,
+    pdfPaging: book.pdfPaging ? slimPdfPagingForCloud(book.pdfPaging) : book.pdfPaging,
     chapters: (book.chapters || []).map((chapter) => ({
       ...chapter,
       sections: (chapter.sections || []).map((section) => (

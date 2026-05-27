@@ -2153,21 +2153,37 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
-        {/* Marie 2026-05-26: page-number warning banner. Shows on every
-            book that doesn't have a PDF-rendered page map. Page fields
-            across the app show "?" instead of estimates when this banner
-            is up. */}
-        {!book.manuscriptPaging?.hasUsablePageMap && !(book.pdfPaging?.pages?.length) && (
-          <div style={{ marginBottom:'0.85rem',background:'#fff4d6',border:'1px solid #e0c682',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
-            <div style={{ fontSize:'1.2rem',lineHeight:1,marginTop:1 }}>⚠️</div>
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontSize:'0.85rem',fontWeight:700,color:'#7a5a18',marginBottom:3 }}>This book has no page numbers yet.</div>
-              <div style={{ fontSize:'0.76rem',color:'#7a5a18',lineHeight:1.45 }}>
-                Page fields will show <strong>?</strong> in flags, exports, and the reader until you either re-save the .docx through Microsoft Word (so it writes page-break markers), or upload the printed PDF so the app can extract pages from it.
+        {/* Marie 2026-05-26: page-number status panel. Green when the
+            PDF scan succeeded during import. Yellow warning when it
+            didn't — page fields will show "?" until fixed. */}
+        {(() => {
+          const pdfPages = book.pdfPaging?.pages?.length || 0;
+          const printedCount = book.pdfPaging?.printedPageCount || 0;
+          const hasPdfMap = pdfPages > 0;
+          const adj = Number(book.pageNumberAdjustment) || 0;
+          if (hasPdfMap) {
+            return (
+              <div style={{ marginBottom:'0.85rem',background:'#eaf5ec',border:'1px solid #b9d6bf',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:10 }}>
+                <div style={{ fontSize:'1rem',lineHeight:1,color:'#3d7a4a' }}>✓</div>
+                <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#3d7a4a' }}>
+                  <strong>Page numbers scanned.</strong> {printedCount} of {pdfPages} pages numbered from the PDF rendering.
+                  {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div style={{ marginBottom:'0.85rem',background:'#fff4d6',border:'1px solid #e0c682',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
+              <div style={{ fontSize:'1.2rem',lineHeight:1,marginTop:1 }}>⚠️</div>
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ fontSize:'0.85rem',fontWeight:700,color:'#7a5a18',marginBottom:3 }}>This book has no page numbers yet.</div>
+                <div style={{ fontSize:'0.76rem',color:'#7a5a18',lineHeight:1.45 }}>
+                  Page fields will show <strong>?</strong> in flags, exports, and the reader. The app couldn&apos;t scan page numbers — usually because LibreOffice or Microsoft Word isn&apos;t installed. Re-import after installing one of those, or upload the printed PDF to fix this book.
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <div style={{ marginBottom:'0.85rem' }}>
           {/* Compact top panel grid: Narrators (full) + Audiobook timing (½)

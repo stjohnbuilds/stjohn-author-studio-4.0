@@ -287,6 +287,42 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       const alignment = alignTranscriptToManuscript(msWords, whisperWords);
       const syncTable = buildDirectSyncTable(alignment);
       setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
+
+      // Marie 2026-05-26 CRITICAL FIX — the "transcription tick disappears
+      // after switching apps" bug. Before this, runTranscribe ONLY
+      // updated the in-memory chapterTranscripts map. It NEVER wrote
+      // the alignment into `allProjects`, so the persist effect didn't
+      // fire, quill-projects.json never got the alignment, and the
+      // cloud push didn't include it either. Result: tick visible
+      // immediately but data gone on next hydrate / app restart /
+      // sign-out / sign-in. Now we write the whisper fields into the
+      // chapter inside allProjects, which triggers persistProjects ->
+      // quill-projects.json AND pushQuillProject -> Supabase
+      // quill_chapters.alignment. The hydrate path's buildTranscriptMap
+      // will rebuild the tick from the persisted data next time.
+      const transcribedAt = new Date().toISOString();
+      const whisperTranscript = result?.transcript || whisperWords.map((w) => w?.word || w?.text || '').join(' ').trim();
+      const whisperAudioKey = audio?.fileName || chapter.audioFileName || '';
+      setAllProjects((all) => all.map((p) => {
+        if (p.id !== project.id) return p;
+        return {
+          ...p,
+          updatedAt: new Date().toISOString(),
+          chapters: (p.chapters || []).map((ch) => {
+            if (ch.id !== chapterId) return ch;
+            return {
+              ...ch,
+              // Mirror — quill-sync.js's getChapterAlignment reads either.
+              alignment,
+              whisperAlignment: alignment,
+              whisperWords,
+              whisperTranscript,
+              whisperAudioKey,
+              transcribedAt,
+            };
+          }),
+        };
+      }));
     } catch (err) {
       setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'error', progress: 0, error: String(err?.message || err) } }));
     }

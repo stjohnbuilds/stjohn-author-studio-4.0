@@ -359,6 +359,10 @@ export default function PrebuildMode({ modeToggle = null }) {
               includeHighlight: true,
             },
             chapters,
+            // Marie 2026-05-26: PDF page map from auto-scan during import.
+            pdfPaging: payload.pdfPaging || null,
+            pdfFileName: payload.pdfFileName || '',
+            pageNumberAdjustment: 0,
           };
           const updated = [...projects, proj];
           save(updated);

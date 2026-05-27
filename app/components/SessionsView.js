@@ -2846,7 +2846,13 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                         )}
 
                         {flagCount>0&&<span style={{ fontSize:'0.7rem',color:'var(--danger)',fontWeight:500 }}>🚩{flagCount}</span>}
-                        {isRest&&<span style={{ fontSize:'0.7rem',color:'var(--text-muted)' }}>⏳ Restoring…</span>}
+                        {isRest&&<span style={{ fontSize:'0.7rem',color:'var(--text-muted)',display:'inline-flex',alignItems:'center',gap:4 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" style={{ animation:'ap-spin 0.9s linear infinite',display:'block' }} aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" fill="none" />
+                            <path d="M21 12 A9 9 0 0 0 12 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+                          </svg>
+                          Restoring…
+                        </span>}
                         {!hasAudio&&sec.audioFileName&&!isRest&&(
                           <span style={{ fontSize:'0.7rem',color:'var(--warning)',fontWeight:500 }} title={sec.audioFileName}>⚠ Re-select audio</span>
                         )}

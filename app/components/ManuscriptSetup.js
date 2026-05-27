@@ -972,7 +972,13 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
               onMouseEnter={e=>e.currentTarget.style.background='var(--accent-light)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--cream)'}>
               <input type="file" accept=".docx" style={{ display:'none' }} onChange={e=>e.target.files[0]&&handleDocx(e.target.files[0])} />
-              {loading?<><div style={{ fontSize:24,marginBottom:8 }}>⏳</div><p style={{ color:'var(--text-muted)',fontSize:'0.875rem' }}>Scanning manuscript…</p></>
+              {loading?<>
+                  <svg width="22" height="22" viewBox="0 0 24 24" style={{ marginBottom:8,color:'var(--text-muted)',animation:'ap-spin 0.9s linear infinite',display:'block' }} aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.18" strokeWidth="1.5" fill="none" />
+                    <path d="M21 12 A9 9 0 0 0 12 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                  </svg>
+                  <p style={{ color:'var(--text-muted)',fontSize:'0.875rem' }}>Scanning manuscript…</p>
+                </>
                 :<><div style={{ fontSize:28,marginBottom:10 }}>📄</div>
                   <p style={{ fontWeight:600,fontSize:'0.875rem',color:'var(--text)',marginBottom:0 }}>Upload manuscript .docx</p></>}
             </label>

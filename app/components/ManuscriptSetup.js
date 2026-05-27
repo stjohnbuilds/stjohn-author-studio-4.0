@@ -809,8 +809,10 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
           included: undefined,
         }))
     );
+    // Marie 2026-05-26: wordsPerPage no longer accepted — PDF-rendered
+    // page map is the only source. annotateManuscriptPositions returns
+    // null pages when the map is missing; the UI flags it.
     const paging = annotateManuscriptPositions(numberedChapters, {
-      wordsPerPage: manuscriptPaging?.wordsPerPage,
       pageMap: manuscriptPaging?.pageMap,
       startPageNumber: manuscriptPaging?.startPageNumber,
     });

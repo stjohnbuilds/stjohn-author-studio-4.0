@@ -645,6 +645,12 @@ export default function Home() {
     persist(updated);
     setActiveBook(stamped);
     setView('bookDetail');
+    // Marie 2026-05-26 — TOMBSTONE-GHOST FIX: if this book id was
+    // previously deleted (so a tombstone exists), saving a fresh book
+    // with the same id has to un-tombstone it. Without this clear, the
+    // tombstone would silently hide it on the next pull AND the retry-
+    // delete would keep killing the cloud row. Permanent ghost.
+    try { clearTombstone('proof', { id: book.id, cloudId: book.cloudId }); } catch {}
   }
 
   function updateBook(bookId, updatesOrUpdater) {

@@ -1085,6 +1085,13 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
     const el = audioRef.current;
     if (!el) return;
     if (!syncTable || syncTable.length < 4) return;
+    // Marie 2026-05-26: if the user turned the T (transcription sync)
+    // toggle OFF, stop updating currentMsIdx and clear it. The audio
+    // still plays normally — just no word highlight chases it.
+    if (!useWhisperSync) {
+      setCurrentMsIdx(-1);
+      return;
+    }
     let raf = null;
     function tick() {
       const idx = getMsIdxAtTime(syncTable, el.currentTime, -1);

@@ -291,6 +291,21 @@ export default function ImportFlow({
     setChapters(parseChaptersFromHtml(htmlNow, levelNow, splitNow));
   }
 
+  // Marie 2026-05-26: optional PDF path. User downloads the PDF from
+  // the same Google Doc and uploads it here for exact page numbers.
+  async function handlePdfFile(file) {
+    if (!file) { setPdfFile(null); setPdfBytes(null); return; }
+    setErr('');
+    try {
+      const ab = await file.arrayBuffer();
+      setPdfFile(file);
+      setPdfBytes(new Uint8Array(ab));
+    } catch (e) {
+      console.error('PDF read failed:', e);
+      setErr(e?.message || 'Could not read that PDF.');
+    }
+  }
+
   async function handleDocx(file) {
     setLoading(true);
     setErr('');

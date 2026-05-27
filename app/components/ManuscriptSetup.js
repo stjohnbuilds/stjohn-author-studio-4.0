@@ -844,12 +844,11 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
       chapters:paging.chapters,
       manuscriptPaging: {
         mode: paging.mode,
-        wordsPerPage: paging.wordsPerPage,
         totalWordCount: paging.totalWordCount,
-        estimatedPageCount: paging.estimatedPageCount,
         exactPageCount: paging.exactPageCount,
         pageMap: paging.mode === 'rendered' ? paging.pageMap : undefined,
-        startPageNumber: paging.pageMap[0]?.pageNumber || 1,
+        startPageNumber: paging.pageMap?.[0]?.pageNumber || 1,
+        hasUsablePageMap: paging.mode === 'rendered',
       },
       pdfPaging: pdfPaging ? {
         mode: pdfPaging.mode,

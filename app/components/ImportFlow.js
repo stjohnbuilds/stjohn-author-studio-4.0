@@ -679,11 +679,20 @@ export default function ImportFlow({
           )}
         </div>
 
-        {/* Step 3: Chapter picker */}
+        {/* Marie 2026-05-26: optional Step 3 — Proof passes its narrator
+            mapping panel as extraStepSlot so the user does everything on
+            ONE screen instead of being bounced to a second "Phase 2". */}
+        {extraStepSlot && fullHtml && (
+          <div style={card}>
+            {extraStepSlot}
+          </div>
+        )}
+
+        {/* Step 3 (or 4 with extra step): Chapter picker */}
         {chapters.length > 0 && (
           <div style={card}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-              <Badge n={3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
+              <Badge n={extraStepSlot ? 4 : 3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                 <button type="button" onClick={() => setShowSubs((v) => !v)} style={{
                   padding: '5px 10px', borderRadius: 999,

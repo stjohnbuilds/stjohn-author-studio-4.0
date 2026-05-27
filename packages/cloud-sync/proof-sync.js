@@ -24,6 +24,14 @@ import { slimBookForCloud } from './cloud-slim.js';
 // doesn't reload often.
 const lastPushHashByCloudId = new Map();
 
+// Marie 2026-05-26: explicitly clearable from app/page.js on sign-out so
+// the next user signing in doesn't inherit the previous user's
+// "nothing-changed-skip-the-push" cache and accidentally short-circuit
+// a legitimate push.
+export function clearProofPushCache() {
+  lastPushHashByCloudId.clear();
+}
+
 // Marie 2026-05-26: a leftover book with cloudId "demo-book-1" (not a
 // UUID) was making the cloud push retry-loop forever with the Supabase
 // "invalid input syntax for type uuid" error. Guard it: if cloudId

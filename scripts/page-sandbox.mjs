@@ -27,8 +27,6 @@ import JSZip from 'jszip';
 import {
   extractRenderedPageMapFromDocxXml,
   getPageNumberForWordIndex,
-  normalizePageMap,
-  DEFAULT_ESTIMATED_WORDS_PER_PAGE,
 } from '../app/lib/manuscriptPaging.js';
 
 const docxPath = process.argv[2];

@@ -2153,22 +2153,80 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
-        {/* Marie 2026-05-26: page-number status panel. Green when the
-            PDF scan succeeded during import. Yellow warning when it
-            didn't — page fields will show "?" until fixed. */}
+        {/* Marie 2026-05-26: page-number status panel.
+              - Green "from your PDF (exact)" when user uploaded a PDF
+              - Amber "auto-scanned via LibreOffice (may drift ±1-2)" with
+                an upload-PDF button to upgrade to exact
+              - Yellow warning when no page map at all */}
         {(() => {
           const pdfPages = book.pdfPaging?.pages?.length || 0;
           const printedCount = book.pdfPaging?.printedPageCount || 0;
           const hasPdfMap = pdfPages > 0;
           const adj = Number(book.pageNumberAdjustment) || 0;
-          if (hasPdfMap) {
+          const fromUserPdf = book.pdfSource === 'user-pdf';
+
+          async function pickAndUploadPdf() {
+            if (typeof window === 'undefined' || !window.electron?.extractPdfPaging) {
+              alert('PDF upload needs the desktop app. Re-open in the Electron app to use this.');
+              return;
+            }
+            // Use a hidden file input.
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/pdf,.pdf';
+            input.onchange = async () => {
+              const file = input.files?.[0];
+              if (!file) return;
+              try {
+                showToast(`Reading ${file.name}…`, 'info');
+                const ab = await file.arrayBuffer();
+                const extracted = await window.electron.extractPdfPaging({
+                  fileName: file.name,
+                  data: new Uint8Array(ab),
+                  pageOffset: 0,
+                });
+                if (extracted?.pages?.length) {
+                  onUpdateBook({
+                    pdfPaging: extracted,
+                    pdfFileName: file.name,
+                    pdfSource: 'user-pdf',
+                  });
+                  showToast(`Page numbers now read from ${file.name} (exact).`, 'success');
+                } else {
+                  showToast('That PDF did not yield a usable page map.', 'error');
+                }
+              } catch (e) {
+                showToast(`PDF read failed: ${e?.message || e}`, 'error');
+              }
+            };
+            input.click();
+          }
+
+          if (hasPdfMap && fromUserPdf) {
             return (
               <div style={{ marginBottom:'0.85rem',background:'#eaf5ec',border:'1px solid #b9d6bf',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:10 }}>
                 <div style={{ fontSize:'1rem',lineHeight:1,color:'#3d7a4a' }}>✓</div>
                 <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#3d7a4a' }}>
-                  <strong>Page numbers scanned.</strong> {printedCount} of {pdfPages} pages numbered from the PDF rendering.
+                  <strong>Page numbers from your PDF.</strong> {printedCount} of {pdfPages} pages numbered (exact).
                   {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
+                  {book.pdfFileName && <span style={{ marginLeft:6,color:'var(--text-muted)' }}>· {book.pdfFileName}</span>}
                 </div>
+                <button onClick={pickAndUploadPdf} style={{ padding:'5px 10px',borderRadius:8,border:'1px solid #b9d6bf',background:'white',color:'#3d7a4a',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Replace PDF</button>
+              </div>
+            );
+          }
+          if (hasPdfMap) {
+            return (
+              <div style={{ marginBottom:'0.85rem',background:'#fdf3e0',border:'1px solid #e8c98a',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
+                <div style={{ fontSize:'1rem',lineHeight:1,color:'#8a6519',marginTop:1 }}>○</div>
+                <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#8a6519',lineHeight:1.45 }}>
+                  <strong>Page numbers auto-scanned via LibreOffice.</strong> {printedCount} of {pdfPages} pages numbered. <em>May drift ±1-2 pages from the PDF you actually read.</em>
+                  {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
+                  <div style={{ marginTop:4,fontSize:'0.74rem' }}>
+                    For exact page numbers, upload the PDF downloaded from the same Google Doc.
+                  </div>
+                </div>
+                <button onClick={pickAndUploadPdf} style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #8a6519',background:'white',color:'#8a6519',fontSize:'0.74rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Upload PDF</button>
               </div>
             );
           }
@@ -2178,9 +2236,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               <div style={{ flex:1,minWidth:0 }}>
                 <div style={{ fontSize:'0.85rem',fontWeight:700,color:'#7a5a18',marginBottom:3 }}>This book has no page numbers yet.</div>
                 <div style={{ fontSize:'0.76rem',color:'#7a5a18',lineHeight:1.45 }}>
-                  Page fields will show <strong>?</strong> in flags, exports, and the reader. The app couldn&apos;t scan page numbers — usually because LibreOffice or Microsoft Word isn&apos;t installed. Re-import after installing one of those, or upload the printed PDF to fix this book.
+                  Page fields will show <strong>?</strong> in flags, exports, and the reader. Upload the printed PDF to fix this book, or re-import after installing LibreOffice for an automatic (less exact) page scan.
                 </div>
               </div>
+              <button onClick={pickAndUploadPdf} style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #8a6519',background:'white',color:'#7a5a18',fontSize:'0.74rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Upload PDF</button>
             </div>
           );
         })()}

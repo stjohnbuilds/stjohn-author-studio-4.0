@@ -20,6 +20,7 @@
 //   }
 
 import React, { useMemo, useState } from 'react';
+import { buildSlimPageMap } from '../lib/pdfPaging';
 import {
   STYLE_MAP,
   convertShadingToHighlight,

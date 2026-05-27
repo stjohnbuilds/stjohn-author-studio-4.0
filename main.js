@@ -745,22 +745,24 @@ async function extractPdfPagingFromBuffer({ fileName, data, pageOffset = -1 }) {
     loadingTask.destroy?.();
   }
 
-  // Marie 2026-05-26: auto-detect a sensible default offset by finding
-  // "Chapter 1" in the body and seeing what printed number is on its
-  // page. If Chapter 1 sits on printed page 2 (because front-matter
-  // like Epigraph counted), suggested offset = -1. The user can
-  // confirm or override during import.
+  // Marie 2026-05-26: auto-detect a sensible default offset by walking
+  // the PDF and finding the FIRST physical page whose printed footer
+  // says "1". Whatever number of unnumbered pages came before is the
+  // adjustment. Example: PDF has an Opening Credits page (no number)
+  // then an Epigraph with "1" in the footer — that's 1 unnumbered page
+  // before "1", so adj = -1 so the printed-page-1 lines up with what
+  // the user sees in their Word doc.
+  //
+  // (Earlier I made the mistake of looking for the text "Chapter 1" —
+  // wrong. Marie wants this anchored to the footer numbering itself.)
   let suggestedOffset = 0;
-  let chapterOnePage = null;
-  let chapterOnePrintedNumber = null;
-  const chapterOneRe = /\bchapter\s*(?:1|one|i)\b/i;
+  let firstOneAtPdfPage = null;
+  let unnumberedBeforeFirstOne = 0;
   for (const page of pages) {
-    if (chapterOneRe.test(page.normalizedText)) {
-      chapterOnePage = page.pageIndex;
-      chapterOnePrintedNumber = page.pageNumber;
-      // We want Chapter 1's reported page to be 1. If it's currently
-      // reported as N, we need adj = -(N - 1) to shift everything down.
-      suggestedOffset = -(page.pageNumber - 1);
+    if (page.pageNumberSource === 'printed' && page.pageNumber === 1) {
+      firstOneAtPdfPage = page.pageIndex;
+      unnumberedBeforeFirstOne = page.pageIndex - 1;
+      suggestedOffset = -unnumberedBeforeFirstOne;
       break;
     }
   }
@@ -772,12 +774,13 @@ async function extractPdfPagingFromBuffer({ fileName, data, pageOffset = -1 }) {
     pageCount: pdf.numPages,
     printedPageCount: pages.filter(page => page.pageNumberSource === 'printed').length,
     pages,
-    // Suggested per-book page-number adjustment so Chapter 1 lands on
-    // page 1. Picked up by ImportFlow + the Upload PDF flow on book
-    // detail; both surface it to the user as a confirm/override step.
+    // Suggested per-book page-number adjustment so the page that has
+    // "1" in its footer ends up reported as page 1 (and pages before
+    // shift accordingly). Surfaced in import + Upload PDF flows so
+    // the user can confirm or override.
     suggestedAdjustment: suggestedOffset,
-    chapterOneAt: chapterOnePage,
-    chapterOnePrintedAs: chapterOnePrintedNumber,
+    firstOneAtPdfPage,
+    unnumberedBeforeFirstOne,
   };
 }
 

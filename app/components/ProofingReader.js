@@ -1269,13 +1269,12 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
             />
           </div>
           {/* Marie 2026-05-26: HARD warning when page lookup failed.
-              Page numbers are the primary value of this app — a silent
-              '?' is not enough. This banner makes the failure undeniable
-              so she knows the flag's page is not trustworthy. */}
+              Fires only when BOTH the manuscript word-index map AND
+              the PDF page lookup couldn't determine the page. */}
           {flagDraft?.page === '?' && (
             <div role="alert" style={{ background:'#fdecea',border:'1.5px solid #e2766c',borderRadius:10,padding:'8px 12px',fontSize:'0.78rem',color:'#8a2418',fontWeight:600,display:'flex',alignItems:'center',gap:8 }}>
               <span style={{ fontSize:'1rem',lineHeight:1 }}>⚠️</span>
-              <span>Couldn&apos;t find this quote in the PDF — the page number is unknown. Type it in by hand or fix the PDF on the book page.</span>
+              <span>Couldn&apos;t determine the page for this word. Type it in by hand, or upload a matching PDF on the book page so future flags get a real page.</span>
             </div>
           )}
           <div style={{ display:'grid',gridTemplateColumns:'70px 1fr 1fr 110px',gap:8 }}>

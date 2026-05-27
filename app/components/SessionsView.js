@@ -2146,6 +2146,22 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
+        {/* Marie 2026-05-26: page-number warning banner. Shows on every
+            book that doesn't have a PDF-rendered page map. Page fields
+            across the app show "?" instead of estimates when this banner
+            is up. */}
+        {!book.manuscriptPaging?.hasUsablePageMap && !(book.pdfPaging?.pages?.length) && (
+          <div style={{ marginBottom:'0.85rem',background:'#fff4d6',border:'1px solid #e0c682',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
+            <div style={{ fontSize:'1.2rem',lineHeight:1,marginTop:1 }}>⚠️</div>
+            <div style={{ flex:1,minWidth:0 }}>
+              <div style={{ fontSize:'0.85rem',fontWeight:700,color:'#7a5a18',marginBottom:3 }}>This book has no page numbers yet.</div>
+              <div style={{ fontSize:'0.76rem',color:'#7a5a18',lineHeight:1.45 }}>
+                Page fields will show <strong>?</strong> in flags, exports, and the reader until you either re-save the .docx through Microsoft Word (so it writes page-break markers), or upload the printed PDF so the app can extract pages from it.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ marginBottom:'0.85rem' }}>
           {/* Compact top panel grid: Narrators (full) + Audiobook timing (½)
               + Bulk audio (½) + editing meta as full-width row. Previously

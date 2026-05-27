@@ -1770,10 +1770,12 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
   // Sort by updatedAt desc so the most recently-touched book is on top.
   // Marie's note: "your audiobooks doesn't do last-touched first, which
   // is very annoying. I would like the last thing we worked on to be
-  // first."
+  // first." Fallback to book.id (which is Date.now() at import time)
+  // for old books that pre-date the updatedAt stamping fix — keeps
+  // them in import-order at the bottom instead of all collapsing to 0.
   const sortedBooks = [...(books || [])].sort((a, b) => {
-    const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || 0;
-    const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
+    const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || Number(a?.id) || 0;
+    const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || Number(b?.id) || 0;
     return bt - at;
   });
   const lastResyncedLabel = lastResyncedAt ? formatRelativeFromNow(lastResyncedAt) : '';

@@ -498,6 +498,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   const [editingMeta, setEditingMeta] = useState(false);
   const [reuploadPreview, setReuploadPreview] = useState(null); // { fullHtml, chapters: [{title, sections, included}] }
   const [editTitle, setEditTitle] = useState(book.title || '');
+  // Marie 2026-05-26: per-book page nudge (±N). Lets her shift every
+  // displayed page number to match her Word doc when LibreOffice
+  // rendering drifts by a hair on long books.
+  const [editPageNudge, setEditPageNudge] = useState(Number(book.pageNumberAdjustment) || 0);
   const [editNarrators, setEditNarrators] = useState((book.narratorColors || []).map(nc => ({
     hex: nc.hex || '#d9d9d9',
     characterName: nc.characterName || '',

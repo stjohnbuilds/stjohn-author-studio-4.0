@@ -69,7 +69,7 @@ export async function pushProofProject(supabase, book, ownerId) {
   const { data: projectRow, error: projectErr } = await supabase
     .from('script_sync_projects')
     .upsert({
-      id: clean.cloudId || undefined,
+      id: safeCloudId(clean.cloudId),
       owner_id: ownerId,
       title: clean.title || 'Untitled audiobook',
       ready: true,

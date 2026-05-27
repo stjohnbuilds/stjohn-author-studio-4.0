@@ -2157,8 +2157,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               - Green "from your PDF (exact)" when user uploaded a PDF
               - Amber "auto-scanned via LibreOffice (may drift ±1-2)" with
                 an upload-PDF button to upgrade to exact
-              - Yellow warning when no page map at all */}
-        {(() => {
+              - Yellow warning when no page map at all
+            Quill doesn't need page numbers (print-design mode), so the
+            whole banner is hidden there. */}
+        {mode !== 'quill' && (() => {
           const pdfPages = book.pdfPaging?.pages?.length || 0;
           const printedCount = book.pdfPaging?.printedPageCount || 0;
           const hasPdfMap = pdfPages > 0;

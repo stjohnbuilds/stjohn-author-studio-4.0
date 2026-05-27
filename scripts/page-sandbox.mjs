@@ -58,26 +58,42 @@ const documentXml = await docFile.async('string');
 // ────────────────────────────────────────────────────────────────────
 const paging = extractRenderedPageMapFromDocxXml(documentXml);
 
-if (!paging) {
+// Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
+// No word-count estimates, ever. If the docx doesn't carry rendering
+// markers, the sandbox refuses to guess — same rule the app uses.
+const hasRichPageMap = paging?.mode === 'rendered' && Array.isArray(paging?.pageMap) && paging.pageMap.length >= 3;
+
+if (!hasRichPageMap) {
   console.error('');
-  console.error('⚠️  No rendered page breaks were found in this .docx.');
-  console.error('   The app falls back to an estimated', DEFAULT_ESTIMATED_WORDS_PER_PAGE, 'words-per-page in this case.');
-  console.error('   The page numbers below are ESTIMATED, not exact.');
+  console.error('❌  This .docx does NOT carry usable page-break info.');
+  console.error('    The sandbox refuses to estimate (no 250-words-per-page fallback).');
   console.error('');
+  if (paging?.mode === 'rendered') {
+    console.error(`    Only ${paging.pageMap.length} page entries were found — almost certainly`);
+    console.error('    just a couple of manual page breaks, not a full rendered layout.');
+  } else {
+    console.error('    No <w:lastRenderedPageBreak/> markers were found at all.');
+  }
+  console.error('');
+  console.error('    To make page numbers work for this manuscript, either:');
+  console.error('    1. Open the .docx in Microsoft Word and save again');
+  console.error('       (Word writes the markers after it lays out the pages), OR');
+  console.error('    2. Give the app the printed PDF so it can extract pages from there.');
+  console.error('');
+  process.exit(2);
 }
 
-const pageMap = paging?.pageMap || normalizePageMap([], 1);
-const mode = paging?.mode || 'estimated';
-const startPage = paging?.startPageNumber || 1;
-const totalWords = paging?.totalWordCount || 0;
+const pageMap = paging.pageMap;
+const startPage = paging.startPageNumber;
+const totalWords = paging.totalWordCount;
 
 console.log('────────────────────────────────────────────────────────');
 console.log(' File:        ', path.basename(docxPath));
-console.log(' Mode:        ', mode === 'rendered' ? '✓ rendered (exact)' : '⚠ estimated (no page breaks in docx)');
+console.log(' Mode:         ✓ rendered (exact)');
 console.log(' Start page:  ', startPage);
 console.log(' Total words: ', totalWords);
 console.log(' Page entries:', pageMap.length);
-if (paging?.exactPageCount) console.log(' Exact pages: ', paging.exactPageCount);
+console.log(' Exact pages: ', paging.exactPageCount);
 console.log('────────────────────────────────────────────────────────');
 
 // ────────────────────────────────────────────────────────────────────

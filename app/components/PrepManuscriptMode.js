@@ -942,7 +942,21 @@ function BookDetailView({
                 const extracted = await window.electron.extractPdfPaging({ fileName: file.name, data: new Uint8Array(ab), pageOffset: 0 });
                 if (extracted?.pages?.length && onUpdatePaging) {
                   const suggested = Number(extracted.suggestedAdjustment) || 0;
-                  onUpdatePaging({ pdfPaging: extracted, pdfFileName: file.name, pdfSource: 'user-pdf', pageNumberAdjustment: suggested });
+                  // Marie 2026-05-26: build the slim word-index → page
+                  // map right here so the post-import PDF upload gives
+                  // the same answer the import-time path does.
+                  let pdfPageMap = null;
+                  try {
+                    const allWords = [];
+                    for (const ch of (project?.chapters || [])) {
+                      const html = ch?.html || '';
+                      if (html) allWords.push(...extractManuscriptWordsFromHtml(html));
+                    }
+                    if (allWords.length) pdfPageMap = buildSlimPageMap(extracted.pages, allWords);
+                  } catch (mapErr) {
+                    console.warn('buildSlimPageMap (Prep post-import) failed:', mapErr);
+                  }
+                  onUpdatePaging({ pdfPaging: extracted, pdfPageMap, pdfFileName: file.name, pdfSource: 'user-pdf', pageNumberAdjustment: suggested });
                 }
               } catch (e) { alert(`PDF read failed: ${e?.message || e}`); }
             };

@@ -1110,7 +1110,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
       el.removeEventListener('seeked', tick);
       if (raf != null) cancelAnimationFrame(raf);
     };
-  }, [syncTable, audioUrl]);
+  }, [syncTable, audioUrl, useWhisperSync]);
 
   // Selection state
   const [selectedRange, setSelectedRange] = useState(null);    // { start, end } (word indices, inclusive)

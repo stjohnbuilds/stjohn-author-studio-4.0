@@ -803,7 +803,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     // Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
     // No 250-words-per-page estimates anywhere. If we can't find an exact
     // page, the field comes back as '?' so it's obvious the book needs a
-    // PDF.
+    // PDF. Marie 2026-05-26 (later): book.pageNumberAdjustment lets the
+    // user nudge ±N pages when LibreOffice rendering drifts from Word.
     const idx = Math.max(0, Number(wordIdx) || 0);
     const effectivePdfPaging = pdfPaging || section.pdfPaging;
     const hasPdfPageMap = Array.isArray(effectivePdfPaging?.pages) && effectivePdfPaging.pages.length > 0;
@@ -817,13 +818,14 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       ? getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap)
       : null;
     const pdfMatch = findPdfPageForQuote(quoteText, effectivePdfPaging, hintPageNumber);
+    const adjustment = Number(section.pageNumberAdjustment) || 0;
 
     if (pdfMatch?.pageNumber) {
-      return String(pdfMatch.pageNumber);
+      return String(pdfMatch.pageNumber + adjustment);
     }
 
     if (hasExactManuscriptMap && manuscriptWordIdx != null) {
-      return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap));
+      return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment);
     }
 
     // No exact map available — flag it. Marie's rule: never guess.

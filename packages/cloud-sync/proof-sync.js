@@ -132,13 +132,17 @@ export async function pushProofProject(supabase, book, ownerId) {
     if (error) throw error;
   }
 
-  // 3) Replace flags for this project.
-  const { error: fDelErr } = await supabase
-    .from('script_sync_flags')
-    .delete()
-    .eq('project_id', cloudProjectId);
-  if (fDelErr) throw fDelErr;
-
+  // 3) Sync flags for this project.
+  //
+  // Marie 2026-05-26: USED to be delete-then-insert. That had a race —
+  // a flag saved on Device B between the desktop's DELETE and INSERT
+  // would be wiped. New shape:
+  //   a. UPSERT every flag in this push by (project_id, local_id).
+  //   b. DELETE only flags whose local_id ISN'T in our payload (real
+  //      removals by the user).
+  // If another device adds a flag mid-push, it survives — its local_id
+  // wasn't in our payload, but neither does it match anything we'd
+  // delete, because (project_id, local_id) of the newcomer is unique.
   const flagRows = [];
   for (const { section } of sectionRefs) {
     (section.flags || []).forEach((fl, idx) => {
@@ -164,10 +168,38 @@ export async function pushProofProject(supabase, book, ownerId) {
   }
 
   if (flagRows.length) {
-    const { error } = await supabase
+    const { error: upErr } = await supabase
       .from('script_sync_flags')
-      .insert(flagRows);
-    if (error) throw error;
+      .upsert(flagRows, { onConflict: 'project_id,local_id' });
+    if (upErr) throw upErr;
+  }
+
+  // Prune: delete rows whose local_id isn't in our payload. A flag
+  // freshly added by another device during this push has its own
+  // unique local_id, so it survives (not in our local_ids list, but
+  // we use .in() so only listed IDs would be deleted — inverted via
+  // .not('local_id','in',...) means "delete rows whose local_id IS
+  // NOT in our payload, i.e. user removed them locally").
+  const keptLocalIds = flagRows.map((r) => r.local_id);
+  if (keptLocalIds.length) {
+    // Supabase's .not('col', 'in', '(a,b,c)') expects a paren-wrapped
+    // string. Local_ids are app-generated UUIDs / safe ids; we quote
+    // them to defend against any stray comma/quote.
+    const list = keptLocalIds.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(',');
+    const { error: pruneErr } = await supabase
+      .from('script_sync_flags')
+      .delete()
+      .eq('project_id', cloudProjectId)
+      .not('local_id', 'in', `(${list})`);
+    if (pruneErr) throw pruneErr;
+  } else {
+    // No flags in our payload — user cleared them all. Delete every
+    // flag for this project.
+    const { error: pruneErr } = await supabase
+      .from('script_sync_flags')
+      .delete()
+      .eq('project_id', cloudProjectId);
+    if (pruneErr) throw pruneErr;
   }
 
   // Remember what we just pushed so the next save can short-circuit

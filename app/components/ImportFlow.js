@@ -618,13 +618,13 @@ export default function ImportFlow({
                 {pageScanStatus}
               </div>
             )}
-            <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim() || !!pageScanStatus} style={{
+            <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim() || scanning} style={{
               ...primaryBtn,
               width: '100%',
-              opacity: (!anyOn || !bookTitle.trim() || !!pageScanStatus) ? 0.5 : 1,
-              cursor: (!anyOn || !bookTitle.trim() || !!pageScanStatus) ? 'not-allowed' : 'pointer',
+              opacity: (!anyOn || !bookTitle.trim() || scanning) ? 0.5 : 1,
+              cursor: (!anyOn || !bookTitle.trim() || scanning) ? 'not-allowed' : 'pointer',
             }}>
-              {pageScanStatus ? 'Working…' : `${submitLabel} (${totalSelected} chapter${totalSelected === 1 ? '' : 's'})`}
+              {scanning ? 'Scanning page numbers…' : `${submitLabel} (${totalSelected} chapter${totalSelected === 1 ? '' : 's'})`}
             </button>
           </>
         )}

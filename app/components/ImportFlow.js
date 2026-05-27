@@ -659,22 +659,16 @@ export default function ImportFlow({
                     onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
                 </label>
               )}
-              {/* Page-number nudge sits RIGHT under the PDF upload so
-                  it's always discoverable. Always visible during import
-                  even before a PDF is uploaded — explains what happens
-                  in each state. */}
-              <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 12, border: '1px solid var(--accent-border)', background: 'white' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                  Page-number shift {currentAdjustment !== 0 ? `(${currentAdjustment > 0 ? '+' : ''}${currentAdjustment})` : '(0 — no shift)'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => setCurrentAdjustment((n) => Math.max(-50, (Number(n) || 0) - 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>−</button>
-                  <input type="number" value={currentAdjustment} onChange={(e) => setCurrentAdjustment(Math.trunc(Number(e.target.value) || 0))} min={-50} max={50} style={{ width: 80, textAlign: 'center', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 8px', fontSize: '0.95rem', color: 'var(--text)' }} />
-                  <button type="button" onClick={() => setCurrentAdjustment((n) => Math.min(50, (Number(n) || 0) + 1))} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border)', background: 'white', color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}>+</button>
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-                  If you open the Word document and you see that on the first page there isn&apos;t a number 1, but on the second page there is, then it needs to be shifted +1 or −1.
-                </div>
+              {/* Page-number nudge — slim one-row strip per Marie 2026-05-26.
+                  Sits right under the PDF upload, always visible. */}
+              <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border-light)', background: 'white', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>Page shift</span>
+                <button type="button" aria-label="Shift back" onClick={() => setCurrentAdjustment((n) => Math.max(-50, (Number(n) || 0) - 1))} style={{ width: 22, height: 22, borderRadius: 999, border: '1px solid var(--border)', background: 'white', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1, cursor: 'pointer', padding: 0 }}>−</button>
+                <input type="number" value={currentAdjustment} onChange={(e) => setCurrentAdjustment(Math.trunc(Number(e.target.value) || 0))} min={-50} max={50} style={{ width: 44, textAlign: 'center', border: 'none', background: 'transparent', fontSize: '0.8rem', color: 'var(--text)', padding: '2px 0' }} />
+                <button type="button" aria-label="Shift forward" onClick={() => setCurrentAdjustment((n) => Math.min(50, (Number(n) || 0) + 1))} style={{ width: 22, height: 22, borderRadius: 999, border: '1px solid var(--border)', background: 'white', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1, cursor: 'pointer', padding: 0 }}>+</button>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', flex: 1, minWidth: 200, lineHeight: 1.35 }}>
+                  If your Word doc&apos;s first page has no &ldquo;1&rdquo; but the second does, shift by −1.
+                </span>
               </div>
             </div>
           )}

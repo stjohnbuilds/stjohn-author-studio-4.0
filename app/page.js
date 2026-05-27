@@ -556,6 +556,26 @@ export default function Home() {
     const supabase = getSupabaseClient();
     if (!supabase) return;
     await signOutSupabaseAccount(supabase);
+    // Marie 2026-05-26 — DATA-SAFETY BUG FIX: previously this only
+    // cleared the auth token. The `books` state (and every other
+    // in-memory state holding the previous user's data) survived,
+    // and within 1.2s the debounced push-effect would attempt to push
+    // those previous-user rows under the NEW user's owner_id. RLS
+    // would usually block, but it was a real cross-user data risk
+    // and the books would visibly leak into the next sign-in until
+    // a pull replaced them. Now we wipe everything and let the next
+    // sign-in pull fresh from the cloud.
+    setBooks([]);
+    setActiveBook(null);
+    setActiveSection(null);
+    setView('home');
+    setAudioUrl(null);
+    setBookPlayerState({ currentTime: 0, isPlaying: false, playbackRate: 1 });
+    setBookPlayerLabel('');
+    // Reset the module-level cache that lets pushes short-circuit.
+    // Without this, the next user's first push might be wrongly
+    // skipped because the hash matched the previous user's project.
+    try { clearProofPushCache(); } catch {}
     setAuthSession(null);
   }
 

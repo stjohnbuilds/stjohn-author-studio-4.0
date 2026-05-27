@@ -353,53 +353,122 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
     : extractManuscriptWordsFromHtml(manuscriptHtmlOrWords);
   if (!manuscriptWords.length) return [];
 
-  const map = [{ wordStart: 0, pageNumber: Number(pdfPages[0]?.pageNumber) || 1 }];
+  // Marie 2026-05-26 v2: a longer anchor (10 words instead of 5) makes
+  // each page's "first words" much more likely to be unique in the
+  // manuscript — drops the off-by-one drift dramatically. Try several
+  // starting offsets so a chapter title at the top of the page doesn't
+  // throw us off.
+  const ANCHOR_LEN = 10;
+
+  // Pass 1: collect a candidate anchor for every printed page.
+  const rawAnchors = [];
   let cursor = 0;
-
-  // Anchor length: 5 words is usually unique enough but short enough to
-  // survive a typo or line-wrap weirdness from pdf.js extraction. Skip
-  // pure-digit tokens (page-number footers we don't want to match).
-  const ANCHOR_LEN = 5;
-
-  for (const page of pdfPages) {
+  for (let pi = 0; pi < pdfPages.length; pi += 1) {
+    const page = pdfPages[pi];
     const pageNumber = Number(page?.pageNumber) || null;
     if (!pageNumber) continue;
 
     const pageWords = tokenizeForMatch(page.normalizedText || '')
       .filter((w) => !/^\d+$/.test(w) && w.length >= 2);
-    if (pageWords.length < ANCHOR_LEN) continue;
+    if (pageWords.length < 3) continue;
 
-    // Try the first ANCHOR_LEN words; if they don't match, slide forward
-    // a few times — sometimes a chapter title at the top is wrapped /
-    // duplicated and the body text starts a few words in.
-    let foundIdx = -1;
-    for (let attempt = 0; attempt < 4 && foundIdx < 0; attempt += 1) {
-      const offset = attempt * 2;
-      if (offset + ANCHOR_LEN > pageWords.length) break;
-      const anchor = pageWords.slice(offset, offset + ANCHOR_LEN);
-      foundIdx = findWordSequence(manuscriptWords, anchor, cursor);
+    const tryAnchor = (len) => {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const offset = attempt * 2;
+        if (offset + len > pageWords.length) return -1;
+        const anchor = pageWords.slice(offset, offset + len);
+        const at = findWordSequence(manuscriptWords, anchor, cursor);
+        if (at >= 0) return at;
+      }
+      return -1;
+    };
+
+    // Long anchor first (high uniqueness), then shorter as fallback.
+    let foundIdx = tryAnchor(ANCHOR_LEN);
+    if (foundIdx < 0) foundIdx = tryAnchor(7);
+    if (foundIdx < 0) foundIdx = tryAnchor(5);
+
+    if (foundIdx < 0) {
+      rawAnchors.push({ pageNumber, wordStart: null, pageIndex: pi });
+      continue;
     }
 
-    if (foundIdx < 0) continue; // skip pages we can't pin to a word
-    const last = map[map.length - 1];
-    if (!last || foundIdx > last.wordStart || pageNumber !== last.pageNumber) {
-      map.push({ wordStart: foundIdx, pageNumber });
-    }
+    rawAnchors.push({ pageNumber, wordStart: foundIdx, pageIndex: pi });
     cursor = foundIdx;
   }
 
-  // Dedupe + sort by wordStart, preferring later anchors on ties.
-  const sorted = map
-    .slice()
+  if (!rawAnchors.length) return [];
+
+  // Pass 2: validation. An anchor must come AFTER the previous found
+  // anchor by at least MIN_GAP_WORDS (a sane "pages can't be empty"
+  // floor). If it doesn't, the anchor probably matched a stray
+  // occurrence earlier in the manuscript — drop it, let interpolation
+  // handle the page.
+  const MIN_GAP_WORDS = 40;
+  const cleaned = [];
+  let lastFoundWordStart = -Infinity;
+  for (const a of rawAnchors) {
+    if (a.wordStart == null) { cleaned.push(a); continue; }
+    if (a.wordStart < lastFoundWordStart + MIN_GAP_WORDS) {
+      cleaned.push({ ...a, wordStart: null }); // mark for interpolation
+      continue;
+    }
+    cleaned.push(a);
+    lastFoundWordStart = a.wordStart;
+  }
+
+  // Pass 3: interpolate missing anchors between known neighbors. If a
+  // page is between found anchor X (page Px) and found anchor Y (page
+  // Py), put it at X + (Y - X) * (its_page - Px) / (Py - Px).
+  for (let i = 0; i < cleaned.length; i += 1) {
+    if (cleaned[i].wordStart != null) continue;
+    // Walk backwards to find the previous found anchor.
+    let leftIdx = i - 1;
+    while (leftIdx >= 0 && cleaned[leftIdx].wordStart == null) leftIdx -= 1;
+    // Walk forwards to find the next found anchor.
+    let rightIdx = i + 1;
+    while (rightIdx < cleaned.length && cleaned[rightIdx].wordStart == null) rightIdx += 1;
+
+    const left = leftIdx >= 0 ? cleaned[leftIdx] : null;
+    const right = rightIdx < cleaned.length ? cleaned[rightIdx] : null;
+
+    if (left && right) {
+      const span = right.pageNumber - left.pageNumber;
+      const distance = cleaned[i].pageNumber - left.pageNumber;
+      const wordSpan = right.wordStart - left.wordStart;
+      const interp = Math.round(left.wordStart + wordSpan * (distance / span));
+      cleaned[i] = { ...cleaned[i], wordStart: interp };
+    } else if (left) {
+      // No right neighbour — extrapolate using average word density.
+      const avg = manuscriptWords.length / Math.max(1, pdfPages.length);
+      const interp = Math.round(left.wordStart + avg * (cleaned[i].pageNumber - left.pageNumber));
+      cleaned[i] = { ...cleaned[i], wordStart: Math.min(manuscriptWords.length - 1, interp) };
+    } else if (right) {
+      const avg = manuscriptWords.length / Math.max(1, pdfPages.length);
+      const interp = Math.round(right.wordStart - avg * (right.pageNumber - cleaned[i].pageNumber));
+      cleaned[i] = { ...cleaned[i], wordStart: Math.max(0, interp) };
+    } else {
+      cleaned[i] = { ...cleaned[i], wordStart: 0 };
+    }
+  }
+
+  // Pass 4: dedupe + sort by wordStart.
+  const sorted = cleaned
+    .filter((a) => a.wordStart != null)
+    .map((a) => ({ wordStart: Math.max(0, a.wordStart), pageNumber: a.pageNumber }))
     .sort((a, b) => a.wordStart - b.wordStart || a.pageNumber - b.pageNumber);
   const out = [];
   for (const entry of sorted) {
     const prev = out[out.length - 1];
     if (prev && prev.wordStart === entry.wordStart) {
-      out[out.length - 1] = entry;
+      out[out.length - 1] = entry; // later page wins on tie
       continue;
     }
     out.push(entry);
+  }
+  // Make sure word 0 always maps to a page.
+  if (!out.length || out[0].wordStart !== 0) {
+    out.unshift({ wordStart: 0, pageNumber: out[0]?.pageNumber || Number(pdfPages[0]?.pageNumber) || 1 });
   }
   return out;
 }

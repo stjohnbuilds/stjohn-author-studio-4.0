@@ -435,31 +435,13 @@ export default function ImportFlow({
     // what the user expects.
     let pageNumberAdjustment = 0;
 
-    if (pdfBytes && typeof window !== 'undefined' && window.electron?.extractPdfPaging) {
-      setScanning(true);
-      try {
-        setPageScanStatus('Reading page numbers from your PDF…');
-        const extracted = await window.electron.extractPdfPaging({
-          fileName: pdfFile?.name || 'manuscript.pdf',
-          data: pdfBytes,
-          pageOffset: 0,
-        });
-        if (extracted?.pages?.length) {
-          pdfPaging = extracted;
-          pdfFileName = pdfFile?.name || 'manuscript.pdf';
-          pdfSource = 'user-pdf';
-          pageNumberAdjustment = Number(extracted.suggestedAdjustment) || 0;
-          const adjMsg = pageNumberAdjustment
-            ? ` · ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${pageNumberAdjustment}.`
-            : '';
-          setPageScanStatus(`Page numbers read from your PDF — ${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered.${adjMsg}`);
-        }
-      } catch (e) {
-        console.warn('ImportFlow PDF read failed:', e);
-        setPageScanStatus(`PDF read failed: ${e?.message || 'unknown error'}. Falling back to docx auto-convert.`);
-      } finally {
-        setScanning(false);
-      }
+    // If the user uploaded a PDF earlier, we already pre-scanned it on
+    // upload (so they could see + tweak the adjustment). Reuse that here.
+    if (preScannedPdfPaging) {
+      pdfPaging = preScannedPdfPaging;
+      pdfFileName = pdfFile?.name || 'manuscript.pdf';
+      pdfSource = 'user-pdf';
+      pageNumberAdjustment = Number(currentAdjustment) || 0;
     }
 
     if (!pdfPaging && bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {

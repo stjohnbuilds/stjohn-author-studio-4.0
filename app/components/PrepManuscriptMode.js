@@ -343,7 +343,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       pdfPaging: payload.pdfPaging || (replacing ? replacing.pdfPaging : null),
       pdfFileName: payload.pdfFileName || (replacing ? replacing.pdfFileName : '') || '',
       pdfSource: payload.pdfSource || (replacing ? replacing.pdfSource : null) || null,
-      pageNumberAdjustment: replacing ? (replacing.pageNumberAdjustment || 0) : 0,
+      pageNumberAdjustment: Number(payload.pageNumberAdjustment) || (replacing ? (replacing.pageNumberAdjustment || 0) : 0),
     };
 
     setAllProjects((all) => {

@@ -289,20 +289,31 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
 
       // Marie 2026-05-26 CRITICAL FIX — the "transcription tick disappears
-      // after switching apps" bug. Before this, runTranscribe ONLY
-      // updated the in-memory chapterTranscripts map. It NEVER wrote
-      // the alignment into `allProjects`, so the persist effect didn't
-      // fire, quill-projects.json never got the alignment, and the
-      // cloud push didn't include it either. Result: tick visible
-      // immediately but data gone on next hydrate / app restart /
-      // sign-out / sign-in. Now we write the whisper fields into the
-      // chapter inside allProjects, which triggers persistProjects ->
-      // quill-projects.json AND pushQuillProject -> Supabase
-      // quill_chapters.alignment. The hydrate path's buildTranscriptMap
-      // will rebuild the tick from the persisted data next time.
+      // after 0.5 seconds" bug had two parts:
+      //   (1) runTranscribe only updated in-memory chapterTranscripts.
+      //       Never wrote alignment into `allProjects`. So nothing
+      //       persisted to disk or cloud, and any re-render that
+      //       re-derived state from the project lost the tick.
+      //   (2) SessionsView's tick check (`isChapterTranscriptionCurrent`)
+      //       requires whisperAudioKey in `path:<storedAudioPath>` or
+      //       `name:<normText(fileName)>` format AND whisperTextHash =
+      //       hashText(section.html). If they don't match, the tick
+      //       silently flips back to "not current" within one render.
+      //       The previous version of this fix saved a raw filename
+      //       (no prefix) — the format mismatch is what wiped the tick.
       const transcribedAt = new Date().toISOString();
       const whisperTranscript = result?.transcript || whisperWords.map((w) => w?.word || w?.text || '').join(' ').trim();
-      const whisperAudioKey = audio?.fileName || chapter.audioFileName || '';
+      // Match SessionsView.getSectionAudioKey exactly so the tick check
+      // doesn't reject our saved transcription as stale.
+      const storedAudioPath = chapter?.audioPaths
+        ? (Object.values(chapter.audioPaths).find((v) => typeof v === 'string' && v) || '')
+        : (chapter?.audioPath || '');
+      const audioName = String(audio?.fileName || chapter?.audioFileName || '');
+      const normalizedName = audioName.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const whisperAudioKey = storedAudioPath
+        ? `path:${storedAudioPath}`
+        : (normalizedName ? `name:${normalizedName}` : '');
+      const whisperTextHash = hashText(chapter?.textHtml || chapter?.html || '');
       setAllProjects((all) => all.map((p) => {
         if (p.id !== project.id) return p;
         return {
@@ -318,6 +329,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               whisperWords,
               whisperTranscript,
               whisperAudioKey,
+              whisperTextHash,
+              whisperSourceUpdatedAt: transcribedAt,
               transcribedAt,
             };
           }),

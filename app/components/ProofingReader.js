@@ -891,7 +891,9 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const before=inRange?words.slice(sent.start,idx).join(' '):'';
     const after=inRange?words.slice(idx+1,sent.end+1).join(' '):'';
     const sentHtml=inRange?((before?before+' ':'')+'<em class="fw">'+esc(words[idx])+'</em>'+(after?' '+after:'')):'';
-    const sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' '):'';
+    // Marie 2026-05-26: collapse any double-spaces inherited from the
+    // source .docx so the quote pastes cleanly into Word / Sheets.
+    const sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' ').replace(/\s+/g,' ').trim():'';
     const detectedNar=inRange?detectNarrator(wordElsRef.current[idx],narratorColors,defaultNarrator,textRef.current):defaultNarrator;
     const autoNar=sceneMappedNarrator||detectedNar;
     const autoPage=getAutoPageNumber(idx, sentPlain);

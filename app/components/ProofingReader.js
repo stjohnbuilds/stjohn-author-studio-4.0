@@ -799,52 +799,38 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     };
   }
 
-  function getAutoPageNumber(wordIdx, quoteText){
-    // Marie 2026-05-26: PDF-rendered page map is the ONLY accepted source.
-    // No 250-words-per-page estimates anywhere. If we can't find an exact
-    // page, the field comes back as '?' so it's obvious the book needs a
-    // PDF. Marie 2026-05-26 (later): book.pageNumberAdjustment lets the
-    // user nudge ±N pages when LibreOffice rendering drifts from Word.
+  function getAutoPageNumber(wordIdx){
+    // Marie 2026-05-26 REBUILD: page lookup is now deterministic.
+    //   1. If the book has a slim `pdfPageMap` (word-index → printed-page
+    //      anchors, built once at import), look up by word index. Done.
+    //   2. Else fall back to the manuscript word-index map from rendered
+    //      page breaks, with the manual nudge applied.
+    //   3. Else '?'.
+    // No quote-searching. No PDF text extraction at flag time. The PDF
+    // is used ONCE at import to build the map, then forgotten.
     const idx = Math.max(0, Number(wordIdx) || 0);
-    const effectivePdfPaging = pdfPaging || section.pdfPaging;
-    const hasPdfPageMap = Array.isArray(effectivePdfPaging?.pages) && effectivePdfPaging.pages.length > 0;
     const sectionWordStart = Number(section.manuscriptWordStart);
     const proofInitialWordOffset = Math.max(0, Number(section.proofInitialWordOffset) || 0);
     const manuscriptWordIdx = Number.isFinite(sectionWordStart)
       ? Math.max(0, sectionWordStart - proofInitialWordOffset + idx)
       : null;
+    const effectiveSlimMap = pdfPageMap || section.pdfPageMap || null;
+    const hasSlimMap = Array.isArray(effectiveSlimMap) && effectiveSlimMap.length > 0;
     const hasExactManuscriptMap = Array.isArray(manuscriptPaging?.pageMap) && manuscriptPaging.pageMap.length > 1;
-    const hintPageNumber = manuscriptWordIdx != null && hasExactManuscriptMap
-      ? getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap)
-      : null;
-    const pdfMatch = findPdfPageForQuote(quoteText, effectivePdfPaging, hintPageNumber);
-    // pageNumberAdjustment comes from the book — passed in by the parent
-    // when this reader opens. Lets Marie nudge ±N pages to match her
-    // Word doc when LibreOffice rendering drifts by a hair.
     const adjustment = Number(pageNumberAdjustment) || 0;
 
-    if (pdfMatch?.pageNumber) {
-      // Marie 2026-05-26 bug fix: when the PDF lookup found a page whose
-      // number was DETECTED from the printed footer, that number is
-      // already the user's printed page — adding `adjustment` on top
-      // double-counts and gives wrong answers (her test showed p.16
-      // returning as p.4 because -12 was being added to a printed 16).
-      // Only apply the user nudge when the PDF page number was inferred
-      // (no detected footer) — in that case the nudge is helping.
-      const safeAdjustment = pdfMatch.source === 'printed' ? 0 : adjustment;
-      return String(pdfMatch.pageNumber + safeAdjustment);
+    // Primary: slim PDF map. No adjustment needed — the page numbers in
+    // the map are the printed footer numbers themselves.
+    if (hasSlimMap && manuscriptWordIdx != null) {
+      const page = pageForWordIndexFromSlimMap(manuscriptWordIdx, effectiveSlimMap);
+      if (page != null) return String(page);
     }
 
-    // Marie 2026-05-26: PDF quote-search is a fragile shortcut; the
-    // RIGHT source for "what page is word N on" is the word-index map
-    // built from the manuscript's rendered page breaks. Use that when
-    // PDF lookup fails — don't punish the user with '?' just because
-    // pdf.js text extraction couldn't find the exact string.
+    // Fallback: manuscript word-count map + user nudge.
     if (hasExactManuscriptMap && manuscriptWordIdx != null) {
       return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment);
     }
 
-    // No exact map available anywhere — flag it. Marie's rule: never guess.
     return '?';
   }
 

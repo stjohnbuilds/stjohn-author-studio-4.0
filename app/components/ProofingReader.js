@@ -860,7 +860,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
   function copySheetRow(){
     if(!flagPanel || !flagDraft) return;
-    const row = buildSheetCells(flagDraft, flagPanel.ts).map(v=>String(v||'').replace(/\r?\n/g,' ')).join('\t');
+    const row = buildSheetCells(flagDraft, flagPanel.ts).map(v=>String(v||'').replace(/\s+/g,' ').trim()).join('\t');
     const done = ()=>{ setSheetCopyStatus('Copied row for Sheets'); setTimeout(()=>setSheetCopyStatus(''),1200); };
     const fail = ()=>{ setSheetCopyStatus('Copy failed'); setTimeout(()=>setSheetCopyStatus(''),1400); };
     if(navigator.clipboard?.writeText){

@@ -87,7 +87,19 @@ export function slimProjectForCloud(project) {
     ...project,
     annotations: undefined, // annotations table is source of truth
     chapters: (project.chapters || []).map((chapter) => (
-      omit(chapter, ['alignment', 'whisperAlignment', 'whisperWords'])
+      omit(chapter, [
+        'alignment',
+        'whisperAlignment',
+        'whisperWords',
+        'whisperTranscript',
+        'whisperAudioKey',
+        'whisperTextHash',
+        'whisperMatchedCount',
+        'whisperManuscriptWordCount',
+        'whisperMatchQuality',
+        'whisperSourceUpdatedAt',
+        'transcribedAt',
+      ])
     )),
   };
 }

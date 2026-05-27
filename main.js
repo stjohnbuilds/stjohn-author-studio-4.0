@@ -859,6 +859,59 @@ function normalizeBooksForStorage(books) {
   }));
 }
 
+function normalizeStoredAudioFields(entity) {
+  if (!entity || typeof entity !== 'object') return entity;
+
+  const nextAudioPaths = entity.audioPaths && typeof entity.audioPaths === 'object'
+    ? { ...entity.audioPaths }
+    : {};
+
+  const legacyAudioPath = typeof entity.audioPath === 'string' ? entity.audioPath : null;
+  const legacyPlatform = detectStoredPathPlatform(legacyAudioPath);
+  if (legacyAudioPath && legacyPlatform && legacyPlatform !== 'portable' && !nextAudioPaths[legacyPlatform]) {
+    nextAudioPaths[legacyPlatform] = legacyAudioPath;
+  }
+
+  const currentAudioPath = typeof nextAudioPaths[CURRENT_PLATFORM_KEY] === 'string'
+    ? nextAudioPaths[CURRENT_PLATFORM_KEY]
+    : (
+      legacyAudioPath && (
+        legacyPlatform === CURRENT_PLATFORM_KEY ||
+        (legacyPlatform === 'portable' && !nextAudioPaths[CURRENT_PLATFORM_KEY])
+      )
+    )
+      ? legacyAudioPath
+      : null;
+
+  if (currentAudioPath) {
+    const resolvedAudioPath = decodeStoredFilePath(currentAudioPath);
+    nextAudioPaths[CURRENT_PLATFORM_KEY] = resolvedAudioPath && fs.existsSync(resolvedAudioPath)
+      ? encodeStoredFilePath(resolvedAudioPath)
+      : currentAudioPath;
+  }
+
+  const normalizedAudioPaths = Object.fromEntries(
+    Object.entries(nextAudioPaths).filter(([, value]) => typeof value === 'string' && value)
+  );
+
+  const normalizedLegacyAudioPath = legacyPlatform === 'portable' ? legacyAudioPath : null;
+  return {
+    ...entity,
+    audioPath: normalizedLegacyAudioPath,
+    audioPaths: Object.keys(normalizedAudioPaths).length ? normalizedAudioPaths : undefined,
+  };
+}
+
+function normalizeQuillProjectsForStorage(projects) {
+  if (!Array.isArray(projects)) return [];
+  return projects.map(project => ({
+    ...project,
+    chapters: Array.isArray(project?.chapters)
+      ? project.chapters.map(chapter => normalizeStoredAudioFields(chapter))
+      : [],
+  }));
+}
+
 function getManuscriptSourcesDir() {
   const dir = path.join(getPrimaryDataDir(), 'Manuscript Sources');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1094,7 +1147,7 @@ ipcMain.handle('read-quill-data', () => {
 });
 
 ipcMain.handle('write-quill-data', (_, projects) => {
-  const normalizedProjects = Array.isArray(projects) ? projects : [];
+  const normalizedProjects = normalizeQuillProjectsForStorage(projects);
   const ok = writeToPath(quillDataPath(), normalizedProjects);
   writeToPath(quillMirrorDataPath(), normalizedProjects);
   return ok;

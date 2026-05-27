@@ -363,6 +363,7 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
   // Pass 1: collect a candidate anchor for every printed page.
   const rawAnchors = [];
   let cursor = 0;
+  let pdfWordCursor = 0;
   for (let pi = 0; pi < pdfPages.length; pi += 1) {
     const page = pdfPages[pi];
     const pageNumber = Number(page?.pageNumber) || null;
@@ -370,7 +371,12 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
 
     const pageWords = tokenizeForMatch(page.normalizedText || '')
       .filter((w) => !/^\d+$/.test(w) && w.length >= 2);
-    if (pageWords.length < 3) continue;
+    const pdfWordStartGuess = Math.min(manuscriptWords.length - 1, Math.max(0, pdfWordCursor));
+    pdfWordCursor += pageWords.length;
+    if (pageWords.length < 3) {
+      rawAnchors.push({ pageNumber, wordStart: null, pageIndex: pi, pdfWordStartGuess });
+      continue;
+    }
 
     const tryAnchor = (len) => {
       for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -389,11 +395,11 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
     if (foundIdx < 0) foundIdx = tryAnchor(5);
 
     if (foundIdx < 0) {
-      rawAnchors.push({ pageNumber, wordStart: null, pageIndex: pi });
+      rawAnchors.push({ pageNumber, wordStart: null, pageIndex: pi, pdfWordStartGuess });
       continue;
     }
 
-    rawAnchors.push({ pageNumber, wordStart: foundIdx, pageIndex: pi });
+    rawAnchors.push({ pageNumber, wordStart: foundIdx, pageIndex: pi, pdfWordStartGuess });
     cursor = foundIdx;
   }
 
@@ -448,7 +454,13 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
       const interp = Math.round(right.wordStart - avg * (right.pageNumber - cleaned[i].pageNumber));
       cleaned[i] = { ...cleaned[i], wordStart: Math.max(0, interp) };
     } else {
-      cleaned[i] = { ...cleaned[i], wordStart: 0 };
+      const guess = Number(cleaned[i].pdfWordStartGuess);
+      cleaned[i] = {
+        ...cleaned[i],
+        wordStart: Number.isFinite(guess)
+          ? Math.max(0, Math.min(manuscriptWords.length - 1, Math.round(guess)))
+          : 0,
+      };
     }
   }
 

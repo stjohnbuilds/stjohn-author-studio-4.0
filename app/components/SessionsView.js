@@ -7,6 +7,9 @@ import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './Manuscri
 import InfoTip from './InfoTip';
 import SharedBookDetail from './BookDetail';
 
+const PLAYBACK_SPEED_MIN = 0.5;
+const PLAYBACK_SPEED_MAX = 4;
+
 function fmtTime(sec) { const s=Math.floor(sec),m=Math.floor(s/60); return m+':'+(s%60<10?'0':'')+s%60; }
 function formatAuditionTime(seconds) {
   if (!Number.isFinite(seconds)) return null;
@@ -144,8 +147,6 @@ function getChapterAudioKey(chapter) {
 function hasCurrentSectionTranscription(section, expectedAudioKey, expectedTextHash) {
   return !!(
     section &&
-    Array.isArray(section.whisperWords) &&
-    section.whisperWords.length &&
     Array.isArray(section.whisperAlignment) &&
     section.whisperAlignment.length &&
     section.whisperAudioKey &&
@@ -746,7 +747,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     const applyState = () => {
       const st = persistentStateRef.current || {};
       const t = Math.max(0, Number(st.currentTime) || 0);
-      const r = Math.max(0.5, Math.min(3, Number(st.playbackRate) || 1));
+      const r = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, Number(st.playbackRate) || 1));
       try { a.currentTime = t; } catch {}
       a.playbackRate = r;
       if (st.isPlaying) a.play().catch(() => {});
@@ -2163,10 +2164,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             whole banner is hidden there. */}
         {mode !== 'quill' && (() => {
           const pdfPages = book.pdfPaging?.pages?.length || 0;
+          const pageAnchors = Array.isArray(book.pdfPageMap) ? book.pdfPageMap.length : 0;
           const printedCount = book.pdfPaging?.printedPageCount || 0;
-          const hasPdfMap = pdfPages > 0;
+          const hasPdfMap = pdfPages > 0 || pageAnchors > 0;
           const adj = Number(book.pageNumberAdjustment) || 0;
           const fromUserPdf = book.pdfSource === 'user-pdf';
+          const pageStatus = pdfPages > 0
+            ? `${printedCount} of ${pdfPages} pages numbered`
+            : `${pageAnchors} page anchors saved`;
 
           async function pickAndUploadPdf() {
             if (typeof window === 'undefined' || !window.electron?.extractPdfPaging) {
@@ -2239,7 +2244,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               <div style={{ marginBottom:'0.85rem',background:'#eaf5ec',border:'1px solid #b9d6bf',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:10 }}>
                 <div style={{ fontSize:'1rem',lineHeight:1,color:'#3d7a4a' }}>✓</div>
                 <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#3d7a4a' }}>
-                  <strong>Page numbers from your PDF.</strong> {printedCount} of {pdfPages} pages numbered (exact).
+                  <strong>Page numbers from your PDF.</strong> {pageStatus} (exact).
                   {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
                   {book.pdfFileName && <span style={{ marginLeft:6,color:'var(--text-muted)' }}>· {book.pdfFileName}</span>}
                 </div>
@@ -2252,7 +2257,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               <div style={{ marginBottom:'0.85rem',background:'#fdf3e0',border:'1px solid #e8c98a',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
                 <div style={{ fontSize:'1rem',lineHeight:1,color:'#8a6519',marginTop:1 }}>○</div>
                 <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#8a6519',lineHeight:1.45 }}>
-                  <strong>Page numbers auto-scanned via LibreOffice.</strong> {printedCount} of {pdfPages} pages numbered. <em>May drift ±1-2 pages from the PDF you actually read.</em>
+                  <strong>Page numbers auto-scanned via LibreOffice.</strong> {pageStatus}. <em>May drift ±1-2 pages from the PDF you actually read.</em>
                   {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
                   <div style={{ marginTop:4,fontSize:'0.74rem' }}>
                     For exact page numbers, upload the PDF downloaded from the same Google Doc.
@@ -2729,7 +2734,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                           style={{ display:'inline-flex',alignItems:'center',gap:4,fontSize:'0.7rem',fontWeight:700,color:'var(--success)',whiteSpace:'nowrap' }}
                         >
                           <span>✓</span>
-                          {chapterAlignmentPercent && <span>{chapterAlignmentPercent}</span>}
+                          <span>{chapterAlignmentPercent || '100%'}</span>
                         </span>
                       )}
                       <button

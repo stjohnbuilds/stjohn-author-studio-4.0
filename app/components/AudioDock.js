@@ -16,6 +16,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+const PLAYBACK_SPEED_MIN = 0.5;
+const PLAYBACK_SPEED_MAX = 4;
+
 export default function AudioDock({
   audioUrl = null,
   label = '',
@@ -65,7 +68,7 @@ export default function AudioDock({
   }
 
   function stepSpeed(delta) {
-    setSpeed((v) => Math.max(0.5, Math.min(3, +(v + delta).toFixed(2))));
+    setSpeed((v) => Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, +(v + delta).toFixed(2))));
   }
 
   return (
@@ -173,8 +176,8 @@ export default function AudioDock({
               </button>
               <input
                 type="range"
-                min={0.5}
-                max={3}
+                min={PLAYBACK_SPEED_MIN}
+                max={PLAYBACK_SPEED_MAX}
                 step={0.05}
                 value={speed}
                 onChange={(e) => setSpeed(Number(e.target.value))}

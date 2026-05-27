@@ -458,14 +458,14 @@ export default function ImportFlow({
 
     // If the user uploaded a PDF earlier, we already pre-scanned it on
     // upload (so they could see + tweak the adjustment). Reuse that here.
-    if (preScannedPdfPaging) {
+    if (needsPageNumbers && preScannedPdfPaging) {
       pdfPaging = preScannedPdfPaging;
       pdfFileName = pdfFile?.name || 'manuscript.pdf';
       pdfSource = 'user-pdf';
       pageNumberAdjustment = Number(currentAdjustment) || 0;
     }
 
-    if (!pdfPaging && bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
+    if (needsPageNumbers && !pdfPaging && bytes && typeof window !== 'undefined' && window.electron?.convertDocxToPageMap) {
       setScanning(true);
       try {
         setPageScanStatus('Scanning page numbers — this can take 10-30 seconds for long books…');
@@ -501,7 +501,7 @@ export default function ImportFlow({
     // desktop for diagnostics but never goes to cloud (cloud-slim
     // strips it). Quote-search is dead.
     let pdfPageMap = null;
-    if (pdfPaging?.pages?.length && fullHtml) {
+    if (needsPageNumbers && pdfPaging?.pages?.length && fullHtml) {
       try {
         pdfPageMap = buildSlimPageMap(pdfPaging.pages, fullHtml);
       } catch (e) {

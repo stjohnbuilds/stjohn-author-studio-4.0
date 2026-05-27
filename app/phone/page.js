@@ -79,6 +79,7 @@ const QUILL_PASTEL = '#F8E2E8';
 const PROOF_INK = '#5C4A78';
 const PROOF_ACCENT = '#B8A0D4';
 const PROOF_PASTEL = '#EBDEF6';
+const PHONE_PLAYBACK_SPEED_PRESETS = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75, 4];
 
 // Match the desktop ProofingReader exactly so CSV exports + cloud syncs
 // agree on the categorical set.
@@ -189,6 +190,14 @@ function pageNumberForWord(pageMap, globalWordIdx) {
     pn = Number(e.pageNumber) || pn;
   }
   return pn;
+}
+
+function pageNumberForBookWord(book, globalWordIdx) {
+  const pdfPage = pageNumberForWord(book?.pdfPageMap, globalWordIdx);
+  if (pdfPage != null) return pdfPage;
+  const manuscriptPage = pageNumberForWord(book?.manuscriptPaging?.pageMap, globalWordIdx);
+  if (manuscriptPage == null) return null;
+  return manuscriptPage + (Number(book?.pageNumberAdjustment) || 0);
 }
 
 // Look up the start time (seconds into the audio) for a given word
@@ -1448,7 +1457,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     const quoteText = words.slice(start, end + 1).map((s) => s.word).join(' ');
     const alignedStart = wordStartTimeFromAlignment(section.whisperAlignment, start);
     const globalIdx = globalWordIndexFor(book, section, start);
-    const page = pageNumberForWord(book?.manuscriptPaging?.pageMap, globalIdx);
+    const page = pageNumberForBookWord(book, globalIdx);
     return {
       start,
       end,
@@ -1998,7 +2007,7 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
             aria-label="Playback speed"
             style={{ padding: '3px 4px', borderRadius: 6, border: '1px solid #DDD0C4', fontSize: '0.7rem', background: 'white', color: '#4C4846' }}
           >
-            {[0.75, 1, 1.25, 1.5, 1.75, 2].map((r) => (
+            {PHONE_PLAYBACK_SPEED_PRESETS.map((r) => (
               <option key={r} value={r}>{r}×</option>
             ))}
           </select>

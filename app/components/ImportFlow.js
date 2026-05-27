@@ -607,7 +607,7 @@ export default function ImportFlow({
               Marie 2026-05-26 (refresh): the upload area now looks like
               a real upload panel — big icon, "Click to choose or drop"
               wording — instead of just an info row. */}
-          {fullHtml && (
+          {fullHtml && needsPageNumbers && (
             <div style={{ marginTop: 12 }}>
               {pdfFile ? (
                 <div style={{

@@ -264,6 +264,7 @@ export default function ImportFlow({
   // conversion takes ~10-30s for a long book and we want the user to see
   // what's happening, not stare at a frozen "Save" button.
   const [pageScanStatus, setPageScanStatus] = useState('');
+  const [scanning, setScanning] = useState(false);
 
   const accentColor = accent || 'var(--accent)';
   const primaryBtn = {

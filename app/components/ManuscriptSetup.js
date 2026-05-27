@@ -578,21 +578,67 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
   // .docx bytes + already-parsed chapter list. Runs Proof's own scan
   // (narrator colors, PDF page mapping) on the result and moves into
   // the 'extras' phase so the user can map narrators + confirm save.
+  // Marie 2026-05-26: ImportFlow fires this AS SOON AS the .docx is
+  // parsed (not on confirm). We scan highlight colours so the narrator
+  // mapping panel can render INSIDE ImportFlow as Step 3 — no more
+  // Phase 2 bounce.
+  async function handleImportParsed({ fullHtml: html, fileName: fname, sourceDocxBytes }) {
+    if (!html) return;
+    const docxBytes = sourceDocxBytes instanceof Uint8Array
+      ? sourceDocxBytes
+      : (sourceDocxBytes ? new Uint8Array(sourceDocxBytes) : null);
+    setFullHtml(html);
+    setFileName(fname || '');
+    if (!bookTitle && fname) setBookTitle(String(fname).replace(/\.docx$/i, ''));
+    if (docxBytes) setDocxSource({ fileName: fname || '', data: docxBytes });
+    // Highlight colour scan — same logic the legacy handleDocx used.
+    try {
+      const htmlFound = scanHighlights(html);
+      let docxFound = [];
+      if (docxBytes) {
+        try { docxFound = await extractDocxHighlightColors(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength)); }
+        catch { docxFound = []; }
+      }
+      const found = mergeHighlightSets(htmlFound, docxFound);
+      setScannedColors(found);
+      setNarratorColors([{ hex: DEFAULT_MANUAL_COLORS[0], cls: null, label: 'Custom', characterName: '', narratorName: '' }]);
+    } catch (e) {
+      console.warn('Narrator scan failed:', e);
+      setScannedColors([]);
+    }
+    // Manuscript page map from rendered DOCX XML (used as fallback when
+    // no PDF is uploaded).
+    if (docxBytes) {
+      try {
+        const jszipMod = await import('jszip');
+        const JSZip = jszipMod.default || jszipMod;
+        const zip = await JSZip.loadAsync(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength));
+        const documentXml = await zip.file('word/document.xml')?.async('string');
+        setManuscriptPaging(extractRenderedPageMapFromDocxXml(documentXml) || null);
+      } catch (e) {
+        console.warn('Manuscript paging extraction failed:', e);
+      }
+    }
+  }
+
+  // Marie 2026-05-26: ImportFlow's confirm now does the FINAL SAVE.
+  // No more Phase 2. We compute everything from the payload + current
+  // narrator state, then call onSave directly.
   async function handleImportConfirm(payload) {
     setLoading(true);
-    setPdfStatus('');
     try {
-      const html = payload.fullHtml || '';
       const docxBytes = payload.sourceDocxBytes instanceof Uint8Array
         ? payload.sourceDocxBytes
         : (payload.sourceDocxBytes ? new Uint8Array(payload.sourceDocxBytes) : null);
-      setFullHtml(html);
-      setFileName(payload.fileName || '');
-      if (payload.title) setBookTitle(payload.title);
-      if (docxBytes) setDocxSource({ fileName: payload.fileName || '', data: docxBytes });
-      // ImportFlow already lets the user choose chapter level + scene
-      // splitting. We adopt their choice via the parsed chapter list —
-      // turning the ImportFlow chapter shape into Proof's section shape.
+      const localFileName = payload.fileName || fileName || '';
+      const localTitle = (payload.title || bookTitle || localFileName || 'Untitled').trim();
+      const localPdfPaging = payload.pdfPaging || pdfPaging || null;
+      const localPdfFileName = payload.pdfFileName || pdfFileName || '';
+      const localPdfSource = payload.pdfSource || (localPdfPaging ? 'libreoffice' : null);
+      const localPageNumberAdjustment = Number(payload.pageNumberAdjustment) || 0;
+
+      // ImportFlow's chapter shape → Proof's section shape (one section
+      // per chapter — Proof doesn't split into scenes by default).
       const adopted = (payload.chapters || []).filter(c => c.included !== false).map(c => ({
         id: c.id || uid(),
         title: c.title,
@@ -608,57 +654,49 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
           isCharPOV: false,
         }],
       }));
-      setChapters(withReviewState(adopted));
-      // Try to recover scene-split setting by sniffing splitGroup field.
-      const wasSplit = (payload.chapters || []).some(c => c.splitGroup);
-      setSplitScenes(!!wasSplit);
-      // Scan narrator highlight colours — same logic handleDocx uses.
-      try {
-        const htmlFound = scanHighlights(html);
-        let docxFound = [];
-        if (docxBytes) {
-          try { docxFound = await extractDocxHighlightColors(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength)); }
-          catch { docxFound = []; }
-        }
-        const found = mergeHighlightSets(htmlFound, docxFound);
-        setScannedColors(found);
-        setNarratorColors([{ hex: DEFAULT_MANUAL_COLORS[0], cls: null, label: 'Custom', characterName: '', narratorName: '' }]);
-      } catch (e) {
-        console.warn('Narrator scan failed:', e);
-        setScannedColors([]);
-      }
-      // Manuscript page map from rendered DOCX XML.
-      if (docxBytes) {
+      const numbered = applyChapterNumbers(adopted);
+      const paging = annotateManuscriptPositions(numbered, {
+        pageMap: manuscriptPaging?.pageMap,
+        startPageNumber: manuscriptPaging?.startPageNumber,
+      });
+
+      const finalColors = narratorColors.filter(nc => nc.characterName.trim());
+      const bookId = Date.now();
+
+      const manuscriptSource = { stored: false, fileName: localFileName };
+      if (window.electron?.saveManuscriptSource && docxBytes) {
         try {
-          const jszipMod = await import('jszip');
-          const JSZip = jszipMod.default || jszipMod;
-          const zip = await JSZip.loadAsync(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength));
-          const documentXml = await zip.file('word/document.xml')?.async('string');
-          setManuscriptPaging(extractRenderedPageMapFromDocxXml(documentXml) || null);
+          await window.electron.saveManuscriptSource({ bookId, data: docxBytes });
+          manuscriptSource.stored = true;
         } catch (e) {
-          console.warn('Manuscript paging extraction failed:', e);
+          console.warn('Could not store manuscript source for rescan:', e);
         }
       }
-      // Optional automatic PDF page map (Electron only).
-      if (docxBytes && window.electron?.convertDocxToPdf) {
-        try {
-          setPdfStatus('Generating page map from your DOCX…');
-          const converted = await extractDocxPdfPaging(docxBytes, payload.fileName || 'manuscript.docx');
-          const nextPdfPaging = converted.pdfPaging;
-          if (nextPdfPaging) {
-            setPdfPaging(nextPdfPaging);
-            setPdfFileName(converted.fileName || (payload.fileName || '').replace(/\.docx$/i, '.pdf'));
-            setPdfStatus('Page numbers scanned automatically.');
-          }
-        } catch (pdfError) {
-          console.warn('Automatic DOCX-to-PDF conversion failed:', pdfError);
-          setPdfStatus(`Could not scan page numbers automatically: ${pdfError.message}`);
-        }
-      }
-      setPhase('extras');
+
+      onSave({
+        id: bookId,
+        title: localTitle,
+        fileName: localFileName,
+        manuscriptSource,
+        chapterLevel: payload.chapterLevel || chapterLevel,
+        splitScenes: !!payload.splitScenes,
+        narratorColors: finalColors,
+        chapters: paging.chapters,
+        manuscriptPaging: {
+          mode: paging.mode,
+          totalWordCount: paging.totalWordCount,
+          exactPageCount: paging.exactPageCount,
+          pageMap: paging.pageMap,
+          startPageNumber: paging.startPageNumber,
+        },
+        pdfPaging: localPdfPaging,
+        pdfFileName: localPdfFileName,
+        pdfSource: localPdfSource,
+        pageNumberAdjustment: localPageNumberAdjustment,
+      });
     } catch (e) {
-      console.warn('Could not finalize import:', e);
-      alert('Could not finalize import: ' + (e?.message || e));
+      console.warn('Could not save book:', e);
+      alert('Could not save book: ' + (e?.message || e));
     }
     setLoading(false);
   }

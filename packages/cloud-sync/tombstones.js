@@ -22,62 +22,95 @@ function key(scope) {
   return `${STORAGE_PREFIX}:${scope}`;
 }
 
-function readSet(scope) {
-  if (typeof window === 'undefined') return new Set();
+// Marie 2026-05-26: store as a list of {id, cloudId} PAIRS so
+// clearTombstone({id}) also removes the linked cloudId entry. Old
+// shape was a flat Set<string> mixing both — clearing one wouldn't
+// touch the other, leaving a half-tombstone that the next pull would
+// still match against. See cloud audit Bug 3 ("permanent ghost").
+function readPairs(scope) {
+  if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(key(scope));
-    if (!raw) return new Set();
+    if (!raw) return [];
     const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr.map(String) : []);
+    if (!Array.isArray(arr)) return [];
+    // Migrate legacy: array of bare strings → wrap as { id: s } pairs.
+    return arr.map((item) => {
+      if (typeof item === 'string') return { id: item, cloudId: null };
+      if (item && typeof item === 'object') {
+        return { id: item.id ? String(item.id) : null, cloudId: item.cloudId ? String(item.cloudId) : null };
+      }
+      return null;
+    }).filter((p) => p && (p.id || p.cloudId));
   } catch {
-    return new Set();
+    return [];
   }
 }
 
-function writeSet(scope, set) {
+function writePairs(scope, pairs) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(key(scope), JSON.stringify(Array.from(set)));
+    window.localStorage.setItem(key(scope), JSON.stringify(pairs));
   } catch {
-    // localStorage may be full or blocked in private browsing — tombstones
-    // become best-effort in that case.
+    // localStorage may be full / blocked — tombstones are best-effort.
   }
 }
 
-// Track BOTH the local project id AND the cloud uuid for that project,
-// because cloud books come back keyed by the cloud uuid which may not
-// match the local id 1:1 (esp. if the project was created on another
-// device and never had a local id matching). We tombstone whichever we
-// can identify.
+// Track the local project id AND the cloud uuid as a LINKED PAIR so
+// clearing one side also clears the other. Avoids the "I cleared the
+// local id but the cloudId tombstone still filters the re-pulled row"
+// ghost.
 export function addTombstone(scope, { id, cloudId } = {}) {
   if (!id && !cloudId) return;
-  const set = readSet(scope);
-  if (id) set.add(String(id));
-  if (cloudId) set.add(String(cloudId));
-  writeSet(scope, set);
+  const pairs = readPairs(scope);
+  // Don't duplicate: if a pair already matches either side, merge.
+  const sid = id ? String(id) : null;
+  const scloud = cloudId ? String(cloudId) : null;
+  const existingIdx = pairs.findIndex((p) => (sid && p.id === sid) || (scloud && p.cloudId === scloud));
+  if (existingIdx >= 0) {
+    pairs[existingIdx] = {
+      id: sid || pairs[existingIdx].id,
+      cloudId: scloud || pairs[existingIdx].cloudId,
+    };
+  } else {
+    pairs.push({ id: sid, cloudId: scloud });
+  }
+  writePairs(scope, pairs);
 }
 
 export function clearTombstone(scope, { id, cloudId } = {}) {
-  const set = readSet(scope);
-  let changed = false;
-  if (id && set.delete(String(id))) changed = true;
-  if (cloudId && set.delete(String(cloudId))) changed = true;
-  if (changed) writeSet(scope, set);
+  if (!id && !cloudId) return;
+  const sid = id ? String(id) : null;
+  const scloud = cloudId ? String(cloudId) : null;
+  const pairs = readPairs(scope);
+  const kept = pairs.filter((p) => !((sid && p.id === sid) || (scloud && p.cloudId === scloud)));
+  if (kept.length !== pairs.length) writePairs(scope, kept);
 }
 
 export function loadTombstones(scope) {
-  return readSet(scope);
+  // Back-compat: return a flat Set of all string ids/cloudIds for any
+  // legacy callers that still expect Set shape.
+  const set = new Set();
+  for (const p of readPairs(scope)) {
+    if (p.id) set.add(p.id);
+    if (p.cloudId) set.add(p.cloudId);
+  }
+  return set;
 }
 
-function projectHitsSet(set, project) {
-  if (!project || !set?.size) return false;
-  if (project.id && set.has(String(project.id))) return true;
-  if (project.cloudId && set.has(String(project.cloudId))) return true;
+function projectHitsPairs(pairs, project) {
+  if (!project || !pairs?.length) return false;
+  const pid = project.id != null ? String(project.id) : null;
+  const pcloud = project.cloudId != null ? String(project.cloudId) : null;
+  for (const p of pairs) {
+    if (pid && p.id === pid) return true;
+    if (pcloud && p.cloudId === pcloud) return true;
+  }
   return false;
 }
 
 export function isTombstoned(scope, project) {
-  return projectHitsSet(readSet(scope), project);
+  return projectHitsPairs(readPairs(scope), project);
 }
 
 // Filter a cloud list against tombstones AND retry-delete the survivors

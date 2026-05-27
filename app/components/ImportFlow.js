@@ -377,7 +377,15 @@ export default function ImportFlow({
       setBase64(bytesToBase64(u8));
       setFileName(file.name);
       if (!bookTitle) setBookTitle(file.name.replace(/\.docx$/i, ''));
-      setChapters(parseChaptersFromHtml(html, chapterLevel, splitScenes));
+      const parsedChapters = parseChaptersFromHtml(html, chapterLevel, splitScenes);
+      setChapters(parsedChapters);
+      // Marie 2026-05-26: let the parent react to a freshly parsed docx
+      // (e.g. Proof scans highlight colours so the narrator mapping
+      // panel can appear right here on the import screen).
+      if (typeof onParsed === 'function') {
+        try { onParsed({ fullHtml: html, fileName: file.name, sourceDocxBytes: u8, chapters: parsedChapters }); }
+        catch (cbErr) { console.warn('ImportFlow.onParsed handler threw:', cbErr); }
+      }
     } catch (e) {
       console.error('ImportFlow handleDocx failed:', e);
       setErr(e?.message || 'Could not read that .docx.');

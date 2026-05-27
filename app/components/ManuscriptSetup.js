@@ -905,187 +905,74 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
     a.download = `${bookTitle||'book'}-config.json`; a.click();
   }
 
-  // Phase 1: the same shared upload tray Prep / Duet / Quill use.
-  if (phase === 'import') {
-    return (
-      <ImportFlow
-        heading="Create new book"
-        blurb="Upload your manuscript .docx — Proof Listen will scan narrator highlights and (when possible) build a page map automatically."
-        submitLabel="Continue"
-        allowSceneSplitting={true}
-        defaultSplitScenes={false}
-        defaultChapterLevel={chapterLevel}
-        initialTitle={bookTitle}
-        onCancel={onBack}
-        onConfirm={handleImportConfirm}
-      />
-    );
-  }
+  // Marie 2026-05-26: the narrator-mapping panel is the ONE Proof-only
+  // step. It used to live on a second screen ("Phase 2") that also
+  // duplicated Title, Manuscript upload, H1/H2/H3, PDF, and chapter
+  // list. Marie kept asking for the second screen to disappear — done.
+  // The panel is now rendered INSIDE ImportFlow as the extraStepSlot,
+  // so the whole flow is one screen.
+  const narratorMappingPanel = scannedColors !== null ? (
+    <div data-tutorial="narrator-mapping">
+      <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem',flexWrap:'wrap' }}>
+        <Badge n={3} />
+        <span style={{ fontWeight:600,fontSize:'0.925rem' }}>Character ↔ narrator mapping</span>
+        <InfoTip tip={`Match each POV character heading to the narrator name you want on flags. Highlight colors are optional; H${Math.min(chapterLevel+1,3)} headings are still the main matcher.`} />
+        {scannedColors.length > 0
+          ? <span style={{ fontSize:'0.72rem',color:'var(--success)',background:'var(--success-light)',padding:'2px 8px',borderRadius:20 }}>✓ {scannedColors.length} highlight colour{scannedColors.length!==1?'s':''} found</span>
+          : <span style={{ fontSize:'0.72rem',color:'var(--text-muted)',background:'var(--cream)',padding:'2px 8px',borderRadius:20 }}>No highlights found — H2 mapping still works</span>}
+      </div>
+
+      {/* No highlight = narrator row */}
+      <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--cream)',borderRadius:10,marginBottom:10 }}>
+        <div style={{ width:32,height:32,borderRadius:8,background:'white',border:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>—</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:'0.8rem',fontWeight:500 }}>No highlight</div>
+          <div style={{ fontSize:'0.7rem',color:'var(--text-muted)' }}>Narrating voice — use the narrator name set below</div>
+        </div>
+      </div>
+
+      {/* Scanned colours */}
+      {narratorColors.map((nc,i) => (
+        <div key={i} style={{ display:'grid',gridTemplateColumns:'42px 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:10 }}>
+          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:3 }}>
+            {nc.cls ? (
+              <div style={{ width:36,height:36,borderRadius:8,background:nc.hex,border:'1px solid var(--border)',flexShrink:0 }} title={nc.label} />
+            ) : (
+              <input type="color" value={nc.hex} onChange={e=>updateNC(i,'hex',e.target.value)} style={{ width:36,height:36,borderRadius:8,border:'1px solid var(--border)',cursor:'pointer',padding:2 }} />
+            )}
+            <span style={{ fontSize:'0.58rem',color:'var(--text-light)',textAlign:'center',lineHeight:1.2 }}>{nc.label}</span>
+          </div>
+          <div>
+            <div style={lbl}>Character name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(main matcher for H{Math.min(chapterLevel+1,3)} headings)</span></div>
+            <input type="text" value={nc.characterName} onChange={e=>updateNC(i,'characterName',e.target.value)} placeholder="e.g. Crescent" style={inp} />
+          </div>
+          <div>
+            <div style={lbl}>Narrator name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(used as default narrator)</span></div>
+            <input type="text" value={nc.narratorName} onChange={e=>updateNC(i,'narratorName',e.target.value)} placeholder="e.g. Alyssa (Crescent)" style={inp} />
+          </div>
+          <button onClick={()=>removeNC(i)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-light)',fontSize:'1.2rem',padding:'0 2px',marginBottom:2,alignSelf:'flex-end' }}>×</button>
+        </div>
+      ))}
+
+      <button onClick={addManualNC} style={{ width:'100%',background:'none',border:'1px dashed var(--border)',borderRadius:8,padding:'7px',fontSize:'0.8rem',color:'var(--text-muted)',cursor:'pointer',marginTop:4 }}>
+        + Add character mapping
+      </button>
+    </div>
+  ) : null;
 
   return (
-    <div style={{ minHeight:'100vh',background:'var(--cream)' }}>
-      <button
-        onClick={onBack}
-        aria-label="Back to home"
-        title="Back to home"
-        style={{ position:'fixed',top:52,left:16,zIndex:1210,width:48,height:48,borderRadius:'50%',border:'1px solid var(--border)',background:'white',color:'var(--text-muted)',fontSize:'1.35rem',fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 16px rgba(0,0,0,0.08)' }}
-      >
-        ←
-      </button>
-      <div style={{ maxWidth:620,margin:'0 auto',padding:'1.5rem 1.25rem 3.25rem' }}>
-        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:'0.25rem' }}>
-          <h2 style={{ fontSize:'1.5rem',fontWeight:700,letterSpacing:'-0.02em',color:'var(--text)' }}>Create new book</h2>
-          {isElectron && onImportTransfer && (
-            <button
-              type="button"
-              onClick={onImportTransfer}
-              style={{ padding:'8px 14px',borderRadius:999,border:'1px solid var(--accent-border)',background:'white',color:'var(--accent-dark)',fontWeight:800,fontSize:'0.78rem',cursor:'pointer',whiteSpace:'nowrap',boxShadow:'0 8px 18px var(--accent-shadow)' }}
-            >
-              Import
-            </button>
-          )}
-        </div>
-        <p style={{ fontSize:'0.8rem',color:'var(--text-muted)',margin:'0 0 1.2rem' }}>Map your narrators to the highlight colours, review the chapters, then save the book.</p>
-
-        {/* Marie 2026-05-26: Phase-2 used to repeat Title, Manuscript upload,
-            H1/H2/H3 picker, and the Page-numbers panel — all of which the
-            user just filled in on the ImportFlow screen. Removed. Phase 2
-            is now ONLY the narrator mapping + chapter review + save. A
-            small file/page summary at the top reminds the user what book
-            they're configuring. */}
-        {fullHtml && (
-          <div style={{ ...card, padding:'10px 14px', display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }} data-tutorial="manuscript-upload">
-            <span style={{ fontSize:'0.84rem', color:'var(--text)', fontWeight:600 }}>✓ {bookTitle || fileName}</span>
-            <span style={{ fontSize:'0.74rem', color:'var(--text-muted)' }}>{fileName} · {chapters.length} chapter{chapters.length===1?'':'s'} · {totalSections} section{totalSections===1?'':'s'}</span>
-            {pdfPaging ? (
-              <span style={{ fontSize:'0.72rem', color:'var(--accent-dark)', fontWeight:700, marginLeft:'auto' }}>
-                ✓ Page numbers from PDF ({(pdfPaging.printedPageCount || 0)} of {pdfPaging.pageCount})
-              </span>
-            ) : (
-              <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginLeft:'auto' }}>No PDF attached — page numbers unavailable</span>
-            )}
-          </div>
-        )}
-
-        {/* Step 3: Assign highlight colours (shown after upload) */}
-        {scannedColors !== null && (
-          <div style={card} data-tutorial="narrator-mapping">
-            <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}>
-              <Badge n={1} />
-              <span style={{ fontWeight:600,fontSize:'0.925rem' }}>Character ↔ narrator mapping (primary)</span>
-              <InfoTip tip={`Match each POV character heading to the narrator name you want on flags. Highlight colors are optional; H${Math.min(chapterLevel+1,3)} headings are still the main matcher.`} />
-              {scannedColors.length > 0
-                ? <span style={{ fontSize:'0.72rem',color:'var(--success)',background:'var(--success-light)',padding:'2px 8px',borderRadius:20 }}>✓ {scannedColors.length} highlight colour{scannedColors.length!==1?'s':''} found</span>
-                : <span style={{ fontSize:'0.72rem',color:'var(--text-muted)',background:'var(--cream)',padding:'2px 8px',borderRadius:20 }}>No highlights found — H2 mapping still works</span>}
-            </div>
-
-            {/* No highlight = narrator row */}
-            <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--cream)',borderRadius:10,marginBottom:10 }}>
-              <div style={{ width:32,height:32,borderRadius:8,background:'white',border:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>—</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:'0.8rem',fontWeight:500 }}>No highlight</div>
-                <div style={{ fontSize:'0.7rem',color:'var(--text-muted)' }}>Narrating voice — use the narrator name set below</div>
-              </div>
-            </div>
-
-            {/* Scanned colours */}
-            {narratorColors.map((nc,i) => (
-              <div key={i} style={{ display:'grid',gridTemplateColumns:'42px 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:10 }}>
-                {/* Colour swatch — editable if manual, fixed if from doc */}
-                <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:3 }}>
-                  {nc.cls ? (
-                    <div style={{ width:36,height:36,borderRadius:8,background:nc.hex,border:'1px solid var(--border)',flexShrink:0 }} title={nc.label} />
-                  ) : (
-                    <input type="color" value={nc.hex} onChange={e=>updateNC(i,'hex',e.target.value)} style={{ width:36,height:36,borderRadius:8,border:'1px solid var(--border)',cursor:'pointer',padding:2 }} />
-                  )}
-                  <span style={{ fontSize:'0.58rem',color:'var(--text-light)',textAlign:'center',lineHeight:1.2 }}>{nc.label}</span>
-                </div>
-                <div>
-                  <div style={lbl}>Character name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(main matcher for H{Math.min(chapterLevel+1,3)} headings)</span></div>
-                  <input type="text" value={nc.characterName} onChange={e=>updateNC(i,'characterName',e.target.value)} placeholder="e.g. Crescent" style={inp} />
-                </div>
-                <div>
-                  <div style={lbl}>Narrator name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(used as default narrator)</span></div>
-                  <input type="text" value={nc.narratorName} onChange={e=>updateNC(i,'narratorName',e.target.value)} placeholder="e.g. Alyssa (Crescent)" style={inp} />
-                </div>
-                <button onClick={()=>removeNC(i)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-light)',fontSize:'1.2rem',padding:'0 2px',marginBottom:2,alignSelf:'flex-end' }}>×</button>
-              </div>
-            ))}
-
-            <button onClick={addManualNC} style={{ width:'100%',background:'none',border:'1px dashed var(--border)',borderRadius:8,padding:'7px',fontSize:'0.8rem',color:'var(--text-muted)',cursor:'pointer',marginTop:4 }}>
-              + Add character mapping
-            </button>
-          </div>
-        )}
-
-        {/* Chapter list preview */}
-        {chapters.length > 0 && (
-          <div style={card} data-tutorial="review-chapters">
-            <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem' }}>
-              <Badge n={scannedColors!==null?2:1} /><span style={{ fontWeight:600,fontSize:'0.925rem' }}>Review chapters</span>
-              <InfoTip tip={'Untick anything you do not want to import. Use "Set as first" if front matter or bonus content means the next chapter should restart as Chapter 1.'} />
-              <div style={{ display:'flex',alignItems:'center',gap:10,marginLeft:'auto' }}>
-                <button onClick={reparse} style={{ background:'none',border:'none',cursor:'pointer',fontSize:'0.78rem',color:'var(--accent)' }}>↻ Reparse with current names</button>
-                <label style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:8,background:'white',fontSize:'0.74rem',color:'var(--text-muted)',cursor:'pointer',whiteSpace:'nowrap' }}>
-                  <input
-                    type="checkbox"
-                    checked={allReviewItemsIncluded}
-                    ref={el => { if (el) el.indeterminate = !allReviewItemsIncluded && anyReviewItemsIncluded; }}
-                    onChange={() => setAllChaptersIncluded(!allReviewItemsIncluded)}
-                    style={{ accentColor:'var(--accent)',margin:0 }}
-                  />
-                  {allReviewItemsIncluded ? 'Uncheck all' : 'Check all'}
-                </label>
-              </div>
-            </div>
-            <div style={{ maxHeight:240,overflowY:'auto',border:'1px solid var(--border-light)',borderRadius:10 }}>
-              {chapters.map(ch=>(
-                <div key={ch.id}>
-                  <div style={{ display:'flex',alignItems:'center',padding:'8px 12px',background:'var(--cream)',borderBottom:'1px solid var(--border-light)',gap:8 }}>
-                    <input type="checkbox" checked={ch.included !== false} onChange={e=>toggleChapterIncluded(ch.id, e.target.checked)} style={{ accentColor:'var(--accent)' }} />
-                    <span style={{ fontSize:'0.65rem',fontFamily:'monospace',color:'var(--text-light)',minWidth:16 }}>H{chapterLevel}</span>
-                    <span style={{ fontWeight:600,fontSize:'0.875rem',color:'var(--text)',flex:1,opacity:ch.included===false?0.5:1 }}>{ch.title}</span>
-                    <span style={{ fontSize:'0.68rem',color:'var(--text-muted)' }}>Chapter {(applyChapterNumbers(chapters.filter(c => c.included !== false)).find(x => x.id === ch.id)?.chapterNumber) || 1}</span>
-                    <button onClick={()=>toggleFirstChapter(ch.id)} style={{ padding:'4px 8px',borderRadius:8,border:'1px solid var(--border)',background:ch.firstChapter?'var(--accent-light)':'white',cursor:'pointer',fontSize:'0.68rem',color:'var(--text)' }}>
-                      {ch.firstChapter ? (ch === chapters[0] ? 'First chapter' : 'Unset first') : 'Set as first'}
-                    </button>
-                  </div>
-                  {(ch.sections||[]).map(sec=>{
-                    const ncColor = narratorColors.find(nc=>nc.characterName===sec.characterName);
-                    return (
-                      <div key={sec.id} style={{ display:'flex',alignItems:'center',padding:'6px 12px 6px 24px',borderBottom:'1px solid var(--border-light)',gap:8,background:'white',opacity:(ch.included===false||sec.included===false)?0.5:1 }}>
-                        <input type="checkbox" checked={ch.included !== false && sec.included !== false} disabled={ch.included===false} onChange={e=>toggleSectionIncluded(ch.id,sec.id,e.target.checked)} style={{ accentColor:'var(--accent)' }} />
-                        <span style={{ fontSize:'0.65rem',fontFamily:'monospace',color:'var(--text-light)',minWidth:16 }}>H{Math.min(chapterLevel+1,3)}</span>
-                        {ncColor && <div style={{ width:10,height:10,borderRadius:2,background:ncColor.hex,flexShrink:0 }} />}
-                        <span style={{ fontSize:'0.8rem',color:sec.isCharPOV?'var(--text)':'var(--text-muted)',flex:1,fontStyle:sec.isCharPOV?'normal':'italic' }}>{sec.title}</span>
-                        {sec.isCharPOV && <span style={{ fontSize:'0.65rem',color:'var(--text-muted)' }}>{sec.narratorName||sec.characterName}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {chapters.length > 0 && (
-          <>
-            <div style={{ display:'flex',gap:10 }}>
-              <button onClick={doSave}
-                data-tutorial="save-book"
-                style={{ flex:1,padding:'13px',background:'var(--accent)',color:'white',border:'none',borderRadius:14,fontSize:'0.92rem',fontWeight:600,cursor:'pointer' }}>
-                Save book ({totalSections} sections) →
-              </button>
-              <div style={{ display:'inline-flex',alignItems:'center',gap:8 }}>
-                <button onClick={exportConfig} style={{ padding:'13px 16px',background:'white',border:'1px solid var(--border)',borderRadius:14,fontSize:'0.84rem',color:'var(--text-muted)',cursor:'pointer' }}>
-                  💾 Export config
-                </button>
-                <InfoTip tip={'Exports the setup data for this book so you can restore it later if needed.'} />
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    <ImportFlow
+      heading="Create new book"
+      blurb="Upload the manuscript, map your narrators, pick the chapters, save."
+      submitLabel="Save book"
+      allowSceneSplitting={true}
+      defaultSplitScenes={false}
+      defaultChapterLevel={chapterLevel}
+      initialTitle={bookTitle}
+      onCancel={onBack}
+      onParsed={handleImportParsed}
+      extraStepSlot={narratorMappingPanel}
+      onConfirm={handleImportConfirm}
+    />
   );
 }

@@ -1271,11 +1271,21 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
               style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px',fontSize:'0.875rem',lineHeight:1.6,fontFamily:'inherit',background:'white',outline:'none',resize:'vertical' }}
             />
           </div>
+          {/* Marie 2026-05-26: HARD warning when page lookup failed.
+              Page numbers are the primary value of this app — a silent
+              '?' is not enough. This banner makes the failure undeniable
+              so she knows the flag's page is not trustworthy. */}
+          {flagDraft?.page === '?' && (
+            <div role="alert" style={{ background:'#fdecea',border:'1.5px solid #e2766c',borderRadius:10,padding:'8px 12px',fontSize:'0.78rem',color:'#8a2418',fontWeight:600,display:'flex',alignItems:'center',gap:8 }}>
+              <span style={{ fontSize:'1rem',lineHeight:1 }}>⚠️</span>
+              <span>Couldn&apos;t find this quote in the PDF — the page number is unknown. Type it in by hand or fix the PDF on the book page.</span>
+            </div>
+          )}
           <div style={{ display:'grid',gridTemplateColumns:'70px 1fr 1fr 110px',gap:8 }}>
             {[{lbl:'Page',key:'page',ph:'#'},{lbl:'Should say / note',key:'note',ph:'Correction…'},{lbl:'Narrator override',key:'narrator',ph:flagPanel.autoNar,dv:flagPanel.autoNar}].map((f,i)=>(
               <div key={i}>
                 <div style={{ fontSize:'0.65rem',fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4 }}>{f.lbl}</div>
-                <input ref={f.key==='note'?noteRef:null} type="text" placeholder={f.ph} value={flagDraft?.[f.key]??(f.dv||'')} onChange={e=>setFlagDraft(prev=>({...(prev||{}),[f.key]:e.target.value}))} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:8,padding:'7px 10px',fontSize:'0.875rem',fontFamily:'inherit',background:'white',outline:'none' }} />
+                <input ref={f.key==='note'?noteRef:null} type="text" placeholder={f.ph} value={flagDraft?.[f.key]??(f.dv||'')} onChange={e=>setFlagDraft(prev=>({...(prev||{}),[f.key]:e.target.value}))} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:8,padding:'7px 10px',fontSize:'0.875rem',fontFamily:'inherit',background:'white',outline:'none',borderColor:f.key==='page'&&flagDraft?.page==='?'?'#e2766c':'var(--border)' }} />
               </div>
             ))}
             <div>

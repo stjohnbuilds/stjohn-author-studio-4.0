@@ -688,13 +688,9 @@ export default function ImportFlow({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <Badge n={3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                <button type="button" onClick={() => setShowSubs((v) => !v)} style={{
-                  padding: '5px 10px', borderRadius: 999,
-                  border: '1px solid ' + (showSubs ? accentColor : 'var(--border)'),
-                  background: showSubs ? accentColor : 'white',
-                  color: showSubs ? 'white' : 'var(--text-muted)',
-                  fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
-                }}>{showSubs ? 'Hide sub-headings' : 'Show sub-headings'}</button>
+                {/* Marie 2026-05-26: removed the standalone "Show sub-headings"
+                    button — duplicate of the Split toggle above. Sub-headings
+                    now show automatically whenever Split is on. */}
                 <button type="button" onClick={() => setAllIncluded(!allOn)} style={{
                   padding: '5px 10px', borderRadius: 999,
                   border: '1px solid var(--border)', background: 'white',

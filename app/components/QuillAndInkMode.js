@@ -306,6 +306,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       chapters,
       annotations: [],
       annotationOptions: [],
+      // Marie 2026-05-26: PDF page map from auto-scan during import.
+      pdfPaging: payload.pdfPaging || null,
+      pdfFileName: payload.pdfFileName || '',
+      pageNumberAdjustment: 0,
     };
     setAllProjects((all) => [...all, project]);
     setActiveProjectId(project.id);

@@ -363,7 +363,7 @@ export default function PrebuildMode({ modeToggle = null }) {
             pdfPaging: payload.pdfPaging || null,
             pdfFileName: payload.pdfFileName || '',
             pdfSource: payload.pdfSource || null,
-            pageNumberAdjustment: 0,
+            pageNumberAdjustment: Number(payload.pageNumberAdjustment) || 0,
           };
           const updated = [...projects, proj];
           save(updated);

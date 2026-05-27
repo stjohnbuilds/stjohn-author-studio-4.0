@@ -433,6 +433,7 @@ export default function ImportFlow({
           pdfPaging = converted.pdfPaging;
           pdfFileName = converted.fileName || (fileName || '').replace(/\.docx$/i, '.pdf');
           pdfSource = 'libreoffice';
+          pageNumberAdjustment = Number(pdfPaging.suggestedAdjustment) || 0;
           setPageScanStatus(`Page numbers scanned via LibreOffice (${pdfPaging.printedPageCount || 0} of ${pdfPaging.pageCount || 0} pages numbered). May drift ±1-2 pages.`);
         } else {
           setPageScanStatus('Page scan did not return a map. Importing without page numbers — you can rescan from book detail.');

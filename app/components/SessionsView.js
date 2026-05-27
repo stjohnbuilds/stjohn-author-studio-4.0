@@ -2193,15 +2193,36 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   // (returned by extractPdfPagingFromBuffer in main.js).
                   // User can still tweak it in Edit book data.
                   const suggested = Number(extracted.suggestedAdjustment) || 0;
+                  // Marie 2026-05-26: rebuild the slim word-index → page
+                  // map RIGHT HERE so existing books that didn't have one
+                  // get it the moment the user uploads their PDF on the
+                  // book detail. Without this, an existing book would
+                  // still have to be fully re-imported to benefit from
+                  // the new architecture.
+                  let pdfPageMap = null;
+                  try {
+                    const allWords = [];
+                    for (const ch of (book?.chapters || [])) {
+                      for (const sec of (ch.sections || [])) {
+                        const html = sec?.html || '';
+                        if (html) allWords.push(...extractManuscriptWordsFromHtml(html));
+                      }
+                    }
+                    if (allWords.length) pdfPageMap = buildSlimPageMap(extracted.pages, allWords);
+                  } catch (mapErr) {
+                    console.warn('buildSlimPageMap (post-import) failed:', mapErr);
+                  }
                   onUpdateBook({
                     pdfPaging: extracted,
+                    pdfPageMap,
                     pdfFileName: file.name,
                     pdfSource: 'user-pdf',
                     pageNumberAdjustment: suggested,
                   });
+                  const anchorMsg = pdfPageMap ? ` ${pdfPageMap.length} page anchors built.` : '';
                   const msg = suggested
-                    ? `Page numbers from ${file.name}. ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${suggested}.`
-                    : `Page numbers now read from ${file.name} (exact).`;
+                    ? `Page numbers from ${file.name}. ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${suggested}.${anchorMsg}`
+                    : `Page numbers now read from ${file.name} (exact).${anchorMsg}`;
                   showToast(msg, 'success');
                 } else {
                   showToast('That PDF did not yield a usable page map.', 'error');

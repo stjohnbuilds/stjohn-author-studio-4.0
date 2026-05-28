@@ -488,6 +488,14 @@ export default function Home() {
   const [tutorialCompletedIds, setTutorialCompletedIds] = useState([]);
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [authSession, setAuthSession] = useState(null);
+  // Drive snapshot backups — Marie 2026-05-27. Opt-in per signed-in
+  // user. backupEnabled mirrors the per-user localStorage flag for the
+  // currently signed-in user so the Settings toggle stays in sync.
+  const [backupEnabled, setBackupEnabled] = useState(false);
+  const [backupInfo, setBackupInfo] = useState(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupToast, setBackupToast] = useState('');
+  const dailyBackupTriedRef = useRef('');
   const bookDetailScrollRef = useRef(0);
   const cameFromProofCloudRef = useRef(false);
   const proofCloudPushTimerRef = useRef(null);

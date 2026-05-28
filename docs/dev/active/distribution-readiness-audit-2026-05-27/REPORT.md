@@ -940,8 +940,8 @@ Listed so they don't hide:
 
 ## 14. Recommended Next Debugging / Fixing Order
 
-1. **Blockers / data-leak first** — ISSUE-002 (RLS). Cannot ship to
-   anyone but Marie until verified.
+1. ~~**Blockers / data-leak first** — ISSUE-002 (RLS).~~ ✅ **RESOLVED
+   2026-05-27** — RLS verified on all six tables. No action needed.
 2. **Data-loss safety** — ISSUE-003 (two-device round-trip),
    ISSUE-010 (payload size).
 3. **Real-file confidence** — Prep `.docx` opened in Word; Quill

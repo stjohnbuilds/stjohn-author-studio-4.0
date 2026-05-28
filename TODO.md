@@ -12,6 +12,25 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 📋 2026-05-27 — Distribution readiness audit completed (read-only)
+
+Full audit per the `APP_DISTRIBUTION_READINESS_AUDIT_INSTRUCTIONS.md`
+playbook in Drive `Game Dev/GitHub/`. Report at:
+`docs/dev/active/distribution-readiness-audit-2026-05-27/REPORT.md`
+
+Tests passed 11/11. Login screen rendered clean. Score: **72%
+provisional** ("workable, but distribution risk remains").
+
+**Top blockers for public release (still unverified):**
+1. RLS on the six Supabase tables — not checked in dashboard.
+2. Phone ↔ desktop flag round-trip — not live-tested on two devices.
+3. Mac code-signing / notarization absent.
+
+**Cleanup flagged (not blocking):**
+- 25 GB of stale builds in `Script and Sync Releases/Old/`.
+- Releases folder + root shortcut files still use old "Proofer" / "Script and Sync" brand.
+- `ProofingReader.js` still inline at 1,445 lines (migration tracked).
+
 ### Current priority order — cleaned 2026-05-27
 
 - [x] **Proof + Quill transcription sync real-file check.** Marie

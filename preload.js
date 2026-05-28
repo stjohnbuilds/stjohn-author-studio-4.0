@@ -48,4 +48,8 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('transfer-progress', handler);
     return () => ipcRenderer.removeListener('transfer-progress', handler);
   },
+  // Drive snapshot backups (Marie 2026-05-27).
+  makeBackupSnapshot:(args)  => ipcRenderer.invoke('backup-make-snapshot', args),
+  getBackupInfo:    ()       => ipcRenderer.invoke('backup-get-info'),
+  pruneBackups:     (args)   => ipcRenderer.invoke('backup-prune', args),
 });

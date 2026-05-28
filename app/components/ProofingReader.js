@@ -361,6 +361,8 @@ const cbtn=(style={})=>({padding:'6px 12px',borderRadius:8,fontSize:'0.78rem',bo
 const SYNC_RATE_BOOST = 1.18;
 const SYNC_PLAYBACK_CALIBRATION = 0.925;
 const WHISPER_LEAD_SEC = 0.0;
+const FOLLOW_LOOKAHEAD_BASE_SEC = 0.045;
+const FOLLOW_LOOKAHEAD_MAX_SEC = 0.18;
 const PLAYBACK_SPEED_MIN = 0.5;
 const PLAYBACK_SPEED_MAX = 4;
 
@@ -424,7 +426,14 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     return Math.max(0, Math.min(maxTime, Number(rawValue) || 0));
   }
 
-  function getDisplayAudioTime(currentTime){ return currentTime; }
+  function getDisplayAudioTime(currentTime){
+    const audio = audioRef.current;
+    const rate = Math.max(1, Number(audio?.playbackRate || playbackRateRef.current || 1));
+    const lookahead = audio && !audio.paused
+      ? Math.min(FOLLOW_LOOKAHEAD_MAX_SEC, FOLLOW_LOOKAHEAD_BASE_SEC * rate)
+      : 0;
+    return Math.max(0, (Number(currentTime) || 0) + lookahead);
+  }
 
   // Render the manuscript through the shared ChapterReader body. The
   // resulting DOM has data-cr-unit spans, queryable via the shared
@@ -434,6 +443,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   // word-wrapping logic.
   const renderedBody = useMemo(() => renderChapterBody({
     chapter: { id: section?.id, textHtml: withChapterPrerollHtml(section, includeChapterPreroll) },
+    unitSplitMode: 'whitespace',
     tone: 'proof',
   }), [section?.id, section?.html, includeChapterPreroll]);
 

@@ -5,10 +5,11 @@
 // (evcusovtjfypfyfvnooy). Mirrors quill-sync.js shape so every mode
 // reads the same.
 //
-// Strategy: desktop is the source of truth. Each push upserts the
-// project row (full book JSON in `desktop_book`), then replaces
-// transcriptions and flags for that project (delete-then-insert) so
-// "I removed a flag" or "I re-transcribed" actually propagate.
+// Strategy: desktop is the source of truth for the project shape. Each
+// push upserts the project row, refreshes transcription rows, and
+// upserts flag rows by stable local id. Single-flag saves/deletes use
+// upsertProofFlag/deleteProofFlag so a phone or desktop flag can sync
+// without clobbering the rest of the book.
 //
 // Audio guard: stripAudioPaths runs on every book before it goes up.
 // Audio file *names* travel for phone-side matching. Audio paths,
@@ -73,6 +74,8 @@ export async function pushProofProject(supabase, book, ownerId) {
     return clean.cloudId; // nothing changed since last push
   }
 
+  const pushStartedAt = new Date().toISOString();
+
   // 1) Upsert the project row.
   const { data: projectRow, error: projectErr } = await supabase
     .from('script_sync_projects')
@@ -84,7 +87,7 @@ export async function pushProofProject(supabase, book, ownerId) {
       desktop_book: slimBookBlob,
       desktop_book_hash: desktopBookHash,
       section_count: sectionRefs.length,
-      updated_at: new Date().toISOString(),
+      updated_at: pushStartedAt,
     }, { onConflict: 'id' })
     .select('id')
     .single();
@@ -122,7 +125,7 @@ export async function pushProofProject(supabase, book, ownerId) {
         k: section.whisperAudioKey || '',
         h: section.whisperTextHash || '',
       })),
-      updated_at: new Date().toISOString(),
+      updated_at: pushStartedAt,
     }));
 
   if (transcriptionRows.length) {
@@ -174,12 +177,9 @@ export async function pushProofProject(supabase, book, ownerId) {
     if (upErr) throw upErr;
   }
 
-  // Prune: delete rows whose local_id isn't in our payload. A flag
-  // freshly added by another device during this push has its own
-  // unique local_id, so it survives (not in our local_ids list, but
-  // we use .in() so only listed IDs would be deleted — inverted via
-  // .not('local_id','in',...) means "delete rows whose local_id IS
-  // NOT in our payload, i.e. user removed them locally").
+  // Prune: delete older rows whose local_id isn't in our payload. The
+  // updated_at guard prevents a single-flag save from another device
+  // during this full-book push from being deleted by the final prune.
   const keptLocalIds = flagRows.map((r) => r.local_id);
   if (keptLocalIds.length) {
     // Supabase's .not('col', 'in', '(a,b,c)') expects a paren-wrapped
@@ -190,6 +190,7 @@ export async function pushProofProject(supabase, book, ownerId) {
       .from('script_sync_flags')
       .delete()
       .eq('project_id', cloudProjectId)
+      .lte('updated_at', pushStartedAt)
       .not('local_id', 'in', `(${list})`);
     if (pruneErr) throw pruneErr;
   } else {

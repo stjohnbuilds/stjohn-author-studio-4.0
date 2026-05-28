@@ -20,6 +20,10 @@ import { slimProjectForCloud } from './cloud-slim.js';
 // meaningful has changed since the last upload.
 const lastPushHashByCloudId = new Map();
 
+export function clearQuillPushCache() {
+  lastPushHashByCloudId.clear();
+}
+
 export async function pushQuillProject(supabase, project, ownerId) {
   if (!supabase) throw new Error('Supabase client missing.');
   if (!ownerId) throw new Error('Sign in first.');
@@ -99,7 +103,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .from('quill_chapters')
       .delete()
       .eq('project_id', cloudProjectId)
-      .not('local_id', 'in', `(${keepLocalIds.map((id) => `"${id}"`).join(',')})`);
+      .not('local_id', 'in', toPostgrestInList(keepLocalIds));
   } else {
     await supabase.from('quill_chapters').delete().eq('project_id', cloudProjectId);
   }
@@ -143,7 +147,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .from('quill_annotations')
       .delete()
       .eq('project_id', cloudProjectId)
-      .not('local_id', 'in', `(${keepAnnIds.map((id) => `"${id}"`).join(',')})`);
+      .not('local_id', 'in', toPostgrestInList(keepAnnIds));
   } else {
     await supabase.from('quill_annotations').delete().eq('project_id', cloudProjectId);
   }
@@ -165,11 +169,11 @@ export async function pullQuillProjects(supabase) {
   const projectIds = projects.map((p) => p.id);
   const { data: chapters } = await supabase
     .from('quill_chapters')
-    .select('id, project_id, local_id, title, position, plain_text, text_html, alignment, audio_file_name')
+    .select('id, project_id, local_id, title, position, plain_text, text_html, alignment, audio_file_name, content_hash')
     .in('project_id', projectIds);
   const { data: annotations } = await supabase
     .from('quill_annotations')
-    .select('*')
+    .select('id, project_id, chapter_id, local_id, class_id, class_label, option_id, option_label, label, color, word_start, word_end, selected_text, timestamp, note, content_hash, created_at, updated_at')
     .in('project_id', projectIds);
 
   const chaptersByProject = new Map();
@@ -225,6 +229,7 @@ export async function pullQuillProjects(supabase) {
           alignment,
           whisperAlignment: alignment,
           audioFileName: ch.audio_file_name || '',
+          contentHash: ch.content_hash || '',
           completed: completedById.has(ch.local_id) ? completedById.get(ch.local_id) : false,
           // Transcription metadata round-tripped via the blob — required
           // for the tick check on sign-in.
@@ -256,6 +261,7 @@ export async function pullQuillProjects(supabase) {
       selectedText: ann.selected_text,
       timestamp: ann.timestamp,
       note: ann.note,
+      contentHash: ann.content_hash || '',
       createdAt: ann.created_at,
       updatedAt: ann.updated_at,
     }));
@@ -301,4 +307,8 @@ function getChapterAlignment(chapter) {
   if (Array.isArray(chapter?.alignment)) return chapter.alignment;
   if (Array.isArray(chapter?.whisperAlignment)) return chapter.whisperAlignment;
   return [];
+}
+
+function toPostgrestInList(ids = []) {
+  return `(${ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(',')})`;
 }

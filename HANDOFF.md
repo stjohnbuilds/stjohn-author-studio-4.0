@@ -104,14 +104,67 @@ Latest local commit:
 
 Working tree:
 
-- Dirty. Many files are modified/untracked from the active fix work.
+- Dirty. Many files are modified/untracked from the active fix work, plus
+  the **Drive snapshot backups** system just added 2026-05-27 (see below).
 - Do not reset or revert without Marie's explicit instruction.
 - `.env.local` is deleted in git status, intentionally part of earlier tracked-env cleanup.
 
 Latest verified tests:
 
 - `npm test -- --test-reporter=spec` passed.
-- Result: 11 tests passed, 0 failed.
+- Result: **13 tests passed**, 0 failed (gained 2 tests since previous handover).
+
+## 5.a. New since previous handover — Drive snapshot backups
+
+Marie 2026-05-27 confirmed she's on the **Supabase Pro plan** ($25
+USD/mo) and may downgrade to Free since her DB is 28 MB of 500 MB and
+her real backup is the local Save Data folder. To make Free-tier
+downgrade safe she asked for in-app weekly-ish snapshots into Drive.
+Built per her spec:
+
+- **Trigger:** first app-open per local day. Skips if not opened.
+- **Per-user opt-in:** Settings → "Drive snapshots" card → toggle
+  "On for this account". Stored in localStorage per Supabase user id,
+  so husband signing in on the same Mac does NOT trigger backups for
+  his account.
+- **Path:** `My Drive/Game Dev/GitHub/App Backups/<ISO-timestamp>.zip`
+  (auto-resolves via existing `getGoogleDriveCandidates` in main.js).
+- **Skip-silently-if-no-Drive:** no local fallback. Settings card shows
+  "⚠ Google Drive not detected on this Mac. Backups paused." otherwise.
+- **Contents:** all four local JSON saves (books, prebuild, prep,
+  quill) PLUS a cloud snapshot built from `pullProofProjects` +
+  `pullQuillProjects`. Zipped with jszip (DEFLATE level 6).
+- **Retention:** keep newest 25, drop oldest. Caller passes
+  `keepCount: MAX_SNAPSHOTS` from `packages/backups/index.js`.
+- **Manual button:** "Snapshot now" in the same Settings card.
+- **Toast:** "✓ Backup saved to Drive" fades after 2.4 s on success.
+
+Files added / changed:
+
+- `main.js` — IPC handlers `backup-make-snapshot`, `backup-get-info`,
+  `backup-prune` near the file end.
+- `preload.js` — exposes `makeBackupSnapshot`, `getBackupInfo`,
+  `pruneBackups` on `window.electron`.
+- `packages/backups/index.js` — orchestrator. Exports
+  `isBackupEnabledForUser`, `setBackupEnabledForUser`,
+  `needsSnapshotToday`, `runDailySnapshotIfDue`, `takeSnapshotNow`,
+  `getBackupInfo`, `MAX_SNAPSHOTS`.
+- `app/page.js` — adds backup state, daily-snapshot effect tied to
+  sign-in, manual snapshot handler, and a `DriveSnapshotsCard`
+  component rendered inside `SettingsCog` for every mode.
+
+To port this to **Typing and Tomes** and **Script and Sync 3.0** in
+their own Claude sessions: copy the three core files
+(`main.js` IPC block, `preload.js` additions, `packages/backups/`)
+and the small page.js wiring + Settings card. The orchestrator's
+`buildCloudSnapshot` should swap to whichever cloud-sync pulls those
+apps use.
+
+Not yet verified live in the packaged Electron app — needs a
+`npm run release:mac` rebuild and Marie's hands. Tests still pass
+(13/13). The browser preview confirmed the existing Settings panel
+still renders cleanly; the new card only appears in Electron + signed
+in, which the preview can't exercise.
 
 Latest verified build:
 

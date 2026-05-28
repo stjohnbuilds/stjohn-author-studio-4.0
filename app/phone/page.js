@@ -25,6 +25,7 @@
 // IndexedDB cache + reader-location memory in `./_lib/`.
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import JSZip from 'jszip';
 import LoginScreen from '../components/LoginScreen';
 import {
   hasSupabaseConfig,
@@ -54,6 +55,7 @@ import {
   resolveAnnotationSelection,
   htmlToPlainText,
   buildAnnotationsCsv,
+  buildInDesignJsx,
 } from '../../packages/quill-engine';
 import PhoneReader, { PHONE_READER_MAX_WIDTH } from './_components/PhoneReader.js';
 import PhoneReaderSettings from './_components/PhoneReaderSettings.js';
@@ -119,7 +121,7 @@ function csvEsc(value) {
 }
 
 function buildFlagsCsv(book) {
-  const rows = [['Chapter', 'Audio File', 'Page', 'Timestamp', 'Narrator', 'Type', 'Quote', 'Note']];
+  const rows = [['Chapter', 'Audio File', 'Page', 'Timestamp', 'Narrator/Engineer', 'Type', 'Note', 'Should Say']];
   (book?.chapters || []).forEach((ch) => {
     (ch.sections || []).forEach((sec) => {
       (sec.flags || []).forEach((fl) => {
@@ -141,6 +143,111 @@ function buildFlagsCsv(book) {
 
 function safeFileName(name) {
   return String(name || 'project').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'project';
+}
+
+function cleanMarkerField(value) {
+  return String(value || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function formatAuditionTime(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value)) return null;
+  const h = Math.floor(value / 3600);
+  const m = Math.floor((value % 3600) / 60);
+  const s = value % 60;
+  const whole = Math.floor(s);
+  const ms = Math.round((s - whole) * 1000);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(whole).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+  return `${m}:${String(whole).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+}
+
+function safeChapterLabel(chapter, index) {
+  const fallback = `Chapter ${index + 1}`;
+  return cleanMarkerField(chapter?.title || chapter?.sections?.[0]?.chapterTitle || fallback) || fallback;
+}
+
+function markerFileName(label) {
+  const safeLabel = String(label || 'Chapter')
+    .replace(/[/\\?%*:|"<>]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim() || 'Chapter';
+  return `Marker_[${safeLabel}].csv`;
+}
+
+function buildProofMarkerFiles(book) {
+  const groups = new Map();
+  (book?.chapters || []).forEach((chapter, chapterIndex) => {
+    const chapterLabel = safeChapterLabel(chapter, chapterIndex);
+    const groupKey = chapterLabel.toLowerCase();
+    const group = groups.get(groupKey) || { label: chapterLabel, markers: [] };
+
+    (chapter.sections || []).forEach((section) => {
+      (section.flags || []).forEach((flag) => {
+        const startSeconds = Number(flag?.ts);
+        const start = formatAuditionTime(startSeconds);
+        if (!start) return;
+        group.markers.push({
+          startSeconds,
+          start,
+          name: cleanMarkerField(flag?.sentPlain) || `Marker ${group.markers.length + 1}`,
+          description: cleanMarkerField(flag?.note),
+        });
+      });
+    });
+
+    groups.set(groupKey, group);
+  });
+
+  const header = ['Name', 'Start', 'Duration', 'Time Format', 'Type', 'Description'].join('\t');
+  const files = [];
+  groups.forEach((group) => {
+    if (!group.markers.length) return;
+    group.markers.sort((a, b) => a.startSeconds - b.startSeconds);
+    const rows = [header];
+    group.markers.forEach((marker) => {
+      rows.push([marker.name, marker.start, '0:00.000', 'decimal', 'Cue', marker.description].join('\t'));
+    });
+    files.push({ name: markerFileName(group.label), content: rows.join('\n') });
+  });
+  return files;
+}
+
+async function buildQuillExportZip(project) {
+  const safe = safeFileName(project?.title || 'quill-project');
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  const zip = new JSZip();
+  const folder = zip.folder(`${safe}-quill-export`) || zip;
+  folder.file(`${safe}-annotations.csv`, buildAnnotationsCsv(project), { binary: false });
+  folder.file(`${safe}-indesign.jsx`, buildInDesignJsx(project), { binary: false });
+  folder.file(`${safe}-quill-backup-${stamp}.json`, JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    formatVersion: 1,
+    note: 'Quill raw project backup. Drop the `project` object into Save Data/quill-projects.json (inside the array) to restore.',
+    project,
+  }, null, 2), { binary: false });
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+}
+
+async function buildProofExportZip(book) {
+  const safe = safeFileName(book?.title || 'proof-book');
+  const zip = new JSZip();
+  const folder = zip.folder(`${safe}-proof-export`) || zip;
+  folder.file(`${safe}-flags.csv`, buildFlagsCsv(book), { binary: false });
+  const markerFolder = folder.folder('engineer-markers') || folder;
+  buildProofMarkerFiles(book).forEach((file) => markerFolder.file(file.name, file.content, { binary: false }));
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+}
+
+function downloadBlob(filename, blob) {
+  if (typeof window === 'undefined') return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function downloadText(filename, content, type = 'text/plain') {
@@ -684,13 +791,14 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
               Chapters
             </div>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (!annotationCount) { window.alert('No annotations to export yet.'); return; }
-                downloadText(`${safeFileName(activeProject.title)}-annotations.csv`, buildAnnotationsCsv(activeProject), 'text/csv');
+                const safe = safeFileName(activeProject.title);
+                downloadBlob(`${safe}-quill-export.zip`, await buildQuillExportZip(activeProject));
               }}
               style={textBtnStyle(QUILL_INK)}
             >
-              Export CSV
+              Export
             </button>
           </div>
           {(activeProject.chapters || []).map((ch) => {
@@ -1578,13 +1686,14 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
             tone={{ ink: PROOF_INK, pastel: PROOF_PASTEL }}
             right={
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!totalFlags) { window.alert('No flags to export yet.'); return; }
-                  downloadText(`${safeFileName(activeBook.title)}-flags.csv`, buildFlagsCsv(activeBook), 'text/csv');
+                  const safe = safeFileName(activeBook.title);
+                  downloadBlob(`${safe}-proof-export.zip`, await buildProofExportZip(activeBook));
                 }}
                 style={textBtnStyle(PROOF_INK)}
               >
-                Export CSV
+                Export
               </button>
             }
           />

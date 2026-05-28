@@ -2146,7 +2146,96 @@ function SettingsCog({
           </div>
         </>
       )}
+      {backupToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position:'fixed',
+            top:74,
+            right:74,
+            zIndex:1198,
+            padding:'8px 14px',
+            borderRadius:999,
+            background:'rgba(255, 255, 255, 0.96)',
+            border:'1px solid var(--accent-border, #d8d4cf)',
+            boxShadow:'0 10px 24px rgba(0,0,0,0.12)',
+            fontSize:'0.78rem',
+            color:'var(--text)',
+            fontWeight:600,
+            pointerEvents:'none',
+            WebkitAppRegion:'no-drag',
+          }}
+        >
+          {backupToast}
+        </div>
+      )}
     </>
+  );
+}
+
+function DriveSnapshotsCard({ enabled, info, busy, onEnabledChange, onManualBackup }) {
+  const driveDetected = !!info?.driveDetected;
+  const snapshotCount = Number(info?.snapshotCount) || 0;
+  const lastAt = Number(info?.lastSnapshotAt) || 0;
+  const totalBytes = Number(info?.totalBytes) || 0;
+  const lastLabel = lastAt
+    ? new Date(lastAt).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'short' })
+    : 'No snapshot yet';
+  const sizeLabel = totalBytes > 0
+    ? `${(totalBytes / (1024 * 1024)).toFixed(1)} MB total`
+    : '';
+  return (
+    <div style={{ border:'1px solid var(--border)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:6 }}>
+        <div>
+          <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Drive snapshots</div>
+          <div style={{ fontSize:'0.86rem', color:'var(--text)', fontWeight:600, marginTop:4 }}>
+            Auto-backup to Google Drive
+          </div>
+        </div>
+        <label style={{ display:'inline-flex', alignItems:'center', gap:7, fontSize:'0.78rem', color:'var(--text)', fontWeight:600, cursor:'pointer' }}>
+          <input
+            type="checkbox"
+            checked={!!enabled}
+            onChange={(e) => onEnabledChange?.(e.target.checked)}
+          />
+          On for this account
+        </label>
+      </div>
+      <div style={{ fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.5, marginBottom:8 }}>
+        Once a day on first open, the app saves a zip of all your books, prep, duet and Quill into Google Drive. Up to {MAX_SNAPSHOTS} snapshots; the oldest is dropped when full.
+      </div>
+      <div style={{ fontSize:'0.74rem', color:'var(--text)', background:'var(--cream, #faf7f2)', border:'1px solid var(--border-light, #ece8e2)', borderRadius:8, padding:'7px 9px', marginBottom:8, wordBreak:'break-word' }}>
+        {driveDetected ? (
+          <>
+            <div><strong>Path:</strong> {info?.drivePath || '—'}</div>
+            <div style={{ marginTop:3 }}><strong>Snapshots:</strong> {snapshotCount} / {MAX_SNAPSHOTS}{sizeLabel ? ` · ${sizeLabel}` : ''}</div>
+            <div style={{ marginTop:3 }}><strong>Last:</strong> {lastLabel}</div>
+          </>
+        ) : (
+          <div style={{ color:'var(--danger, #b04a4a)' }}>⚠ Google Drive not detected on this Mac. Backups paused.</div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onManualBackup}
+        disabled={busy || !enabled || !driveDetected}
+        style={{
+          fontSize:'0.8rem',
+          fontWeight:700,
+          color: (busy || !enabled || !driveDetected) ? 'var(--text-muted)' : 'var(--text)',
+          cursor: (busy || !enabled || !driveDetected) ? 'default' : 'pointer',
+          padding:'7px 11px',
+          border:'1px solid var(--border)',
+          borderRadius:8,
+          background:'white',
+          opacity: (busy || !enabled || !driveDetected) ? 0.6 : 1,
+        }}
+      >
+        {busy ? 'Saving…' : 'Snapshot now'}
+      </button>
+    </div>
   );
 }
 

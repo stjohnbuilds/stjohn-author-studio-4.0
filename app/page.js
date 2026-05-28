@@ -1950,6 +1950,18 @@ function SettingsCog({
               </button>
             </div>
 
+            {/* Drive snapshots card — Marie 2026-05-27. Universal across
+                all modes because the snapshot covers every mode's data. */}
+            {isElectron && authEmail && (
+              <DriveSnapshotsCard
+                enabled={backupEnabled}
+                info={backupInfo}
+                busy={backupBusy}
+                onEnabledChange={onBackupEnabledChange}
+                onManualBackup={onManualBackup}
+              />
+            )}
+
             {/* Proof-only sections — Marie 2026-05-26: Prep/Quill/Duet
                 settings panel shows just profile + tutorial. */}
             {isProof && (<>

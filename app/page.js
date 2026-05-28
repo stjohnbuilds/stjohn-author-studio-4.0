@@ -33,6 +33,14 @@ import {
   clearQuillPushCache,
   formatCloudErrorMessage,
 } from '../packages/cloud-sync';
+import {
+  isBackupEnabledForUser,
+  setBackupEnabledForUser,
+  runDailySnapshotIfDue,
+  takeSnapshotNow,
+  getBackupInfo,
+  MAX_SNAPSHOTS,
+} from '../packages/backups';
 
 // Detect Electron
 const el = () => typeof window !== 'undefined' && window.electron;

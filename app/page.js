@@ -1819,6 +1819,14 @@ function SettingsCog({
   mode = 'proof',
   authEmail = '',
   onSignOut,
+  // Marie 2026-05-27: Drive snapshot backups card. Universal — covers
+  // every mode's local + cloud data, so it shows outside the isProof gate.
+  backupEnabled = false,
+  backupInfo = null,
+  backupBusy = false,
+  backupToast = '',
+  onBackupEnabledChange,
+  onManualBackup,
 }) {
   const isProof = mode === 'proof';
   const [whisperInfo, setWhisperInfo] = useState(null);

@@ -9,25 +9,32 @@
 
 ## 1. Executive Summary
 
-**Overall readiness: PARTLY READY — the core paths look healthy, but
-distribution-blocking checks are still untested.**
+**Overall readiness: PARTLY READY for public — READY for a small
+trusted circle (Marie + husband + work colleagues).**
 
-### Biggest risks
+Updated 2026-05-27 after the live RLS check (see ISSUE-002 below): the
+biggest cloud-data-leak risk turned out to be already fixed in
+production. The remaining blockers for *public* release are now
+packaging-side (Mac signing) and one untested cloud edge case.
+
+### Biggest risks (public release)
 1. **No Mac code-signing or notarization.** First-launch friction on
    any user's machine that isn't Marie's. Confirmed from
    `electron-builder.yml` (no `mac.identity` set, no `notarize` block).
-2. **No verified RLS check on the six Supabase tables.** If even one
-   policy is missing, every signed-in user can see every other user's
-   projects. TODO has this listed but unchecked.
-3. **25 GB of old `.app` / `.exe` builds** in `Script and Sync
+2. **25 GB of old `.app` / `.exe` builds** in `Script and Sync
    Releases/Old/` — they live outside git but live beside the current
    installers and the folder is still named "Script and Sync" (old
    brand). A user / future Marie session could pick up a stale build.
-4. **Two-device flag round-trip never live-tested.** The cloud-sync
-   safety net is well-coded and the recent independent audit (which
-   found 4 bugs / 8 risks) has been patched, but the actual phone →
-   desktop and desktop → phone behaviour with concurrent saves is
-   still listed as an unknown in `TODO.md`.
+3. **Two-device flag round-trip never formally tested.** Marie has
+   informally used the app across her laptop + phone and seen no
+   issues; a structured concurrent-save test on real devices is still
+   open.
+
+### What's no longer a blocker (resolved this pass)
+- ✅ **RLS on the six Supabase tables** — verified directly in the
+  database 2026-05-27. All six tables have RLS enabled with policies
+  scoped to `owner_id = auth.uid()`. See ISSUE-002 for the SQL
+  evidence. **No code or data change required.**
 
 ### Most important next actions
 1. RLS dashboard verification (Marie or another AI with Supabase access).

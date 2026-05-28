@@ -641,12 +641,22 @@ multi-device round-trip have not been done.
 | Packaging / release structure | 10% | 4% | No code-signing, no notarization, no Mac DMG, brand-stale releases folder | high |
 | Maintainability and clarity | 5% | 3% | Excellent docs and comments; offset by very large mode files | medium |
 
-**Total: 72%** — workable, but distribution risk remains (label:
-60–74% per the audit instructions).
+**Total: 72%** for *public* release — workable, but distribution risk
+remains (label: 60–74% per the audit instructions).
 
-The score does not factor in **unknown** items (RLS verification,
-two-device round-trip) — those could push it down or up depending on
-results.
+After the 2026-05-27 RLS verification, the **private / in-company
+trusted-circle** rating is **90%** ("mostly healthy, but some issues
+should be fixed before release" — at the high end of the 75–89%
+band). For Marie + husband + close work colleagues:
+
+- ✅ Cloud privacy verified (RLS scoped per user)
+- ✅ Marie has informally confirmed the phone ↔ laptop flow
+- ⚠ Mac Gatekeeper friction on first launch is a right-click-Open
+  away
+- ⚠ Two-device formal round-trip would still raise confidence
+
+The 72% number stands for *public* release (where Mac signing,
+formal QA, and big-book payload measurements still matter).
 
 ---
 

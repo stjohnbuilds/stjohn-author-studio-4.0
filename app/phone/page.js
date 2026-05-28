@@ -49,6 +49,7 @@ import {
   buildWordSpans,
   buildSelectionTextContext,
   getAnnotationClassTree,
+  createCustomOption,
   createAnnotation,
   resolveAnnotationSelection,
   htmlToPlainText,
@@ -59,7 +60,6 @@ import PhoneReaderSettings from './_components/PhoneReaderSettings.js';
 import {
   loadPhoneReaderSettings,
   savePhoneReaderSettings,
-  loadPhoneReaderLocation,
   savePhoneReaderLocation,
   getPhoneReaderBackgroundColor,
   getPhoneReaderNavColor,
@@ -162,6 +162,30 @@ function countWords(text) {
   return (String(text || '').match(/\S+/g) || []).length;
 }
 
+function audioProjectKey(service, projectId) {
+  return `${service}:${projectId || 'unknown'}`;
+}
+
+function audioUnitKey(service, unitId) {
+  return `${service}:${unitId || 'unknown'}`;
+}
+
+function chapterAudioLabels(chapter) {
+  return [chapter?.audioFileName, chapter?.title].filter(Boolean);
+}
+
+function countChapterAudioMatches(files, project) {
+  let matched = 0;
+  (project?.chapters || []).forEach((chapter) => {
+    if (pickAudioFile(files, chapterAudioLabels(chapter))) matched += 1;
+  });
+  return matched;
+}
+
+function countChapterTotals(project) {
+  return (project?.chapters || []).length;
+}
+
 // Global word index across the whole book, so the page map (which is
 // keyed by global manuscript word index) can be looked up.
 function globalWordIndexFor(book, targetSection, sectionLocalIdx) {
@@ -204,10 +228,33 @@ function pageNumberForBookWord(book, globalWordIdx) {
 // index using the section's whisper alignment table, if present.
 function wordStartTimeFromAlignment(alignment, wordIdx) {
   if (!Array.isArray(alignment) || wordIdx < 0 || wordIdx >= alignment.length) return null;
-  const w = alignment[wordIdx]?.wordObj;
+  const w = alignment[wordIdx]?.wordObj || alignment[wordIdx];
   if (!w) return null;
   const start = Number(w.start);
   return Number.isFinite(start) ? start : null;
+}
+
+function hasUsableWordAlignment(alignment) {
+  return (Array.isArray(alignment) ? alignment : []).some((entry) => {
+    const wordObj = entry?.wordObj || entry;
+    return Number.isFinite(Number(wordObj?.start)) && Number.isFinite(Number(wordObj?.end));
+  });
+}
+
+function hasQuillChapterTranscription(chapter) {
+  return hasUsableWordAlignment(chapter?.whisperAlignment || chapter?.alignment);
+}
+
+function proofChapterTranscriptionStatus(chapter) {
+  const sections = (chapter?.sections || []).filter(Boolean);
+  if (!sections.length) return { count: 0, total: 0, complete: false, partial: false };
+  const count = sections.filter((section) => hasUsableWordAlignment(section?.whisperAlignment || section?.alignment)).length;
+  return {
+    count,
+    total: sections.length,
+    complete: count === sections.length,
+    partial: count > 0 && count < sections.length,
+  };
 }
 
 // Map "character → narrator" using book.narratorColors. The narrator is
@@ -356,6 +403,10 @@ function PhoneApp({ session, onSignOut }) {
         onBackToServices={() => setService(null)}
         readerSettings={readerSettings}
         onOpenSettings={openSettings}
+        audioFilesByBook={audioFilesByBook}
+        setAudioFilesByBook={setAudioFilesByBook}
+        audioSectionOverride={audioSectionOverride}
+        setAudioSectionOverride={setAudioSectionOverride}
       />
     );
   } else if (service === 'script') {
@@ -441,12 +492,13 @@ function ServicePicker({ session, onSignOut, onPick, onOpenSettings }) {
 // QuillPhoneService — projects → chapter list → reader (annotation popover)
 // ===========================================================================
 
-function QuillPhoneService({ session, onSignOut, onBackToServices, readerSettings, onOpenSettings }) {
+function QuillPhoneService({ session, onSignOut, onBackToServices, readerSettings, onOpenSettings, audioFilesByBook, setAudioFilesByBook, audioSectionOverride, setAudioSectionOverride }) {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [activeChapterId, setActiveChapterId] = useState(null);
+  const [audioPickStatus, setAudioPickStatus] = useState('');
   // Same refresh robustness pattern as ScriptPhoneService: single-flight,
   // 10s timeout, 30s focus debounce. Stops the Refresh button from
   // getting wedged on a slow Supabase call.
@@ -532,15 +584,6 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
     [activeProject, activeChapterId]
   );
 
-  // Restore last-opened chapter when entering a project.
-  useEffect(() => {
-    if (!activeProject || activeChapterId) return;
-    const loc = loadPhoneReaderLocation(`quill:${activeProject.id}`);
-    if (loc?.chapterId && activeProject.chapters?.some((c) => c.id === loc.chapterId)) {
-      setActiveChapterId(loc.chapterId);
-    }
-  }, [activeProject, activeChapterId]);
-
   // Persist the current chapter when reading.
   useEffect(() => {
     if (activeProject && activeChapterId) {
@@ -566,20 +609,43 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
 
   // Reader open: full chapter, annotations.
   if (activeChapter && activeProject) {
+    const projectAudioKey = audioProjectKey('quill', activeProject.id);
+    const activeProjectAudioFiles = audioFilesByBook[projectAudioKey] || audioFilesByBook[activeProject.id] || [];
+    const override = audioSectionOverride[audioUnitKey('quill', activeChapter.id)] || null;
+    const folderMatched = activeProjectAudioFiles.length
+      ? pickAudioFile(activeProjectAudioFiles, chapterAudioLabels(activeChapter))
+      : null;
+    const presetAudioFile = override || folderMatched;
     return (
       <QuillChapterView
         project={activeProject}
         chapter={activeChapter}
         readerSettings={readerSettings}
-        onBack={() => setActiveChapterId(null)}
+        onBack={() => {
+          setActiveChapterId(null);
+        }}
         onOpenSettings={onOpenSettings}
         onSaveProject={pushProject}
+        presetAudioFile={presetAudioFile}
+        onManualPickAudio={(file) => {
+          if (!activeChapter?.id) return;
+          setAudioSectionOverride((prev) => {
+            const next = { ...prev };
+            const key = audioUnitKey('quill', activeChapter.id);
+            if (file) next[key] = file; else delete next[key];
+            return next;
+          });
+        }}
       />
     );
   }
 
   if (activeProject) {
     const annotationCount = (activeProject.annotations || []).length;
+    const projectAudioKey = audioProjectKey('quill', activeProject.id);
+    const audioFiles = audioFilesByBook[projectAudioKey] || audioFilesByBook[activeProject.id] || [];
+    const totalChapters = countChapterTotals(activeProject);
+    const matchedCount = audioFiles.length ? countChapterAudioMatches(audioFiles, activeProject) : 0;
     return (
       <main style={phoneRoot(bgColor)}>
         <PhoneHeader
@@ -591,6 +657,28 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
           right={<SettingsButton onClick={onOpenSettings} ink={QUILL_INK} />}
         />
         <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
+          <BookAudioFolderPicker
+            book={activeProject}
+            audioFiles={audioFiles}
+            matchedCount={matchedCount}
+            totalSections={totalChapters}
+            unitLabel="chapter"
+            status={audioPickStatus}
+            tone={{ ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL }}
+            onPick={(files) => {
+              setAudioFilesByBook((prev) => ({ ...prev, [projectAudioKey]: files }));
+              const matched = countChapterAudioMatches(files, activeProject);
+              setAudioPickStatus(
+                matched
+                  ? `Linked ${matched} of ${countChapterTotals(activeProject)} chapters.`
+                  : 'No filenames matched. You can still pick audio inside the reader.'
+              );
+            }}
+            onClear={() => {
+              setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[projectAudioKey]; return next; });
+              setAudioPickStatus('');
+            }}
+          />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL_INK }}>
               Chapters
@@ -607,6 +695,7 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
           </div>
           {(activeProject.chapters || []).map((ch) => {
             const isDone = !!ch.completed;
+            const isTranscribed = hasQuillChapterTranscription(ch);
             return (
               <div
                 key={ch.id}
@@ -654,8 +743,9 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
                     <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846', textDecoration: isDone ? 'line-through' : 'none', textDecorationColor: '#9B928E' }}>
                       {ch.chapterNumber}. {ch.title}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
-                      {(activeProject.annotations || []).filter((a) => a.sectionId === ch.id).length} annotations
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                      <span>{(activeProject.annotations || []).filter((a) => a.sectionId === ch.id).length} annotations</span>
+                      {isTranscribed && <TranscribedPill tone={{ ink: QUILL_INK, pastel: QUILL_PASTEL }} />}
                     </div>
                   </div>
                   <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
@@ -701,7 +791,10 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
         {projects.map((p) => (
           <button
             key={p.id}
-            onClick={() => { setActiveProjectId(p.id); setActiveChapterId(null); }}
+            onClick={() => {
+              setActiveProjectId(p.id);
+              setActiveChapterId(null);
+            }}
             style={projectCardStyle(QUILL_ACCENT)}
           >
             <div style={{ minWidth: 0 }}>
@@ -724,23 +817,53 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
 // QuillChapterView — reader + annotation popover.
 // ---------------------------------------------------------------------------
 
-function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSettings, onSaveProject }) {
+function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSettings, onSaveProject, presetAudioFile = null, onManualPickAudio = null }) {
   const html = chapterHtml(chapter);
   const plainText = useMemo(() => chapterPlainText(chapter), [chapter]);
   const words = useMemo(() => buildWordSpans(plainText), [plainText]);
+  const chapterAlignment = useMemo(() => (
+    Array.isArray(chapter.whisperAlignment) ? chapter.whisperAlignment
+      : (Array.isArray(chapter.alignment) ? chapter.alignment : [])
+  ), [chapter]);
 
   const [selectedRange, setSelectedRange] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [classId, setClassId] = useState('highlight');
+  const [optionId, setOptionId] = useState('');
+  const [characterIds, setCharacterIds] = useState([]);
+  const [customLabel, setCustomLabel] = useState('');
+  const [customAddClassId, setCustomAddClassId] = useState('');
   const [note, setNote] = useState('');
+  const [audioTime, setAudioTime] = useState(0);
+  const [syncEnabled, setSyncEnabled] = useState(false);
+  const currentAudioTimeRef = useRef(0);
 
   const classTree = useMemo(() => getAnnotationClassTree(project.annotationOptions || []), [project.annotationOptions]);
+  const selectedClass = classTree.find((c) => c.id === classId) || classTree[1] || classTree[0];
+  const selectedOptions = selectedClass?.options || [];
+  const characterClass = classTree.find((c) => c.id === 'character');
+  const characterOptions = characterClass?.options || [];
+
+  useEffect(() => {
+    if (!selectedClass) return;
+    if (!selectedClass.options.length) { setOptionId(''); return; }
+    if (!selectedClass.options.find((o) => o.id === optionId)) {
+      setOptionId(selectedClass.options[0].id);
+    }
+  }, [selectedClass, optionId]);
 
   // Reset selection when chapter changes.
   useEffect(() => {
     setSelectedRange(null);
     setPanelOpen(false);
+    setOptionId('');
+    setCharacterIds([]);
+    setCustomLabel('');
+    setCustomAddClassId('');
     setNote('');
+    setSyncEnabled(false);
+    setAudioTime(0);
+    currentAudioTimeRef.current = 0;
   }, [chapter.id]);
 
   const annotationsForChapter = useMemo(
@@ -757,10 +880,61 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
     return { background: (ann.color || QUILL_ACCENT) + '33' };
   }, [annotationsForChapter]);
 
+  const canSyncAudio = useMemo(() => {
+    return hasUsableWordAlignment(chapterAlignment);
+  }, [chapterAlignment]);
+
+  const syncedWordIndex = useMemo(() => {
+    if (!syncEnabled || !canSyncAudio) return -1;
+    const now = Number(audioTime);
+    if (!Number.isFinite(now)) return -1;
+    let nearest = -1;
+    for (let i = 0; i < chapterAlignment.length; i += 1) {
+      const w = chapterAlignment[i]?.wordObj || chapterAlignment[i];
+      if (!w) continue;
+      const start = Number(w.start);
+      const end = Number(w.end);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+      if (now >= start && now <= end) return i;
+      if (start <= now) nearest = i;
+      if (start > now) break;
+    }
+    return nearest;
+  }, [audioTime, canSyncAudio, syncEnabled, chapterAlignment]);
+
   function clearSelection() {
     setSelectedRange(null);
     setPanelOpen(false);
+    setCharacterIds([]);
+    setCustomLabel('');
+    setCustomAddClassId('');
     setNote('');
+  }
+
+  function addCustomOption(forClassId) {
+    const cleanLabel = customLabel.trim();
+    if (!cleanLabel) return;
+    const existing = (project.annotationOptions || []).filter((o) => o.classId === forClassId);
+    const newOption = createCustomOption(cleanLabel, forClassId, existing);
+    if (!newOption) return;
+    const nextProject = {
+      ...project,
+      annotationOptions: [...(project.annotationOptions || []), newOption],
+      updatedAt: new Date().toISOString(),
+    };
+    onSaveProject(nextProject);
+    setCustomLabel('');
+    setCustomAddClassId('');
+    if (forClassId === 'character') {
+      setCharacterIds((ids) => [...ids, newOption.id]);
+    } else {
+      setClassId(forClassId);
+      setOptionId(newOption.id);
+    }
+  }
+
+  function toggleCharacter(id) {
+    setCharacterIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
   }
 
   function saveAnnotation() {
@@ -769,7 +943,10 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
     const end = Math.max(selectedRange.start, selectedRange.end);
     const selectedText = words.slice(start, end + 1).map((s) => s.word).join(' ');
     const textContext = buildSelectionTextContext(plainText, words, start, end);
-    const selection = resolveAnnotationSelection({ classId, optionId: classId, projectOptions: project.annotationOptions || [] });
+    const selection = resolveAnnotationSelection({ classId, optionId, projectOptions: project.annotationOptions || [] });
+    const alignedStart = wordStartTimeFromAlignment(chapterAlignment, start);
+    const timestamp = alignedStart != null ? alignedStart : Number(currentAudioTimeRef.current);
+    const nextAnnotations = [];
     const ann = createAnnotation({
       selection,
       sectionId: chapter.id,
@@ -779,11 +956,36 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
       wordEnd: end,
       selectedText,
       textContext,
+      timestamp: Number.isFinite(timestamp) ? timestamp : null,
       note,
     });
+    ann.audioFileName = chapter.audioFileName || '';
+    ann.source = 'phone';
+    nextAnnotations.push(ann);
+    for (const charOptionId of characterIds) {
+      const charSelection = resolveAnnotationSelection({
+        classId: 'character',
+        optionId: charOptionId,
+        projectOptions: project.annotationOptions || [],
+      });
+      const charAnn = createAnnotation({
+        selection: charSelection,
+        sectionId: chapter.id,
+        sectionTitle: chapter.title,
+        chapterNumber: chapter.chapterNumber,
+        wordStart: start,
+        wordEnd: end,
+        selectedText,
+        textContext,
+        timestamp: Number.isFinite(timestamp) ? timestamp : null,
+      });
+      charAnn.audioFileName = chapter.audioFileName || '';
+      charAnn.source = 'phone';
+      nextAnnotations.push(charAnn);
+    }
     const nextProject = {
       ...project,
-      annotations: [...(project.annotations || []), ann],
+      annotations: [...(project.annotations || []), ...nextAnnotations],
       updatedAt: new Date().toISOString(),
     };
     onSaveProject(nextProject);
@@ -828,6 +1030,7 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
           selectedRange={selectedRange}
           onSelectionChange={(r) => { setSelectedRange(r); }}
           wordDecoration={wordDecoration}
+          syncWordIndex={syncedWordIndex}
           tone={tone}
         />
 
@@ -843,6 +1046,9 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: a.color || QUILL_ACCENT }} />
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: QUILL_INK }}>{a.label || a.classLabel}</span>
+                  {Number.isFinite(Number(a.timestamp)) && (
+                    <span style={{ fontSize: '0.7rem', color: '#9B928E', marginLeft: 'auto' }}>{formatTime(a.timestamp)}</span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.82rem', fontStyle: 'italic' }}>&ldquo;{a.selectedText}&rdquo;</div>
                 {a.note && <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 3 }}>{a.note}</div>}
@@ -880,10 +1086,82 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
               </button>
             ))}
           </div>
+          {selectedOptions.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+              <select
+                value={optionId}
+                onChange={(e) => setOptionId(e.target.value)}
+                style={{ flex: 1, padding: '7px 9px', borderRadius: 8, border: '1px solid #DDD0C4', fontSize: '0.82rem', background: 'white' }}
+              >
+                {selectedOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+              {selectedClass?.allowCustom && customAddClassId !== selectedClass.id && (
+                <button type="button" onClick={() => { setCustomAddClassId(selectedClass.id); setCustomLabel(''); }} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
+              )}
+            </div>
+          )}
+          {customAddClassId === selectedClass?.id && selectedClass.allowCustom && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <input
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                placeholder={`New ${selectedClass.label.toLowerCase()}`}
+                style={{ ...popoverInputStyle, flex: 1, marginBottom: 0 }}
+              />
+              <button type="button" onClick={() => addCustomOption(selectedClass.id)} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
+              <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniRoundButtonStyle('#9B928E')}>×</button>
+            </div>
+          )}
+          <div style={{ borderTop: '1px solid #EAE0D6', paddingTop: 8, marginBottom: 8 }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: QUILL_INK, marginBottom: 6 }}>
+              Attach characters
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+              {characterOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => toggleCharacter(opt.id)}
+                  style={{
+                    padding: '5px 9px',
+                    border: '1px solid ' + (characterIds.includes(opt.id) ? QUILL_INK : '#DDD0C4'),
+                    background: characterIds.includes(opt.id) ? QUILL_PASTEL : 'white',
+                    borderRadius: 999,
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#4C4846',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {customAddClassId !== 'character' && (
+                <button type="button" onClick={() => { setCustomAddClassId('character'); setCustomLabel(''); }} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
+              )}
+              {!characterOptions.length && customAddClassId !== 'character' && (
+                <span style={{ fontSize: '0.7rem', color: '#9B928E' }}>No characters yet</span>
+              )}
+            </div>
+            {customAddClassId === 'character' && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  value={customLabel}
+                  onChange={(e) => setCustomLabel(e.target.value)}
+                  placeholder="Character name"
+                  style={{ ...popoverInputStyle, flex: 1, marginBottom: 0 }}
+                />
+                <button type="button" onClick={() => addCustomOption('character')} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
+                <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniRoundButtonStyle('#9B928E')}>×</button>
+              </div>
+            )}
+          </div>
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Comment (optional)"
+            placeholder={classId === 'image' ? 'Image note' : 'Comment'}
             style={popoverInputStyle}
           />
           <div style={popoverActionsStyle}>
@@ -892,6 +1170,19 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
           </div>
         </ReaderPopover>
       )}
+      <PhoneAudioDock
+        tone={tone}
+        sectionKey={chapter.id}
+        currentTimeRef={currentAudioTimeRef}
+        onTimeTick={(t) => setAudioTime(t)}
+        canSync={canSyncAudio}
+        syncEnabled={syncEnabled}
+        onToggleSync={() => setSyncEnabled((s) => !s)}
+        defaultFileName={chapter.audioFileName || ''}
+        presetAudioFile={presetAudioFile}
+        onManualPickAudio={onManualPickAudio}
+        allowManualPick={false}
+      />
     </main>
   );
 }
@@ -1191,10 +1482,11 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   // Find a preset audio file for the current section: manual override
   // first (so a per-section pick survives navigation), then the folder
   // picker match.
-  const activeBookAudioFiles = activeBook ? (audioFilesByBook[activeBook.id] || []) : [];
+  const activeBookAudioKey = activeBook ? audioProjectKey('script', activeBook.id) : '';
+  const activeBookAudioFiles = activeBook ? (audioFilesByBook[activeBookAudioKey] || audioFilesByBook[activeBook.id] || []) : [];
 
   if (activeChapter && activeBook && activeSection) {
-    const override = audioSectionOverride[activeSection.id] || null;
+    const override = audioSectionOverride[audioUnitKey('script', activeSection.id)] || audioSectionOverride[activeSection.id] || null;
     const sectionAudioLabels = [activeSection.audioFileName, activeSection.title, activeChapter.title].filter(Boolean);
     const folderMatched = activeBookAudioFiles.length
       ? pickAudioFile(activeBookAudioFiles, sectionAudioLabels)
@@ -1217,7 +1509,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           if (!activeSection?.id) return;
           setAudioSectionOverride((prev) => {
             const next = { ...prev };
-            if (file) next[activeSection.id] = file; else delete next[activeSection.id];
+            const key = audioUnitKey('script', activeSection.id);
+            if (file) next[key] = file; else delete next[key];
             return next;
           });
         }}
@@ -1227,7 +1520,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
 
   if (activeBook) {
     const totalFlags = (activeBook.chapters || []).reduce((n, ch) => n + (ch.sections || []).reduce((m, s) => m + (s.flags?.length || 0), 0), 0);
-    const audioFiles = audioFilesByBook[activeBook.id] || [];
+    const audioKey = audioProjectKey('script', activeBook.id);
+    const audioFiles = audioFilesByBook[audioKey] || audioFilesByBook[activeBook.id] || [];
     const totalSections = countSectionTotals(activeBook);
     const matchedCount = audioFiles.length ? countSectionAudioMatches(audioFiles, activeBook) : 0;
     return (
@@ -1240,7 +1534,12 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           left={<BackButton ink={PROOF_INK} onClick={() => setActiveBookId(null)} />}
           right={<SettingsButton onClick={onOpenSettings} ink={PROOF_INK} />}
         />
-        <PendingFlagBanner count={pendingCount} onRetry={refresh} loading={loading} />
+        <PendingFlagBanner
+          count={pendingCount}
+          onRetry={refresh}
+          loading={loading}
+          onDownloadBackup={() => downloadText(`${safeFileName(activeBook.title)}-flags-backup.csv`, buildFlagsCsv(activeBook), 'text/csv')}
+        />
         <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
           {/* Per-book audio folder picker. Marie picks the folder once
               for the whole book; each chapter's audio is auto-matched
@@ -1253,7 +1552,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
             totalSections={totalSections}
             status={audioPickStatus}
             onPick={(files) => {
-              setAudioFilesByBook((prev) => ({ ...prev, [activeBook.id]: files }));
+              setAudioFilesByBook((prev) => ({ ...prev, [audioKey]: files }));
               const matched = countSectionAudioMatches(files, activeBook);
               setAudioPickStatus(
                 matched
@@ -1262,7 +1561,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
               );
             }}
             onClear={() => {
-              setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[activeBook.id]; return next; });
+              setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[audioKey]; delete next[activeBook.id]; return next; });
               setAudioPickStatus('');
             }}
           />
@@ -1300,6 +1599,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
               {(activeBook.chapters || []).map((ch, i) => {
                 const firstSection = (ch.sections || [])[0];
                 const chapterFlagCount = (ch.sections || []).reduce((n, s) => n + (s.flags?.length || 0), 0);
+                const transcription = proofChapterTranscriptionStatus(ch);
                 return (
                   <button
                     key={ch.id}
@@ -1310,8 +1610,15 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
                       <div style={{ fontWeight: 600, fontSize: '0.92rem', color: '#4C4846' }}>
                         {i + 1}. {ch.title}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
-                        {(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {chapterFlagCount} flag{chapterFlagCount === 1 ? '' : 's'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', color: '#6D6663', marginTop: 2 }}>
+                        <span>{(ch.sections || []).length} section{(ch.sections || []).length === 1 ? '' : 's'} · {chapterFlagCount} flag{chapterFlagCount === 1 ? '' : 's'}</span>
+                        {transcription.complete && <TranscribedPill tone={{ ink: PROOF_INK, pastel: PROOF_PASTEL }} />}
+                        {transcription.partial && (
+                          <TranscribedPill
+                            label={`Part transcribed ${transcription.count}/${transcription.total}`}
+                            tone={{ ink: PROOF_INK, pastel: PROOF_PASTEL }}
+                          />
+                        )}
                       </div>
                     </div>
                     <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
@@ -1502,18 +1809,17 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 
   // Whisper-aligned word sync — show the playing word as audio plays.
   const canSyncAudio = useMemo(() => {
-    const alignment = section.whisperAlignment || [];
-    return alignment.some((m) => m?.wordObj && Number.isFinite(Number(m.wordObj.start)) && Number.isFinite(Number(m.wordObj.end)));
-  }, [section.whisperAlignment]);
+    return hasUsableWordAlignment(section.whisperAlignment || section.alignment);
+  }, [section.whisperAlignment, section.alignment]);
 
   const syncedWordIndex = useMemo(() => {
     if (!syncEnabled || !canSyncAudio) return -1;
-    const alignment = section.whisperAlignment || [];
+    const alignment = section.whisperAlignment || section.alignment || [];
     const now = Number(audioTime);
     if (!Number.isFinite(now)) return -1;
     let nearest = -1;
     for (let i = 0; i < alignment.length; i += 1) {
-      const w = alignment[i]?.wordObj;
+      const w = alignment[i]?.wordObj || alignment[i];
       if (!w) continue;
       const start = Number(w.start);
       const end = Number(w.end);
@@ -1523,12 +1829,33 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
       if (start > now) break;
     }
     return nearest;
-  }, [audioTime, canSyncAudio, syncEnabled, section.whisperAlignment]);
+  }, [audioTime, canSyncAudio, syncEnabled, section.whisperAlignment, section.alignment]);
 
   function clearSelection() {
     setSelectedRange(null);
     setPanelOpen(false);
     setFlagDraft({ quote: '', page: '', note: '', narrator: autoNarrator, type: 'Edit' });
+  }
+
+  async function copyFlagRow() {
+    if (!selectionMeta) return;
+    const row = [
+      chapter?.title || '',
+      section?.audioFileName || '',
+      (flagDraft.page || selectionMeta.page || '#').trim() || '#',
+      formatTime(Number(selectionMeta.ts) || 0),
+      (flagDraft.narrator || autoNarrator || 'Narrator').trim() || 'Narrator',
+      flagDraft.type || 'Edit',
+      (flagDraft.quote || selectionMeta.quote || '').trim(),
+      (flagDraft.note || '').trim(),
+    ];
+    const text = row.join('\t');
+    try {
+      await navigator.clipboard?.writeText(text);
+      setToast('Copied flag row.');
+    } catch {
+      setToast('Could not copy on this browser.');
+    }
   }
 
   function saveFlag() {
@@ -1698,7 +2025,32 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
                 {autoNarrator}
               </span>
             </div>
-            <button type="button" onClick={clearSelection} aria-label="Cancel" style={popoverCloseStyle}>×</button>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <button
+                type="button"
+                onClick={copyFlagRow}
+                aria-label="Copy flag row"
+                title="Copy flag row"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 999,
+                  border: '1px solid ' + PROOF_INK + '33',
+                  background: 'white',
+                  color: PROOF_INK,
+                  cursor: 'pointer',
+                  display: 'inline-grid',
+                  placeItems: 'center',
+                  padding: 0,
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+              <button type="button" onClick={clearSelection} aria-label="Cancel" style={popoverCloseStyle}>×</button>
+            </div>
           </div>
 
           <FieldLabel>Quote</FieldLabel>
@@ -1807,7 +2159,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 // PhoneAudioDock — shared audio strip (Quill + Script). Now with Sync.
 // ===========================================================================
 
-function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null, onManualPickAudio = null }) {
+function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null, onManualPickAudio = null, allowManualPick = true }) {
   const inputRef = useRef(null);
   const audioRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -1908,39 +2260,47 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
         margin: '0 auto',
       }}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept="audio/*"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) {
-            setLoadError('');
-            setFile(f);
-            // Tell the parent so this pick survives navigation away
-            // from the section and back.
-            if (onManualPickAudio) onManualPickAudio(f);
-          }
-          e.target.value = '';
-        }}
-      />
+      {allowManualPick && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="audio/*"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) {
+              setLoadError('');
+              setFile(f);
+              // Tell the parent so this pick survives navigation away
+              // from the section and back.
+              if (onManualPickAudio) onManualPickAudio(f);
+            }
+            e.target.value = '';
+          }}
+        />
+      )}
       {!file ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 4 }}>
-          <button
-            onClick={() => inputRef.current?.click()}
-            aria-label="Pick audio file"
-            title={defaultFileName ? `Suggested: ${defaultFileName}` : 'Pick an audio file on this device'}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', background: pastel,
-              border: '1px solid ' + ink + '33',
-              borderRadius: 999, color: ink,
-              fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            ♫ Pick audio
-          </button>
+          {allowManualPick ? (
+            <button
+              onClick={() => inputRef.current?.click()}
+              aria-label="Pick audio file"
+              title={defaultFileName ? `Suggested: ${defaultFileName}` : 'Pick an audio file on this device'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '8px 14px', background: pastel,
+                border: '1px solid ' + ink + '33',
+                borderRadius: 999, color: ink,
+                fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              ♫ Pick audio
+            </button>
+          ) : (
+            <div style={{ padding: '8px 12px', color: ink, fontSize: '0.78rem', fontWeight: 700, textAlign: 'center' }}>
+              Back to the chapter list to pick the audio folder.
+            </div>
+          )}
           {loadError && <div style={{ fontSize: '0.66rem', color: '#C4514A' }}>{loadError}</div>}
         </div>
       ) : (
@@ -2143,7 +2503,7 @@ function AccountChip({ email, onSignOut }) {
 // trigger a retry refresh. Matters because Marie had no way of knowing
 // when a push silently failed.
 
-function PendingFlagBanner({ count, onRetry, loading }) {
+function PendingFlagBanner({ count, onRetry, loading, onDownloadBackup }) {
   if (!count) return null;
   return (
     <div
@@ -2163,24 +2523,71 @@ function PendingFlagBanner({ count, onRetry, loading }) {
       <span>
         ⏳ {count} flag change{count === 1 ? '' : 's'} waiting to sync
       </span>
-      <button
-        type="button"
-        onClick={onRetry}
-        disabled={loading}
-        style={{
-          padding: '5px 12px',
-          background: loading ? 'rgba(122,91,24,0.16)' : '#7a5b18',
-          color: 'white',
-          border: 'none',
-          borderRadius: 999,
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {loading ? 'Retrying…' : 'Retry now'}
-      </button>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {onDownloadBackup && (
+          <button
+            type="button"
+            onClick={onDownloadBackup}
+            style={{
+              padding: '5px 10px',
+              background: 'white',
+              color: '#7a5b18',
+              border: '1px solid #e4bd67',
+              borderRadius: 999,
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Download backup
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={loading}
+          style={{
+            padding: '5px 12px',
+            background: loading ? 'rgba(122,91,24,0.16)' : '#7a5b18',
+            color: 'white',
+            border: 'none',
+            borderRadius: 999,
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {loading ? 'Retrying…' : 'Retry now'}
+        </button>
+      </span>
     </div>
+  );
+}
+
+function TranscribedPill({ label = 'Transcribed', tone }) {
+  const ink = tone?.ink || PROOF_INK;
+  const pastel = tone?.pastel || PROOF_PASTEL;
+  return (
+    <span
+      title={label}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '2px 7px',
+        borderRadius: 999,
+        background: pastel,
+        color: ink,
+        border: '1px solid ' + ink + '22',
+        fontSize: '0.66rem',
+        fontWeight: 800,
+        lineHeight: 1.3,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span aria-hidden="true">✓</span>
+      <span>{label}</span>
+    </span>
   );
 }
 
@@ -2320,15 +2727,17 @@ function BookFlagsList({ book, onOpenFlag, onDeleteFlag }) {
 // (set on the desktop at import time).
 // ---------------------------------------------------------------------------
 
-function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, status, onPick, onClear }) {
+function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, status, onPick, onClear, tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, unitLabel = 'section' }) {
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const hasFolder = (audioFiles || []).length > 0;
+  const ink = tone.ink || PROOF_INK;
+  const pastel = tone.pastel || PROOF_PASTEL;
   return (
     <div
       style={{
         background: 'white',
-        border: '1px dashed ' + PROOF_INK + '44',
+        border: '1px dashed ' + ink + '44',
         borderRadius: 14,
         padding: '10px 12px',
         marginBottom: 12,
@@ -2369,16 +2778,16 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div>
-          <div style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: PROOF_INK }}>
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink }}>
             Audio folder
           </div>
           {hasFolder ? (
             <div style={{ fontSize: '0.78rem', color: '#4C4846', marginTop: 2 }}>
-              {audioFiles.length} file{audioFiles.length === 1 ? '' : 's'} loaded · matched <strong>{matchedCount}</strong> of {totalSections} section{totalSections === 1 ? '' : 's'}
+              {audioFiles.length} file{audioFiles.length === 1 ? '' : 's'} loaded · matched <strong>{matchedCount}</strong> of {totalSections} {unitLabel}{totalSections === 1 ? '' : 's'}
             </div>
           ) : (
             <div style={{ fontSize: '0.78rem', color: '#6D6663', marginTop: 2 }}>
-              Pick the folder of audio files for this book — every chapter auto-attaches.
+              Pick the folder of audio files for this project — every {unitLabel} auto-attaches.
             </div>
           )}
           {status && (
@@ -2403,9 +2812,9 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
           style={{
             flex: '1 1 auto',
             padding: '10px 14px',
-            background: PROOF_PASTEL,
-            color: PROOF_INK,
-            border: '1px solid ' + PROOF_INK + '33',
+            background: pastel,
+            color: ink,
+            border: '1px solid ' + ink + '33',
             borderRadius: 999,
             fontSize: '0.82rem',
             fontWeight: 700,
@@ -2422,8 +2831,8 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
             flex: '1 1 auto',
             padding: '10px 14px',
             background: 'white',
-            color: PROOF_INK,
-            border: '1px solid ' + PROOF_INK + '33',
+            color: ink,
+            border: '1px solid ' + ink + '33',
             borderRadius: 999,
             fontSize: '0.82rem',
             fontWeight: 700,
@@ -2455,6 +2864,8 @@ function ReaderPopover({ ink, children }) {
         borderRadius: 16,
         boxShadow: '0 14px 34px rgba(76, 72, 70, 0.22)',
         padding: '14px 14px',
+        maxHeight: 'min(72vh, 620px)',
+        overflow: 'auto',
         zIndex: 1500,
       }}
     >
@@ -2566,6 +2977,21 @@ const smallFieldStyle = {
   color: '#4C4846',
   boxSizing: 'border-box',
 };
+
+function miniRoundButtonStyle(color) {
+  return {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    border: '1px solid #DDD0C4',
+    background: color || 'white',
+    color: color && color !== '#9B928E' ? 'white' : '#4C4846',
+    fontSize: '0.9rem',
+    fontWeight: 800,
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
+}
 
 function FieldLabel({ children }) {
   return (

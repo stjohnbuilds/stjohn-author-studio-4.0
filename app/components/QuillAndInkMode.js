@@ -54,11 +54,15 @@ import {
   pullQuillProjects,
   deleteQuillProject,
   addTombstone,
+  clearTombstone,
   applyTombstonesToCloudList,
+  formatCloudErrorMessage,
 } from '../../packages/cloud-sync';
 
 const QUILL = MODE_TOKENS.quill;
 const STORAGE_KEY = 'quill-projects-v1';
+const FOLLOW_LOOKAHEAD_BASE_SEC = 0.045;
+const FOLLOW_LOOKAHEAD_MAX_SEC = 0.18;
 
 function uid(prefix = 'id') {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -66,6 +70,12 @@ function uid(prefix = 'id') {
 
 async function loadProjects() {
   const electron = typeof window !== 'undefined' ? window.electron : null;
+  if (electron?.readQuillProjectList) {
+    try {
+      const list = await electron.readQuillProjectList();
+      return Array.isArray(list) ? list : [];
+    } catch {}
+  }
   if (electron?.readQuillData) {
     try {
       const list = await electron.readQuillData();
@@ -75,8 +85,26 @@ async function loadProjects() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
 }
 
+async function loadFullProject(projectId) {
+  const electron = typeof window !== 'undefined' ? window.electron : null;
+  if (electron?.readQuillProject) {
+    try {
+      const project = await electron.readQuillProject(projectId);
+      return project && typeof project === 'object' ? project : null;
+    } catch {}
+  }
+  const projects = await loadProjects();
+  return projects.find((project) => project?.id === projectId) || null;
+}
+
 async function persistProjects(projects) {
   const electron = typeof window !== 'undefined' ? window.electron : null;
+  const hasSummaryOnly = (projects || []).some((project) => project?._summaryOnly);
+  if (hasSummaryOnly && electron?.writeQuillProject) {
+    const fullProjects = (projects || []).filter((project) => project && !project._summaryOnly);
+    await Promise.all(fullProjects.map((project) => electron.writeQuillProject(project)));
+    return;
+  }
   if (electron?.writeQuillData) {
     try { await electron.writeQuillData(projects); return; } catch {}
   }
@@ -174,6 +202,36 @@ function transcriptionPatchFromSection(section) {
   };
 }
 
+const TRANSCRIPTION_FIELD_KEYS = [
+  'alignment',
+  'whisperAlignment',
+  'whisperWords',
+  'whisperTranscript',
+  'whisperMatchedCount',
+  'whisperManuscriptWordCount',
+  'whisperMatchQuality',
+  'whisperAudioKey',
+  'whisperTextHash',
+  'whisperSourceUpdatedAt',
+  'transcribedAt',
+];
+
+function hasExplicitTranscriptionClear(section) {
+  if (!section || typeof section !== 'object') return false;
+  return (
+    Object.prototype.hasOwnProperty.call(section, 'whisperAlignment') &&
+    section.whisperAlignment === undefined &&
+    Object.prototype.hasOwnProperty.call(section, 'whisperWords') &&
+    section.whisperWords === undefined
+  );
+}
+
+function withoutTranscriptionFields(chapter) {
+  const out = { ...(chapter || {}) };
+  TRANSCRIPTION_FIELD_KEYS.forEach((key) => { delete out[key]; });
+  return out;
+}
+
 function transcriptStateFromSection(section) {
   const patch = transcriptionPatchFromSection(section);
   if (!patch) return null;
@@ -190,12 +248,39 @@ function transcriptStateFromSection(section) {
 function buildTranscriptMap(projects) {
   const out = {};
   for (const project of projects || []) {
+    if (project?._summaryOnly) continue;
     for (const chapter of project?.chapters || []) {
       const state = transcriptStateFromChapter(chapter);
       if (state) out[chapter.id] = state;
     }
   }
   return out;
+}
+
+async function buildRuntimeState(projects) {
+  const rebuiltAudio = {};
+  const electron = typeof window !== 'undefined' ? window.electron : null;
+  for (const proj of projects || []) {
+    if (proj?._summaryOnly) continue;
+    for (const ch of proj?.chapters || []) {
+      const storedAudioPath = getChapterStoredAudioPath(ch);
+      if (storedAudioPath) {
+        let url = storedAudioPath;
+        if (electron?.getAudioUrl) {
+          try { url = await electron.getAudioUrl(storedAudioPath); }
+          catch { url = storedAudioPath; }
+        }
+        rebuiltAudio[ch.id] = {
+          fileName: ch.audioFileName || '',
+          url,
+        };
+      }
+    }
+  }
+  return {
+    audio: rebuiltAudio,
+    transcripts: buildTranscriptMap(projects),
+  };
 }
 
 function mergeChapterFromCloud(localChapter, cloudChapter) {
@@ -224,6 +309,29 @@ function mergeChapterFromCloud(localChapter, cloudChapter) {
   };
 }
 
+function annotationTime(annotation) {
+  const updated = Date.parse(annotation?.updatedAt || '') || 0;
+  const created = Date.parse(annotation?.createdAt || '') || 0;
+  return Math.max(updated, created, 0);
+}
+
+function latestAnnotationTime(project) {
+  return Math.max(0, ...((project?.annotations || []).map(annotationTime)));
+}
+
+function mergeAnnotationsPreservingNewerLocal(localAnnotations = [], cloudAnnotations = []) {
+  const byId = new Map();
+  for (const annotation of [...cloudAnnotations, ...localAnnotations]) {
+    if (!annotation || typeof annotation !== 'object') continue;
+    const id = annotation.id || `${annotation.sectionId || ''}:${annotation.wordStart || 0}:${annotation.wordEnd || 0}:${annotation.label || ''}:${annotation.selectedText || ''}`;
+    const existing = byId.get(id);
+    if (!existing || annotationTime(annotation) >= annotationTime(existing)) {
+      byId.set(id, annotation);
+    }
+  }
+  return Array.from(byId.values()).sort((a, b) => annotationTime(a) - annotationTime(b));
+}
+
 function mergeProjectLists(local, cloud) {
   const byId = new Map();
   for (const p of local) byId.set(p.id, p);
@@ -236,8 +344,12 @@ function mergeProjectLists(local, cloud) {
       continue;
     }
     const localChapterById = new Map((existing.chapters || []).map((ch) => [ch.id, ch]));
+    const localHasNewerAnnotations = latestAnnotationTime(existing) > latestAnnotationTime(p);
     byId.set(p.id, {
       ...p,
+      annotations: localHasNewerAnnotations
+        ? mergeAnnotationsPreservingNewerLocal(existing.annotations || [], p.annotations || [])
+        : (p.annotations || []),
       chapters: (p.chapters || []).map((ch) => mergeChapterFromCloud(localChapterById.get(ch.id), ch)),
     });
   }
@@ -282,7 +394,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { ...(prev[chapterId] || {}), status: 'running', progress: p?.progress || 0, message: p?.message || '' } }));
       });
       const manuscriptText = chapter.plainText || htmlToPlainText(chapter.textHtml || '');
-      const msWords = String(manuscriptText).split(/\s+/).filter(Boolean);
+      const msWords = buildWordSpans(manuscriptText).map((span) => span.word);
       const whisperWords = result?.words || [];
       const alignment = alignTranscriptToManuscript(msWords, whisperWords);
       const syncTable = buildDirectSyncTable(alignment);
@@ -364,27 +476,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       // without Marie re-picking the file. Audio paths only persist on
       // disk (audio-guard strips them before any cloud push), so we
       // only ever rebuild from local-loaded projects.
-      const rebuiltAudio = {};
-      const electron = typeof window !== 'undefined' ? window.electron : null;
-      for (const proj of local || []) {
-        for (const ch of proj?.chapters || []) {
-          const storedAudioPath = getChapterStoredAudioPath(ch);
-          if (storedAudioPath) {
-            let url = storedAudioPath;
-            if (electron?.getAudioUrl) {
-              try { url = await electron.getAudioUrl(storedAudioPath); }
-              catch { url = storedAudioPath; }
-            }
-            rebuiltAudio[ch.id] = {
-              fileName: ch.audioFileName || '',
-              url,
-            };
-          }
-        }
-      }
-      if (Object.keys(rebuiltAudio).length) setChapterAudios(rebuiltAudio);
-      const rebuiltTranscripts = buildTranscriptMap(local);
-      if (Object.keys(rebuiltTranscripts).length) setChapterTranscripts(rebuiltTranscripts);
+      const rebuiltRuntime = await buildRuntimeState(local);
+      if (Object.keys(rebuiltRuntime.audio).length) setChapterAudios(rebuiltRuntime.audio);
+      if (Object.keys(rebuiltRuntime.transcripts).length) setChapterTranscripts(rebuiltRuntime.transcripts);
       setHydrated(true);                     // ← render now, don't wait for cloud
       cameFromCloudRef.current = true;       // suppress the first persist round-trip
       const supabase = getSupabaseClient();
@@ -402,7 +496,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         cameFromCloudRef.current = true;     // the merge isn't a user edit
         setAllProjects((current) => mergeProjectLists(current, cloudProjects));
       } catch (e) {
-        console.warn('[Quill] cloud pull failed:', e?.message || e);
+        console.warn('[Quill] cloud pull failed:', formatCloudErrorMessage(e));
       }
     })();
     return () => { cancelled = true; };
@@ -436,12 +530,14 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
             const { data } = await supabase.auth.getSession();
             const ownerId = data?.session?.user?.id;
             if (!ownerId) return;
-            const results = await Promise.all(allProjects.map(async (p) => {
+            const pushableProjects = allProjects.filter((p) => p && !p._summaryOnly);
+            if (!pushableProjects.length) return;
+            const results = await Promise.all(pushableProjects.map(async (p) => {
               try {
                 const cloudId = await pushQuillProject(supabase, p, ownerId);
                 return cloudId && cloudId !== p.cloudId ? { projectId: p.id, cloudId } : null;
               } catch (e) {
-                console.warn('[Quill] cloud push failed for', p.title, e?.message || e);
+                console.warn('[Quill] cloud push failed for', p.title, formatCloudErrorMessage(e));
                 return null;
               }
             }));
@@ -479,6 +575,28 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     }));
   }, [activeProjectId]);
 
+  const openProject = useCallback(async (project) => {
+    if (!project?.id) return;
+    let fullProject = project;
+    if (project._summaryOnly) {
+      const loadedProject = await loadFullProject(project.id);
+      if (loadedProject) {
+        fullProject = loadedProject;
+        setAllProjects((all) => all.map((p) => (p.id === loadedProject.id ? loadedProject : p)));
+        const rebuiltRuntime = await buildRuntimeState([loadedProject]);
+        if (Object.keys(rebuiltRuntime.audio).length) {
+          setChapterAudios((prev) => ({ ...prev, ...rebuiltRuntime.audio }));
+        }
+        if (Object.keys(rebuiltRuntime.transcripts).length) {
+          setChapterTranscripts((prev) => ({ ...prev, ...rebuiltRuntime.transcripts }));
+        }
+      }
+    }
+    setActiveProjectId(fullProject.id);
+    setActiveChapterId(fullProject.chapters?.[0]?.id || null);
+    setView('bookDetail');
+  }, []);
+
   function commitImport(payload) {
     const chapters = (payload.chapters || []).map((ch, i) => ({
       id: uid('ch'),
@@ -502,6 +620,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       pdfSource: payload.pdfSource || null, // 'user-pdf' | 'libreoffice' | null
       pageNumberAdjustment: Number(payload.pageNumberAdjustment) || 0,
     };
+    try { clearTombstone('quill', { id: project.id, cloudId: project.cloudId }); } catch {}
     setAllProjects((all) => [...all, project]);
     setActiveProjectId(project.id);
     setActiveChapterId(chapters[0]?.id || null);
@@ -513,6 +632,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
     // Tombstone first so a racing pull can't resurrect the project.
     addTombstone('quill', { id, cloudId: target?.cloudId });
     setAllProjects((all) => all.filter((p) => p.id !== id));
+    const electron = typeof window !== 'undefined' ? window.electron : null;
+    if (electron?.deleteQuillProjectData) {
+      electron.deleteQuillProjectData(id).catch(() => {});
+    }
     if (activeProjectId === id) {
       setActiveProjectId(null);
       setActiveChapterId(null);
@@ -524,7 +647,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       const supabase = getSupabaseClient();
       if (supabase) {
         deleteQuillProject(supabase, target.cloudId).catch((e) =>
-          console.warn('[Quill] cloud delete failed:', e?.message || e));
+          console.warn('[Quill] cloud delete failed:', formatCloudErrorMessage(e)));
       }
     }
   }
@@ -735,20 +858,22 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               const keptIds = new Set(updated.chapters.map((ch) => ch.id));
               const chapterPatchById = {};
               const transcriptPatch = {};
-              updated.chapters.forEach((ch) => {
-                const sec = (ch.sections || [])[0];
-                const storedPath = getChapterStoredAudioPath(sec) || '';
-                const projectTranscription = transcriptionPatchFromSection(sec);
-                const transcriptState = projectTranscription ? transcriptStateFromSection(sec) : null;
-                if (transcriptState) transcriptPatch[ch.id] = transcriptState;
-                chapterPatchById[ch.id] = {
-                  name: sec?.audioFileName || '',
-                  path: storedPath,
-                  paths: sec?.audioPaths || null,
-                  completed: !!sec?.completed,
-                  transcription: projectTranscription,
-                };
-              });
+	              updated.chapters.forEach((ch) => {
+	                const sec = (ch.sections || [])[0];
+	                const storedPath = getChapterStoredAudioPath(sec) || '';
+	                const projectTranscription = transcriptionPatchFromSection(sec);
+	                const transcriptState = projectTranscription ? transcriptStateFromSection(sec) : null;
+	                const transcriptionCleared = hasExplicitTranscriptionClear(sec);
+	                if (transcriptState) transcriptPatch[ch.id] = transcriptState;
+	                chapterPatchById[ch.id] = {
+	                  name: sec?.audioFileName || '',
+	                  path: storedPath,
+	                  paths: sec?.audioPaths || null,
+	                  completed: !!sec?.completed,
+	                  transcription: projectTranscription,
+	                  transcriptionCleared,
+	                };
+	              });
               updateActive((p) => ({
                 ...p,
                 chapters: (p.chapters || [])
@@ -759,18 +884,19 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                     // touched audio (incoming defined). Empty fields mean
                     // "audio was cleared"; missing entry means "no change".
                     if (incoming === undefined) return ch;
-                    const nextChapter = {
-                      ...ch,
-                      audioFileName: incoming.name || '',
-                      audioPath: incoming.path || '',
-                      audioPaths: incoming.paths || null,
-                      completed: incoming.completed,
-                    };
-                    return incoming.transcription
-                      ? { ...nextChapter, ...incoming.transcription }
-                      : nextChapter;
-                  }),
-              }));
+	                    const nextChapter = {
+	                      ...ch,
+	                      audioFileName: incoming.name || '',
+	                      audioPath: incoming.path || '',
+	                      audioPaths: incoming.paths || null,
+	                      completed: incoming.completed,
+	                    };
+	                    if (incoming.transcriptionCleared) return withoutTranscriptionFields(nextChapter);
+	                    return incoming.transcription
+	                      ? { ...nextChapter, ...incoming.transcription }
+	                      : nextChapter;
+	                  }),
+	              }));
               const audioPatch = {};
               updated.chapters.forEach((ch) => {
                 const sec = (ch.sections || [])[0];
@@ -795,10 +921,14 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
                 });
                 return next;
               });
-              if (Object.keys(transcriptPatch).length) {
-                setChapterTranscripts((prev) => ({ ...prev, ...transcriptPatch }));
-              }
-            }
+	              setChapterTranscripts((prev) => {
+	                const next = { ...prev, ...transcriptPatch };
+	                Object.entries(chapterPatchById).forEach(([id, patch]) => {
+	                  if (patch?.transcriptionCleared) delete next[id];
+	                });
+	                return next;
+	              });
+	            }
           }}
           onToggleComplete={(sectionId) => {
             // In Quill, each chapter renders as one section whose id
@@ -847,7 +977,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       {modeToggle}
       <QuillHomeView
         projects={allProjects}
-        onOpen={(p) => { setActiveProjectId(p.id); setActiveChapterId(p.chapters?.[0]?.id || null); setView('bookDetail'); }}
+        onOpen={openProject}
         onNew={() => setView('setup')}
       />
     </div>
@@ -958,8 +1088,8 @@ function QuillHomeView({ projects, onOpen, onNew }) {
               const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
               return bt - at;
             }).map((p) => {
-              const chapterCount = p.chapters?.length || 0;
-              const annCount = p.annotations?.length || 0;
+              const chapterCount = p.chapterCount ?? p.chapters?.length ?? 0;
+              const annCount = p.annotationCount ?? p.annotations?.length ?? 0;
               return (
                 <button
                   key={p.id}
@@ -1032,6 +1162,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   // Audio sync — when a transcript is loaded, follow the audio time and
   // highlight the current word. Same engine helpers Proof uses.
   const audioRef = useRef(null);
+  const syncScrollWordRef = useRef(-1);
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [followText, setFollowText] = useState(true);
   // Marie 2026-05-26: T (transcription sync) on/off toggle — parity with
@@ -1093,24 +1224,44 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
       return;
     }
     let raf = null;
-    function tick() {
-      const idx = getMsIdxAtTime(syncTable, el.currentTime, -1);
+    function tick(force = false) {
+      const rate = Math.max(1, Number(el.playbackRate) || 1);
+      const lookahead = !el.paused ? Math.min(FOLLOW_LOOKAHEAD_MAX_SEC, FOLLOW_LOOKAHEAD_BASE_SEC * rate) : 0;
+      const idx = getMsIdxAtTime(syncTable, (Number(el.currentTime) || 0) + lookahead, -1);
       setCurrentMsIdx((prev) => (prev === idx ? prev : idx));
-      raf = requestAnimationFrame(tick);
+      if (!el.paused || force) raf = requestAnimationFrame(() => tick(false));
+      else raf = null;
     }
-    function onPlay() { if (raf == null) raf = requestAnimationFrame(tick); }
+    function onPlay() { if (raf == null) raf = requestAnimationFrame(() => tick(false)); }
     function onPause() { if (raf != null) { cancelAnimationFrame(raf); raf = null; } }
+    function onSeek() {
+      if (raf != null) cancelAnimationFrame(raf);
+      raf = null;
+      syncScrollWordRef.current = -1;
+      tick(true);
+    }
     el.addEventListener('play', onPlay);
     el.addEventListener('pause', onPause);
-    el.addEventListener('seeked', tick);
+    el.addEventListener('seeking', onSeek);
+    el.addEventListener('seeked', onSeek);
+    el.addEventListener('timeupdate', onSeek);
     onPlay();
     return () => {
       el.removeEventListener('play', onPlay);
       el.removeEventListener('pause', onPause);
-      el.removeEventListener('seeked', tick);
+      el.removeEventListener('seeking', onSeek);
+      el.removeEventListener('seeked', onSeek);
+      el.removeEventListener('timeupdate', onSeek);
       if (raf != null) cancelAnimationFrame(raf);
     };
   }, [syncTable, audioUrl, useWhisperSync]);
+  useEffect(() => {
+    if (!followText || !useWhisperSync || currentMsIdx < 0) return;
+    if (syncScrollWordRef.current === currentMsIdx) return;
+    syncScrollWordRef.current = currentMsIdx;
+    const target = getChapterReaderWordEl(currentMsIdx);
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [currentMsIdx, followText, useWhisperSync]);
 
   // Selection state
   const [selectedRange, setSelectedRange] = useState(null);    // { start, end } (word indices, inclusive)
@@ -1690,13 +1841,18 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
 
       {/* Bottom annotation dock — Marie wanted the list at the BOTTOM,
           not in a right-hand sidebar. Chips scroll horizontally so a
-          chapter with lots of annotations still fits in a single row. */}
+          chapter with lots of annotations still fits in a single row.
+          Marie 2026-05-26: when audio is attached, stack ABOVE the
+          AudioDock (which is also fixed at bottom) — otherwise this
+          strip was hiding AudioDock's Speed slider, Jump chips, T
+          toggle, and Follow-text button. They were rendering but
+          covered. AudioDock is ~120px tall when fully rendered. */}
       <div
         style={{
           position: 'fixed',
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: audioUrl ? 120 : 0,
           background: 'rgba(255,255,255,0.96)',
           borderTop: '1px solid var(--border-light)',
           backdropFilter: 'blur(10px)',

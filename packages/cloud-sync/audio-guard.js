@@ -31,6 +31,19 @@ const AUDIO_FILENAME_KEYS = new Set([
 
 const AUDIO_EXT_RE = /\.(mp3|m4a|m4b|wav|flac|opus|ogg|aac)(\?|$)/i;
 
+function normalizeAudioName(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function cloudSafeWhisperAudioKey(value) {
+  if (typeof value !== 'string') return value;
+  if (!value.startsWith('path:')) return value;
+  const storedPath = value.slice('path:'.length);
+  const fileName = storedPath.replace(/^.*[\\/]/, '');
+  const normalizedName = normalizeAudioName(fileName);
+  return normalizedName ? `name:${normalizedName}` : '';
+}
+
 function looksLikeAudioPath(value) {
   if (typeof value !== 'string') return false;
   if (!AUDIO_EXT_RE.test(value)) return false;
@@ -54,6 +67,12 @@ export function stripAudioPaths(value) {
   const next = {};
   for (const [k, v] of Object.entries(value)) {
     if (AUDIO_PATH_KEYS.has(k)) continue;
+    if (k === 'whisperAudioKey') {
+      // Preserve a comparable key for pull/login checks without sending
+      // local audio paths to Supabase.
+      next[k] = cloudSafeWhisperAudioKey(v);
+      continue;
+    }
     if (AUDIO_FILENAME_KEYS.has(k)) {
       // Keep just the base name (no path separators).
       next[k] = typeof v === 'string' ? v.replace(/^.*[\\/]/, '') : v;

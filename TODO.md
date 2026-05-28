@@ -12,7 +12,171 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
-### 🔥 BLOCKER — Page-number architecture rebuild (slim word-index → page map)
+### Current priority order — cleaned 2026-05-27
+
+- [x] **Proof + Quill transcription sync real-file check.** Marie
+      confirmed Proof sync looks good after re-transcribing, Quill jump
+      / follow works after the word-count fix, and phone receives the
+      transcription. Keep watching for new real-file failures, but this
+      is no longer a live blocker. — completed 2026-05-27
+- [x] **Phone Quill Back navigation.** Marie re-tested the Quill phone
+      Back fix and said it seems fixed. — completed 2026-05-27
+- [x] **Phone → desktop Quill annotation round-trip.** Marie added an
+      annotation on the phone and saw it on desktop. Add/edit/delete on
+      phone is useful polish, not a blocker for adding annotations. —
+      completed 2026-05-27
+- [x] **Desktop Proof flag save safety.** Desktop flag adds/deletes now
+      use the same single-row cloud queue as phone flags, so a flag can
+      survive cloud weirdness and retry later instead of depending only
+      on the whole-book save. — completed 2026-05-27
+- [x] **Phone pending flag backup download.** When phone flags are
+      waiting to sync, the book view now offers a CSV backup download
+      next to Retry. — completed 2026-05-27
+- [x] **Use Quill content hashes on pull.** `quill_chapters.content_hash`
+      and `quill_annotations.content_hash` are now selected from
+      Supabase and kept on pulled chapters/annotations. — completed
+      2026-05-27
+- [ ] **RLS / Supabase public-release check.** Verify the six StJohn
+      Supabase tables in the dashboard still have owner-only policies.
+      Important before public release; not blocking Marie's private use
+      tonight.
+- [ ] **Big-book cloud payload measurement.** Measure one fully
+      transcribed large real book so we know Supabase uploads stay small
+      and do not timeout. Plain meaning: check the cloud package is not
+      too heavy for a giant book.
+- [ ] **Quill home load-speed real check.** The code now has the light
+      project-list index. Marie should test switching into Quill on her
+      large project after the next saved write.
+- [ ] **Phone Quill edit/delete annotations.** Useful polish. Adding
+      annotations works and round-trips; editing/deleting from phone is
+      still missing.
+- [ ] **Prep visual polish pass.** Lower priority than data safety, but
+      Prep needs a cleaner look before release.
+- [ ] **Final packaging trigger.** After safety fixes + tests + visual
+      pass are done, rebuild Mac and Windows packages and redeploy the
+      phone app if phone code changed.
+      Progress 2026-05-27: phone app redeployed after the pending-flag
+      backup-download patch. Mac/Windows packages still wait until the
+      next desktop package pass.
+      Progress 2026-05-27: Mac app rebuilt after desktop flag-save
+      safety patch. Windows still waits until final package pass.
+
+---
+
+### ✅ RESOLVED — Restore transcription sync accuracy
+
+Proof and Quill follow-text / jump-to-word must use real word timestamp
+anchors, not token fragments or estimated word speed. Current evidence:
+native whisper.cpp JSON token output is being stored as split pieces
+(`v` + `ex`, `eb` + `ony`, `don` + `'` + `t`) in saved transcription
+data, which can make jump/follow drift. Fix parser, re-transcribe a real
+chapter, then verify: jump to random words at start/middle/end lands
+within 1–2 words and follow text does not drift over time at 1x, 1.5x,
+2x, and 3x.
+
+Progress 2026-05-27: attempted word-merge parsing made some separate
+words join together (`faceplease`), so native Whisper parsing was
+returned to the proven Script and Sync 3.0 token style. Next verification
+must focus on reader seek/follow behavior and real-file alignment, not
+assume the parser alone fixed sync.
+
+Progress 2026-05-27: confirmed Quill drift came from a word-count
+mismatch. Quill reader/annotations counted regex words, but Quill
+transcription through shared book detail counted whitespace words
+(Chapter 4 example: 1,635 visible reader words vs 1,581 aligned words).
+Patch now keeps Quill transcription on Quill reader word counting and
+keeps Proof on Script and Sync whitespace counting.
+
+Progress 2026-05-27: Marie re-tested the packaged Mac app after
+re-transcribing and confirmed Quill jumping/transcription sync now works
+on her real file. Keep Proof verification separate before closing this
+blocker completely.
+
+Progress 2026-05-27 overnight: added a desktop **Clear T** control on
+transcribed chapters. It clears saved transcription/sync timing while
+leaving audio, flags, and Quill annotations alone, so a failed/stale
+re-transcribe can start from a clean state. Packaged into the Mac app.
+
+Progress 2026-05-27: Marie confirmed Proof transcription sync looks
+good on her real file after re-transcribing. Do not keep listing Proof
+sync as untested unless a new real-file failure appears.
+
+Progress 2026-05-27: moved transcription clearing out of each chapter
+row because it broke the chapter-list layout. The list now has a compact
+top-row `×` beside Transcribe all to clear saved transcriptions in bulk.
+
+### 🟡 CHECK — Quill home must not wait for full transcription payload
+
+Switching from Proof to Quill should show the project list immediately.
+Current Quill save data is large because chapter transcript/alignment
+data is stored inside the project file. The home screen only needs
+project id/title/counts/timestamps, so split or lazy-load heavy chapter
+transcription payloads after the list renders.
+
+Progress 2026-05-27: Electron now exposes a lightweight Quill project
+list and loads the full Quill project only when the project is opened.
+Needs packaged-app timing check on Marie's large project before this can
+be marked complete.
+
+Progress 2026-05-27 overnight: Mac app was rebuilt with the lazy Quill
+list path still passing build/package checks. Still needs Marie's timing
+check on her large project before marking complete.
+
+Progress 2026-05-27: found the remaining slow path. The renderer asked
+for a light Quill project list, but Electron still parsed the full
+transcription-heavy Quill JSON to create that list. Added a tiny
+`quill-project-list.json` index so the project list can load without
+parsing the full save file after the next write.
+
+### 🟡 CHECK — Phone Proof + Quill companion parity
+
+Phone app goal: pull the cloud project data, keep audio local on the
+phone, match audio by synced filenames, save Proof flags / Quill
+annotations with useful metadata, and export CSV from the phone.
+
+Progress 2026-05-27: inspected `app/phone/page.js`. Proof phone already
+has book-level audio folder picking, filename matching, player speed
+controls, sync highlight, flag metadata fields, pending flag queue, and
+CSV export. Patched Quill phone to add project-level audio folder
+picking, chapter filename matching, the shared phone player/speed/sync
+dock, annotation timestamps from transcription/current audio time, and
+Audio File in the Quill CSV export. Needs Marie's real-phone test after
+deploy.
+
+Progress 2026-05-27: added `.vercelignore` because the first deploy
+attempt tried to upload desktop release/data folders. Production deploy
+then succeeded and aliased to `https://stjohn-author-studio-4.vercel.app`.
+
+Progress 2026-05-27: fixed Quill phone Back navigation. The
+last-opened-chapter restore effect was immediately reopening the reader
+after Back set the chapter to null, causing a flicker and trapping Marie
+in the reader. Deployed the fix to production.
+
+Progress 2026-05-27: Marie confirmed transcription ports to phone, but
+the Quill annotation popup was missing desktop metadata controls and the
+reader still prompted for one audio file. Patched Quill phone popup to
+mirror the desktop metadata controls: annotation type, subtype dropdown,
+custom emotion, attach characters, custom character, and note. Quill
+reader no-audio state now tells Marie to return to the chapter list for
+the audio folder instead of asking for a single chapter file. Deployed
+to production.
+
+Progress 2026-05-27 overnight: added phone chapter-list transcription
+status. Quill chapters now show a separate `✓ Transcribed` pill when
+usable synced alignment exists. Proof chapters show `✓ Transcribed`
+when all sections have usable alignment, or `Part transcribed X/Y` when
+only some sections are synced.
+
+Progress 2026-05-27: Marie confirmed phone-to-desktop data looked good
+for the tested flags/annotations. Patched Quill phone navigation again:
+removed automatic last-chapter restore so Back reliably returns to the
+chapter list instead of flickering back into the reader. Added a copy
+button to the phone Proof flag popup that copies a tab-separated row.
+
+Progress 2026-05-27: Marie tested the Quill phone Back fix and confirmed
+it seems fixed. Do not keep this listed as urgent unless it reappears.
+
+### ✅ RESOLVED / STALE PLAN — Page-number architecture rebuild
 
 **Why this is the blocker.** Page numbers are the primary value of the
 app. The current architecture stores the full text of every PDF page
@@ -85,6 +249,11 @@ page lookup is a single array lookup. No quote searching anywhere.
 - PDF is desktop-only. Never uploaded to Supabase. Never sent to phone.
 - Quill: no PDF, no pdfPageMap, no page numbers anywhere. (Already true.)
 
+Progress 2026-05-27 overnight: Marie said page numbers were already
+fixed. This old blocker is left in place until a focused cleanup pass
+compares the TODO text against the current code and archives the stale
+plan safely.
+
 ---
 
 ### 🔴 CLOUD SAFETY AUDIT FINDINGS — fix list (from independent audit 2026-05-26)
@@ -96,7 +265,7 @@ call each.
 
 #### ❌ Bugs (fix before release)
 
-- [ ] **Sign-out leaves previous user's data in desktop `books` state.**
+- [x] **Sign-out leaves previous user's data in desktop `books` state.**
       `handleSignOut` in `app/page.js:553-558` only clears
       `authSession`, not `books`. Next user signing in sees the
       previous user's books briefly, AND the debounced push at
@@ -105,7 +274,7 @@ call each.
       clear all cloudId-bearing state on sign-out, OR unmount the
       books-owning component when `authSession` is null.
 
-- [ ] **Quill chapter `alignment` is pushed but never pulled.**
+- [x] **Quill chapter `alignment` is pushed but never pulled.**
       `quill-sync.js:71` writes `alignment` into `quill_chapters`,
       but `quill-sync.js:154` SELECT omits it AND `slimProjectForCloud`
       strips it from the blob. After any push-then-pull round-trip,
@@ -113,7 +282,7 @@ call each.
       audio-to-word sync. Fix: add `alignment` to the SELECT, OR stop
       writing it (decide if Quill audio alignment is still a feature).
 
-- [ ] **Tombstone permanent-ghost: `clearTombstone` is exported but
+- [x] **Tombstone permanent-ghost: `clearTombstone` is exported but
       never called.** If Marie deletes a project and re-imports/re-creates
       one with the same local id, the tombstone permanently hides it
       AND the retry-delete keeps killing the cloud row on every pull.
@@ -121,7 +290,7 @@ call each.
       project-import flows in both `app/page.js` (Proof) and
       `app/components/QuillAndInkMode.js` (Quill).
 
-- [ ] **Race between full-book push and single-flag push.** Full-book
+- [x] **Race between full-book push and single-flag push.** Full-book
       push deletes-then-inserts all flags (`proof-sync.js:117-122`).
       If a single-flag upsert lands between the delete and the insert
       on another device, that flag is wiped. Fix: change full-book
@@ -130,30 +299,35 @@ call each.
 
 #### ⚠ Risks (decide and fix or accept)
 
-- [ ] **Audio-extension list drift.** CLAUDE.md lists 6 extensions;
+- [x] **Audio-extension list drift.** CLAUDE.md lists 6 extensions;
       `audio-guard.js:32` regex covers 8 (adds `.ogg`, `.aac`).
       Reconcile to one source of truth. Low risk for Marie.
-- [ ] **Flag-queue has no cap / no backoff.** Permanent server-side
+- [x] **Flag-queue has no cap / no backoff.** Permanent server-side
       failure = perpetual pending banner. Add max-retry-count or
       exponential backoff.
-- [ ] **Desktop has no per-flag offline queue.** Only the full-book
+- [x] **Desktop has no per-flag offline queue.** Only the full-book
       debounced push. If Marie saves a flag and closes the laptop
       within 1200ms before push fires, the flag may not survive.
       Decide: wire `recordPendingFlag` into desktop save, OR document
       this as "always wait 2s before quitting after saving."
-- [ ] **`lastPushHashByCloudId` survives sign-out** (Map at module
+      Fixed 2026-05-27: desktop flag saves/deletes now write to the
+      local retry queue and immediately attempt single-row cloud
+      upsert/delete.
+- [x] **`lastPushHashByCloudId` survives sign-out** (Map at module
       scope). Theoretical collision risk across users. Add
       `clearHashCache()` to sign-out.
-- [ ] **`quill_chapters.content_hash` and `quill_annotations.content_hash`
+- [x] **`quill_chapters.content_hash` and `quill_annotations.content_hash`
       written but never read.** Dead columns. Drop or use.
+      Fixed 2026-05-27: pull now selects both hashes and keeps them on
+      returned chapters/annotations as `contentHash`.
 - [ ] **`pullProofProjects` / `pullQuillProjects` don't pass ownerId
       — trust RLS.** Verify RLS policies on the 6 tables in the
       Supabase dashboard; if any are missing, every signed-in user
       sees every other user's projects.
-- [ ] **Tombstone retry-delete has no rate limit.** Re-issues on
+- [x] **Tombstone retry-delete has no rate limit.** Re-issues on
       every pull until the cloud row is gone. Add a per-session
       attempt cap.
-- [ ] **Local-id-in-NOT-IN-string injection theoretical.** `local_id`
+- [x] **Local-id-in-NOT-IN-string injection theoretical.** `local_id`
       values are UUIDs so safe today; defensive fix is `.not('local_id',
       'in', \`(${ids.map(...).join(',')})\`)` validation.
 
@@ -164,6 +338,11 @@ call each.
 - [ ] Behavior under concurrent full-book + single-flag push — stress test.
 - [ ] RLS policies on the 6 Supabase tables — check the dashboard.
 - [ ] Hidden flag queue in `app/page.js` / `SessionsView.js` — re-grep.
+
+Progress 2026-05-27 overnight: cleanup pass patched the low-risk safety
+items above: flag queue retry backoff/cap, tombstone retry-delete cap,
+Quill NOT-IN quoting, and source-doc audio extension drift. Items that
+need live dashboard/two-device verification remain unchecked.
 
 ---
 
@@ -209,6 +388,11 @@ context until the final-round walkthrough closes.
       layout. Eyes-on check: are character styles created? Are
       highlights underlined? Marie is the only one who can verify
       "right" for her print workflow.
+      Progress 2026-05-27: generated an isolated InDesign test pack at
+      `docs/dev/active/indesign-export-test-pack/artifacts/` using the
+      real Quill exporter (`buildInDesignJsx`) plus a 4-page DOCX.
+      This is a safe first test, not a replacement for Marie's real
+      layout check.
 - [ ] **Test the phone scaffold.** Browser to `http://localhost:3000/phone`
       while `npm run dev` is running. Sign in with the same account.
       Quill project from the desktop should appear. Open a chapter,

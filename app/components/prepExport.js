@@ -536,10 +536,11 @@ async function buildOriginalPlusHighlights(project) {
   const charsById = new Map(characters.map((c) => [c.id, c]));
   const assignments = [];
   const comments = [];
-  let nextCommentId = 0;
+  let nextCommentId = await nextCommentIdFromZip(zip);
   (project.chapters || []).forEach((ch) => {
     (ch.sections || []).forEach((sec) => {
-      (sec.dialogueSpans || []).forEach((sp) => {
+      const spanContexts = buildDialogueSpanContexts(sec);
+      (sec.dialogueSpans || []).forEach((sp, spanIndex) => {
         if (!sp.characterId || !sp.text) return;
         const char = charsById.get(sp.characterId);
         if (!char) return;
@@ -552,17 +553,26 @@ async function buildOriginalPlusHighlights(project) {
           commentId = nextCommentId++;
           comments.push({ id: commentId, lines: formatSideVoiceCommentLines(char, sv) });
         }
-        assignments.push({ text: sp.text, color: exportColorFor(char, sv), commentId });
+        assignments.push({
+          text: sp.text,
+          color: exportColorFor(char, sv),
+          commentId,
+          context: spanContexts[spanIndex] || null,
+        });
       });
     });
   });
 
   documentXml = applyHighlightsInPlace(documentXml, assignments);
+  const anchoredCommentIds = new Set(
+    Array.from(documentXml.matchAll(/<w:commentRangeStart w:id="(\d+)"\/>/g)).map((m) => m[1])
+  );
+  const anchoredComments = comments.filter((c) => anchoredCommentIds.has(String(c.id)));
 
   zip.file('word/document.xml', documentXml);
 
-  if (comments.length > 0) {
-    await attachCommentsPart(zip, comments);
+  if (anchoredComments.length > 0) {
+    await attachCommentsPart(zip, anchoredComments);
   }
   return zip.generateAsync({
     type: 'blob',
@@ -588,6 +598,23 @@ function formatSideVoiceCommentLines(char, sv) {
 // Add a word/comments.xml part to the .docx zip and wire it into the
 // content-types + document relationships. Word needs all three pieces
 // or it ignores the comments entirely.
+async function nextCommentIdFromZip(zip) {
+  let maxId = -1;
+  async function scanZipFile(name) {
+    const file = zip.file(name);
+    if (!file) return;
+    const text = await file.async('string');
+    const re = /w:id=["'](\d+)["']/g;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      maxId = Math.max(maxId, Number(match[1]));
+    }
+  }
+  await scanZipFile('word/comments.xml');
+  await scanZipFile('word/document.xml');
+  return maxId + 1;
+}
+
 async function attachCommentsPart(zip, comments) {
   const author = 'StJohn Studio';
   const initials = 'SS';
@@ -605,12 +632,21 @@ async function attachCommentsPart(zip, comments) {
       `</w:comment>`
     );
   }).join('');
-  // Include the Markup-Compatibility + w14 namespaces Word emits in
-  // its own comments.xml. Without these, Word repair flags the file
-  // as "unreadable" and shows a dialog before opening — even though
-  // the comments still render once accepted.
-  const commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  const existingCommentsFile = zip.file('word/comments.xml');
+  let commentsXml = '';
+  if (existingCommentsFile) {
+    const existing = await existingCommentsFile.async('string');
+    commentsXml = existing.includes('</w:comments>')
+      ? existing.replace('</w:comments>', `${items}</w:comments>`)
+      : existing + items;
+  } else {
+    // Include the Markup-Compatibility + w14 namespaces Word emits in
+    // its own comments.xml. Without these, Word repair flags the file
+    // as "unreadable" and shows a dialog before opening — even though
+    // the comments still render once accepted.
+    commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" mc:Ignorable="w14">${items}</w:comments>`;
+  }
   zip.file('word/comments.xml', commentsXml);
 
   // Content types: declare the comments part if not already there.
@@ -740,6 +776,62 @@ function decodeXmlText(s = '') {
   );
 }
 
+function normalizeMatchWords(value = '') {
+  return decodeXmlText(value)
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[^a-z0-9']+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function commonPrefixCount(left = [], right = []) {
+  const len = Math.min(left.length, right.length);
+  let count = 0;
+  while (count < len && left[count] === right[count]) count += 1;
+  return count;
+}
+
+function commonSuffixCount(left = [], right = []) {
+  const len = Math.min(left.length, right.length);
+  let count = 0;
+  while (count < len && left[left.length - 1 - count] === right[right.length - 1 - count]) count += 1;
+  return count;
+}
+
+function buildDialogueSpanContexts(section = {}) {
+  const spans = Array.isArray(section.dialogueSpans) ? section.dialogueSpans : [];
+  const sectionText = paragraphsFromHtml(section.html || '').map((block) => block.text).join('\n');
+  if (!sectionText || !spans.length) return [];
+
+  const contexts = [];
+  let cursor = 0;
+  for (const span of spans) {
+    const needle = String(span?.text || '');
+    if (!needle) {
+      contexts.push(null);
+      continue;
+    }
+    let index = sectionText.indexOf(needle, cursor);
+    if (index === -1) index = sectionText.indexOf(needle);
+    if (index === -1) {
+      contexts.push({
+        before: '',
+        after: span?.afterText || '',
+      });
+      continue;
+    }
+    contexts.push({
+      before: sectionText.slice(Math.max(0, index - 180), index),
+      after: sectionText.slice(index + needle.length, index + needle.length + 220),
+    });
+    cursor = index + needle.length;
+  }
+  return contexts;
+}
+
 function base64ToUint8(b64) {
   const binary = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
   const out = new Uint8Array(binary.length);
@@ -749,6 +841,72 @@ function base64ToUint8(b64) {
 
 function escapeForRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function findTextIndexes(haystack, needle) {
+  const indexes = [];
+  if (!haystack || !needle) return indexes;
+  let start = 0;
+  let index = haystack.indexOf(needle, start);
+  while (index !== -1) {
+    indexes.push(index);
+    start = index + Math.max(1, needle.length);
+    index = haystack.indexOf(needle, start);
+  }
+  return indexes;
+}
+
+function collectHighlightCandidates(out, re, xmlDialogue, cursor) {
+  const candidates = [];
+  re.lastIndex = cursor;
+  let match;
+  while ((match = re.exec(out)) !== null) {
+    const [fullMatch, rPr = '', wtAttrs = '', wtText = ''] = match;
+    const indexes = findTextIndexes(wtText, xmlDialogue);
+    indexes.forEach((occurrenceOffset) => {
+      candidates.push({
+        fullMatch,
+        rPr,
+        wtAttrs,
+        wtText,
+        occurrenceOffset,
+        xmlIndex: match.index,
+      });
+    });
+    if (match[0].length === 0) re.lastIndex += 1;
+  }
+  return candidates;
+}
+
+function scoreContextCandidate(candidate, assignment) {
+  const context = assignment?.context || {};
+  const beforeNeedle = normalizeMatchWords(context.before || '').slice(-7);
+  const afterNeedle = normalizeMatchWords(context.after || '').slice(0, 10);
+  if (!beforeNeedle.length && !afterNeedle.length) return 0;
+
+  const beforeCandidate = normalizeMatchWords(candidate.wtText.slice(0, candidate.occurrenceOffset)).slice(-10);
+  const afterCandidate = normalizeMatchWords(candidate.wtText.slice(candidate.occurrenceOffset + xml(assignment.text).length)).slice(0, 12);
+
+  return (commonSuffixCount(beforeCandidate, beforeNeedle) * 2)
+    + (commonPrefixCount(afterCandidate, afterNeedle) * 3);
+}
+
+function chooseContextCandidate(candidates, assignment) {
+  if (candidates.length <= 1) return candidates[0] || null;
+  let best = null;
+  let bestScore = 0;
+  let tied = false;
+  for (const candidate of candidates) {
+    const score = scoreContextCandidate(candidate, assignment);
+    if (score > bestScore) {
+      best = candidate;
+      bestScore = score;
+      tied = false;
+    } else if (score === bestScore && score > 0) {
+      tied = true;
+    }
+  }
+  return best && !tied ? best : null;
 }
 
 // For each assignment, find <w:r>[rPr]<w:t…>…DIALOGUE…</w:t></w:r>
@@ -771,6 +929,7 @@ function applyHighlightsInPlace(docXml, assignments) {
   // whitespace or `>`.
   const rPrInner = '(?:(?!<\\/?w:r[\\s>])[\\s\\S])*?';
   let out = docXml;
+  let cursor = 0;
   for (const a of assignments) {
     const xmlDialogue = xml(a.text);
     const fill = String(a.color || '').replace('#', '').toUpperCase();
@@ -779,40 +938,45 @@ function applyHighlightsInPlace(docXml, assignments) {
       '<w:r\\b[^>]*>(\\s*<w:rPr>' + rPrInner + '<\\/w:rPr>)?\\s*<w:t([^>]*)>([^<]*?' + escapeForRegex(xmlDialogue) + '[^<]*?)</w:t>\\s*</w:r>',
       'g'
     );
-    out = out.replace(re, (match, rPr = '', wtAttrs = '', wtText = '') => {
-      const idx = wtText.indexOf(xmlDialogue);
-      if (idx === -1) return match;
-      const before = wtText.slice(0, idx);
-      const after = wtText.slice(idx + xmlDialogue.length);
-      const baseRPr = rPr || '';
-      const shadedRPr = baseRPr
-        ? baseRPr.replace('</w:rPr>', `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`)
-        : `<w:rPr><w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`;
-      const beforeRun = before
-        ? `<w:r>${baseRPr}<w:t xml:space="preserve">${before}</w:t></w:r>`
-        : '';
-      // If this dialogue has a side-voice comment, wrap the shaded run
-      // with comment-range markers and emit the comment-reference run
-      // right after. Word needs the range start + range end + the
-      // reference run all three present for the comment to show.
-      const hasComment = a.commentId != null;
-      const cStart = hasComment ? `<w:commentRangeStart w:id="${a.commentId}"/>` : '';
-      // Drop the <w:rStyle w:val="CommentReference"/> — user docs
-      // typically don't define that style and Word's repair dialog
-      // flags the file as "unreadable" before opening. The reference
-      // run renders fine without it.
-      const cEnd = hasComment
-        ? `<w:commentRangeEnd w:id="${a.commentId}"/><w:r><w:commentReference w:id="${a.commentId}"/></w:r>`
-        : '';
-      const dialogueRun =
-        cStart +
-        `<w:r>${shadedRPr}<w:t xml:space="preserve">${xmlDialogue}</w:t></w:r>` +
-        cEnd;
-      const afterRun = after
-        ? `<w:r>${baseRPr}<w:t xml:space="preserve">${after}</w:t></w:r>`
-        : '';
-      return beforeRun + dialogueRun + afterRun;
-    });
+    const candidates = collectHighlightCandidates(out, re, xmlDialogue, cursor);
+    if (!candidates.length) continue;
+    const chosen = candidates.length > 1
+      ? (chooseContextCandidate(candidates, a) || candidates[0])
+      : candidates[0];
+    const { fullMatch, rPr = '', wtText = '', occurrenceOffset: idx, xmlIndex } = chosen;
+    if (idx === -1) continue;
+    const before = wtText.slice(0, idx);
+    const after = wtText.slice(idx + xmlDialogue.length);
+    const baseRPr = rPr || '';
+    const shadedRPr = baseRPr
+      ? baseRPr.replace('</w:rPr>', `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`)
+      : `<w:rPr><w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:rPr>`;
+    const beforeRun = before
+      ? `<w:r>${baseRPr}<w:t xml:space="preserve">${before}</w:t></w:r>`
+      : '';
+    // If this dialogue has a side-voice comment, wrap the shaded run
+    // with comment-range markers and emit the comment-reference run
+    // right after. Word needs the range start + range end + the
+    // reference run all three present for the comment to show.
+    const hasComment = a.commentId != null;
+    const cStart = hasComment ? `<w:commentRangeStart w:id="${a.commentId}"/>` : '';
+    // Drop the <w:rStyle w:val="CommentReference"/> — user docs
+    // typically don't define that style and Word's repair dialog
+    // flags the file as "unreadable" before opening. The reference
+    // run renders fine without it.
+    const cEnd = hasComment
+      ? `<w:commentRangeEnd w:id="${a.commentId}"/><w:r><w:commentReference w:id="${a.commentId}"/></w:r>`
+      : '';
+    const dialogueRun =
+      cStart +
+      `<w:r>${shadedRPr}<w:t xml:space="preserve">${xmlDialogue}</w:t></w:r>` +
+      cEnd;
+    const afterRun = after
+      ? `<w:r>${baseRPr}<w:t xml:space="preserve">${after}</w:t></w:r>`
+      : '';
+    const replacement = beforeRun + dialogueRun + afterRun;
+    out = out.slice(0, xmlIndex) + replacement + out.slice(xmlIndex + fullMatch.length);
+    cursor = xmlIndex + beforeRun.length + dialogueRun.length;
   }
   return out;
 }

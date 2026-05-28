@@ -1,0 +1,170 @@
+{
+  "id": "indesign-export-test-project",
+  "title": "Quill & Ink InDesign Export Test",
+  "chapters": [
+    {
+      "id": "ch-1",
+      "chapterNumber": 1,
+      "title": "Chapter 1: The Lantern Door",
+      "audioFileName": "01_lantern_door.mp3",
+      "paragraphs": [
+        "Mara found the lantern door after the last bell, when the house had gone quiet and even the rain seemed to be listening. A silver thread caught in the hem of the night, bright enough to lead her across the landing without touching the floorboards.",
+        "The door had not been there in the afternoon. It stood between the linen cupboard and the cracked mirror, narrow as a promise and warm around the brass keyhole. Mara swallowed the answer before it could burn, then placed one palm against the wood.",
+        "On the other side, someone laughed once, softly. The sound was not kind, but it was not cruel either. It was the sound of a person who had been waiting a very long time and had almost forgotten how waiting ended."
+      ],
+      "textHtml": "<h1>Chapter 1: The Lantern Door</h1>\n<p>Mara found the lantern door after the last bell, when the house had gone quiet and even the rain seemed to be listening. A silver thread caught in the hem of the night, bright enough to lead her across the landing without touching the floorboards.</p>\n<p>The door had not been there in the afternoon. It stood between the linen cupboard and the cracked mirror, narrow as a promise and warm around the brass keyhole. Mara swallowed the answer before it could burn, then placed one palm against the wood.</p>\n<p>On the other side, someone laughed once, softly. The sound was not kind, but it was not cruel either. It was the sound of a person who had been waiting a very long time and had almost forgotten how waiting ended.</p>",
+      "plainText": "Chapter 1: The Lantern Door Mara found the lantern door after the last bell, when the house had gone quiet and even the rain seemed to be listening. A silver thread caught in the hem of the night, bright enough to lead her across the landing without touching the floorboards. The door had not been there in the afternoon. It stood between the linen cupboard and the cracked mirror, narrow as a promise and warm around the brass keyhole. Mara swallowed the answer before it could burn, then placed one palm against the wood. On the other side, someone laughed once, softly. The sound was not kind, but it was not cruel either. It was the sound of a person who had been waiting a very long time and had almost forgotten how waiting ended."
+    },
+    {
+      "id": "ch-2",
+      "chapterNumber": 2,
+      "title": "Chapter 2: Brass Wings",
+      "audioFileName": "02_brass_wings.mp3",
+      "paragraphs": [
+        "Cassian drew the map in ash while the others argued over the safest road. He did not look up when the clockwork moth opened its brass wings on the table and scattered dust across the ink.",
+        "Every wingbeat made the compass needle turn. North became west, west became down, and down became a staircase no one could see until the moth settled on Mara’s sleeve.",
+        "The room held its breath. Cassian smiled without meaning to, and that was how Mara knew the map was telling the truth."
+      ],
+      "textHtml": "<h1>Chapter 2: Brass Wings</h1>\n<p>Cassian drew the map in ash while the others argued over the safest road. He did not look up when the clockwork moth opened its brass wings on the table and scattered dust across the ink.</p>\n<p>Every wingbeat made the compass needle turn. North became west, west became down, and down became a staircase no one could see until the moth settled on Mara’s sleeve.</p>\n<p>The room held its breath. Cassian smiled without meaning to, and that was how Mara knew the map was telling the truth.</p>",
+      "plainText": "Chapter 2: Brass Wings Cassian drew the map in ash while the others argued over the safest road. He did not look up when the clockwork moth opened its brass wings on the table and scattered dust across the ink. Every wingbeat made the compass needle turn. North became west, west became down, and down became a staircase no one could see until the moth settled on Mara’s sleeve. The room held its breath. Cassian smiled without meaning to, and that was how Mara knew the map was telling the truth."
+    },
+    {
+      "id": "ch-3",
+      "chapterNumber": 3,
+      "title": "Chapter 3: Below the Glass City",
+      "audioFileName": "03_glass_city.mp3",
+      "paragraphs": [
+        "They reached the balcony just before dawn. Far beneath the rail, the city unfolded below them like a book of lanterns, every street turned gold by windows waking one by one.",
+        "Mara wanted to hate its beauty. She wanted the city to look like the trap it was, all teeth and shadow, but the morning softened every edge until even the towers seemed sorry.",
+        "Cassian handed her the moth and said nothing. Its tiny feet clicked against her glove, patient as a metronome."
+      ],
+      "textHtml": "<h1>Chapter 3: Below the Glass City</h1>\n<p>They reached the balcony just before dawn. Far beneath the rail, the city unfolded below them like a book of lanterns, every street turned gold by windows waking one by one.</p>\n<p>Mara wanted to hate its beauty. She wanted the city to look like the trap it was, all teeth and shadow, but the morning softened every edge until even the towers seemed sorry.</p>\n<p>Cassian handed her the moth and said nothing. Its tiny feet clicked against her glove, patient as a metronome.</p>",
+      "plainText": "Chapter 3: Below the Glass City They reached the balcony just before dawn. Far beneath the rail, the city unfolded below them like a book of lanterns, every street turned gold by windows waking one by one. Mara wanted to hate its beauty. She wanted the city to look like the trap it was, all teeth and shadow, but the morning softened every edge until even the towers seemed sorry. Cassian handed her the moth and said nothing. Its tiny feet clicked against her glove, patient as a metronome."
+    },
+    {
+      "id": "ch-4",
+      "chapterNumber": 4,
+      "title": "Chapter 4: The Margin Note",
+      "audioFileName": "04_margin_note.mp3",
+      "paragraphs": [
+        "The old printer kept a blue pencil behind his ear and a knife under the counter. He read the letter twice before asking who had taught Mara to hide a warning in a wedding invitation.",
+        "She told him no one had taught her. That was almost true. Grief had taught her the alphabet, fear had taught her speed, and love had taught her where to leave the door open.",
+        "When the printer finally nodded, the moth clicked once and folded itself flat against the page."
+      ],
+      "textHtml": "<h1>Chapter 4: The Margin Note</h1>\n<p>The old printer kept a blue pencil behind his ear and a knife under the counter. He read the letter twice before asking who had taught Mara to hide a warning in a wedding invitation.</p>\n<p>She told him no one had taught her. That was almost true. Grief had taught her the alphabet, fear had taught her speed, and love had taught her where to leave the door open.</p>\n<p>When the printer finally nodded, the moth clicked once and folded itself flat against the page.</p>",
+      "plainText": "Chapter 4: The Margin Note The old printer kept a blue pencil behind his ear and a knife under the counter. He read the letter twice before asking who had taught Mara to hide a warning in a wedding invitation. She told him no one had taught her. That was almost true. Grief had taught her the alphabet, fear had taught her speed, and love had taught her where to leave the door open. When the printer finally nodded, the moth clicked once and folded itself flat against the page."
+    }
+  ],
+  "annotations": [
+    {
+      "id": "ann-highlight-gold",
+      "sectionId": "ch-1",
+      "sectionTitle": "Chapter 1: The Lantern Door",
+      "chapterNumber": 1,
+      "audioFileName": "01_lantern_door.mp3",
+      "timestamp": 18.24,
+      "wordStart": 29,
+      "wordEnd": 37,
+      "selectedText": "silver thread caught in the hem of the night",
+      "classId": "highlight",
+      "classLabel": "Highlight",
+      "optionId": "highlight-gold",
+      "optionLabel": "Gold underline",
+      "label": "Highlight / Gold underline",
+      "color": "#f2b84b",
+      "note": "Test underline style"
+    },
+    {
+      "id": "ann-character-mara",
+      "sectionId": "ch-1",
+      "sectionTitle": "Chapter 1: The Lantern Door",
+      "chapterNumber": 1,
+      "audioFileName": "01_lantern_door.mp3",
+      "timestamp": 42.7,
+      "wordStart": 79,
+      "wordEnd": 86,
+      "selectedText": "Mara swallowed the answer before it could burn",
+      "classId": "character",
+      "classLabel": "Character",
+      "optionId": "character-mara",
+      "optionLabel": "Mara",
+      "label": "Character / Mara",
+      "color": "#b8d8b8",
+      "markerOnly": true,
+      "note": "Character tag should insert [Mara]"
+    },
+    {
+      "id": "ann-emotion-fear",
+      "sectionId": "ch-1",
+      "sectionTitle": "Chapter 1: The Lantern Door",
+      "chapterNumber": 1,
+      "audioFileName": "01_lantern_door.mp3",
+      "timestamp": 42.7,
+      "wordStart": 79,
+      "wordEnd": 86,
+      "selectedText": "Mara swallowed the answer before it could burn",
+      "classId": "emotion",
+      "classLabel": "Emotion",
+      "optionId": "emotion-fear",
+      "optionLabel": "Fear",
+      "label": "Emotion / Fear",
+      "color": "#cb8aa0",
+      "note": "Emotion should link to Mara when same range is tagged"
+    },
+    {
+      "id": "ann-small-image-moth",
+      "sectionId": "ch-2",
+      "sectionTitle": "Chapter 2: Brass Wings",
+      "chapterNumber": 2,
+      "audioFileName": "02_brass_wings.mp3",
+      "timestamp": 28.12,
+      "wordStart": 24,
+      "wordEnd": 30,
+      "selectedText": "the clockwork moth opened its brass wings",
+      "classId": "image",
+      "classLabel": "Image",
+      "optionId": "image-spot",
+      "optionLabel": "Spot illustration",
+      "label": "Image / Spot illustration",
+      "color": "#d82828",
+      "note": "Tiny brass moth in the margin"
+    },
+    {
+      "id": "ann-character-cassian",
+      "sectionId": "ch-2",
+      "sectionTitle": "Chapter 2: Brass Wings",
+      "chapterNumber": 2,
+      "audioFileName": "02_brass_wings.mp3",
+      "timestamp": 4.5,
+      "wordStart": 4,
+      "wordEnd": 9,
+      "selectedText": "Cassian drew the map in ash",
+      "classId": "character",
+      "classLabel": "Character",
+      "optionId": "character-cassian",
+      "optionLabel": "Cassian",
+      "label": "Character / Cassian",
+      "color": "#b8d8b8",
+      "markerOnly": true,
+      "note": "Character tag should insert [Cassian]"
+    },
+    {
+      "id": "ann-full-spread-city",
+      "sectionId": "ch-3",
+      "sectionTitle": "Chapter 3: Below the Glass City",
+      "chapterNumber": 3,
+      "audioFileName": "03_glass_city.mp3",
+      "timestamp": 11.33,
+      "wordStart": 17,
+      "wordEnd": 26,
+      "selectedText": "the city unfolded below them like a book of lanterns",
+      "classId": "full-page-spread",
+      "classLabel": "Image",
+      "optionId": "image-full-spread",
+      "optionLabel": "Full page spread",
+      "label": "Image / Full page spread",
+      "color": "#d82828",
+      "note": "Wide city lantern spread"
+    }
+  ]
+}

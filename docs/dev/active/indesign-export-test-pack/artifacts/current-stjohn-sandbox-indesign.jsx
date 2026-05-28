@@ -1,83 +1,445 @@
-// CSV + InDesign exporters. Ported from the quill-and-ink alpha at
-// packages/exporters/src/csv/build-csv.js and packages/exporters/src/indesign/build-jsx.js.
-//
-// The InDesign script is what Marie opens in InDesign and runs against
-// the matching layout — it walks the document with GREP search, applies
-// a character style per annotation, and inserts [INSERT IMG] / [name]
-// markers where needed.
-
-import { buildSelectionTextContext, buildWordSpans, htmlToPlainText } from './normalize.js';
-
-export function buildAnnotationsCsv(project) {
-  const chaptersById = new Map((project.chapters || []).map((chapter) => [chapter.id, chapter]));
-  const rows = [
-    ['Project', 'Section', 'Audio File', 'Type', 'Selected Text', 'Timestamp', 'Note'],
-    ...(project.annotations || []).map((annotation) => {
-      const chapter = chaptersById.get(annotation.sectionId) || null;
-      return [
-        project.title || '',
-        annotation.sectionTitle || chapter?.title || project.chapters?.[0]?.title || '',
-        annotation.audioFileName || chapter?.audioFileName || '',
-        annotation.label || '',
-        annotation.selectedText || '',
-        Number.isFinite(annotation.timestamp) ? annotation.timestamp.toFixed(2) : '',
-        annotation.note || '',
-      ];
-    }),
-  ];
-
-  return rows
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    .join('\n');
-}
-
-function scriptString(value) {
-  return JSON.stringify(String(value || ''));
-}
-
-function sourceTextForAnnotation(project, annotation) {
-  const chapters = Array.isArray(project.chapters) ? project.chapters : [];
-  const source = chapters.find((chapter) => chapter.id && chapter.id === annotation.sectionId)
-    || (Number.isFinite(Number(annotation.chapterNumber)) ? chapters[Math.max(0, Number(annotation.chapterNumber) - 1)] : null)
-    || chapters[0]
-    || null;
-  if (!source) return '';
-  return source.plainText || htmlToPlainText(source.textHtml || source.html || '');
-}
-
-function enrichAnnotationContext(project, annotation) {
-  if (annotation?.textContext?.phrase && annotation?.textContext?.target) return annotation;
-  const source = sourceTextForAnnotation(project, annotation);
-  if (!source) return annotation;
-  const textContext = buildSelectionTextContext(
-    source,
-    buildWordSpans(source),
-    annotation.wordStart,
-    annotation.wordEnd ?? annotation.wordStart
-  );
-  return textContext ? { ...annotation, textContext } : annotation;
-}
-
-export function buildInDesignJsx(project) {
-  const annotations = Array.isArray(project.annotations)
-    ? project.annotations.map((annotation) => enrichAnnotationContext(project, annotation))
-    : [];
-  annotations.sort((a, b) => (
-    (Number(a.chapterNumber || 0) - Number(b.chapterNumber || 0))
-    || (Number(a.wordStart || 0) - Number(b.wordStart || 0))
-    || String(a.id || '').localeCompare(String(b.id || ''))
-  ));
-
-  const annotationsJson = JSON.stringify(annotations, null, 2);
-  const projectTitle = scriptString(project.title || 'Untitled');
-
-  return `// Quill and Ink Design Studio InDesign annotation applier
-// Project: ${project.title || 'Untitled'}
+// Quill and Ink Design Studio InDesign annotation applier
+// Project: Current StJohn Quill InDesign Sandbox
 // Open the matching InDesign document, then run this script.
 
 (function () {
-  var projectTitle = ${projectTitle};
-  var lovewornAnnotations = ${annotationsJson};
+  var projectTitle = "Current StJohn Quill InDesign Sandbox";
+  var lovewornAnnotations = [
+  {
+    "id": "01-highlight-pink",
+    "classId": "highlight",
+    "classLabel": "Highlight",
+    "optionId": "highlight",
+    "optionLabel": "",
+    "label": "Highlight",
+    "category": "highlight",
+    "color": "#f0aac0",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 4,
+    "wordEnd": 5,
+    "selectedText": "pink lantern",
+    "textContext": {
+      "before": "StJohn export sandbox: The ",
+      "target": "pink lantern",
+      "after": " waited under the arch. The",
+      "phrase": "StJohn export sandbox: The pink lantern waited under the arch. The",
+      "targetOffset": 27,
+      "selectedWordCount": 2,
+      "beforeWordCount": 4,
+      "afterWordCount": 5
+    },
+    "timestamp": 1.1,
+    "note": "",
+    "createdAt": "2026-05-28T00:03:24.080Z",
+    "updatedAt": "2026-05-28T00:03:24.080Z"
+  },
+  {
+    "id": "02-image-inline",
+    "classId": "image",
+    "classLabel": "Image",
+    "optionId": "image-inline",
+    "optionLabel": "Inline Image",
+    "label": "Image: Inline Image",
+    "category": "image",
+    "color": "#8BB070",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 11,
+    "wordEnd": 12,
+    "selectedText": "inline moth",
+    "textContext": {
+      "before": "waited under the arch. The ",
+      "target": "inline moth",
+      "after": " fluttered beside the glass key",
+      "phrase": "waited under the arch. The inline moth fluttered beside the glass key",
+      "targetOffset": 27,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 2.2,
+    "note": "tiny moth in the margin",
+    "createdAt": "2026-05-28T00:03:24.081Z",
+    "updatedAt": "2026-05-28T00:03:24.081Z"
+  },
+  {
+    "id": "03-image-full-spread",
+    "classId": "image",
+    "classLabel": "Image",
+    "optionId": "image-full-spread",
+    "optionLabel": "Full Spread",
+    "label": "Image: Full Spread",
+    "category": "image",
+    "color": "#8BB070",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 19,
+    "wordEnd": 21,
+    "selectedText": "full spread city",
+    "textContext": {
+      "before": "beside the glass key. The ",
+      "target": "full spread city",
+      "after": " opened under the moon. Mara",
+      "phrase": "beside the glass key. The full spread city opened under the moon. Mara",
+      "targetOffset": 26,
+      "selectedWordCount": 3,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 3.3,
+    "note": "wide city art across the spread",
+    "createdAt": "2026-05-28T00:03:24.081Z",
+    "updatedAt": "2026-05-28T00:03:24.081Z"
+  },
+  {
+    "id": "04-character-mara",
+    "classId": "character",
+    "classLabel": "Character",
+    "optionId": "custom-character-1779926604077-mara",
+    "optionLabel": "Mara",
+    "label": "Character: Mara",
+    "category": "character",
+    "color": "#6d6663",
+    "markerOnly": true,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 26,
+    "wordEnd": 26,
+    "selectedText": "Mara",
+    "textContext": {
+      "before": "city opened under the moon. ",
+      "target": "Mara",
+      "after": " counted three quiet breaths. Cassian",
+      "phrase": "city opened under the moon. Mara counted three quiet breaths. Cassian",
+      "targetOffset": 28,
+      "selectedWordCount": 1,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 4.4,
+    "note": "",
+    "createdAt": "2026-05-28T00:03:24.082Z",
+    "updatedAt": "2026-05-28T00:03:24.082Z"
+  },
+  {
+    "id": "05-character-cassian",
+    "classId": "character",
+    "classLabel": "Character",
+    "optionId": "custom-character-1779926604077-cassian",
+    "optionLabel": "Cassian",
+    "label": "Character: Cassian",
+    "category": "character",
+    "color": "#6d6663",
+    "markerOnly": true,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 31,
+    "wordEnd": 31,
+    "selectedText": "Cassian",
+    "textContext": {
+      "before": "Mara counted three quiet breaths. ",
+      "target": "Cassian",
+      "after": " held the map steady. The",
+      "phrase": "Mara counted three quiet breaths. Cassian held the map steady. The",
+      "targetOffset": 34,
+      "selectedWordCount": 1,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 5.5,
+    "note": "",
+    "createdAt": "2026-05-28T00:03:24.082Z",
+    "updatedAt": "2026-05-28T00:03:24.082Z"
+  },
+  {
+    "id": "06-emotion-dramatic",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "emotion-dramatic",
+    "optionLabel": "Dramatic",
+    "label": "Emotion: Dramatic",
+    "category": "emotion",
+    "color": "#C68DA0",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 37,
+    "wordEnd": 38,
+    "selectedText": "dramatic vow",
+    "textContext": {
+      "before": "held the map steady. The ",
+      "target": "dramatic vow",
+      "after": " snapped in the dark. The",
+      "phrase": "held the map steady. The dramatic vow snapped in the dark. The",
+      "targetOffset": 25,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 6.6,
+    "note": "dramatic beat",
+    "createdAt": "2026-05-28T00:03:24.082Z",
+    "updatedAt": "2026-05-28T00:03:24.082Z"
+  },
+  {
+    "id": "07-emotion-romantic",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "emotion-romantic",
+    "optionLabel": "Romantic",
+    "label": "Emotion: Romantic",
+    "category": "emotion",
+    "color": "#E2B4C5",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 44,
+    "wordEnd": 45,
+    "selectedText": "romantic glance",
+    "textContext": {
+      "before": "snapped in the dark. The ",
+      "target": "romantic glance",
+      "after": " softened the room. The funny",
+      "phrase": "snapped in the dark. The romantic glance softened the room. The funny",
+      "targetOffset": 25,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 7.7,
+    "note": "romantic beat",
+    "createdAt": "2026-05-28T00:03:24.082Z",
+    "updatedAt": "2026-05-28T00:03:24.082Z"
+  },
+  {
+    "id": "08-emotion-funny",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "emotion-funny",
+    "optionLabel": "Funny",
+    "label": "Emotion: Funny",
+    "category": "emotion",
+    "color": "#F0CFD8",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 50,
+    "wordEnd": 51,
+    "selectedText": "funny mistake",
+    "textContext": {
+      "before": "glance softened the room. The ",
+      "target": "funny mistake",
+      "after": " made everyone laugh. The custom",
+      "phrase": "glance softened the room. The funny mistake made everyone laugh. The custom",
+      "targetOffset": 30,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 8.8,
+    "note": "funny beat",
+    "createdAt": "2026-05-28T00:03:24.083Z",
+    "updatedAt": "2026-05-28T00:03:24.083Z"
+  },
+  {
+    "id": "09-custom-emotion-ache",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "custom-emotion-1779926604063-ache",
+    "optionLabel": "Ache",
+    "label": "Emotion: Ache",
+    "category": "emotion",
+    "color": "#7d8fa6",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 56,
+    "wordEnd": 57,
+    "selectedText": "custom ache",
+    "textContext": {
+      "before": "mistake made everyone laugh. The ",
+      "target": "custom ache",
+      "after": " moved through the bond. The",
+      "phrase": "mistake made everyone laugh. The custom ache moved through the bond. The",
+      "targetOffset": 33,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 9.9,
+    "note": "custom emotion one",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  },
+  {
+    "id": "10-custom-emotion-dread",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "custom-emotion-1779926604077-dread",
+    "optionLabel": "Dread",
+    "label": "Emotion: Dread",
+    "category": "emotion",
+    "color": "#9f8b9e",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 63,
+    "wordEnd": 64,
+    "selectedText": "custom dread",
+    "textContext": {
+      "before": "moved through the bond. The ",
+      "target": "custom dread",
+      "after": " made the window tremble. The",
+      "phrase": "moved through the bond. The custom dread made the window tremble. The",
+      "targetOffset": 28,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 10.1,
+    "note": "custom emotion two",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  },
+  {
+    "id": "11-shared-emotion-romantic",
+    "classId": "emotion",
+    "classLabel": "Emotion",
+    "optionId": "emotion-romantic",
+    "optionLabel": "Romantic",
+    "label": "Emotion: Romantic",
+    "category": "emotion",
+    "color": "#E2B4C5",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 70,
+    "wordEnd": 71,
+    "selectedText": "shared vow",
+    "textContext": {
+      "before": "made the window tremble. The ",
+      "target": "shared vow",
+      "after": " carried Mara and Cassian together",
+      "phrase": "made the window tremble. The shared vow carried Mara and Cassian together",
+      "targetOffset": 29,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 11.1,
+    "note": "emotion plus two characters same words",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  },
+  {
+    "id": "12-shared-character-mara",
+    "classId": "character",
+    "classLabel": "Character",
+    "optionId": "custom-character-1779926604077-mara",
+    "optionLabel": "Mara",
+    "label": "Character: Mara",
+    "category": "character",
+    "color": "#6d6663",
+    "markerOnly": true,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 70,
+    "wordEnd": 71,
+    "selectedText": "shared vow",
+    "textContext": {
+      "before": "made the window tremble. The ",
+      "target": "shared vow",
+      "after": " carried Mara and Cassian together",
+      "phrase": "made the window tremble. The shared vow carried Mara and Cassian together",
+      "targetOffset": 29,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 11.2,
+    "note": "",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  },
+  {
+    "id": "13-shared-character-cassian",
+    "classId": "character",
+    "classLabel": "Character",
+    "optionId": "custom-character-1779926604077-cassian",
+    "optionLabel": "Cassian",
+    "label": "Character: Cassian",
+    "category": "character",
+    "color": "#6d6663",
+    "markerOnly": true,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 70,
+    "wordEnd": 71,
+    "selectedText": "shared vow",
+    "textContext": {
+      "before": "made the window tremble. The ",
+      "target": "shared vow",
+      "after": " carried Mara and Cassian together",
+      "phrase": "made the window tremble. The shared vow carried Mara and Cassian together",
+      "targetOffset": 29,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 5
+    },
+    "timestamp": 11.3,
+    "note": "",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  },
+  {
+    "id": "14-repeated-second-highlight",
+    "classId": "highlight",
+    "classLabel": "Highlight",
+    "optionId": "highlight",
+    "optionLabel": "",
+    "label": "Highlight",
+    "category": "highlight",
+    "color": "#f0aac0",
+    "markerOnly": false,
+    "sectionId": "sandbox-chapter-1",
+    "sectionTitle": "InDesign Export Sandbox",
+    "chapterNumber": 1,
+    "wordStart": 84,
+    "wordEnd": 85,
+    "selectedText": "repeated phrase",
+    "textContext": {
+      "before": "phrase appears here. Later, the ",
+      "target": "repeated phrase",
+      "after": " appears again",
+      "phrase": "phrase appears here. Later, the repeated phrase appears again",
+      "targetOffset": 32,
+      "selectedWordCount": 2,
+      "beforeWordCount": 5,
+      "afterWordCount": 2
+    },
+    "timestamp": 12.4,
+    "note": "second repeated phrase, context should disambiguate",
+    "createdAt": "2026-05-28T00:03:24.084Z",
+    "updatedAt": "2026-05-28T00:03:24.084Z"
+  }
+];
 
   if (app.documents.length === 0) {
     alert("Open the matching InDesign document before running this Quill and Ink script.");
@@ -94,11 +456,11 @@ export function buildInDesignJsx(project) {
 
   function cleanName(value) {
     var text = String(value || "Annotation");
-    var invalid = "\\\\/:*?\\"<>|";
+    var invalid = "\\/:*?\"<>|";
     for (var n = 0; n < invalid.length; n += 1) {
       text = text.split(invalid.charAt(n)).join(" ");
     }
-    return text.replace(/^\\s+/, "").replace(/\\s+$/, "");
+    return text.replace(/^\s+/, "").replace(/\s+$/, "");
   }
 
   function hexToRgb(hex) {
@@ -215,15 +577,15 @@ export function buildInDesignJsx(project) {
   }
 
   function shortText(text, limit) {
-    var value = String(text || "").replace(/\\s+/g, " ");
+    var value = String(text || "").replace(/\s+/g, " ");
     if (value.length <= limit) return value;
     return value.substr(0, limit - 3) + "...";
   }
 
   function escapeGrep(text) {
     return String(text || "")
-      .replace(/[\\\\^$.*+?()[\\]{}|]/g, "\\\\$&")
-      .replace(/\\s+/g, "\\\\s+");
+      .replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")
+      .replace(/\s+/g, "\\s+");
   }
 
   function clearFind() {
@@ -280,7 +642,7 @@ export function buildInDesignJsx(project) {
   }
 
   function sanitizeMarkerText(text) {
-    return String(text || "").replace(/[\\r\\n]+/g, " ").replace(/^\\s+/, "").replace(/\\s+$/, "");
+    return String(text || "").replace(/[\r\n]+/g, " ").replace(/^\s+/, "").replace(/\s+$/, "");
   }
 
   function markerText(annotation) {
@@ -329,7 +691,7 @@ export function buildInDesignJsx(project) {
     var imageMarkerStyle = getImageMarkerStyle();
     clearFind();
     try {
-      app.findGrepPreferences.findWhat = "\\\\[INSERT (IMG|FULL SPREAD)[^\\\\]]*\\\\]";
+      app.findGrepPreferences.findWhat = "\\[INSERT (IMG|FULL SPREAD)[^\\]]*\\]";
       var markers = doc.findGrep();
       for (var m = 0; m < markers.length; m += 1) {
         forceTextRangeStyle(markers[m], imageMarkerStyle.style, { pointSize: 16, fillColor: imageMarkerStyle.color, underline: false });
@@ -468,23 +830,21 @@ export function buildInDesignJsx(project) {
 
   forceAllImageMarkerStyles();
 
-  var message = "Quill and Ink annotations for " + projectTitle + "\\n\\n"
-    + "Applied: " + placed + "\\n"
-    + "Missing: " + missing.length + "\\n"
+  var message = "Quill and Ink annotations for " + projectTitle + "\n\n"
+    + "Applied: " + placed + "\n"
+    + "Missing: " + missing.length + "\n"
     + "Duplicate text matches: " + ambiguous.length;
   if (missing.length) {
     for (var missingIndex = 0; missingIndex < missing.length && missingIndex < 10; missingIndex += 1) {
       missing[missingIndex] = shortText(missing[missingIndex], 130);
     }
-    message += "\\n\\nMissing first 10:\\n- " + missing.slice(0, 10).join("\\n- ");
+    message += "\n\nMissing first 10:\n- " + missing.slice(0, 10).join("\n- ");
   }
   if (ambiguous.length) {
     for (var duplicateIndex = 0; duplicateIndex < ambiguous.length && duplicateIndex < 10; duplicateIndex += 1) {
       ambiguous[duplicateIndex] = shortText(ambiguous[duplicateIndex], 130);
     }
-    message += "\\n\\nDuplicate first 10:\\n- " + ambiguous.slice(0, 10).join("\\n- ");
+    message += "\n\nDuplicate first 10:\n- " + ambiguous.slice(0, 10).join("\n- ");
   }
   alert(message);
 }());
-`;
-}

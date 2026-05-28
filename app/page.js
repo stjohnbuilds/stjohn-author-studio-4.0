@@ -18,10 +18,20 @@ import {
   pushProofProject,
   pullProofProjects,
   deleteProofProject,
+  upsertProofFlag,
+  deleteProofFlag,
+  recordPendingFlag,
+  clearPendingFlag,
+  recordDeletedFlag,
+  clearDeletedFlag,
+  applyFlagQueueToBook,
+  retryFlagQueue,
   addTombstone,
   clearTombstone,
   applyTombstonesToCloudList,
   clearProofPushCache,
+  clearQuillPushCache,
+  formatCloudErrorMessage,
 } from '../packages/cloud-sync';
 
 // Detect Electron
@@ -103,6 +113,20 @@ function findSectionContext(book, sectionId) {
     }
   }
   return null;
+}
+
+function stableFlagId(sectionId, flag, index = 0) {
+  if (flag?.id) return String(flag.id);
+  const idx = flag?.idx ?? 'word';
+  const ts = Number.isFinite(Number(flag?.ts)) ? Math.round(Number(flag.ts) * 1000) : Date.now();
+  return `${sectionId}:${idx}:${ts}:${index}`;
+}
+
+function ensureStableFlagIds(sectionId, flags = []) {
+  return (Array.isArray(flags) ? flags : []).map((flag, index) => ({
+    ...flag,
+    id: stableFlagId(sectionId, flag, index),
+  }));
 }
 
 function buildContinuousChapterSection(chapter, section) {
@@ -466,6 +490,26 @@ export default function Home() {
     : String(navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
   const usesCustomDragRegion = isElectron && clientPlatform.includes('mac');
 
+  function clearSignedOutState() {
+    if (proofCloudPushTimerRef.current) {
+      clearTimeout(proofCloudPushTimerRef.current);
+      proofCloudPushTimerRef.current = null;
+    }
+    cameFromProofCloudRef.current = false;
+    setBooks([]);
+    setActiveBook(null);
+    setActiveSection(null);
+    setSettingsOpen(false);
+    setView('home');
+    setAudioUrl(null);
+    setBookPlayerState({ currentTime: 0, isPlaying: false, playbackRate: 1 });
+    setBookPlayerLabel('');
+    setProofPullError('');
+    setProofPullInflight(false);
+    try { clearProofPushCache(); } catch {}
+    try { clearQuillPushCache(); } catch {}
+  }
+
   useEffect(() => {
     setIsElectron(!!el());
     loadBooks().then(setBooks).catch((error) => {
@@ -528,6 +572,7 @@ export default function Home() {
     supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setAuthSession(data?.session || null);
+      if (!data?.session) clearSignedOutState();
       setAuthReady(true);
     }).catch(() => {
       if (cancelled) return;
@@ -537,6 +582,7 @@ export default function Home() {
       if (session) {
         handleSignedIn(session);
       } else {
+        clearSignedOutState();
         setAuthSession(null);
       }
     });
@@ -581,15 +627,27 @@ export default function Home() {
     setProofPullInflight(true);
     try {
       const rawCloudBooks = await pullProofProjects(supabase);
-      const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks || [], supabase, deleteProofProject);
+      const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks || [], supabase, deleteProofProject)
+        .map((book) => (book?.cloudId ? applyFlagQueueToBook(book.cloudId, book) : book));
       if (cloudBooks.length) {
         cameFromProofCloudRef.current = true;
         setBooks((current) => mergeProofBookLists(current, cloudBooks));
       }
+      const ownerId = authSession?.user?.id;
+      if (ownerId) {
+        await Promise.all(cloudBooks
+          .filter((book) => book?.cloudId)
+          .map((book) => retryFlagQueue(book.cloudId, {
+            supabase,
+            ownerId,
+            upsertFn: upsertProofFlag,
+            deleteFn: deleteProofFlag,
+          })));
+      }
       setLastProofPullAt(Date.now());
       setProofPullError('');
     } catch (e) {
-      const msg = e?.message || String(e);
+      const msg = formatCloudErrorMessage(e);
       console.warn('[Proof] cloud pull failed:', msg);
       setProofPullError(msg);
     } finally {
@@ -670,27 +728,7 @@ export default function Home() {
     lastSignedOutUserIdRef.current = authSession?.user?.id || null;
     restoredLocalForSessionRef.current = '';
     await signOutSupabaseAccount(supabase);
-    // Marie 2026-05-26 — DATA-SAFETY BUG FIX: previously this only
-    // cleared the auth token. The `books` state (and every other
-    // in-memory state holding the previous user's data) survived,
-    // and within 1.2s the debounced push-effect would attempt to push
-    // those previous-user rows under the NEW user's owner_id. RLS
-    // would usually block, but it was a real cross-user data risk
-    // and the books would visibly leak into the next sign-in until
-    // a pull replaced them. Now we wipe everything and let the next
-    // sign-in pull fresh from the cloud.
-    setBooks([]);
-    setActiveBook(null);
-    setActiveSection(null);
-    setSettingsOpen(false);
-    setView('home');
-    setAudioUrl(null);
-    setBookPlayerState({ currentTime: 0, isPlaying: false, playbackRate: 1 });
-    setBookPlayerLabel('');
-    // Reset the module-level cache that lets pushes short-circuit.
-    // Without this, the next user's first push might be wrongly
-    // skipped because the hash matched the previous user's project.
-    try { clearProofPushCache(); } catch {}
+    clearSignedOutState();
     setAuthSession(null);
   }
 
@@ -998,16 +1036,58 @@ export default function Home() {
     startProofing({ ...targetSection, proofStartSec: 0 }, targetUrl, 0);
   }
 
+  function queueProofFlagCloudWrites(book, sectionId, previousFlags, nextFlags) {
+    const cloudId = book?.cloudId;
+    const ownerId = authSession?.user?.id;
+    if (!cloudId) return;
+
+    const previousById = new Map((previousFlags || []).map((flag, index) => [
+      stableFlagId(sectionId, flag, index),
+      { ...flag, id: stableFlagId(sectionId, flag, index) },
+    ]));
+    const nextById = new Map((nextFlags || []).map((flag, index) => [
+      stableFlagId(sectionId, flag, index),
+      { ...flag, id: stableFlagId(sectionId, flag, index) },
+    ]));
+
+    for (const [id, flag] of nextById.entries()) {
+      const before = previousById.get(id);
+      if (before && JSON.stringify(before) === JSON.stringify(flag)) continue;
+      recordPendingFlag(cloudId, sectionId, flag);
+      const supabase = getSupabaseClient();
+      if (supabase && ownerId) {
+        upsertProofFlag(supabase, cloudId, sectionId, flag, ownerId)
+          .then(() => clearPendingFlag(cloudId, id))
+          .catch((e) => console.warn('[Proof] queued desktop flag save for retry:', e?.message || e));
+      }
+    }
+
+    for (const id of previousById.keys()) {
+      if (nextById.has(id)) continue;
+      recordDeletedFlag(cloudId, id);
+      const supabase = getSupabaseClient();
+      if (supabase && ownerId) {
+        deleteProofFlag(supabase, cloudId, id)
+          .then(() => clearDeletedFlag(cloudId, id))
+          .catch((e) => console.warn('[Proof] queued desktop flag delete for retry:', e?.message || e));
+      }
+    }
+  }
+
   function saveFlags(chapterId, sectionId, flags) {
     if (!activeBook) return;
+    const ctx = findSectionContext(activeBook, sectionId);
+    const previousFlags = ensureStableFlagIds(sectionId, ctx?.section?.flags || []);
+    const nextFlags = ensureStableFlagIds(sectionId, flags || []);
     const chapters = activeBook.chapters.map(ch => ({
       ...ch,
       sections: ch.sections.map(s =>
-        s.id === sectionId ? { ...s, flags, lastProofed: new Date().toLocaleDateString() } : s
+        s.id === sectionId ? { ...s, flags: nextFlags, lastProofed: new Date().toLocaleDateString() } : s
       )
     }));
+    queueProofFlagCloudWrites(activeBook, sectionId, previousFlags, nextFlags);
     updateBook(activeBook.id, { chapters });
-    setActiveSection(prev => ({ ...prev, flags }));
+    setActiveSection(prev => ({ ...prev, flags: nextFlags }));
   }
 
   function toggleComplete(sectionId) {

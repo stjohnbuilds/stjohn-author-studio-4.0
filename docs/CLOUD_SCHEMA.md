@@ -95,7 +95,17 @@ Measured impact: ~90% smaller blobs once a book is fully transcribed.
    `cloudId` in this tab, return immediately. No round-trips.
 3. Upsert the `script_sync_projects` row.
 4. Delete all rows for this project in `script_sync_section_transcriptions`, insert the current set.
-5. Delete all rows for this project in `script_sync_flags`, insert the current set.
+5. Upsert flags by `(project_id, local_id)`.
+6. Prune older flag rows that are no longer in the desktop payload,
+   guarded by `updated_at <= pushStartedAt` so a phone/desktop
+   single-flag save that lands during a full-book push is not deleted.
+
+Desktop and phone flag saves/deletes also use single-row helpers:
+
+- `upsertProofFlag(...)`
+- `deleteProofFlag(...)`
+- `packages/cloud-sync/flag-queue.js` for retry if the cloud is offline
+  or slow.
 
 `pushQuillProject` follows the same shape with `quill_*` tables.
 
@@ -110,7 +120,9 @@ Measured impact: ~90% smaller blobs once a book is fully transcribed.
    `whisperWords` / `whisperAlignment` / etc; if the flags table has
    rows, overlay `flags`.
 
-`pullQuillProjects` follows the same shape.
+`pullQuillProjects` follows the same shape. It also reads
+`quill_chapters.content_hash` and `quill_annotations.content_hash` back
+as `contentHash`, so those columns are no longer write-only.
 
 ## Delete path
 

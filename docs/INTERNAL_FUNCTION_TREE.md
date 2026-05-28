@@ -1,6 +1,8 @@
 # Internal Function Tree — 4.0
 
-Status: **Skeleton.** Phase 1 of v4.0. Filled in as each phase lands.
+Status: **Partially updated 2026-05-27.** This file had drifted behind
+the real app; the notes below now mark the main shared packages and
+cloud paths that are active.
 
 Companion: [`FRONT_FUNCTION_TREE.md`](./FRONT_FUNCTION_TREE.md),
 [`WIRING_MATRIX.md`](./WIRING_MATRIX.md).
@@ -9,8 +11,9 @@ Companion: [`FRONT_FUNCTION_TREE.md`](./FRONT_FUNCTION_TREE.md),
 
 ## Today
 
-This repo is currently a copy of **Script and Sync 3.0**. The internal
-shape today is exactly its internal shape. Only Proof Listen exists.
+This repo started as **Script and Sync 3.0**, but now includes Proof,
+Prep, Duet, Quill, and the phone companion. Some older structure notes
+below are kept as context, not as current “missing feature” truth.
 
 ### Top-level layout (as-copied)
 
@@ -18,11 +21,14 @@ shape today is exactly its internal shape. Only Proof Listen exists.
 |---|---|
 | `main.js` | Electron main process. Window + IPC handlers. |
 | `preload.js` | Electron preload — exposes `window.electron` bridge. |
-| `app/page.js` (~1837 lines) | Next.js home: book list + state orchestration. |
-| `app/components/SessionsView.js` (~2100 lines) | Book detail: chapters, audio, transcription queue. |
-| `app/components/ProofingReader.js` (~2600 lines) | Reader: audio + word-sync + flag panel. |
+| `app/page.js` | Next.js home: mode switcher, Proof state, auth, cloud orchestration. |
+| `app/components/SessionsView.js` | Shared book detail: chapters, audio, transcription queue, exports, flags side list. |
+| `app/components/ProofingReader.js` | Proof reader: audio + word-sync + flag panel. |
 | `app/components/ManuscriptSetup.js` (~600 lines) | Import + narrator mapping. |
-| `app/components/PrebuildMode.js` (~2200 lines) | Layout frame. |
+| `app/components/PrebuildMode.js` | Duet/Prebuild mode. |
+| `app/components/PrepManuscriptMode.js` | Prep Manuscript mode. |
+| `app/components/QuillAndInkMode.js` | Quill & Ink mode. |
+| `app/phone/page.js` | Phone companion: Proof + Quill modes. |
 | `lib/transcriptionWorker.js` | Whisper subprocess driver. |
 | `lib/manuscriptPaging.js` | Word-to-page mapping. |
 | `lib/pdfPaging.js` | PDF page detection. |
@@ -42,6 +48,14 @@ Project `evcusovtjfypfyfvnooy`, all six tables have RLS:
 - `script_sync_projects` / `script_sync_section_transcriptions` /
   `script_sync_flags`
 - `quill_projects` / `quill_chapters` / `quill_annotations`
+
+Current cloud behavior:
+
+- Proof desktop + phone both use `packages/cloud-sync/proof-sync.js`.
+- Quill desktop + phone both use `packages/cloud-sync/quill-sync.js`.
+- Audio paths are stripped by `packages/cloud-sync/audio-guard.js`.
+- Proof flag add/delete uses single-row helpers plus
+  `packages/cloud-sync/flag-queue.js` for retry.
 
 ---
 

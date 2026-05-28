@@ -6,6 +6,7 @@ import { buildSlimPageMap, extractManuscriptWordsFromHtml } from '../lib/pdfPagi
 import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './ManuscriptSetup';
 import InfoTip from './InfoTip';
 import SharedBookDetail from './BookDetail';
+import { buildWordSpans, htmlToPlainText } from '../../packages/quill-engine';
 
 const PLAYBACK_SPEED_MIN = 0.5;
 const PLAYBACK_SPEED_MAX = 4;
@@ -65,6 +66,14 @@ function htmlToDisplayWords(html) {
 
 function countWordsInHtml(html) {
   return htmlToDisplayWords(html).length;
+}
+
+function htmlToQuillReaderWords(html) {
+  return buildWordSpans(htmlToPlainText(html)).map((span) => span.word);
+}
+
+function getTranscriptWordsForMode(html, mode) {
+  return mode === 'quill' ? htmlToQuillReaderWords(html) : htmlToDisplayWords(html);
 }
 
 function mergeContinuousAlignment(sections) {
@@ -144,14 +153,26 @@ function getChapterAudioKey(chapter) {
   return firstAudioSection ? getSectionAudioKey(firstAudioSection) : '';
 }
 
+function equivalentAudioKeys(audioKey) {
+  if (!audioKey) return [];
+  const keys = [audioKey];
+  if (typeof audioKey === 'string' && audioKey.startsWith('path:')) {
+    const fileName = audioKey.slice('path:'.length).replace(/^.*[\\/]/, '');
+    const nameKey = fileName ? `name:${normText(fileName)}` : '';
+    if (nameKey) keys.push(nameKey);
+  }
+  return Array.from(new Set(keys));
+}
+
 function hasCurrentSectionTranscription(section, expectedAudioKey, expectedTextHash) {
+  const expectedAudioKeys = equivalentAudioKeys(expectedAudioKey);
   return !!(
     section &&
     Array.isArray(section.whisperAlignment) &&
     section.whisperAlignment.length &&
     section.whisperAudioKey &&
     section.whisperTextHash &&
-    section.whisperAudioKey === expectedAudioKey &&
+    expectedAudioKeys.includes(section.whisperAudioKey) &&
     section.whisperTextHash === expectedTextHash
   );
 }
@@ -482,6 +503,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   const [showSceneRows, setShowSceneRows] = useState(audioUploadMode === 'scene');
   const [showTranscribeAllModal, setShowTranscribeAllModal] = useState(false);
   const [retranscribeAll, setRetranscribeAll] = useState(false);
+  const [showPagePanel, setShowPagePanel] = useState(false);
   const [sidePanelTab, setSidePanelTab] = useState('navigation');
   const [queueState, setQueueState] = useState(() => getTranscriptionQueueState());
   const isMountedRef = useRef(true);
@@ -974,6 +996,113 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     onUpdateBook({ chapters });
   }
 
+  function clearChapterTranscription(chapter) {
+    if (!chapter?.id) return;
+    const chapterTitle = chapter.title || 'this chapter';
+    const ok = typeof window === 'undefined' || window.confirm(
+      `Clear the saved transcription for "${chapterTitle}"?\n\nThis removes the current sync/timing data so the next Transcribe starts fresh. Audio and flags/annotations stay.`
+    );
+    if (!ok) return;
+    clearQueuedTranscriptionTasksForChapter(book.id, chapter.id);
+    const chapters = (book.chapters || []).map((ch) => (
+      ch.id === chapter.id
+        ? { ...ch, sections: (ch.sections || []).map(clearSectionTranscription) }
+        : ch
+    ));
+    onUpdateBook({ chapters });
+    showToast(`Cleared transcription for "${chapterTitle}".`, 'success');
+  }
+
+  function clearAllChapterTranscriptions() {
+    const chaptersWithTranscription = (book.chapters || []).filter(isChapterTranscriptionCurrent);
+    if (!chaptersWithTranscription.length) {
+      showToast('No saved transcriptions to clear.', 'info');
+      return;
+    }
+    const ok = typeof window === 'undefined' || window.confirm(
+      `Clear saved transcriptions for ${chaptersWithTranscription.length} chapter${chaptersWithTranscription.length === 1 ? '' : 's'}?\n\nAudio, flags, and annotations stay. This only clears timing/transcription data so re-transcribe starts clean.`
+    );
+    if (!ok) return;
+    chaptersWithTranscription.forEach((chapter) => clearQueuedTranscriptionTasksForChapter(book.id, chapter.id));
+    const chapterIds = new Set(chaptersWithTranscription.map((chapter) => chapter.id));
+    const chapters = (book.chapters || []).map((chapter) => (
+      chapterIds.has(chapter.id)
+        ? { ...chapter, sections: (chapter.sections || []).map(clearSectionTranscription) }
+        : chapter
+    ));
+    onUpdateBook({ chapters });
+    showToast(`Cleared ${chaptersWithTranscription.length} saved transcription${chaptersWithTranscription.length === 1 ? '' : 's'}.`, 'success');
+  }
+
+  function getPageNumberInfo() {
+    const pdfPages = book.pdfPaging?.pages?.length || 0;
+    const pageAnchors = Array.isArray(book.pdfPageMap) ? book.pdfPageMap.length : 0;
+    const printedCount = book.pdfPaging?.printedPageCount || 0;
+    const hasPdfMap = pdfPages > 0 || pageAnchors > 0;
+    const adj = Number(book.pageNumberAdjustment) || 0;
+    const fromUserPdf = book.pdfSource === 'user-pdf';
+    const status = pdfPages > 0
+      ? `${printedCount} of ${pdfPages} pages numbered`
+      : `${pageAnchors} page anchors saved`;
+    return { pdfPages, pageAnchors, printedCount, hasPdfMap, adj, fromUserPdf, status };
+  }
+
+  async function pickAndUploadPdf() {
+    if (typeof window === 'undefined' || !window.electron?.extractPdfPaging) {
+      alert('PDF upload needs the desktop app. Re-open in the Electron app to use this.');
+      return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        showToast(`Reading ${file.name}…`, 'info');
+        const ab = await file.arrayBuffer();
+        const extracted = await window.electron.extractPdfPaging({
+          fileName: file.name,
+          data: new Uint8Array(ab),
+          pageOffset: 0,
+        });
+        if (extracted?.pages?.length) {
+          const suggested = Number(extracted.suggestedAdjustment) || 0;
+          let pdfPageMap = null;
+          try {
+            const allWords = [];
+            for (const ch of (book?.chapters || [])) {
+              for (const sec of (ch.sections || [])) {
+                const html = sec?.html || '';
+                if (html) allWords.push(...extractManuscriptWordsFromHtml(html));
+              }
+            }
+            if (allWords.length) pdfPageMap = buildSlimPageMap(extracted.pages, allWords);
+          } catch (mapErr) {
+            console.warn('buildSlimPageMap (post-import) failed:', mapErr);
+          }
+          onUpdateBook({
+            pdfPaging: extracted,
+            pdfPageMap,
+            pdfFileName: file.name,
+            pdfSource: 'user-pdf',
+            pageNumberAdjustment: suggested,
+          });
+          const anchorMsg = pdfPageMap ? ` ${pdfPageMap.length} page anchors built.` : '';
+          const msg = suggested
+            ? `Page numbers from ${file.name}. ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${suggested}.${anchorMsg}`
+            : `Page numbers now read from ${file.name} (exact).${anchorMsg}`;
+          showToast(msg, 'success');
+        } else {
+          showToast('That PDF did not yield a usable page map.', 'error');
+        }
+      } catch (e) {
+        showToast(`PDF read failed: ${e?.message || e}`, 'error');
+      }
+    };
+    input.click();
+  }
+
   // Flat list of every flag across every chapter for the all-flags tab.
   // Sorted by chapter position then by timestamp so engineers can scan
   // top-to-bottom and the order matches the audiobook timeline.
@@ -1296,10 +1425,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       return { ok: false, error: 'No words detected. See diagnostics in console.' };
     }
 
-    const msWords = htmlToDisplayWords(mergedHtml);
+    const msWords = getTranscriptWordsForMode(mergedHtml, mode);
     const alignment = alignTranscriptToManuscript(msWords, result.words);
     const scoringHtml = mergedHtml.replace(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/gi, '');
-    const scoreWords = htmlToDisplayWords(scoringHtml);
+    const scoreWords = getTranscriptWordsForMode(scoringHtml, mode);
     const scoreAlignment = alignTranscriptToManuscript(scoreWords, result.words);
     const matchedCount = scoreAlignment.filter(Boolean).length;
     const matchQuality = scoreWords.length ? (matchedCount / scoreWords.length) : 0;
@@ -1308,7 +1437,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     const transcriptSnippet = takeWordSnippet(transcriptWordTexts);
     const openingOverlap = openingWordOverlapRatio(msWords, transcriptWordTexts);
     const likelyMismatch = matchQuality < 0.35 && openingOverlap < 0.2;
-    const sectionWordCounts = sections.map(section => htmlToDisplayWords(section.html).length);
+    const sectionWordCounts = sections.map(section => getTranscriptWordsForMode(section.html, mode).length);
     let wordOffset = 0;
     const sectionAlignments = sectionWordCounts.map(count => {
       const slice = alignment.slice(wordOffset, wordOffset + count);
@@ -1580,7 +1709,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     }
     const whisperWords = sectionWithWords.whisperWords;
     const mergedHtml = sections.map(s => s.html || '').join('');
-    const msWords = htmlToDisplayWords(mergedHtml);
+    const msWords = getTranscriptWordsForMode(mergedHtml, mode);
     const alignment = alignTranscriptToManuscript(msWords, whisperWords);
 
     // Debug: log sample of alignment matches so we can verify correctness
@@ -1599,12 +1728,12 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     });
 
     const scoringHtml = mergedHtml.replace(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/gi, '');
-    const scoreWords = htmlToDisplayWords(scoringHtml);
+    const scoreWords = getTranscriptWordsForMode(scoringHtml, mode);
     const scoreAlignment = alignTranscriptToManuscript(scoreWords, whisperWords);
     const matchedCount = scoreAlignment.filter(Boolean).length;
     const matchQuality = scoreWords.length ? (matchedCount / scoreWords.length) : 0;
 
-    const sectionWordCounts = sections.map(s => htmlToDisplayWords(s.html).length);
+    const sectionWordCounts = sections.map(s => getTranscriptWordsForMode(s.html, mode).length);
     let wOff = 0;
     const sectionAlignments = sectionWordCounts.map(count => {
       const slice = alignment.slice(wOff, wOff + count);
@@ -2149,134 +2278,53 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               </>
             )}
             <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
+            {mode !== 'quill' && (
+              <button
+                type="button"
+                style={btn({
+                  color:getPageNumberInfo().hasPdfMap ? 'var(--success)' : 'var(--warning)',
+                  borderColor:getPageNumberInfo().hasPdfMap ? '#b9d6bf' : '#e0c682',
+                  background:'white',
+                  fontWeight:700,
+                })}
+                onClick={() => setShowPagePanel(true)}
+                title="Page number source and PDF upload"
+              >
+                Page
+              </button>
+            )}
           </>
         )}
         containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}
         prePanels={(
           <div style={{ paddingBottom: persistentAudioUrl ? '5rem' : 0 }}>
 
-        {/* Marie 2026-05-26: page-number status panel.
-              - Green "from your PDF (exact)" when user uploaded a PDF
-              - Amber "auto-scanned via LibreOffice (may drift ±1-2)" with
-                an upload-PDF button to upgrade to exact
-              - Yellow warning when no page map at all
-            Quill doesn't need page numbers (print-design mode), so the
-            whole banner is hidden there. */}
-        {mode !== 'quill' && (() => {
-          const pdfPages = book.pdfPaging?.pages?.length || 0;
-          const pageAnchors = Array.isArray(book.pdfPageMap) ? book.pdfPageMap.length : 0;
-          const printedCount = book.pdfPaging?.printedPageCount || 0;
-          const hasPdfMap = pdfPages > 0 || pageAnchors > 0;
-          const adj = Number(book.pageNumberAdjustment) || 0;
-          const fromUserPdf = book.pdfSource === 'user-pdf';
-          const pageStatus = pdfPages > 0
-            ? `${printedCount} of ${pdfPages} pages numbered`
-            : `${pageAnchors} page anchors saved`;
-
-          async function pickAndUploadPdf() {
-            if (typeof window === 'undefined' || !window.electron?.extractPdfPaging) {
-              alert('PDF upload needs the desktop app. Re-open in the Electron app to use this.');
-              return;
-            }
-            // Use a hidden file input.
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'application/pdf,.pdf';
-            input.onchange = async () => {
-              const file = input.files?.[0];
-              if (!file) return;
-              try {
-                showToast(`Reading ${file.name}…`, 'info');
-                const ab = await file.arrayBuffer();
-                const extracted = await window.electron.extractPdfPaging({
-                  fileName: file.name,
-                  data: new Uint8Array(ab),
-                  pageOffset: 0,
-                });
-                if (extracted?.pages?.length) {
-                  // Auto-apply the suggested Chapter 1 = page 1 offset
-                  // (returned by extractPdfPagingFromBuffer in main.js).
-                  // User can still tweak it in Edit book data.
-                  const suggested = Number(extracted.suggestedAdjustment) || 0;
-                  // Marie 2026-05-26: rebuild the slim word-index → page
-                  // map RIGHT HERE so existing books that didn't have one
-                  // get it the moment the user uploads their PDF on the
-                  // book detail. Without this, an existing book would
-                  // still have to be fully re-imported to benefit from
-                  // the new architecture.
-                  let pdfPageMap = null;
-                  try {
-                    const allWords = [];
-                    for (const ch of (book?.chapters || [])) {
-                      for (const sec of (ch.sections || [])) {
-                        const html = sec?.html || '';
-                        if (html) allWords.push(...extractManuscriptWordsFromHtml(html));
-                      }
-                    }
-                    if (allWords.length) pdfPageMap = buildSlimPageMap(extracted.pages, allWords);
-                  } catch (mapErr) {
-                    console.warn('buildSlimPageMap (post-import) failed:', mapErr);
-                  }
-                  onUpdateBook({
-                    pdfPaging: extracted,
-                    pdfPageMap,
-                    pdfFileName: file.name,
-                    pdfSource: 'user-pdf',
-                    pageNumberAdjustment: suggested,
-                  });
-                  const anchorMsg = pdfPageMap ? ` ${pdfPageMap.length} page anchors built.` : '';
-                  const msg = suggested
-                    ? `Page numbers from ${file.name}. ${extracted.unnumberedBeforeFirstOne} unnumbered page${extracted.unnumberedBeforeFirstOne === 1 ? '' : 's'} before footer "1" — shifted by ${suggested}.${anchorMsg}`
-                    : `Page numbers now read from ${file.name} (exact).${anchorMsg}`;
-                  showToast(msg, 'success');
-                } else {
-                  showToast('That PDF did not yield a usable page map.', 'error');
-                }
-              } catch (e) {
-                showToast(`PDF read failed: ${e?.message || e}`, 'error');
-              }
-            };
-            input.click();
-          }
-
-          if (hasPdfMap && fromUserPdf) {
-            return (
-              <div style={{ marginBottom:'0.85rem',background:'#eaf5ec',border:'1px solid #b9d6bf',borderRadius:14,padding:'8px 14px',display:'flex',alignItems:'center',gap:10 }}>
-                <div style={{ fontSize:'1rem',lineHeight:1,color:'#3d7a4a' }}>✓</div>
-                <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#3d7a4a' }}>
-                  <strong>Page numbers from your PDF.</strong> {pageStatus} (exact).
-                  {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
-                  {book.pdfFileName && <span style={{ marginLeft:6,color:'var(--text-muted)' }}>· {book.pdfFileName}</span>}
-                </div>
-                <button onClick={pickAndUploadPdf} style={{ padding:'5px 10px',borderRadius:8,border:'1px solid #b9d6bf',background:'white',color:'#3d7a4a',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Replace PDF</button>
-              </div>
-            );
-          }
-          if (hasPdfMap) {
-            return (
-              <div style={{ marginBottom:'0.85rem',background:'#fdf3e0',border:'1px solid #e8c98a',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
-                <div style={{ fontSize:'1rem',lineHeight:1,color:'#8a6519',marginTop:1 }}>○</div>
-                <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:'#8a6519',lineHeight:1.45 }}>
-                  <strong>Page numbers auto-scanned via LibreOffice.</strong> {pageStatus}. <em>May drift ±1-2 pages from the PDF you actually read.</em>
-                  {adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {adj > 0 ? `+${adj}` : adj}</span>}
-                  <div style={{ marginTop:4,fontSize:'0.74rem' }}>
-                    For exact page numbers, upload the PDF downloaded from the same Google Doc.
-                  </div>
-                </div>
-                <button onClick={pickAndUploadPdf} style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #8a6519',background:'white',color:'#8a6519',fontSize:'0.74rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Upload PDF</button>
-              </div>
-            );
-          }
+        {mode !== 'quill' && showPagePanel && (() => {
+          const pageInfo = getPageNumberInfo();
+          const panelTone = pageInfo.hasPdfMap
+            ? { bg:'#eaf5ec', border:'#b9d6bf', ink:'#3d7a4a', icon:'✓' }
+            : { bg:'#fff4d6', border:'#e0c682', ink:'#7a5a18', icon:'!' };
           return (
-            <div style={{ marginBottom:'0.85rem',background:'#fff4d6',border:'1px solid #e0c682',borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
-              <div style={{ fontSize:'1.2rem',lineHeight:1,marginTop:1 }}>⚠️</div>
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ fontSize:'0.85rem',fontWeight:700,color:'#7a5a18',marginBottom:3 }}>This book has no page numbers yet.</div>
-                <div style={{ fontSize:'0.76rem',color:'#7a5a18',lineHeight:1.45 }}>
-                  Page fields will show <strong>?</strong> in flags, exports, and the reader. Upload the printed PDF to fix this book, or re-import after installing LibreOffice for an automatic (less exact) page scan.
-                </div>
+            <div style={{ marginBottom:'0.85rem',background:panelTone.bg,border:`1px solid ${panelTone.border}`,borderRadius:14,padding:'10px 14px',display:'flex',alignItems:'flex-start',gap:10 }}>
+              <div style={{ fontSize:'1rem',lineHeight:1,color:panelTone.ink,marginTop:2 }}>{panelTone.icon}</div>
+              <div style={{ flex:1,minWidth:0,fontSize:'0.78rem',color:panelTone.ink,lineHeight:1.45 }}>
+                {pageInfo.hasPdfMap ? (
+                  <>
+                    <strong>{pageInfo.fromUserPdf ? 'Page numbers from your PDF.' : 'Page numbers auto-scanned.'}</strong> {pageInfo.status}{pageInfo.fromUserPdf ? ' (exact).' : '.'}
+                    {pageInfo.adj !== 0 && <span style={{ marginLeft:6 }}>· nudge {pageInfo.adj > 0 ? `+${pageInfo.adj}` : pageInfo.adj}</span>}
+                    {book.pdfFileName && <span style={{ marginLeft:6,color:'var(--text-muted)' }}>· {book.pdfFileName}</span>}
+                    {!pageInfo.fromUserPdf && <div style={{ marginTop:4,fontSize:'0.74rem' }}>Upload the final PDF if you want exact page numbers.</div>}
+                  </>
+                ) : (
+                  <>
+                    <strong>No page numbers yet.</strong> Page fields will show <strong>?</strong> in flags, exports, and the reader until a PDF is attached.
+                  </>
+                )}
               </div>
-              <button onClick={pickAndUploadPdf} style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #8a6519',background:'white',color:'#7a5a18',fontSize:'0.74rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>Upload PDF</button>
+              <button onClick={pickAndUploadPdf} style={{ padding:'6px 12px',borderRadius:8,border:`1px solid ${panelTone.border}`,background:'white',color:panelTone.ink,fontSize:'0.74rem',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap' }}>
+                {pageInfo.hasPdfMap ? 'Replace PDF' : 'Upload PDF'}
+              </button>
+              <button onClick={() => setShowPagePanel(false)} aria-label="Close page details" style={{ padding:'3px 6px',border:'none',background:'transparent',color:panelTone.ink,fontSize:'0.86rem',fontWeight:800,cursor:'pointer' }}>×</button>
             </div>
           );
         })()}
@@ -2587,6 +2635,21 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 Transcribe all
               </button>
             )}
+            {mode !== 'duet' && (
+              <button
+                type="button"
+                onClick={clearAllChapterTranscriptions}
+                style={{
+                  width:30,height:30,borderRadius:999,fontSize:'0.86rem',fontWeight:800,
+                  border:'1px solid #f0b8b8',background:'white',color:'var(--danger)',
+                  cursor:'pointer',lineHeight:1,
+                }}
+                title="Clear saved transcriptions so re-transcribe starts clean"
+                aria-label="Clear saved transcriptions"
+              >
+                ×
+              </button>
+            )}
             <InfoTip tip={'This queues chapters for transcription one at a time. Progress now lives in the side panel under Queue, so you can leave and come back without losing the status.'} side="bottom" />
             {activeBookQueueCount > 0 && (
               <span style={{ fontSize:'0.74rem',color:'var(--text-muted)' }}>
@@ -2604,6 +2667,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           {(book.chapters||[]).map((ch, chIndex)=>{
             const chDone=(ch.sections||[]).filter(s=>s.completed).length;
             const chTotal=(ch.sections||[]).length;
+            const chapterComplete = chTotal > 0 && chDone === chTotal;
+            const chapterPartial = chDone > 0 && !chapterComplete;
             const isExpanded=expanded[ch.id]!==false; // default open
             const chapterAudioFiles = (ch.sections||[])
               .map(s => audioFiles[s.id]?.name)
@@ -2634,6 +2699,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   ? `Re-transcribe chapter. Current alignment: ${chapterAlignmentPercent || 'saved result'}. Option/Alt-click to realign only.`
                   : 'Transcribe chapter';
             const chapterFlagCount = (ch.sections||[]).reduce((n, s) => n + (s.flags?.length || 0), 0);
+            const showCompactSectionRows = audioUploadMode === 'chapter' && !showSceneRows && (ch.sections || []).length > 1;
             // Display sections: when Split is ON but the chapter has only
             // ONE section, derive scene rows on-the-fly by splitting the
             // section's HTML on H2 boundaries. Same H2 logic ImportFlow's
@@ -2692,6 +2758,33 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     Neapolitan striping. Simple outlined-box aesthetic
                     that matches the Quill home view. */}
                 <div style={{ display:'flex',alignItems:'center',padding:'4px 10px',gap:6,background:'white',flexWrap:'nowrap',minHeight:34 }}>
+                  <button
+                    type="button"
+                    onClick={() => setChapterCompletion(ch.id, !chapterComplete)}
+                    disabled={chTotal === 0}
+                    title={chapterComplete ? 'Mark chapter incomplete' : 'Mark chapter complete'}
+                    aria-label={chapterComplete ? 'Mark chapter incomplete' : 'Mark chapter complete'}
+                    style={{
+                      width:18,
+                      height:18,
+                      borderRadius:'50%',
+                      border:'1.4px solid ' + (chapterComplete ? 'var(--accent-dark)' : 'var(--accent-border)'),
+                      background:chapterComplete ? 'var(--accent)' : (chapterPartial ? 'var(--accent-soft)' : 'white'),
+                      color:chapterComplete ? 'white' : 'var(--accent-dark)',
+                      cursor:chTotal===0?'not-allowed':'pointer',
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'center',
+                      fontSize:'0.58rem',
+                      fontWeight:800,
+                      flexShrink:0,
+                      padding:0,
+                      boxShadow:chapterComplete?'0 3px 8px var(--accent-shadow)':'none',
+                      opacity:chTotal===0?0.4:1,
+                    }}
+                  >
+                    {chapterComplete ? '✓' : (chapterPartial ? '–' : '')}
+                  </button>
                   <button onClick={()=>setExpanded(e=>({...e,[ch.id]:!isExpanded}))} style={{ display:'flex',alignItems:'center',gap:10,background:'transparent',border:'none',cursor:'pointer',textAlign:'left',padding:0,flex:'1 1 260px',minWidth:220 }}>
                     <div style={{ display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0 }}>
                       <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:44,padding:'3px 8px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.67rem',fontWeight:700,color:'var(--text-muted)' }}>
@@ -2737,11 +2830,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                           <span>{chapterAlignmentPercent || '100%'}</span>
                         </span>
                       )}
-                      <button
-                        onClick={(e)=>{
-                          if (e.altKey && chapterTranscribed && !chapterQueueTask) {
-                            realignChapter(ch);
-                            return;
+	                      <button
+	                        onClick={(e)=>{
+	                          if (e.altKey && chapterTranscribed && !chapterQueueTask) {
+	                            realignChapter(ch);
+	                            return;
                           }
                           queueChapterTranscription(ch, 'manual');
                         }}
@@ -2758,17 +2851,17 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                         })}
                         title={chapterTranscribeTitle}
                         aria-label="Transcribe chapter"
-                      >
-                        {chapterQueueTask?.status === 'running'
-                          ? `${Math.round(Number(chapterQueueTask.progress) || 0)}%`
-                          : chapterQueueTask?.status === 'queued'
-                            ? <span style={{ animation:'ap-soft-pulse 1.1s ease-in-out infinite', letterSpacing:'0.16em', paddingLeft:'0.16em' }}>...</span>
-                            : chapterTranscribed
-                              ? '↻'
-                              : 'T'}
-                      </button>
-                      </>
-                    )}
+	                      >
+	                        {chapterQueueTask?.status === 'running'
+	                          ? `${Math.round(Number(chapterQueueTask.progress) || 0)}%`
+	                          : chapterQueueTask?.status === 'queued'
+	                            ? <span style={{ animation:'ap-soft-pulse 1.1s ease-in-out infinite', letterSpacing:'0.16em', paddingLeft:'0.16em' }}>...</span>
+	                            : chapterTranscribed
+	                              ? '↻'
+	                              : 'T'}
+	                      </button>
+		                      </>
+		                    )}
                     {audioUploadMode === 'chapter' && (
                       <button
                         onClick={()=>openChapterProof(ch)}
@@ -2791,7 +2884,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   </div>
                 </div>
 
-                {isExpanded && audioUploadMode === 'chapter' && !showSceneRows && (
+                {isExpanded && showCompactSectionRows && (
                   <div style={{ borderTop:'1px solid var(--border-light)',background:'white' }}>
                     {(ch.sections||[]).map((sec)=>{
                       const hasAudio=!!audioUrls[sec.id];

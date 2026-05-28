@@ -10,7 +10,9 @@
 //     script_sync_section_transcriptions. ~1000+ word entries per book
 //     once Marie transcribes a whole audiobook.
 //   • Quill's desktop_project holds chapters[].alignment AND annotations
-//     AND each is in a dedicated table.
+//     AND each is in a dedicated table. Quill keeps the small
+//     transcription metadata in desktop_project because there is no
+//     dedicated table column for those keys.
 //
 // The dedicated tables ARE the source of truth on pull (proof-sync /
 // quill-sync prefer the table over the embedded copy). Stripping the
@@ -78,9 +80,10 @@ export function slimBookForCloud(book) {
 }
 
 // Slim a Quill project before it's stored as `desktop_project` JSONB.
-// Keeps chapter HTML / plainText / title but drops alignment arrays
-// (the chapters table has them) and the annotations array (annotations
-// table has them).
+// Keeps chapter HTML / plainText / title and the small transcription
+// metadata needed to validate synced ticks after pull. Drops duplicate
+// alignment arrays (the chapters table has them) and the annotations
+// array (annotations table has them).
 export function slimProjectForCloud(project) {
   if (!project || typeof project !== 'object') return project;
   return {
@@ -90,15 +93,6 @@ export function slimProjectForCloud(project) {
       omit(chapter, [
         'alignment',
         'whisperAlignment',
-        'whisperWords',
-        'whisperTranscript',
-        'whisperAudioKey',
-        'whisperTextHash',
-        'whisperMatchedCount',
-        'whisperManuscriptWordCount',
-        'whisperMatchQuality',
-        'whisperSourceUpdatedAt',
-        'transcribedAt',
       ])
     )),
   };

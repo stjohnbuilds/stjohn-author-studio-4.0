@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { pathToFileURL } = require('url');
+const { parseWhisperJsonWords } = require('./packages/audio-engine/whisper-json.cjs');
 const isDev = process.env.NODE_ENV === 'development';
 // 4.0 rebrand: Save Data folder is now under "StJohn Author Studio". If
 // you want to migrate books from a Script and Sync 3.0 install, open
@@ -235,6 +236,7 @@ const primaryDataPath = () => path.join(getPrimaryDataDir(), 'books.json');
 const prebuildDataPath = () => path.join(getPrimaryDataDir(), 'prebuild-projects.json');
 const prepDataPath = () => path.join(getPrimaryDataDir(), 'prep-manuscript-projects.json');
 const quillDataPath = () => path.join(getPrimaryDataDir(), 'quill-projects.json');
+const quillSummaryDataPath = () => path.join(getPrimaryDataDir(), 'quill-project-list.json');
 
 const mirrorDataPath = () =>
   isDev
@@ -255,6 +257,19 @@ const quillMirrorDataPath = () =>
   isDev
     ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'quill-projects.json')
     : path.join(app.getPath('userData'), 'quill-projects.json');
+
+const quillSummaryMirrorDataPath = () =>
+  isDev
+    ? path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'quill-project-list.json')
+    : path.join(app.getPath('userData'), 'quill-project-list.json');
+
+function quillRecoveryDataPaths() {
+  return uniquePaths([
+    quillDataPath(),
+    quillMirrorDataPath(),
+    path.join(app.getPath('documents'), APP_FOLDER_NAME, SAVE_DATA_FOLDER_NAME, 'quill-projects.json'),
+  ]);
+}
 
 function legacyDataPaths() {
   const paths = [];
@@ -805,6 +820,60 @@ function getCurrentPrebuildProjectsForMigration() {
   return readFromPath(prebuildDataPath()) || readFromPath(prebuildMirrorDataPath()) || [];
 }
 
+function getCurrentPrepProjectsForMigration() {
+  return readFromPath(prepDataPath()) || readFromPath(prepMirrorDataPath()) || [];
+}
+
+function annotationSortTime(annotation) {
+  const updated = Date.parse(annotation?.updatedAt || '') || 0;
+  const created = Date.parse(annotation?.createdAt || '') || 0;
+  return Math.max(updated, created, 0);
+}
+
+function mergeQuillAnnotations(a = [], b = []) {
+  const byId = new Map();
+  for (const annotation of [...a, ...b]) {
+    if (!annotation || typeof annotation !== 'object') continue;
+    const id = annotation.id || `${annotation.sectionId || ''}:${annotation.wordStart || 0}:${annotation.wordEnd || 0}:${annotation.label || ''}:${annotation.selectedText || ''}`;
+    const existing = byId.get(id);
+    if (!existing || annotationSortTime(annotation) >= annotationSortTime(existing)) {
+      byId.set(id, annotation);
+    }
+  }
+  return Array.from(byId.values()).sort((x, y) => annotationSortTime(x) - annotationSortTime(y));
+}
+
+function projectSortTime(project) {
+  const projectTime = Date.parse(project?.updatedAt || '') || 0;
+  const annotationTime = Math.max(0, ...(project?.annotations || []).map(annotationSortTime));
+  return Math.max(projectTime, annotationTime);
+}
+
+function mergeQuillProjectCopies(primaryProjects = [], mirrorProjects = []) {
+  if (!Array.isArray(primaryProjects) || !primaryProjects.length) return Array.isArray(mirrorProjects) ? mirrorProjects : [];
+  if (!Array.isArray(mirrorProjects) || !mirrorProjects.length) return primaryProjects;
+
+  const mirrorById = new Map(mirrorProjects.filter(p => p?.id).map(p => [p.id, p]));
+  return primaryProjects.map((project) => {
+    const mirrorProject = mirrorById.get(project?.id);
+    if (!mirrorProject) return project;
+    const base = projectSortTime(mirrorProject) > projectSortTime(project) ? mirrorProject : project;
+    const other = base === project ? mirrorProject : project;
+    return {
+      ...base,
+      annotations: mergeQuillAnnotations(other.annotations || [], base.annotations || []),
+      updatedAt: new Date(Math.max(projectSortTime(project), projectSortTime(mirrorProject))).toISOString(),
+    };
+  });
+}
+
+function getCurrentQuillProjectsForMigration() {
+  return quillRecoveryDataPaths()
+    .map(readFromPath)
+    .filter(Array.isArray)
+    .reduce((merged, projects) => mergeQuillProjectCopies(merged, projects), []);
+}
+
 function normalizeBooksForStorage(books) {
   if (!Array.isArray(books)) return [];
   return books.map(book => ({
@@ -910,6 +979,94 @@ function normalizeQuillProjectsForStorage(projects) {
       ? project.chapters.map(chapter => normalizeStoredAudioFields(chapter))
       : [],
   }));
+}
+
+function readMergedQuillProjects({ repairCopies = false } = {}) {
+  const copies = quillRecoveryDataPaths().map(readFromPath).filter(Array.isArray);
+  if (!copies.length) return [];
+  const merged = normalizeQuillProjectsForStorage(
+    copies.reduce((acc, projects) => mergeQuillProjectCopies(acc, projects), [])
+  );
+  if (repairCopies && copies.length > 1) {
+    writeToPath(quillDataPath(), merged);
+    writeToPath(quillMirrorDataPath(), merged);
+  }
+  return merged;
+}
+
+function summarizeQuillProject(project) {
+  const chapters = Array.isArray(project?.chapters) ? project.chapters : [];
+  const annotations = Array.isArray(project?.annotations) ? project.annotations : [];
+  return {
+    _summaryOnly: true,
+    id: project?.id,
+    cloudId: project?.cloudId,
+    title: project?.title || 'Untitled',
+    fileName: project?.fileName || '',
+    importedAt: project?.importedAt || '',
+    updatedAt: project?.updatedAt || '',
+    chapterCount: chapters.length,
+    annotationCount: annotations.length,
+    chapters: chapters.map((chapter) => ({
+      id: chapter?.id,
+      title: chapter?.title || '',
+      chapterNumber: chapter?.chapterNumber || null,
+      completed: !!chapter?.completed,
+      audioFileName: chapter?.audioFileName || '',
+      transcribedAt: chapter?.transcribedAt || null,
+      hasTranscription: !!(
+        chapter?.transcribedAt ||
+        chapter?.whisperTranscript ||
+        (Array.isArray(chapter?.alignment) && chapter.alignment.length) ||
+        (Array.isArray(chapter?.whisperAlignment) && chapter.whisperAlignment.length)
+      ),
+    })),
+  };
+}
+
+function quillSummaryPaths() {
+  return uniquePaths([quillSummaryDataPath(), quillSummaryMirrorDataPath()]);
+}
+
+function newestExistingMtime(paths) {
+  return paths.reduce((latest, filePath) => {
+    try {
+      if (!fs.existsSync(filePath)) return latest;
+      return Math.max(latest, fs.statSync(filePath).mtimeMs || 0);
+    } catch {
+      return latest;
+    }
+  }, 0);
+}
+
+function readQuillProjectSummaries() {
+  const newestFullData = newestExistingMtime(quillRecoveryDataPaths());
+  for (const summaryPath of quillSummaryPaths()) {
+    try {
+      if (!fs.existsSync(summaryPath)) continue;
+      const summaryMtime = fs.statSync(summaryPath).mtimeMs || 0;
+      if (newestFullData && summaryMtime < newestFullData) continue;
+      const parsed = readFromPath(summaryPath);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return null;
+}
+
+function writeQuillProjectSummaries(projects) {
+  const summaries = (Array.isArray(projects) ? projects : []).map(summarizeQuillProject);
+  for (const summaryPath of quillSummaryPaths()) {
+    writeToPath(summaryPath, summaries);
+  }
+  return summaries;
+}
+
+function writeQuillProjects(projects) {
+  const normalizedProjects = normalizeQuillProjectsForStorage(projects);
+  const ok = writeToPath(quillDataPath(), normalizedProjects);
+  writeToPath(quillMirrorDataPath(), normalizedProjects);
+  writeQuillProjectSummaries(normalizedProjects);
+  return ok;
 }
 
 function getManuscriptSourcesDir() {
@@ -1136,21 +1293,38 @@ ipcMain.handle('write-prep-data', (_, projects) => {
 });
 
 ipcMain.handle('read-quill-data', () => {
-  const primary = readFromPath(quillDataPath());
-  if (primary !== null) return primary;
-  const mirror = readFromPath(quillMirrorDataPath());
-  if (mirror !== null) {
-    writeToPath(quillDataPath(), mirror);
-    return mirror;
-  }
-  return [];
+  return readMergedQuillProjects({ repairCopies: true });
+});
+
+ipcMain.handle('read-quill-project-list', () => {
+  const cached = readQuillProjectSummaries();
+  if (cached) return cached;
+  const projects = readMergedQuillProjects({ repairCopies: true });
+  return writeQuillProjectSummaries(projects);
+});
+
+ipcMain.handle('read-quill-project', (_, projectId) => {
+  return readMergedQuillProjects({ repairCopies: true }).find((project) => project?.id === projectId) || null;
 });
 
 ipcMain.handle('write-quill-data', (_, projects) => {
-  const normalizedProjects = normalizeQuillProjectsForStorage(projects);
-  const ok = writeToPath(quillDataPath(), normalizedProjects);
-  writeToPath(quillMirrorDataPath(), normalizedProjects);
-  return ok;
+  return writeQuillProjects(projects);
+});
+
+ipcMain.handle('write-quill-project', (_, project) => {
+  if (!project?.id || project?._summaryOnly) return false;
+  const normalizedProject = normalizeQuillProjectsForStorage([project])[0];
+  const projects = readMergedQuillProjects({ repairCopies: true });
+  const index = projects.findIndex((existing) => existing?.id === normalizedProject.id);
+  if (index >= 0) projects[index] = normalizedProject;
+  else projects.push(normalizedProject);
+  return writeQuillProjects(projects);
+});
+
+ipcMain.handle('delete-quill-project-data', (_, projectId) => {
+  if (!projectId) return false;
+  const projects = readMergedQuillProjects({ repairCopies: true }).filter((project) => project?.id !== projectId);
+  return writeQuillProjects(projects);
 });
 
 ipcMain.handle('get-data-location', () => getDataLocationInfo());
@@ -1158,6 +1332,8 @@ ipcMain.handle('get-data-location', () => getDataLocationInfo());
 ipcMain.handle('choose-data-location', async () => {
   const currentBooks = getCurrentBooksForMigration();
   const currentPrebuildProjects = getCurrentPrebuildProjectsForMigration();
+  const currentPrepProjects = getCurrentPrepProjectsForMigration();
+  const currentQuillProjects = getCurrentQuillProjectsForMigration();
   const result = await dialog.showOpenDialog({
     title: 'Choose StJohn Author Studio data folder',
     defaultPath: getPrimaryDataDir(),
@@ -1179,6 +1355,16 @@ ipcMain.handle('choose-data-location', async () => {
   const prebuildTargetPath = path.join(selectedDir, 'prebuild-projects.json');
   if (!readFromPath(prebuildTargetPath) && currentPrebuildProjects.length) {
     writeToPath(prebuildTargetPath, currentPrebuildProjects);
+  }
+
+  const prepTargetPath = path.join(selectedDir, 'prep-manuscript-projects.json');
+  if (!readFromPath(prepTargetPath) && currentPrepProjects.length) {
+    writeToPath(prepTargetPath, currentPrepProjects);
+  }
+
+  const quillTargetPath = path.join(selectedDir, 'quill-projects.json');
+  if (!readFromPath(quillTargetPath) && currentQuillProjects.length) {
+    writeToPath(quillTargetPath, normalizeQuillProjectsForStorage(currentQuillProjects));
   }
 
   return getDataLocationInfo();
@@ -1745,31 +1931,13 @@ ipcMain.handle('whisper-transcribe', async (event, { audioPath }) => {
       try {
         const raw = fs.readFileSync(jsonPath, 'utf-8');
         const data = JSON.parse(raw);
+        const segmentCount = Array.isArray(data?.transcription)
+          ? data.transcription.length
+          : (Array.isArray(data?.segments) ? data.segments.length : 0);
         // Clean up temp file
         try { fs.unlinkSync(jsonPath); } catch {}
 
-        // Parse tokens into word array
-        const words = [];
-        const segments = data.transcription || [];
-        for (const seg of segments) {
-          const tokens = seg.tokens || [];
-          for (const tok of tokens) {
-            const text = (tok.text || '').trim();
-            // Skip special tokens like [_BEG_], [_TT_...], etc.
-            if (!text || text.startsWith('[') || text.startsWith('<')) continue;
-            // Clean punctuation-only tokens by merging with previous word
-            const cleaned = text.replace(/[^a-zA-Z0-9']/g, '').toLowerCase();
-            if (!cleaned) {
-              // Punctuation token — skip (alignment handles this)
-              continue;
-            }
-            words.push({
-              word: cleaned,
-              start: (tok.offsets?.from || 0) / 1000,
-              end: (tok.offsets?.to || 0) / 1000,
-            });
-          }
-        }
+        const words = parseWhisperJsonWords(data);
 
         const fullText = words.map(w => w.word).join(' ');
         resolve({
@@ -1779,7 +1947,7 @@ ipcMain.handle('whisper-transcribe', async (event, { audioPath }) => {
           diagnostics: {
             modelId: `whisper.cpp/${path.basename(model, '.bin').replace(/^ggml-/, '')}`,
             engine: 'native',
-            segmentCount: segments.length,
+            segmentCount,
             wordCount: words.length,
           },
         });

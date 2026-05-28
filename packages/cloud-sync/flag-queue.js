@@ -21,6 +21,9 @@
 'use client';
 
 const STORAGE_KEY = 'stjohn-cloud-flag-queue-v1';
+const MAX_RETRY_ATTEMPTS = 8;
+const BASE_RETRY_DELAY_MS = 15_000;
+const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 // Shape in storage:
 // {
@@ -55,6 +58,32 @@ function ensureBucket(store, projectId) {
   return store[projectId];
 }
 
+function retryDelayForAttempt(attempts) {
+  const exp = Math.max(0, Number(attempts) || 0);
+  return Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS * (2 ** exp));
+}
+
+function markRetry(projectId, kind, localId, error) {
+  const store = readStore();
+  const entry = store?.[projectId]?.[kind]?.[localId];
+  if (!entry) return;
+  const attempts = Math.min(MAX_RETRY_ATTEMPTS, (Number(entry.attempts) || 0) + 1);
+  entry.attempts = attempts;
+  entry.lastError = String(error?.message || error || 'Cloud retry failed.');
+  entry.lastTriedAt = Date.now();
+  entry.nextRetryAt = attempts >= MAX_RETRY_ATTEMPTS
+    ? null
+    : Date.now() + retryDelayForAttempt(attempts);
+  writeStore(store);
+}
+
+function canRetry(entry) {
+  if (!entry) return false;
+  if ((Number(entry.attempts) || 0) >= MAX_RETRY_ATTEMPTS) return false;
+  const next = Number(entry.nextRetryAt) || 0;
+  return !next || next <= Date.now();
+}
+
 export function recordPendingFlag(projectId, sectionId, flag) {
   if (!projectId || !sectionId || !flag?.id) return;
   const store = readStore();
@@ -63,6 +92,8 @@ export function recordPendingFlag(projectId, sectionId, flag) {
     sectionId: String(sectionId),
     flag,
     queuedAt: Date.now(),
+    attempts: 0,
+    nextRetryAt: 0,
   };
   // If we delete-then-add the same id, clear the delete intent so the
   // next refresh doesn't undo the new save.
@@ -82,7 +113,7 @@ export function recordDeletedFlag(projectId, localId) {
   if (!projectId || !localId) return;
   const store = readStore();
   const bucket = ensureBucket(store, projectId);
-  bucket.deleted[String(localId)] = { queuedAt: Date.now() };
+  bucket.deleted[String(localId)] = { queuedAt: Date.now(), attempts: 0, nextRetryAt: 0 };
   // If we add-then-delete the same id, clear the pending save.
   delete bucket.pending[String(localId)];
   writeStore(store);
@@ -182,20 +213,25 @@ export async function retryFlagQueue(projectId, { supabase, ownerId, upsertFn, d
     for (const id of pendingIds) {
       const entry = queue.pending[id];
       if (!entry?.sectionId || !entry.flag) { clearPendingFlag(projectId, id); continue; }
+      if (!canRetry(entry)) continue;
       try {
         await upsertFn(supabase, projectId, entry.sectionId, entry.flag, ownerId);
         clearPendingFlag(projectId, id);
       } catch (e) {
         console.warn('[flag-queue] retry pending failed:', e?.message || e);
+        markRetry(projectId, 'pending', id, e);
         // Leave in queue for next attempt.
       }
     }
     for (const id of deletedIds) {
+      const entry = queue.deleted[id];
+      if (!canRetry(entry)) continue;
       try {
         await deleteFn(supabase, projectId, id);
         clearDeletedFlag(projectId, id);
       } catch (e) {
         console.warn('[flag-queue] retry delete failed:', e?.message || e);
+        markRetry(projectId, 'deleted', id, e);
       }
     }
   } finally {

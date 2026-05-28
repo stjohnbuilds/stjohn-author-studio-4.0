@@ -11,6 +11,7 @@ files:
   - build/icon.ico
   - main.js
   - preload.js
+  - packages/audio-engine/whisper-json.cjs
   - node_modules/**/*
   - package.json
 

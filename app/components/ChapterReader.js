@@ -108,6 +108,17 @@ function isBlockTag(tagName) {
 // source string + the unit text.
 const DEFAULT_WORD_RE = /[A-Za-z0-9']+/g;
 
+function splitReaderUnits(text, mode = 'regex') {
+  const source = String(text || '');
+  const matches = [];
+  const re = mode === 'whitespace' ? /\S+/g : new RegExp(DEFAULT_WORD_RE.source, 'g');
+  let m;
+  while ((m = re.exec(source)) !== null) {
+    matches.push({ value: m[0], start: m.index, end: m.index + m[0].length });
+  }
+  return matches;
+}
+
 // ---------------------------------------------------------------------------
 // Renderer — walks the chapter HTML and replaces each text token with
 // a clickable span. Memoizable via the props that affect output.
@@ -127,6 +138,7 @@ function renderChapter({
   onUnitPointerDown,
   onUnitPointerEnter,
   onUnitDoubleClick,
+  unitSplitMode = 'regex',
   tone,
 }) {
   if (!chapter || typeof document === 'undefined') return null;
@@ -138,13 +150,8 @@ function renderChapter({
 
   function renderText(text, keyPrefix) {
     const pieces = [];
-    const matches = [];
     const source = String(text || '');
-    const re = new RegExp(DEFAULT_WORD_RE.source, 'g');
-    let m;
-    while ((m = re.exec(source)) !== null) {
-      matches.push({ value: m[0], start: m.index, end: m.index + m[0].length });
-    }
+    const matches = splitReaderUnits(source, unitSplitMode);
     matches.forEach((it, i) => {
       if (it.start > (pieces._last || 0)) {
         pieces.push(source.slice(pieces._last || 0, it.start));
@@ -250,6 +257,7 @@ export default function ChapterReader({
   onUnitPointerDown,
   onUnitPointerEnter,
   onUnitDoubleClick,
+  unitSplitMode = 'regex',
 
   // Controlled selection. Parent computes the range from pointer
   // events; ChapterReader shows the left-margin action button when
@@ -300,10 +308,11 @@ export default function ChapterReader({
       onUnitPointerDown,
       onUnitPointerEnter,
       onUnitDoubleClick,
+      unitSplitMode,
       tone,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chapter?.id, chapter?.textHtml, chapter?.html, selectedRange?.start, selectedRange?.end, unitDecoration, renderUnitOverlay, tone]
+    [chapter?.id, chapter?.textHtml, chapter?.html, selectedRange?.start, selectedRange?.end, unitDecoration, renderUnitOverlay, unitSplitMode, tone]
   );
 
   if (!chapter) {

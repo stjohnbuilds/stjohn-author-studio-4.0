@@ -17,6 +17,8 @@
 'use client';
 
 const STORAGE_PREFIX = 'stjohn-cloud-tombstones-v1';
+const MAX_TOMBSTONE_DELETE_ATTEMPTS = 8;
+const TOMBSTONE_RETRY_DELAY_MS = 60_000;
 
 function key(scope) {
   return `${STORAGE_PREFIX}:${scope}`;
@@ -38,7 +40,12 @@ function readPairs(scope) {
     return arr.map((item) => {
       if (typeof item === 'string') return { id: item, cloudId: null };
       if (item && typeof item === 'object') {
-        return { id: item.id ? String(item.id) : null, cloudId: item.cloudId ? String(item.cloudId) : null };
+        return {
+          id: item.id ? String(item.id) : null,
+          cloudId: item.cloudId ? String(item.cloudId) : null,
+          deleteAttempts: Number(item.deleteAttempts) || 0,
+          nextDeleteRetryAt: Number(item.nextDeleteRetryAt) || 0,
+        };
       }
       return null;
     }).filter((p) => p && (p.id || p.cloudId));
@@ -71,9 +78,11 @@ export function addTombstone(scope, { id, cloudId } = {}) {
     pairs[existingIdx] = {
       id: sid || pairs[existingIdx].id,
       cloudId: scloud || pairs[existingIdx].cloudId,
+      deleteAttempts: Number(pairs[existingIdx].deleteAttempts) || 0,
+      nextDeleteRetryAt: Number(pairs[existingIdx].nextDeleteRetryAt) || 0,
     };
   } else {
-    pairs.push({ id: sid, cloudId: scloud });
+    pairs.push({ id: sid, cloudId: scloud, deleteAttempts: 0, nextDeleteRetryAt: 0 });
   }
   writePairs(scope, pairs);
 }
@@ -109,6 +118,33 @@ function projectHitsPairs(pairs, project) {
   return false;
 }
 
+function canRetryDelete(pair) {
+  if (!pair?.cloudId) return false;
+  if ((Number(pair.deleteAttempts) || 0) >= MAX_TOMBSTONE_DELETE_ATTEMPTS) return false;
+  const nextRetryAt = Number(pair.nextDeleteRetryAt) || 0;
+  return !nextRetryAt || nextRetryAt <= Date.now();
+}
+
+function recordDeleteRetry(scope, pair, error) {
+  const pairs = readPairs(scope);
+  const idx = pairs.findIndex((p) => (
+    (pair.id && p.id === pair.id) ||
+    (pair.cloudId && p.cloudId === pair.cloudId)
+  ));
+  if (idx < 0) return;
+  const attempts = Math.min(MAX_TOMBSTONE_DELETE_ATTEMPTS, (Number(pairs[idx].deleteAttempts) || 0) + 1);
+  pairs[idx] = {
+    ...pairs[idx],
+    deleteAttempts: attempts,
+    lastDeleteError: String(error?.message || error || 'Cloud delete failed.'),
+    lastDeleteTriedAt: Date.now(),
+    nextDeleteRetryAt: attempts >= MAX_TOMBSTONE_DELETE_ATTEMPTS
+      ? null
+      : Date.now() + TOMBSTONE_RETRY_DELAY_MS,
+  };
+  writePairs(scope, pairs);
+}
+
 export function isTombstoned(scope, project) {
   return projectHitsPairs(readPairs(scope), project);
 }
@@ -124,9 +160,11 @@ export function applyTombstonesToCloudList(scope, cloudList, supabase, deleteFn)
   for (const p of cloudList || []) {
     if (!projectHitsPairs(pairs, p)) { kept.push(p); continue; }
     // Cloud still has this — re-issue the delete in the background.
-    if (supabase && p.cloudId && typeof deleteFn === 'function') {
+    const pair = pairs.find((item) => projectHitsPairs([item], p));
+    if (supabase && p.cloudId && typeof deleteFn === 'function' && canRetryDelete(pair)) {
       Promise.resolve(deleteFn(supabase, p.cloudId)).catch((e) => {
         console.warn(`[cloud-sync:${scope}] tombstone retry-delete failed:`, e?.message || e);
+        recordDeleteRetry(scope, pair, e);
       });
     }
   }

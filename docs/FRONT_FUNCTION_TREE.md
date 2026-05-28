@@ -1,7 +1,8 @@
 # Front Function Tree — 4.0
 
-Status: **Skeleton.** Phase 1 of v4.0. Filled in mode by mode as each
-phase lands.
+Status: **Partially updated 2026-05-27.** This file had drifted behind
+the real app. Phone and major desktop Proof/Quill rows below reflect
+current tested behavior where known.
 
 Companion: [`INTERNAL_FUNCTION_TREE.md`](./INTERNAL_FUNCTION_TREE.md),
 [`WIRING_MATRIX.md`](./WIRING_MATRIX.md).
@@ -20,8 +21,8 @@ Companion: [`INTERNAL_FUNCTION_TREE.md`](./INTERNAL_FUNCTION_TREE.md),
 
 | Control | Status | Source | Notes |
 |---|---|---|---|
-| 4-mode segmented switcher (Proof / Prep / Duet / Quill) | MISSING | (Phase 4) | Today the base only shows one mode. Add the colored-tab switcher inspired by 2.0. |
-| Home / book list | REAL | SaS 3.0 `app/page.js` | Works today for Proof Listen. |
+| 4-mode segmented switcher (Proof / Prep / Duet / Quill) | REAL | `app/page.js` | Desktop shell switches modes. |
+| Home / book list | REAL | `app/page.js` + mode components | Proof, Prep, Duet, Quill project lists exist; Quill has a light-list path for speed. |
 | Save Folder | REAL | SaS 3.0 `app/page.js` | Bridge to Electron filesystem. |
 | Settings | PARTIAL | SaS 3.0 | Verify scope when we add per-mode settings. |
 
@@ -38,6 +39,7 @@ file in Phase 5.
 | Save book | `app/page.js` | REAL |
 | Add chapter audio (per section / bulk) | `app/components/SessionsView.js` | REAL |
 | Transcribe chapter | `app/components/SessionsView.js` → whisper subprocess | REAL |
+| Clear saved transcriptions | `app/components/SessionsView.js` | REAL |
 | Transcribe All Chapters | `app/components/SessionsView.js` | REAL |
 | Open proofing reader | `app/page.js` `startProofing` | REAL |
 | Audio play / pause / speed | `app/components/ProofingReader.js` | REAL |
@@ -47,58 +49,60 @@ file in Phase 5.
 | Prev / Next chapter | `app/components/ProofingReader.js` | REAL |
 | Export flags to CSV | `app/components/SessionsView.js` | REAL |
 
-## Desktop — Prep Manuscript (Phase 6 — not built yet)
+## Desktop — Prep Manuscript
 
 | Button | Status |
 |---|---|
-| Import manuscript | MISSING |
-| Show dialogue groups | MISSING |
-| Assign main / side character to dialogue | MISSING |
-| Add side character | MISSING |
-| Open safety panel | MISSING |
-| Export highlighted DOCX | MISSING |
-| Export narrator chapter list | MISSING |
+| Import manuscript | REAL |
+| Show dialogue groups | REAL |
+| Assign main / side character to dialogue | REAL |
+| Add side character | REAL |
+| Open safety panel | REAL |
+| Export highlighted DOCX | REAL |
+| Export narrator chapter list | REAL |
 
-## Desktop — Duet Prep (Phase 7 — not built yet)
-
-| Button | Status |
-|---|---|
-| Import manuscript | MISSING |
-| Detect duet/insert markers | MISSING |
-| Edit marker | MISSING |
-| Export marker list | MISSING |
-
-## Desktop — Quill & Ink (Phase 8 — not built yet)
+## Desktop — Duet Prep
 
 | Button | Status |
 |---|---|
-| Import manuscript | MISSING |
-| Annotation list (+ and edit icons — Marie liked this) | MISSING |
-| Single / double-word click | MISSING |
-| Class / option selector | MISSING |
-| Add / edit / delete annotation | MISSING |
-| Export InDesign | MISSING |
+| Import manuscript | REAL |
+| Detect duet/insert markers | REAL |
+| Edit marker | REAL |
+| Export marker list | REAL |
 
-## Phone — Script mode (Phase 9 — not built yet)
+## Desktop — Quill & Ink
 
 | Button | Status |
 |---|---|
-| Sign in / Sign up / Resend confirmation | MISSING |
-| Project list | MISSING |
-| Open chapter — manuscript + transcript text | MISSING |
-| Pick local audio file (audio stays on phone) | MISSING |
-| Audio play / pause | MISSING |
-| Add flag | MISSING |
-| Edit / delete flag | MISSING |
-| Export flags to CSV | MISSING |
+| Import manuscript | REAL |
+| Annotation list (+ and edit icons — Marie liked this) | REAL |
+| Single / double-word click | REAL |
+| Class / option selector | REAL |
+| Add / edit / delete annotation | REAL |
+| Export InDesign | REAL |
 
-## Phone — Quill mode (Phase 9 — not built yet)
+## Phone — Script mode
 
 | Button | Status |
 |---|---|
-| Project list | MISSING |
-| Open chapter | MISSING |
-| Tap to select word / range | MISSING |
-| Add annotation (with class + option) | MISSING |
+| Sign in / Sign up / Resend confirmation | REAL |
+| Project list | REAL |
+| Open chapter — manuscript + transcript text | REAL |
+| Pick local audio folder/files (audio stays on phone) | REAL |
+| Audio play / pause / speed | REAL |
+| Add flag | REAL |
+| Edit / delete flag | PARTIAL |
+| Export flags to CSV | REAL |
+
+## Phone — Quill mode
+
+| Button | Status |
+|---|---|
+| Project list | REAL |
+| Open chapter | REAL |
+| Pick local audio folder/files (audio stays on phone) | REAL |
+| Audio play / pause / speed / sync | REAL |
+| Tap to select word / range | REAL |
+| Add annotation (with class + option + character + timestamp + note) | REAL |
 | Edit / delete annotation | MISSING |
-| Export annotations to CSV | MISSING |
+| Export annotations to CSV | REAL |

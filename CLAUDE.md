@@ -207,7 +207,8 @@ Prep and Duet have **no** Supabase tables yet — desktop-only for v4.0.
 - Never copy-paste old code blindly. Port behavior through the shared
   engines under `packages/`.
 - **Never duplicate the reader.** Fix once, fixed everywhere.
-- Audio files (`.mp3`, `.m4a`, `.m4b`, `.wav`, `.flac`, `.opus`) must
+- Audio files (`.mp3`, `.m4a`, `.m4b`, `.wav`, `.flac`, `.opus`, `.ogg`,
+  `.aac`, `.aif`, `.aiff`) must
   not be uploaded to Supabase.
 - Speak in plain English. Marie is non-technical. Short bullet points.
 

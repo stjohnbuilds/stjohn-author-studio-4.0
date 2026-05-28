@@ -720,23 +720,35 @@ Listed so they don't hide:
 
 ---
 
-**ISSUE-002 — RLS policies on six Supabase tables not verified**
+**ISSUE-002 — RLS policies on six Supabase tables — ✅ RESOLVED 2026-05-27**
 
-- **Severity:** Blocker (if public release); High (otherwise)
-- **Confidence:** Needs testing
-- **Location:** Supabase project `evcusovtjfypfyfvnooy`
-- **What is wrong:** `pullProofProjects` / `pullQuillProjects` rely on
-  RLS to scope rows to `owner_id`. If any policy is missing on any
-  table, every signed-in user sees every other user's projects.
-- **Why it matters:** Privacy / leak of Marie's drafts to anyone with
-  an account.
-- **How to reproduce:** Sign in as a second user and query the same
-  tables. Or read the Supabase dashboard policies.
-- **Evidence:** `CLOUD_SCHEMA.md` says all six tables have RLS — but
-  no live confirmation. Listed unchecked in TODO.
-- **Suggested next step:** Marie or another AI with Supabase access
-  reads the policies in the dashboard and confirms or fixes.
-- **Do not fix during this read-only audit.**
+- **Severity:** Was Blocker (public) / High (private). Now: not a risk.
+- **Confidence:** Confirmed.
+- **Location:** Supabase project `evcusovtjfypfyfvnooy`, schema `public`.
+- **Status:** Verified live via Supabase MCP. All six tables have
+  `relrowsecurity = true` (RLS enabled) and the policy set below
+  scopes every read/write to the signed-in user.
+
+| Table | SELECT | INSERT | UPDATE | DELETE | Notes |
+|---|---|---|---|---|---|
+| `script_sync_projects` | ✓ owner_id = auth.uid() | ✓ with_check owner_id | ✓ both sides owner_id | ✓ owner_id | Full coverage |
+| `script_sync_section_transcriptions` | ✓ owner_id | ✓ + parent-project owner check | ✓ both sides owner_id | ✓ owner_id | Defence in depth |
+| `script_sync_flags` | ✓ owner_id | ✓ via `ALL` policy with parent-project owner check | ✓ via same `ALL` | ✓ via same `ALL` | Coalesced ALL policy |
+| `quill_projects` | ✓ owner_id | ✓ with_check owner_id | ✓ both sides owner_id | ✓ owner_id | Full coverage |
+| `quill_chapters` | ✓ owner_id | ✓ via `ALL` + parent-project owner check | ✓ via same `ALL` | ✓ via same `ALL` | Coalesced ALL policy |
+| `quill_annotations` | ✓ owner_id | ✓ via `ALL` + parent-project owner check | ✓ via same `ALL` | ✓ via same `ALL` | Coalesced ALL policy |
+
+- **Effect:** A signed-in user cannot SELECT, INSERT, UPDATE or
+  DELETE any row whose `owner_id` is not theirs. The secondary
+  tables (chapters, annotations, flags, transcriptions) also require
+  the parent project to belong to them — so a malicious client
+  cannot create orphaned rows pointing at someone else's project.
+- **Performance lints from `get_advisors`** (separate concern): 30×
+  `auth_rls_initplan` and 18× `multiple_permissive_policies` apply
+  to these tables. They re-evaluate `auth.uid()` per row and OR
+  multiple permissive policies. Not a security issue — just a
+  performance optimisation. Wrap `(select auth.uid())` if it
+  becomes a problem.
 
 ---
 

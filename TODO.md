@@ -12,6 +12,42 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-05-27 — Drive snapshot backup system added
+
+Built end-to-end. Daily on first app-open, per-account opt-in via
+Settings → "Drive snapshots" card → "On for this account" toggle.
+Saves a zip into `My Drive/Game Dev/GitHub/App Backups/` containing
+all local JSON saves plus a cloud snapshot. Keeps newest 25, drops
+oldest. Skips silently if Drive isn't detected on this Mac. Manual
+"Snapshot now" button next to the toggle.
+
+Tests: 13/13 pass (gained 2). Files: `main.js`, `preload.js`,
+`packages/backups/index.js` (new), `app/page.js`.
+
+- [ ] **Verify Drive snapshot system in packaged Mac app.**
+      Build (`npm run release:mac`), open Settings → Drive snapshots →
+      toggle on → click "Snapshot now". Confirm a new zip lands in
+      `~/Library/CloudStorage/GoogleDrive-.../My Drive/Game Dev/GitHub/App Backups/`
+      and contains `local/*.json` + `cloud/cloud-snapshot.json`. Then
+      sign out, sign back in, confirm the daily auto-trigger fires once.
+- [ ] **Port snapshot system to Typing and Tomes.** Open a fresh
+      Claude session in that project, ask for "port the Drive snapshot
+      system from Author Studio" — copy `packages/backups/`, the main.js
+      IPC block, the preload additions, the page.js wiring, and the
+      Settings card.
+- [ ] **Port snapshot system to Script and Sync 3.0.** Same as above
+      in that project.
+- [ ] **Add Prep to cloud as `prep_projects` table (Marie requested
+      2026-05-27).** Plan in chat: single new Supabase table mirroring
+      Quill's shape, RLS scoped to owner, push/pull helpers in
+      `packages/cloud-sync/`, debounced save in PrepManuscriptMode, and
+      pull on focus. ~half a day.
+- [ ] **Phone Quill edit/delete annotations (Marie requested
+      2026-05-27).** Tap existing annotation → popup with current
+      values pre-filled + Delete button. Wire to new tiny
+      `upsertQuillAnnotation` / `deleteQuillAnnotation` cloud helpers.
+      ~2-3 hours.
+
 ### 📋 2026-05-27 — Distribution readiness audit completed (read-only)
 
 Full audit per the `APP_DISTRIBUTION_READINESS_AUDIT_INSTRUCTIONS.md`

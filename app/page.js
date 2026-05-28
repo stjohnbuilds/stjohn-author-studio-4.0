@@ -1641,6 +1641,12 @@ export default function Home() {
         onTutorialEnabledChange={handleTutorialEnabledChange}
         onRestartTutorial={restartTutorial}
         showTutorialHint={!tutorialActive && !settingsOpen && view !== 'reading'}
+        backupEnabled={backupEnabled}
+        backupInfo={backupInfo}
+        backupBusy={backupBusy}
+        backupToast={backupToast}
+        onBackupEnabledChange={handleBackupEnabledChange}
+        onManualBackup={handleManualBackup}
       />
       {view==='home'       && <HomePage books={books} isElectron={isElectron} dataLocation={dataLocation} onChangeDataLocation={handleChangeDataLocation} onNew={()=>setView('newBook')} onOpen={openExistingBook} onImport={importBooks} onExport={exportBackup} onElectronImport={handleImport} authEmail={authSession?.user?.email || ''} onSignOut={handleSignOut} onResync={resyncProof} resyncing={proofPullInflight} resyncError={proofPullError} lastResyncedAt={lastProofPullAt} />}
       {view==='newBook'    && <BookSetup onSave={saveBook} onBack={()=>setView('home')} pageOffset={pagefinderPageOffset} isElectron={isElectron} onImportTransfer={handleTransferImport} />}

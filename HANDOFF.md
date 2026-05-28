@@ -15,12 +15,23 @@ Before touching code, read these files in this order:
 7. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md
 
 Current top priority:
-Deep-check the Prep Manuscript Word-with-comments export fix that was just patched in /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/app/components/prepExport.js.
+Verify the Drive snapshot backup system added 2026-05-27. Section 5.a of
+this handover lists exactly what was built and which files. Before
+asking Marie to test, run `npm test`, then build the packaged Mac app
+(`npm run release:mac`) and open Settings → Drive snapshots → toggle
+"On for this account" → click "Snapshot now". Confirm a new zip lands
+in `~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My
+Drive/Game Dev/GitHub/App Backups/` and contains the local JSON saves
+plus a `cloud/cloud-snapshot.json`.
 
-Specific thing to verify:
-When the same dialogue text appears more than once, the exporter should use nearby plain-text context only for repeated matches, so a side-character Word comment lands on the correct assigned line. Unique dialogue text should keep using the normal simpler path. The fix must not make Word export fragile around quotes, Word XML, or text split across runs.
-
-Do not tell Marie this is fully safe until you have checked the generated .docx structure and, ideally, opened a real exported file in Microsoft Word or LibreOffice.
+Also outstanding from earlier sessions:
+- Prep Word repeat/context export fix (`app/components/prepExport.js`) —
+  open the generated `.docx` in real Microsoft Word/LibreOffice and
+  confirm side-voice comments land on the correct line.
+- Phone Quill edit/delete annotations (Marie requested 2026-05-27, not
+  yet built).
+- Add Prep to cloud as `prep_projects` table (Marie requested
+  2026-05-27, not yet built).
 
 Marie is not a coder. Explain in simple terms. Be direct, calm, and specific.
 ```

@@ -697,6 +697,86 @@ export default function Home() {
     };
   }, [authReady, authSession, resyncProof]);
 
+  // Mirror the per-user backup toggle into local state whenever the
+  // signed-in user changes (or signs out). Also refresh the on-disk
+  // snapshot info so the Settings card shows current counts.
+  useEffect(() => {
+    const userId = authSession?.user?.id || '';
+    setBackupEnabled(userId ? isBackupEnabledForUser(userId) : false);
+    if (!isElectron) {
+      setBackupInfo({ driveDetected: false, drivePath: null, snapshotCount: 0, lastSnapshotAt: null });
+      return;
+    }
+    let cancelled = false;
+    getBackupInfo().then((info) => { if (!cancelled) setBackupInfo(info); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [authSession?.user?.id, isElectron]);
+
+  // Daily Drive snapshot: fires once per local day after sign-in, if
+  // backups are enabled for this user AND Drive is detected. Skips
+  // silently otherwise. Each user-day combination is guarded by a ref
+  // so a fast re-render doesn't double-fire.
+  useEffect(() => {
+    if (!isElectron) return undefined;
+    if (!authReady || !authSession?.user?.id) return undefined;
+    const userId = authSession.user.id;
+    const userEmail = authSession.user.email || '';
+    if (!isBackupEnabledForUser(userId)) return undefined;
+    const todayTag = `${userId}:${new Date().toISOString().slice(0, 10)}`;
+    if (dailyBackupTriedRef.current === todayTag) return undefined;
+    dailyBackupTriedRef.current = todayTag;
+    let cancelled = false;
+    (async () => {
+      const supabase = hasSupabaseConfig ? getSupabaseClient() : null;
+      const result = await runDailySnapshotIfDue({ supabase, userId, userEmail }).catch(() => null);
+      if (cancelled) return;
+      if (result?.ok) {
+        setBackupToast('✓ Backup saved to Drive');
+        setTimeout(() => setBackupToast(''), 2400);
+        try {
+          const info = await getBackupInfo();
+          if (!cancelled) setBackupInfo(info);
+        } catch {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authReady, authSession?.user?.id, authSession?.user?.email, isElectron]);
+
+  // Settings handlers for the Drive backups card.
+  const handleBackupEnabledChange = useCallback((next) => {
+    const userId = authSession?.user?.id;
+    if (!userId) return;
+    setBackupEnabledForUser(userId, !!next);
+    setBackupEnabled(!!next);
+  }, [authSession?.user?.id]);
+
+  const handleManualBackup = useCallback(async () => {
+    const userId = authSession?.user?.id || '';
+    const userEmail = authSession?.user?.email || '';
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const supabase = hasSupabaseConfig ? getSupabaseClient() : null;
+      const result = await takeSnapshotNow({ supabase, userId, userEmail });
+      if (result?.ok) {
+        setBackupToast('✓ Backup saved to Drive');
+        setTimeout(() => setBackupToast(''), 2400);
+      } else if (result?.driveDetected === false) {
+        setBackupToast('⚠ Drive not detected — backup skipped');
+        setTimeout(() => setBackupToast(''), 3000);
+      } else if (result?.error) {
+        setBackupToast(`⚠ Backup failed: ${String(result.error).slice(0, 80)}`);
+        setTimeout(() => setBackupToast(''), 3500);
+      }
+      try {
+        const info = await getBackupInfo();
+        setBackupInfo(info);
+      } catch {}
+    } finally {
+      setBackupBusy(false);
+    }
+  }, [authSession?.user?.id, authSession?.user?.email, backupBusy]);
+
   // Debounced cloud push whenever Proof books change. Fire-and-forget
   // so a slow Supabase round-trip never blocks the local save. The
   // cameFromProofCloudRef guard stops the cloud pull echoing back as a

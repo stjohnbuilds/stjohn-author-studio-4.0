@@ -21,10 +21,16 @@ playbook in Drive `Game Dev/GitHub/`. Report at:
 Tests passed 11/11. Login screen rendered clean. Score: **72%
 provisional** ("workable, but distribution risk remains").
 
-**Top blockers for public release (still unverified):**
-1. RLS on the six Supabase tables — not checked in dashboard.
-2. Phone ↔ desktop flag round-trip — not live-tested on two devices.
-3. Mac code-signing / notarization absent.
+**Top blockers updated 2026-05-27:**
+1. ✅ RLS on the six Supabase tables — verified live; locked per user.
+2. Phone ↔ desktop flag round-trip — Marie has used it informally; no
+   formal two-device test yet.
+3. Mac code-signing / notarization absent — first-launch Gatekeeper
+   friction for anyone receiving the `.app`; right-click → Open works.
+
+**In-company sharing rating: 90%.** Public release still 72%
+provisional. Full report:
+`docs/dev/active/distribution-readiness-audit-2026-05-27/REPORT.md`
 
 **Cleanup flagged (not blocking):**
 - 25 GB of stale builds in `Script and Sync Releases/Old/`.
@@ -84,6 +90,9 @@ provisional** ("workable, but distribution risk remains").
       next desktop package pass.
       Progress 2026-05-27: Mac app rebuilt after desktop flag-save
       safety patch. Windows still waits until final package pass.
+      Progress 2026-05-27: phone Proof/Quill export buttons now download
+      one ZIP package per mode. Mac app and Windows artifacts rebuilt into
+      `Script and Sync Releases/`, and phone redeployed to Vercel.
 
 ---
 

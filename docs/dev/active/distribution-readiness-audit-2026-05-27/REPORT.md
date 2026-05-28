@@ -958,20 +958,20 @@ Listed so they don't hide:
 
 ## Final Statement
 
-**This app may be partly ready, but the untested areas above must be
-checked first.**
+**For Marie + a small trusted circle (husband + work colleagues):
+this app is ready to share, with one piece of advice — when sending
+the Mac `.app` to anyone, tell them to right-click the icon and
+choose "Open" the first time (Gatekeeper friction, not a real
+blocker).**
 
-The cloud-sync layer is well-considered and the recent independent
-audit's bugs have been patched. Tests pass. The login screen renders
-clean. But the audit cannot honestly upgrade to "ready" without:
-- RLS verification on the live Supabase project
-- A two-device flag round-trip on a real phone + real desktop
-- A packaged Mac build opened on a clean machine
-- A Prep `.docx` actually opened in Microsoft Word
+**For public distribution: partly ready — Mac signing/notarization,
+formal two-device round-trip, real-Word `.docx` open, and real
+InDesign `.jsx` run still need to happen first.**
 
-For Marie-only private use right now, the app reads as workable. For
-public distribution, the blocker list above stands.
+The cloud-sync layer is well-considered, the recent independent
+audit's bugs have been patched, RLS is verified locked per user
+2026-05-27, and tests pass. The login screen renders clean.
 
 ---
 
-*End of report.*
+*End of report. Updated 2026-05-27 after live RLS verification.*

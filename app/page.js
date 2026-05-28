@@ -1533,6 +1533,12 @@ export default function Home() {
           onTutorialEnabledChange={handleTutorialEnabledChange}
           onRestartTutorial={restartTutorial}
           showTutorialHint={false}
+          backupEnabled={backupEnabled}
+          backupInfo={backupInfo}
+          backupBusy={backupBusy}
+          backupToast={backupToast}
+          onBackupEnabledChange={handleBackupEnabledChange}
+          onManualBackup={handleManualBackup}
         />
         <PrebuildMode modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />} />
       </div>

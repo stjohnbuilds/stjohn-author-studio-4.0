@@ -55,10 +55,15 @@ provisional** ("workable, but distribution risk remains").
       and `quill_annotations.content_hash` are now selected from
       Supabase and kept on pulled chapters/annotations. — completed
       2026-05-27
-- [ ] **RLS / Supabase public-release check.** Verify the six StJohn
-      Supabase tables in the dashboard still have owner-only policies.
-      Important before public release; not blocking Marie's private use
-      tonight.
+- [x] **RLS / Supabase public-release check.** Verified live in the
+      database 2026-05-27 via Supabase MCP. All six tables
+      (`script_sync_projects`, `script_sync_section_transcriptions`,
+      `script_sync_flags`, `quill_projects`, `quill_chapters`,
+      `quill_annotations`) have RLS enabled with policies scoped to
+      `owner_id = auth.uid()`, with secondary tables also enforcing the
+      parent-project owner. No code or data change required. Cloud
+      privacy is safe for in-company sharing. Evidence captured in the
+      distribution audit report. — completed 2026-05-27
 - [ ] **Big-book cloud payload measurement.** Measure one fully
       transcribed large real book so we know Supabase uploads stay small
       and do not timeout. Plain meaning: check the cloud package is not

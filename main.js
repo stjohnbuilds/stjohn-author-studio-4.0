@@ -1957,3 +1957,142 @@ ipcMain.handle('whisper-transcribe', async (event, { audioPath }) => {
     });
   });
 });
+
+// ── Drive snapshot backups ───────────────────────────────────────────────────
+//
+// Marie 2026-05-27: opt-in per Supabase user. When enabled, the first
+// app-open of each local day takes one zip snapshot of every local
+// JSON save + the cloud snapshot supplied by the renderer, writes it
+// into Google Drive at
+//   My Drive/Game Dev/GitHub/App Backups/<timestamp>.zip
+// then prunes the oldest if more than 25 zips remain.
+//
+// If Drive is not detected on this Mac, the snapshot is SKIPPED — no
+// local fallback. The renderer's Settings card surfaces this with a
+// "⚠ Drive not detected" status so Marie knows.
+
+const BACKUP_FOLDER_NAME = 'App Backups';
+
+function getBackupTargetDir() {
+  const driveRoots = getGoogleDriveCandidates();
+  if (!driveRoots.length) return null;
+  const target = path.join(driveRoots[0], DRIVE_SUBFOLDER, BACKUP_FOLDER_NAME);
+  ensureDirPath(target);
+  return target;
+}
+
+function listBackupSnapshots() {
+  const dir = getBackupTargetDir();
+  if (!dir) return { driveDetected: false, drivePath: null, snapshots: [] };
+  try {
+    const entries = fs.readdirSync(dir)
+      .filter((name) => /^\d{4}-\d{2}-\d{2}.*\.zip$/.test(name))
+      .map((name) => {
+        const filePath = path.join(dir, name);
+        const stat = fs.statSync(filePath);
+        return { name, path: filePath, mtimeMs: stat.mtimeMs, sizeBytes: stat.size };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    return { driveDetected: true, drivePath: dir, snapshots: entries };
+  } catch {
+    return { driveDetected: true, drivePath: dir, snapshots: [] };
+  }
+}
+
+ipcMain.handle('backup-get-info', () => {
+  const info = listBackupSnapshots();
+  const snaps = info.snapshots || [];
+  const totalBytes = snaps.reduce((sum, s) => sum + (Number(s.sizeBytes) || 0), 0);
+  return {
+    driveDetected: info.driveDetected,
+    drivePath: info.drivePath,
+    snapshotCount: snaps.length,
+    lastSnapshotAt: snaps[0]?.mtimeMs || null,
+    lastSnapshotName: snaps[0]?.name || null,
+    oldestSnapshotAt: snaps[snaps.length - 1]?.mtimeMs || null,
+    totalBytes,
+  };
+});
+
+ipcMain.handle('backup-prune', (_, payload = {}) => {
+  const keep = Math.max(1, Number(payload?.keepCount) || 25);
+  const info = listBackupSnapshots();
+  if (!info.driveDetected) return { ok: false, error: 'Drive not detected.' };
+  const extras = info.snapshots.slice(keep);
+  let deleted = 0;
+  for (const snap of extras) {
+    try { fs.unlinkSync(snap.path); deleted += 1; } catch {}
+  }
+  return { ok: true, deleted };
+});
+
+ipcMain.handle('backup-make-snapshot', async (_, payload = {}) => {
+  const target = getBackupTargetDir();
+  if (!target) return { ok: false, driveDetected: false, error: 'Drive not detected.' };
+
+  const cloudSnapshot = payload?.cloudSnapshot || null;
+  const userEmail = String(payload?.userEmail || '').slice(0, 120);
+  const userId = String(payload?.userId || '').slice(0, 60);
+
+  // jszip is already a dependency (used by the manuscript/quill engines).
+  const JSZip = require('jszip');
+  const zip = new JSZip();
+
+  const safeRead = (filePath) => {
+    try {
+      if (!fs.existsSync(filePath)) return null;
+      return fs.readFileSync(filePath, 'utf8');
+    } catch { return null; }
+  };
+
+  const localFiles = {
+    'books.json': safeRead(primaryDataPath()),
+    'prebuild-projects.json': safeRead(prebuildDataPath()),
+    'prep-manuscript-projects.json': safeRead(prepDataPath()),
+    'quill-projects.json': safeRead(quillDataPath()),
+  };
+
+  for (const [name, content] of Object.entries(localFiles)) {
+    if (content) zip.file(`local/${name}`, content);
+  }
+
+  if (cloudSnapshot) {
+    zip.file('cloud/cloud-snapshot.json', JSON.stringify(cloudSnapshot, null, 2));
+  }
+
+  zip.file('manifest.json', JSON.stringify({
+    snapshotType: 'stjohn-author-studio-backup',
+    schemaVersion: 1,
+    createdAt: new Date().toISOString(),
+    userId,
+    userEmail,
+    contents: {
+      localFiles: Object.fromEntries(
+        Object.entries(localFiles).map(([name, content]) => [name, content ? content.length : 0])
+      ),
+      cloudIncluded: !!cloudSnapshot,
+    },
+  }, null, 2));
+
+  const stamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+  const fileName = `${stamp}.zip`;
+  const fullPath = path.join(target, fileName);
+
+  try {
+    const buffer = await zip.generateAsync({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+    fs.writeFileSync(fullPath, buffer);
+    return {
+      ok: true,
+      driveDetected: true,
+      path: fullPath,
+      sizeBytes: buffer.length,
+      fileName,
+    };
+  } catch (error) {
+    return { ok: false, driveDetected: true, error: String(error?.message || error) };
+  }
+});

@@ -668,11 +668,25 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }
 
   // ----- export from book detail -----
-  function exportAll() {
+  // Marie 2026-05-29: the bundle button exports EVERYTHING — Word + CSV +
+  // InDesign. Firing two downloads in the same tick used to make the
+  // browser silently drop all but the first (that's why "CSV + InDesign"
+  // only ever saved the CSV). We build the async Word doc first, then
+  // stagger the downloads ~350ms apart so all three actually land.
+  async function exportAll() {
     if (!activeProject) return;
     const safe = safeFileName(activeProject.title);
-    downloadText(`${safe}-annotations.csv`, buildAnnotationsCsv(activeProject), 'text/csv');
-    downloadText(`${safe}-indesign.jsx`, buildInDesignJsx(activeProject), 'application/javascript');
+    let docxBlob = null;
+    try {
+      docxBlob = await buildAnnotationsDocxBlob(activeProject);
+    } catch (e) {
+      console.warn('[Quill] Word export failed, continuing with CSV + InDesign:', e);
+    }
+    const jobs = [];
+    if (docxBlob) jobs.push(() => downloadBlob(`${safe}-annotated-review.docx`, docxBlob));
+    jobs.push(() => downloadText(`${safe}-annotations.csv`, buildAnnotationsCsv(activeProject), 'text/csv'));
+    jobs.push(() => downloadText(`${safe}-indesign.jsx`, buildInDesignJsx(activeProject), 'application/javascript'));
+    jobs.forEach((job, i) => setTimeout(job, i * 350));
   }
   function exportCsv() {
     if (!activeProject) return;
@@ -681,6 +695,18 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   function exportJsx() {
     if (!activeProject) return;
     downloadText(`${safeFileName(activeProject.title)}-indesign.jsx`, buildInDesignJsx(activeProject), 'application/javascript');
+  }
+  // The manuscript as a Word doc: every annotation highlighted in its own
+  // colour, with a real Word comment (Type / Label / Note) on each.
+  async function exportDocx() {
+    if (!activeProject) return;
+    try {
+      const blob = await buildAnnotationsDocxBlob(activeProject);
+      downloadBlob(`${safeFileName(activeProject.title)}-annotated-review.docx`, blob);
+    } catch (e) {
+      console.warn('[Quill] Word export failed:', e);
+      alert('Sorry — the Word export hit a snag. Your CSV and InDesign exports still work.');
+    }
   }
   // Marie 2026-05-26: SAFETY NET — download the full project as JSON
   // (annotations + chapter html + characters + audio file names) so a

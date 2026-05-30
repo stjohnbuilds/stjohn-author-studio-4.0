@@ -1003,7 +1003,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
           onClearPersistentAudio={() => {}}
           actionButtonsOverride={(
             <>
-              <button type="button" style={topBtnStyle('quill', 'solid')} onClick={exportAll}>Export all (Word + CSV + InDesign)</button>
+              <button type="button" style={topBtnStyle('quill', 'solid')} onClick={exportAll}>Export all (.zip: Word + CSV + InDesign)</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportDocx}>Word .docx only</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportCsv}>CSV only</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportJsx}>InDesign .jsx only</button>

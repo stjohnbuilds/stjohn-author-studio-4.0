@@ -1190,6 +1190,23 @@ async function createWindow() {
     },
   });
 
+  // Marie 2026-05-29: ONE place that makes EVERY in-app download collision-
+  // proof. Any file the renderer hands to the browser via an <a download>
+  // link — Quill Word/CSV/InDesign, Proof CSVs, Prep, Prebuild, the home
+  // backup, config JSON, every tab in every mode — flows through this
+  // session hook. If a file of that name already exists in Downloads we
+  // auto-append " (1)", " (2)", " (3)", ... instead of overwriting it (or
+  // popping a Save dialog). Same uniqueExportPath() the IPC exports use, so
+  // the behaviour is identical everywhere in the app.
+  win.webContents.session.on('will-download', (event, item) => {
+    try {
+      const target = uniqueExportPath(path.join(app.getPath('downloads'), item.getFilename()));
+      item.setSavePath(target);
+    } catch (err) {
+      console.warn('[download] could not set a unique save path, using default:', err);
+    }
+  });
+
   if (isDev) {
     win.loadURL(process.env.APP_URL || 'http://localhost:3000');
     win.webContents.openDevTools();

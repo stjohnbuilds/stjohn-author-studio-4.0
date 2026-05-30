@@ -664,6 +664,29 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-05-29 — Restore Quill (Ink) Word doc export
+
+- [x] **Quill Word doc export restored + bundle exports everything.** —
+      completed 2026-05-29. The "annotated review" Word export existed in
+      StJohn Author Studio 2.0 (`packages/exports/docx`) but the 4.0
+      rebuild only ported the CSV + InDesign exporters, so the Word doc
+      silently went missing. Added `buildAnnotationsDocxParts` /
+      `buildAnnotationsDocxBlob` to `packages/quill-engine/exporters.js`
+      (same OOXML/JSZip approach as Prep's `prepExport.js`): manuscript
+      with each annotation highlighted in its real on-screen colour
+      (lightened ~45% so text stays readable) + a real Word comment per
+      annotation laid out one fact per line (Type / Label / Note). Word
+      comments are anchored via commentRangeStart/End + comments.xml.
+      Also fixed the bundle button in `QuillAndInkMode.js`: "Export CSV +
+      InDesign" used to fire two downloads in one tick and the browser
+      dropped all but the CSV — it now builds the Word doc first and
+      staggers all three downloads ~350ms apart so Word + CSV + InDesign
+      all land. Added a "Word .docx only" button. Verified: 21 sandbox
+      assertions pass, generated .docx re-parses cleanly in mammoth
+      (text/punctuation/paragraphs/entities intact), home route compiles
+      HTTP 200. Still needs Marie to click it on a real book to fully
+      confirm.
+
 ### 2026-05-26 evening — Marie's crash-out triage + Proof one-screen rebuild
 
 - [x] **Page-shift explainer text uses Marie's exact wording.** Replaced

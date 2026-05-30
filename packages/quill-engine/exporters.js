@@ -554,6 +554,7 @@ function annotationCommentLines(annotation = {}) {
 function splitHtmlBlocks(html) {
   const source = String(html || '');
   if (!source) return [];
+  const SENTINEL = String.fromCharCode(1); // a byte that never appears in HTML
   const marked = source
     .replace(/<br\s*\/?>/gi, SENTINEL)
     .replace(/<\/(p|h[1-6]|li|div|blockquote|tr)>/gi, `$&${SENTINEL}`);

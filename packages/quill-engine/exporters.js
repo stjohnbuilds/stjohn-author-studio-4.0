@@ -488,3 +488,229 @@ export function buildInDesignJsx(project) {
 }());
 `;
 }
+
+// ===========================================================================
+// Word (.docx) export — "annotated review" doc
+// ===========================================================================
+// Ported back from StJohn Author Studio 2.0 (packages/exports/docx). The
+// 4.0 rebuild only carried over the CSV + InDesign exporters above; the
+// Word doc got left behind. This restores it, using the same OOXML/JSZip
+// approach Prep mode already uses in app/components/prepExport.js (kept
+// local here so the package doesn't import from the app layer).
+//
+// The doc is the manuscript with every annotation highlighted in its real
+// on-screen colour (lightened so text stays readable), plus a real Word
+// comment on each annotation laid out one fact per line (Type / Label /
+// Note). Word comments need word/comments.xml + a relationship, so this is
+// a fuller package than Prep's.
+
+const DOCX_CLASS_LABEL = { image: 'Image', highlight: 'Highlight', emotion: 'Emotion', character: 'Character' };
+const DOCX_CLASS_FALLBACK = { image: '#8BB070', highlight: '#f0aac0', emotion: '#E2B4C5', character: '#6d6663' };
+const DOCX_DEFAULT_FILL = '#f0aac0';
+
+function escapeXml(value = '') {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Lighten a hex colour toward white so it reads as a highlight behind
+// black text but keeps the annotation type's hue (green=image,
+// pink=highlight, mauve=emotion, grey=character). Returns RRGGBB (no #),
+// which is what OOXML's w:fill wants.
+function lightenForFill(hex, amount = 0.45) {
+  const match = String(hex || '').replace('#', '').match(/^([0-9a-f]{6})$/i);
+  const base = match ? match[1] : 'F0AAC0';
+  const channel = (offset) => parseInt(base.slice(offset, offset + 2), 16);
+  const mix = (c) => Math.round(c + (255 - c) * amount).toString(16).padStart(2, '0').toUpperCase();
+  return `${mix(channel(0))}${mix(channel(2))}${mix(channel(4))}`;
+}
+
+function docTextRun(text, fillHex = '') {
+  if (text === '' || text == null) return '';
+  const rPr = fillHex ? `<w:rPr><w:shd w:val="clear" w:color="auto" w:fill="${fillHex}"/></w:rPr>` : '';
+  return `<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
+}
+
+// One fact per line — Marie's "enters". A comment is only created when
+// there's a Label or Note worth reading; a bare highlight just gets its
+// colour, no marker.
+function annotationCommentLines(annotation = {}) {
+  const type = annotation.classLabel || DOCX_CLASS_LABEL[annotation.classId] || annotation.classId || 'Annotation';
+  const label = annotation.optionLabel || annotation.label || '';
+  const note = annotation.note || '';
+  const lines = [`Type: ${type}`];
+  if (label && label !== type) lines.push(`Label: ${label}`);
+  if (note) lines.push(`Note: ${note}`);
+  return lines;
+}
+
+// Split chapter HTML into block-level paragraphs WITHOUT dropping or
+// merging any word characters, so per-block word tokenisation stays in
+// lockstep with buildWordSpans(plainText) — the same indexing the
+// annotations' wordStart/wordEnd were recorded against.
+function splitHtmlBlocks(html) {
+  const source = String(html || '');
+  if (!source) return [];
+  const marked = source
+    .replace(/<br\s*\/?>/gi, SENTINEL)
+    .replace(/<\/(p|h[1-6]|li|div|blockquote|tr)>/gi, `$&${SENTINEL}`);
+  return marked
+    .split(SENTINEL)
+    .map((piece) => piece.trim())
+    .filter((piece) => piece && htmlToPlainText(piece).length);
+}
+
+function chapterBodyXml(chapter, annInfos) {
+  const blocks = splitHtmlBlocks(chapter.textHtml || chapter.html || chapter.plainText || '');
+  let globalWord = 0;
+  const paragraphs = [];
+
+  for (const block of blocks) {
+    const text = htmlToPlainText(block);
+    const spans = buildWordSpans(text);
+    if (!spans.length) continue;
+
+    let cursor = 0;
+    let runs = '';
+    for (let i = 0; i < spans.length; i += 1) {
+      const gi = globalWord + i;
+      const span = spans[i];
+      const info = annInfos.find((a) => gi >= a.start && gi <= a.end) || null;
+
+      const gap = text.slice(cursor, span.start);
+      if (gap) runs += docTextRun(gap, info && gi > info.start ? info.fill : '');
+
+      if (info && info.commentId != null && gi === info.start) {
+        runs += `<w:commentRangeStart w:id="${info.commentId}"/>`;
+      }
+      runs += docTextRun(text.slice(span.start, span.end), info ? info.fill : '');
+      if (info && info.commentId != null && gi === info.end) {
+        runs += `<w:commentRangeEnd w:id="${info.commentId}"/>`
+          + `<w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="${info.commentId}"/></w:r>`;
+      }
+      cursor = span.end;
+    }
+    const tail = text.slice(cursor);
+    if (tail) runs += docTextRun(tail);
+    paragraphs.push(`<w:p>${runs}</w:p>`);
+    globalWord += spans.length;
+  }
+
+  return paragraphs.join('');
+}
+
+export function buildAnnotationsDocxParts(project = {}) {
+  const chapters = Array.isArray(project.chapters) ? project.chapters : [];
+  const allAnnotations = Array.isArray(project.annotations) ? project.annotations : [];
+  const comments = [];
+
+  const chaptersXml = chapters.map((chapter, chapterIndex) => {
+    const title = chapter.title || `Chapter ${chapterIndex + 1}`;
+    const source = chapter.plainText || htmlToPlainText(chapter.textHtml || chapter.html || '');
+    const lastWord = Math.max(0, buildWordSpans(source).length - 1);
+
+    const annInfos = allAnnotations
+      .filter((annotation) => annotation.sectionId === chapter.id || annotation.chapterId === chapter.id)
+      .map((annotation) => {
+        let start = Number(annotation.wordStart);
+        if (!Number.isFinite(start)) return null;
+        let end = Number(annotation.wordEnd ?? annotation.wordStart);
+        if (!Number.isFinite(end)) end = start;
+        if (start > end) { const swap = start; start = end; end = swap; }
+        // Clamp into the chapter's word range so every comment anchors to a
+        // real word and the .docx stays valid (no orphan comments).
+        start = Math.max(0, Math.min(start, lastWord));
+        end = Math.max(0, Math.min(end, lastWord));
+
+        const fill = lightenForFill(annotation.color || DOCX_CLASS_FALLBACK[annotation.classId] || DOCX_DEFAULT_FILL);
+        const lines = annotationCommentLines(annotation);
+        let commentId = null;
+        if (lines.length > 1) {
+          commentId = comments.length;
+          comments.push({ id: commentId, lines });
+        }
+        return { start, end, fill, commentId };
+      })
+      .filter(Boolean);
+
+    const heading = `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>${docTextRun(title)}</w:p>`;
+    const body = chapterBodyXml(chapter, annInfos);
+    return heading + (body || `<w:p>${docTextRun('(No manuscript text.)')}</w:p>`);
+  }).join('');
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>${docTextRun(project.title || 'Annotated Manuscript')}</w:p>
+    ${chaptersXml}
+    <w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+${comments.map((comment) => `<w:comment w:id="${comment.id}" w:author="Quill &amp; Ink" w:initials="QI">${comment.lines.map((line) => `<w:p>${docTextRun(line)}</w:p>`).join('')}</w:comment>`).join('')}
+</w:comments>`;
+
+  return {
+    'word/document.xml': documentXml,
+    'word/comments.xml': commentsXml,
+    'word/styles.xml': DOCX_STYLES_XML,
+  };
+}
+
+export async function buildAnnotationsDocxBlob(project = {}) {
+  const parts = buildAnnotationsDocxParts(project);
+  const mod = await import('jszip');
+  const JSZip = mod.default || mod;
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', DOCX_CONTENT_TYPES_XML);
+  zip.folder('_rels').file('.rels', DOCX_ROOT_RELS_XML);
+  const word = zip.folder('word');
+  word.file('document.xml', parts['word/document.xml']);
+  word.file('styles.xml', parts['word/styles.xml']);
+  word.file('comments.xml', parts['word/comments.xml']);
+  word.folder('_rels').file('document.xml.rels', DOCX_DOC_RELS_XML);
+  return zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+const DOCX_CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>
+</Types>`;
+
+const DOCX_ROOT_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+const DOCX_DOC_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId10" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId11" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+</Relationships>`;
+
+// Book-style styles so the .docx opens looking like a manuscript, plus a
+// CommentReference char style so the comment markers render cleanly.
+const DOCX_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault><w:rPr><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond" w:cs="Garamond"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault>
+    <w:pPrDefault><w:pPr><w:spacing w:line="360" w:lineRule="auto"/><w:ind w:firstLine="360"/></w:pPr></w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+  <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:pPr><w:spacing w:before="360" w:after="240"/><w:jc w:val="center"/><w:ind w:firstLine="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="44"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="480" w:after="240"/><w:jc w:val="center"/><w:ind w:firstLine="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="320" w:after="160"/><w:jc w:val="center"/><w:ind w:firstLine="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/></w:rPr></w:style>
+  <w:style w:type="character" w:styleId="CommentReference"><w:name w:val="annotation reference"/><w:rPr><w:sz w:val="16"/><w:szCs w:val="16"/></w:rPr></w:style>
+</w:styles>`;

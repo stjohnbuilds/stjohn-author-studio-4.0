@@ -1,0 +1,24 @@
+# Tasks
+
+- [x] Re-check source docs before step 1.
+- [x] Read existing structure docs.
+- [x] Read Typing and Tomes audit docs as reference only.
+- [x] Create `docs/APP_STRUCTURE.md`.
+- [x] Re-check source docs before step 3.
+- [x] Create full Script and Sync external audit prompt.
+- [x] Re-check source docs before step 4.
+- [x] Create external review packet.
+- [x] Read back new docs.
+- [x] Check final git status.
+- [x] Re-check source docs before step 6.
+- [x] Create audit runbook.
+- [x] Create live bug log.
+- [x] Create first audit session note.
+- [x] Update full-app audit prompt with navigation-proof safeguards.
+- [x] Run shell/home browser crawl.
+- [x] Generate audit DOCX and audio files.
+- [x] Run first Proof Listen Electron slice in a temp copy.
+- [x] Document Electron dev mirror hazard.
+- [x] Relaunch Electron with isolated `/tmp` `HOME` before more file-save tests.
+- [ ] Continue Proof exports and Transfer from isolated Electron setup.
+- [ ] Ask Marie before archiving/closing this plan.

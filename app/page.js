@@ -2170,7 +2170,77 @@ function SettingsCog({
           {backupToast}
         </div>
       )}
+      {isElectron && authEmail && backupEnabled && (
+        <BackupStatusPill
+          info={backupInfo}
+          onClick={onToggle}
+        />
+      )}
     </>
+  );
+}
+
+function BackupStatusPill({ info, onClick }) {
+  const driveDetected = !!info?.driveDetected;
+  const lastAt = Number(info?.lastSnapshotAt) || 0;
+  const count = Number(info?.snapshotCount) || 0;
+  // Three quiet states. Background colours kept very pale so the pill
+  // never shouts — Marie wants a "small thingie" not a banner.
+  let label;
+  let color;
+  let background;
+  let border;
+  let title;
+  if (!driveDetected) {
+    label = '⚠';
+    color = '#a14a3a';
+    background = '#fcefe9';
+    border = '#f0b8a8';
+    title = 'Drive not detected on this Mac — daily backups are paused. Click to open Settings.';
+  } else if (!lastAt) {
+    label = '○';
+    color = '#7a6a55';
+    background = '#fbf5e8';
+    border = '#e6d6a6';
+    title = 'Drive snapshots ON. No backup yet — the first one will run on next open. Click to open Settings.';
+  } else {
+    label = '✓';
+    color = '#3f6a3f';
+    background = '#eaf3e6';
+    border = '#bcd6ae';
+    const when = new Date(lastAt).toLocaleString(undefined, { dateStyle:'medium', timeStyle:'short' });
+    title = `Drive snapshots ON. Last backup: ${when} (${count} kept). Click to open Settings.`;
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      style={{
+        position:'fixed',
+        top:22,
+        right:72,
+        zIndex:1200,
+        width:28,
+        height:28,
+        borderRadius:999,
+        background,
+        color,
+        border:`1px solid ${border}`,
+        fontSize:'0.82rem',
+        lineHeight:1,
+        cursor:'pointer',
+        boxShadow:'0 4px 10px rgba(0,0,0,0.06)',
+        WebkitAppRegion:'no-drag',
+        display:'inline-flex',
+        alignItems:'center',
+        justifyContent:'center',
+        padding:0,
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

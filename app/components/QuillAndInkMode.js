@@ -125,6 +125,20 @@ function downloadText(filename, content, mime = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+// Same idea as downloadText, but for a ready-made Blob (the Word .docx
+// comes out of JSZip as a Blob, not a string).
+function downloadBlob(filename, blob) {
+  if (typeof document === 'undefined' || !blob) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function safeFileName(value = 'quill-and-ink-project') {
   return String(value || 'project').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'project';
 }

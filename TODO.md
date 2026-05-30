@@ -664,6 +664,23 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-05-29 — App-wide "don't overwrite, add (1)/(2)/(3)" on every download
+
+- [x] **Every download in the desktop app is now collision-proof.** —
+      completed 2026-05-29 (code; pending Marie hands-test in the rebuilt
+      app). Marie has asked many times for this: when you save/export a
+      file and that name already exists, append " (1)", " (2)", " (3)"
+      instead of overwriting. `main.js` already had the exact helper
+      (`uniqueExportPath`) but only the 4 IPC "Save As" exports used it;
+      every renderer `<a download>` (Quill Word/CSV/InDesign, Proof CSVs,
+      Prep, Prebuild CSVs, home backup JSON, ManuscriptSetup config) was
+      bypassing it. Fix is ONE central hook: a `will-download` listener on
+      the window session in `main.js` that routes every download through
+      `uniqueExportPath` into Downloads — so it covers every tab/mode in
+      one place, no per-button edits. Phone app is a real browser (auto-
+      dedupes already); the 4 IPC exports already defaulted to a deduped
+      name. Needs Mac + Windows release rebuilds to reach installed apps.
+
 ### 2026-05-29 — Restore Quill (Ink) Word doc export
 
 - [x] **Quill Word doc export restored + bundle exports everything.** —

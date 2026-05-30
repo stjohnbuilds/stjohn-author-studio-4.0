@@ -668,25 +668,33 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }
 
   // ----- export from book detail -----
-  // Marie 2026-05-29: the bundle button exports EVERYTHING — Word + CSV +
-  // InDesign. Firing two downloads in the same tick used to make the
-  // browser silently drop all but the first (that's why "CSV + InDesign"
-  // only ever saved the CSV). We build the async Word doc first, then
-  // stagger the downloads ~350ms apart so all three actually land.
+  // Marie 2026-05-29: "Export all" bundles Word + CSV + InDesign into ONE
+  // .zip download. A single file is guaranteed to contain all three — no
+  // risk of back-to-back downloads dropping one (the old "CSV + InDesign"
+  // button only ever saved the CSV). CSV + InDesign always go in; the Word
+  // doc is added too, but if it ever fails to build the zip still ships
+  // with the other two rather than failing the whole export.
   async function exportAll() {
     if (!activeProject) return;
     const safe = safeFileName(activeProject.title);
-    let docxBlob = null;
     try {
-      docxBlob = await buildAnnotationsDocxBlob(activeProject);
+      const mod = await import('jszip');
+      const JSZip = mod.default || mod;
+      const zip = new JSZip();
+      try {
+        const docxBlob = await buildAnnotationsDocxBlob(activeProject);
+        zip.file(`${safe}-annotated-review.docx`, docxBlob);
+      } catch (e) {
+        console.warn('[Quill] Word doc failed; zip will still hold CSV + InDesign:', e);
+      }
+      zip.file(`${safe}-annotations.csv`, buildAnnotationsCsv(activeProject));
+      zip.file(`${safe}-indesign.jsx`, buildInDesignJsx(activeProject));
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+      downloadBlob(`${safe} - Quill Export.zip`, blob);
     } catch (e) {
-      console.warn('[Quill] Word export failed, continuing with CSV + InDesign:', e);
+      console.warn('[Quill] bundle export failed:', e);
+      alert('Sorry — the bundle export hit a snag. The individual Word / CSV / InDesign buttons still work.');
     }
-    const jobs = [];
-    if (docxBlob) jobs.push(() => downloadBlob(`${safe}-annotated-review.docx`, docxBlob));
-    jobs.push(() => downloadText(`${safe}-annotations.csv`, buildAnnotationsCsv(activeProject), 'text/csv'));
-    jobs.push(() => downloadText(`${safe}-indesign.jsx`, buildInDesignJsx(activeProject), 'application/javascript'));
-    jobs.forEach((job, i) => setTimeout(job, i * 350));
   }
   function exportCsv() {
     if (!activeProject) return;

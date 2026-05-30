@@ -47,6 +47,7 @@ import {
   createAnnotation,
   buildAnnotationsCsv,
   buildInDesignJsx,
+  buildAnnotationsDocxBlob,
 } from '../../packages/quill-engine';
 import {
   getSupabaseClient,

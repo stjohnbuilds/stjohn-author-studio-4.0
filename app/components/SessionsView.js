@@ -499,6 +499,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   const [durationCache, setDurationCache] = useState(book.audioDurationCache || {});
   const [durationProbeRunning, setDurationProbeRunning] = useState(false);
   const [showTimingDetails, setShowTimingDetails] = useState(false);
+  const [showOrganizeHelp, setShowOrganizeHelp] = useState(false);
+  const [organizeCopied, setOrganizeCopied] = useState(false);
   const [showFloatingNav, setShowFloatingNav] = useState(false);
   const [showSceneRows, setShowSceneRows] = useState(audioUploadMode === 'scene');
   const [showTranscribeAllModal, setShowTranscribeAllModal] = useState(false);

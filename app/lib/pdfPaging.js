@@ -280,11 +280,11 @@ export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
     if (!matches.length) continue;
 
     const uniquePages = [...new Set(matches.map(match => Number(match.pageNumber) || Number(match.pageIndex) || 1))].sort((a, b) => a - b);
+
+    // Single match — the easy case, exact answer.
     if (uniquePages.length === 1) {
       const candidatePage = uniquePages[0];
-      if (candidatePage < 1 || candidatePage > maxBound) {
-        return null;
-      }
+      if (candidatePage < 1 || candidatePage > maxBound) return null;
       const only = matches.find(match => (Number(match.pageNumber) || Number(match.pageIndex) || 1) === uniquePages[0]) || matches[0];
       return {
         pageNumber: candidatePage,
@@ -295,7 +295,32 @@ export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
       };
     }
 
-    return null;
+    // Marie 2026-06-01: 3.0 returned null here. We do better — when the
+    // sentence appears on multiple pages (e.g. a duplicated line of
+    // dialogue), pick the page closest to the word-count hint. Only
+    // applies when we have a hint; otherwise fall through to the next
+    // (shorter) search key.
+    if (Number.isFinite(hintPageNumber)) {
+      const inBounds = uniquePages.filter(p => p >= 1 && p <= maxBound);
+      if (inBounds.length) {
+        let best = inBounds[0];
+        let bestDist = Math.abs(best - hintPageNumber);
+        for (const p of inBounds.slice(1)) {
+          const d = Math.abs(p - hintPageNumber);
+          if (d < bestDist) { best = p; bestDist = d; }
+        }
+        const winner = matches.find(match => (Number(match.pageNumber) || Number(match.pageIndex) || 1) === best) || matches[0];
+        return {
+          pageNumber: best,
+          pageIndex: Number(winner.pageIndex) || 1,
+          score: 80,
+          distance: bestDist,
+          source: winner.pageNumberSource || 'index',
+        };
+      }
+    }
+
+    // No hint — give up on this key, try a shorter one (or fall through).
   }
 
   return null;

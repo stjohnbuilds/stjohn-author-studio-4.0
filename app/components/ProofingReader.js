@@ -811,15 +811,18 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     };
   }
 
-  function getAutoPageNumber(wordIdx){
-    // Marie 2026-05-26 REBUILD: page lookup is now deterministic.
-    //   1. If the book has a slim `pdfPageMap` (word-index → printed-page
-    //      anchors, built once at import), look up by word index. Done.
-    //   2. Else fall back to the manuscript word-index map from rendered
-    //      page breaks, with the manual nudge applied.
-    //   3. Else '?'.
-    // No quote-searching. No PDF text extraction at flag time. The PDF
-    // is used ONCE at import to build the map, then forgotten.
+  function getAutoPageNumber(wordIdx, quoteText){
+    // Marie 2026-06-01: ported back the PDF QUOTE SEARCH from Script and
+    // Sync 3.0, with one enhancement (closest-to-hint tiebreaker when the
+    // sentence appears on multiple pages). Content-based lookup survives
+    // the count-drift bug in `manuscriptWordStart` that was returning
+    // page 1 for every late chapter.
+    //
+    // Order:
+    //   1. Quote search against pdfPaging.pages — content-based, exact.
+    //   2. Slim word-index map — fast but drifts; backup only.
+    //   3. Manuscript page-break map from the DOCX itself.
+    //   4. '?'
     const idx = Math.max(0, Number(wordIdx) || 0);
     const sectionWordStart = Number(section.manuscriptWordStart);
     const proofInitialWordOffset = Math.max(0, Number(section.proofInitialWordOffset) || 0);
@@ -831,14 +834,34 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const hasExactManuscriptMap = Array.isArray(manuscriptPaging?.pageMap) && manuscriptPaging.pageMap.length > 1;
     const adjustment = Number(pageNumberAdjustment) || 0;
 
-    // Primary: slim PDF map. No adjustment needed — the page numbers in
-    // the map are the printed footer numbers themselves.
+    // Compute a hint page number first — used by the quote search to
+    // disambiguate when a sentence appears on multiple PDF pages.
+    let hintPageNumber = null;
+    if (hasSlimMap && manuscriptWordIdx != null) {
+      hintPageNumber = pageForWordIndexFromSlimMap(manuscriptWordIdx, effectiveSlimMap);
+    }
+    if (hintPageNumber == null && hasExactManuscriptMap && manuscriptWordIdx != null) {
+      hintPageNumber = getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment;
+    }
+
+    // Primary: quote search through PDF page text. Needs the full
+    // `pdfPaging.pages` array (with normalizedText). We keep that on the
+    // book now — only the cloud copy used to strip it.
+    const effectivePdfPaging = pdfPaging || section.pdfPaging || null;
+    const hasPdfPageText = Array.isArray(effectivePdfPaging?.pages) && effectivePdfPaging.pages.length > 0;
+    if (hasPdfPageText && quoteText) {
+      const match = findPdfPageForQuote(quoteText, effectivePdfPaging, hintPageNumber);
+      if (match?.pageNumber) return String(match.pageNumber);
+    }
+
+    // Fallback 1: slim PDF map (the broken-when-drift one, kept as
+    // safety net for when the full pdfPaging.pages isn't available).
     if (hasSlimMap && manuscriptWordIdx != null) {
       const page = pageForWordIndexFromSlimMap(manuscriptWordIdx, effectiveSlimMap);
       if (page != null) return String(page);
     }
 
-    // Fallback: manuscript word-count map + user nudge.
+    // Fallback 2: manuscript page-break map from the DOCX, plus nudge.
     if (hasExactManuscriptMap && manuscriptWordIdx != null) {
       return String(getPageNumberForWordIndex(manuscriptWordIdx, manuscriptPaging.pageMap) + adjustment);
     }

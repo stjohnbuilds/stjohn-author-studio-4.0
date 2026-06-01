@@ -51,14 +51,16 @@ function omit(obj, keys) {
   return out;
 }
 
-// Marie 2026-05-26: strip the heavy `pdfPaging.pages` array (the full
-// text of every PDF page, only used for the dead quote-search code) but
-// keep the SLIM `pdfPageMap` (word-index → printed-page anchors) plus
-// the small metadata (pageCount, printedPageCount, fileName).
+// Marie 2026-06-01: KEEP the full `pdfPaging.pages` array on the cloud
+// copy. Earlier we stripped it (2026-05-26) thinking the slim
+// `pdfPageMap` had replaced quote-search, but the slim map drifts when
+// any chapter's word count is off, returning page 1 for every late
+// chapter. The quote-search code (`findPdfPageForQuote`) is back in
+// action and it needs `pages[].normalizedText`. The full text is a few
+// hundred KB per novel — Supabase handles that fine.
 function slimPdfPagingForCloud(pdfPaging) {
   if (!pdfPaging || typeof pdfPaging !== 'object') return pdfPaging;
-  const { pages, ...rest } = pdfPaging;
-  return rest;
+  return pdfPaging;
 }
 
 // Slim a Proof book before it's stored as `desktop_book` JSONB.

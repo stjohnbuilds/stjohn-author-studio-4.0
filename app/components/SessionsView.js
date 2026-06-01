@@ -2578,6 +2578,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                         <option key={chapter.id} value={chapter.id}>{chapterDisplayLabel(chapter, index)}</option>
                       ))}
                     </select>
+                    {mode === 'duet' && (
+                      <button
+                        type="button"
+                        onClick={()=>{ setOrganizeCopied(false); setShowOrganizeHelp(true); }}
+                        title="Show the Windows folder helper that pulls out files over a chosen length and pads numbers like 01, 02…"
+                        style={btn({background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700,fontSize:'0.7rem',padding:'4px 10px'})}
+                      >
+                        Organise…
+                      </button>
+                    )}
                     <button style={btn({background:'var(--accent-light)',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700,fontSize:'0.7rem',padding:'4px 10px'})} onClick={bulkImportAudio}>
                       Import…
                     </button>

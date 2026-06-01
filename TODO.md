@@ -664,6 +664,23 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-06-01 — Duet book detail "Organise…" button (Windows folder helper)
+
+- [x] **"Organise…" button next to "Import…" in Duet's Bulk audio card.** —
+      completed 2026-06-01. Marie ships a folder of raw chapter audio to
+      the engineer, but Windows sorts 1, 2, 3, 10, 11 wrong (puts 10
+      before 2). She has a PowerShell one-liner that (a) copies every
+      audio file longer than N minutes into a sub-folder, and (b) pads
+      the leading number so 1 → 01, 2 → 02 etc. The button shows a
+      centered modal with the 5-step recipe ("right-click empty space →
+      Open in Terminal → paste → Enter", with the tip to change
+      `$minutes = 5` to whatever she wants) plus the full PowerShell
+      script in a dark code box with a Copy button. Lives in
+      `app/components/SessionsView.js` (shared book detail). Only renders
+      when `mode === 'duet'`. Verified in browser preview: button shows
+      only in Duet, modal opens centered, Copy → "Copied ✓", Close closes,
+      no console errors.
+
 ### 2026-05-29 — App-wide "don't overwrite, add (1)/(2)/(3)" on every download
 
 - [x] **Every download in the desktop app is now collision-proof.** —

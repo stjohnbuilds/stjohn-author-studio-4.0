@@ -664,6 +664,30 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-06-01 — Proof page numbers: ported PDF quote-search back from 3.0
+
+- [x] **Proof flags now resolve page numbers by sentence, not just word
+      count.** — completed 2026-06-01. Marie's chapter 51 was showing page
+      1 even with 419 of 420 PDF pages numbered. Root cause: the slim
+      word-index → page map drifts when any earlier chapter has a missing
+      manuscript or zero word count, so the running word total stalls and
+      every late chapter looks up word index ~0 = page 1. Old Script and
+      Sync 3.0 didn't have this bug because it used CONTENT-based lookup:
+      take the clicked sentence, search every PDF page's text for it,
+      return the page that contains it. That code was deleted in 4.0 as
+      "dead". Ported it back with one improvement: when a sentence
+      appears on multiple PDF pages (duplicated dialogue etc), pick the
+      page closest to the word-count hint instead of giving up. Also
+      stopped `packages/cloud-sync/cloud-slim.js` from stripping
+      `pdfPaging.pages` from the cloud copy — that was the reason 3.0
+      survived weeks of disuse and 4.0 didn't. Files: `app/lib/pdfPaging.js`
+      (enhanced `findPdfPageForQuote`), `app/components/ProofingReader.js`
+      (wired quote-search in as primary lookup ahead of slim map),
+      `packages/cloud-sync/cloud-slim.js` (stop stripping). Verified with
+      5 unit tests (unique sentence, duplicate-with-hint, too-short quote
+      falls back, typography normalisation including curly apostrophes
+      and line breaks).
+
 ### 2026-06-01 — Duet book detail "Organise…" button (Windows folder helper)
 
 - [x] **"Organise…" button next to "Import…" in Duet's Bulk audio card.** —

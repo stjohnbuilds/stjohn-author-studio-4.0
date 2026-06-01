@@ -930,7 +930,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' ').replace(/\s+/g,' ').trim():'';
     const detectedNar=inRange?detectNarrator(wordElsRef.current[idx],narratorColors,defaultNarrator,textRef.current):defaultNarrator;
     const autoNar=sceneMappedNarrator||detectedNar;
-    const autoPage=getAutoPageNumber(idx);
+    const autoPage=getAutoPageNumber(idx, sentPlain);
     if(flagPanel) clearDraftWordFlag(flagPanel.idx);
     setWordAction(null);
     if(wordElsRef.current[idx])wordElsRef.current[idx].classList.add('w-flagged');

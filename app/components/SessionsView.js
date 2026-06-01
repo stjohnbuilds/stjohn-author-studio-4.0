@@ -2251,6 +2251,27 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   Tip: at the very top of the code, change <code style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>$minutes = 5</code> to however many minutes you want. Anything longer than that gets copied into the new sub-folder.
                 </div>
               </div>
+              <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:14,padding:'10px 14px',marginBottom:12 }}>
+                <div style={{ fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:8 }}>About the file naming</div>
+                <div style={{ fontSize:'0.82rem',color:'var(--text)',lineHeight:1.55,display:'flex',flexDirection:'column',gap:8 }}>
+                  <div>
+                    <div style={{ fontWeight:700,marginBottom:2 }}>
+                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem' }}>$makeStartingNumbersLookLike = "01"</code>
+                    </div>
+                    <div style={{ color:'var(--text-muted)' }}>
+                      How long the chapter number at the start of each file should be. <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"01"</code> means 2 digits, so <strong>1 → 01</strong> and <strong>5 → 05</strong>. Use <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"001"</code> if you want 3 digits. This is what makes Windows sort chapters in the right order.
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight:700,marginBottom:2 }}>
+                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem' }}>$narratorNamingExamples = @("02a", "003b")</code>
+                    </div>
+                    <div style={{ color:'var(--text-muted)' }}>
+                      Show the script which number lengths to fix. It counts the digits in each example (<strong>02a</strong> → 2 digits, <strong>003b</strong> → 3 digits) and fixes files starting with 2-digit OR 3-digit numbers. If your files are named like <strong>5.mp3</strong>, <strong>12a.mp3</strong>, <strong>003b.mp3</strong>, leave these as they are. If they're just plain numbers like 1, 2, 3, change it to <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>@("1")</code>.
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div style={{ position:'relative',background:'#1f1830',border:'1px solid #2a213d',borderRadius:14,padding:'10px 12px',marginBottom:6 }}>
                 <button
                   type="button"

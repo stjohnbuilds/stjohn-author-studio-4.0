@@ -2247,27 +2247,41 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   <li>Paste the whole code below.</li>
                   <li>Press <strong>Enter</strong>.</li>
                 </ol>
-                <div style={{ marginTop:8,fontSize:'0.78rem',color:'var(--accent-dark)',fontWeight:600 }}>
-                  Tip: at the very top of the code, change <code style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>$minutes = 5</code> to however many minutes you want. Anything longer than that gets copied into the new sub-folder.
-                </div>
               </div>
-              <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:14,padding:'10px 14px',marginBottom:12 }}>
-                <div style={{ fontSize:'0.78rem',fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:8 }}>About the file naming</div>
-                <div style={{ fontSize:'0.82rem',color:'var(--text)',lineHeight:1.55,display:'flex',flexDirection:'column',gap:8 }}>
+              <div style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:14,padding:'12px 14px',marginBottom:12 }}>
+                <div style={{ fontSize:'0.82rem',fontWeight:700,color:'var(--accent-dark)',marginBottom:10 }}>Three lines you might want to change at the top of the code</div>
+                <div style={{ fontSize:'0.82rem',color:'var(--text)',lineHeight:1.55,display:'flex',flexDirection:'column',gap:14 }}>
                   <div>
-                    <div style={{ fontWeight:700,marginBottom:2 }}>
-                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem' }}>$makeStartingNumbersLookLike = "01"</code>
+                    <div style={{ marginBottom:3 }}>
+                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem',fontWeight:700 }}>$minutes = 5</code>
                     </div>
                     <div style={{ color:'var(--text-muted)' }}>
-                      How long the chapter number at the start of each file should be. <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"01"</code> means 2 digits, so <strong>1 → 01</strong> and <strong>5 → 05</strong>. Use <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"001"</code> if you want 3 digits. This is what makes Windows sort chapters in the right order.
+                      How long a file has to be to count as "a real chapter". Anything longer than this gets copied to the new folder. Change <strong>5</strong> to whatever you want.
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontWeight:700,marginBottom:2 }}>
-                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem' }}>$narratorNamingExamples = @("02a", "003b")</code>
+                    <div style={{ marginBottom:3 }}>
+                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem',fontWeight:700 }}>$makeStartingNumbersLookLike = "01"</code>
                     </div>
                     <div style={{ color:'var(--text-muted)' }}>
-                      Show the script which number lengths to fix. It counts the digits in each example (<strong>02a</strong> → 2 digits, <strong>003b</strong> → 3 digits) and fixes files starting with 2-digit OR 3-digit numbers. If your files are named like <strong>5.mp3</strong>, <strong>12a.mp3</strong>, <strong>003b.mp3</strong>, leave these as they are. If they're just plain numbers like 1, 2, 3, change it to <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>@("1")</code>.
+                      The shape you want your numbers to be.
+                      <ul style={{ margin:'4px 0 6px',paddingLeft:'1.2rem' }}>
+                        <li><code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"01"</code> → 1 becomes 01, 5 becomes 05</li>
+                        <li><code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>"001"</code> → 1 becomes 001, 5 becomes 005</li>
+                      </ul>
+                      Why bother? Because Windows sorts 1, 10, 11, 2, 3 in the wrong order. Adding a zero in front fixes that.
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ marginBottom:3 }}>
+                      <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.78rem',fontWeight:700 }}>$narratorNamingExamples = @("02a", "003b")</code>
+                    </div>
+                    <div style={{ color:'var(--text-muted)' }}>
+                      Show the script what your file names look like. Type one or two examples in quotes.
+                      <ul style={{ margin:'4px 0 0',paddingLeft:'1.2rem' }}>
+                        <li>If yours look like <strong>02a.mp3</strong> and <strong>003b.mp3</strong> → leave it.</li>
+                        <li>If yours are just <strong>1.mp3, 2.mp3, 3.mp3</strong> → change to <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:5,padding:'0 5px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.76rem' }}>@("1")</code>.</li>
+                      </ul>
                     </div>
                   </div>
                 </div>

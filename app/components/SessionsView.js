@@ -2157,6 +2157,117 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           {toast.message}
         </div>
       )}
+      {showOrganizeHelp && (() => {
+        const ORGANIZE_SCRIPT = [
+          '$minutes = 5',
+          '$makeStartingNumbersLookLike = "01"',
+          '',
+          '$narratorNamingExamples = @(',
+          '    "02a",',
+          '    "003b"',
+          ')',
+          '',
+          '$folder = (Get-Location).Path',
+          '$dest = Join-Path $folder "Over_${minutes}_Minutes"',
+          'New-Item -ItemType Directory -Path $dest -Force | Out-Null',
+          '',
+          '$exts = ".mp3",".wav",".flac",".aac",".m4a",".ogg",".wma",".aiff",".aif"',
+          '$shell = New-Object -ComObject Shell.Application',
+          '$limitSeconds = $minutes * 60',
+          '$finalNumberDigits = $makeStartingNumbersLookLike.Length',
+          '',
+          '$numberLengthsToFix = @()',
+          'foreach ($example in $narratorNamingExamples) {',
+          '    if ($example -match "^(\\d+)[A-Za-z]?$") {',
+          '        $numberLengthsToFix += $matches[1].Length',
+          '    }',
+          '}',
+          '$numberLengthsToFix = $numberLengthsToFix | Sort-Object -Unique',
+          '',
+          'Get-ChildItem -Path $folder -File | Where-Object {',
+          '    $exts -contains $_.Extension.ToLower()',
+          '} | ForEach-Object {',
+          '    $folderObj = $shell.Namespace($_.DirectoryName)',
+          '    $item = $folderObj.ParseName($_.Name)',
+          '    $durationRaw = $item.ExtendedProperty("System.Media.Duration")',
+          '',
+          '    if ($durationRaw) {',
+          '        $seconds = [double]$durationRaw / 10000000',
+          '',
+          '        if ($seconds -gt $limitSeconds) {',
+          '            $newName = $_.Name',
+          '',
+          '            if ($_.BaseName -match "^(\\d+)([A-Za-z]?)(.*)$") {',
+          '                $originalNumberText = $matches[1]',
+          '                $letter = $matches[2]',
+          '                $rest = $matches[3]',
+          '',
+          '                if ($numberLengthsToFix -contains $originalNumberText.Length) {',
+          '                    $number = [int]$originalNumberText',
+          '                    $fixedNumber = $number.ToString("D$finalNumberDigits")',
+          '                    $newName = "$fixedNumber$letter$rest$($_.Extension)"',
+          '                }',
+          '            }',
+          '',
+          '            Copy-Item -Path $_.FullName -Destination (Join-Path $dest $newName) -Force',
+          '            Write-Host "Copied: $($_.Name) -> $newName"',
+          '        }',
+          '    }',
+          '}',
+        ].join('\n');
+        const copyScript = async () => {
+          try {
+            await navigator.clipboard.writeText(ORGANIZE_SCRIPT);
+            setOrganizeCopied(true);
+            setTimeout(()=>setOrganizeCopied(false), 1800);
+          } catch (e) {
+            const ta = document.createElement('textarea');
+            ta.value = ORGANIZE_SCRIPT;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); setOrganizeCopied(true); setTimeout(()=>setOrganizeCopied(false), 1800); } catch (_) {}
+            document.body.removeChild(ta);
+          }
+        };
+        return (
+          <div style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }} onClick={()=>setShowOrganizeHelp(false)}>
+            <div style={{ width:'min(640px, 100%)',maxHeight:'min(86vh, 780px)',overflow:'auto',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px 20px 16px' }} onClick={e=>e.stopPropagation()}>
+              <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:14 }}>
+                <div>
+                  <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:4 }}>Organise the audio folder (Windows)</div>
+                  <div style={{ fontSize:'0.82rem',color:'var(--text-muted)',lineHeight:1.45 }}>Pulls every audio file longer than the chosen number of minutes into a new sub-folder, and pads chapter numbers so 1, 2, 3 become 01, 02, 03.</div>
+                </div>
+                <button onClick={()=>setShowOrganizeHelp(false)} aria-label="Close" style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700 })}>Close</button>
+              </div>
+              <div style={{ background:'var(--accent-surface)',border:'1px solid var(--accent-border)',borderRadius:14,padding:'10px 14px',marginBottom:12 }}>
+                <ol style={{ margin:0,paddingLeft:'1.1rem',fontSize:'0.84rem',color:'var(--text)',lineHeight:1.55 }}>
+                  <li>Open the audio folder in Windows File Explorer.</li>
+                  <li>Right-click empty space inside the folder.</li>
+                  <li>Click <strong>Open in Terminal</strong>.</li>
+                  <li>Paste the whole code below.</li>
+                  <li>Press <strong>Enter</strong>.</li>
+                </ol>
+                <div style={{ marginTop:8,fontSize:'0.78rem',color:'var(--accent-dark)',fontWeight:600 }}>
+                  Tip: at the very top of the code, change <code style={{ background:'white',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>$minutes = 5</code> to however many minutes you want. Anything longer than that gets copied into the new sub-folder.
+                </div>
+              </div>
+              <div style={{ position:'relative',background:'#1f1830',border:'1px solid #2a213d',borderRadius:14,padding:'10px 12px',marginBottom:6 }}>
+                <button
+                  type="button"
+                  onClick={copyScript}
+                  style={{ position:'absolute',top:8,right:8,padding:'4px 10px',borderRadius:8,fontSize:'0.72rem',fontWeight:700,border:'1px solid rgba(255,255,255,0.18)',background:organizeCopied?'#3b8e63':'rgba(255,255,255,0.08)',color:'white',cursor:'pointer' }}
+                >
+                  {organizeCopied ? 'Copied ✓' : 'Copy'}
+                </button>
+                <pre style={{ margin:0,paddingRight:64,color:'#f4eefb',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',fontSize:'0.74rem',lineHeight:1.45,whiteSpace:'pre',overflowX:'auto' }}>{ORGANIZE_SCRIPT}</pre>
+              </div>
+              <div style={{ fontSize:'0.72rem',color:'var(--text-light)',marginTop:6 }}>
+                Originals stay where they are. A new folder called <code style={{ background:'var(--accent-light)',border:'1px solid var(--accent-border)',borderRadius:6,padding:'1px 6px',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace' }}>Over_5_Minutes</code> (or whatever minutes you chose) is created next to them with the copies.
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {showTimingDetails && (
         <div style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }} onClick={()=>setShowTimingDetails(false)}>
           <div style={{ width:'min(760px, 100%)',maxHeight:'min(78vh, 720px)',overflow:'auto',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px 18px 16px' }} onClick={e=>e.stopPropagation()}>

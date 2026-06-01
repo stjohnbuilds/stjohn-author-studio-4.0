@@ -696,9 +696,12 @@ and Reader. Sweep:
       comments are anchored via commentRangeStart/End + comments.xml.
       Also fixed the bundle button in `QuillAndInkMode.js`: "Export CSV +
       InDesign" used to fire two downloads in one tick and the browser
-      dropped all but the CSV — it now builds the Word doc first and
-      staggers all three downloads ~350ms apart so Word + CSV + InDesign
-      all land. Added a "Word .docx only" button. Verified: 21 sandbox
+      dropped all but the CSV. Now "Export all (.zip: Word + CSV +
+      InDesign)" builds a single .zip containing all three (Marie's
+      choice 2026-05-29 — one file guaranteed to hold everything, no
+      risk of a dropped download). CSV + InDesign always included; Word
+      added too but zip still ships if the Word build ever fails. Added a
+      "Word .docx only" button. Verified: 21 sandbox
       assertions pass, generated .docx re-parses cleanly in mammoth
       (text/punctuation/paragraphs/entities intact), home route compiles
       HTTP 200. Still needs Marie to click it on a real book to fully

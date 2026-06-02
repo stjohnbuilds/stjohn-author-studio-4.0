@@ -2044,6 +2044,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     filledForRef.current = null;
     quoteDirtyRef.current = false;
     narratorDirtyRef.current = false;
+    pageDirtyRef.current = false;
     setFlagDraft({
       quote: '',
       page: '',
@@ -2176,6 +2177,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     filledForRef.current = null;
     quoteDirtyRef.current = false;
     narratorDirtyRef.current = false;
+    pageDirtyRef.current = false;
     setFlagDraft({ quote: '', page: '', note: '', narrator: autoNarrator, type: 'Edit' });
   }
 

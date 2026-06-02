@@ -2099,6 +2099,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
         filledForRef.current = null;
         quoteDirtyRef.current = false;
         narratorDirtyRef.current = false;
+        pageDirtyRef.current = false;
       }
       return;
     }
@@ -2107,18 +2108,21 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     const prevStart = filledForRef.current == null ? null : Number(String(filledForRef.current).split(':')[0]);
     const anchorMoved = prevStart !== selectionMeta.start;
     filledForRef.current = selKey;
-    // The anchor (start) word drives the narrator; only drop out of the
-    // "＋ New" custom field when that anchor actually jumps to a new word.
-    if (anchorMoved) setNarratorCustom(false);
+    // Tapping a NEW anchor word = a fresh flag target: clear the hand-edit
+    // flags + the custom-narrator field so the new word's sentence, page and
+    // narrator all fill in. Dragging the END handle (same anchor) keeps any
+    // edits and just extends the quote.
+    if (anchorMoved) {
+      quoteDirtyRef.current = false;
+      narratorDirtyRef.current = false;
+      pageDirtyRef.current = false;
+      setNarratorCustom(false);
+    }
     setFlagDraft((prev) => ({
       ...prev,
-      // Keep the quote in step with the selection — dragging the end handle
-      // to cover MORE sentences extends the quote — until Marie edits it.
       quote: quoteDirtyRef.current ? prev.quote : selectionMeta.quote,
-      page: prev.page || selectionMeta.page,
-      narrator: (!narratorDirtyRef.current && anchorMoved)
-        ? (selectionMeta.narrator || prev.narrator || autoNarrator)
-        : prev.narrator,
+      page: pageDirtyRef.current ? prev.page : (selectionMeta.page || prev.page),
+      narrator: narratorDirtyRef.current ? prev.narrator : (selectionMeta.narrator || prev.narrator || autoNarrator),
     }));
   }, [panelOpen, selectionMeta, autoNarrator]);
 

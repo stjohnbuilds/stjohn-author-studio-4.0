@@ -1995,6 +1995,8 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   useEffect(() => {
     setSelectedRange(null);
     setPanelOpen(false);
+    setNarratorCustom(false);
+    filledForRef.current = null;
     setFlagDraft({
       quote: '',
       page: '',

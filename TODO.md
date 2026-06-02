@@ -45,6 +45,20 @@ Android.
       to the phone's `{word}` objects) and pre-fill the quote with the
       full sentence.
 
+Progress 2026-06-01: all three implemented in `app/phone/page.js`
+(+ new `app/phone/_lib/audioFolderMemory.js`). Sentence detection uses
+plainText gaps (buildWordSpans strips punctuation) — verified by sandbox
+test incl. trailing `.?!` and multi-sentence selections. Narrator uses a
+detached-HTML walk (`buildSectionWordContext`) for nearest H2 heading +
+inline highlight colour, mapped via `narratorColors`; field is now a
+dropdown (all options incl. Engineer) + "＋ New" button, defaulting to the
+detected narrator. Folder memory: IndexedDB per user+book; Chrome/Android
+stores a File System Access handle (one-tap Reload), iOS stores name+count
+("Pick again"); audio bytes never stored. `npx next build` passes (both
+`/` and `/phone`). Review prompt for a second AI at
+`REVIEW_PROMPT_phone-fixes.md`. NOT archived — needs Marie's real-phone
+test (rule 7: done only after Marie clicks it on a real file).
+
 ### 🆕 2026-05-27 — Drive snapshot backup system added
 
 Built end-to-end. Daily on first app-open, per-account opt-in via

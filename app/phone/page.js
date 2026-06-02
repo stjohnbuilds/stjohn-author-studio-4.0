@@ -1954,6 +1954,9 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const html = sectionHtml(section);
   const plainText = useMemo(() => sectionPlainText(section), [section]);
   const words = useMemo(() => buildWordSpans(plainText), [plainText]);
+  // Per-word heading + highlight-colour map (for the desktop-style narrator
+  // auto-fill). Indexes line up with `words`.
+  const wordContext = useMemo(() => buildSectionWordContext(html), [html]);
 
   // Mirror the desktop's auto-fill: narrator from book.narratorColors
   // mapping (Crescent → Illisa), page from book.manuscriptPaging.pageMap

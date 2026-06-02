@@ -12,6 +12,39 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-01 — Phone companion: three fixes Marie reported
+
+All live in `app/phone/page.js` (phone is one big file). Doing them one
+at a time, **folder first** (Marie's pick). Marie uses both iPhone and
+Android.
+
+- [ ] **Phone: remember the audio folder per book.** Today the picked
+      folder lives only in React state (`audioFilesByBook`, page.js:466)
+      and is lost on reload — it never saves. Plan: persist per
+      `userId + audioProjectKey` in a new IndexedDB helper
+      (`app/phone/_lib/audioFolderMemory.js`). Android/Chrome (secure
+      context) → store the File System Access directory handle, offer a
+      one-tap "Reload folder". iPhone/Safari → Apple blocks silent
+      re-open; store folder name + filenames, show "Last folder: X · N
+      files" + one-tap Pick again. Audio still never leaves the phone
+      (only the name/handle is stored, never the audio bytes). Extend the
+      existing `BookAudioFolderPicker` — do NOT add a new picker.
+- [ ] **Phone: attribute the flag narrator to the tapped word.** Desktop
+      detects the narrator per word (`ProofingReader.js` `detectNarrator`:
+      nearest preceding H2 character heading + `narratorColors` map);
+      phone uses only section-level `autoNarratorFor`, so it shows a
+      generic "Narrator". Port the H2-heading method (the phone reader
+      keeps H2 headings; it strips highlight colours). Spec from Marie
+      2026-06-01: the field DEFAULTS to the detected narrator, the
+      dropdown lists ALL options incl. "Engineer", plus an "Add new"
+      button.
+- [ ] **Phone: tapping one word pulls the whole sentence into the flag.**
+      Desktop uses `getSentence(words, idx)` (`ProofingReader.js:132`) to
+      expand to sentence bounds; the phone quote is just the tapped word
+      (`page.js` `selectionMeta`, ~line 1873). Port `getSentence` (adapt
+      to the phone's `{word}` objects) and pre-fill the quote with the
+      full sentence.
+
 ### 🆕 2026-05-27 — Drive snapshot backup system added
 
 Built end-to-end. Daily on first app-open, per-account opt-in via

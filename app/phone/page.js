@@ -449,7 +449,14 @@ function sentenceTextBetween(plainText, words, startIdx, endIdx) {
   const b = Math.max(0, Math.min(words.length - 1, endIdx));
   const lo = Math.min(a, b);
   const hi = Math.max(a, b);
-  return String(plainText || '').slice(words[lo].start, words[hi].end).replace(/\s+/g, ' ').trim();
+  const text = String(plainText || '');
+  // Include the trailing sentence punctuation + any closing quote/bracket
+  // that sits right after the last word, so the quote reads naturally
+  // ("…work?" not "…work") — matching the desktop.
+  let endOff = words[hi].end;
+  const tail = text.slice(endOff, endOff + 4).match(/^[.!?]+['"”’)\]]*/);
+  if (tail) endOff += tail[0].length;
+  return text.slice(words[lo].start, endOff).replace(/\s+/g, ' ').trim();
 }
 
 function rgbToHexColor(rgb) {

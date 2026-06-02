@@ -259,6 +259,14 @@ export async function pullProofProjects(supabase) {
           const trans = transByProjectSection.get(key);
           const sectionFlags = flagsByProjectSection.get(key) || [];
           const merged = { ...section };
+          // The audio filename is also stored on the transcription row
+          // (audio_file_name). If the slimmed desktop_book section didn't
+          // carry it, fall back to the transcription's copy so the phone's
+          // folder matcher can auto-attach this section's audio instead of
+          // making Marie pick every file by hand. (Marie 2026-06-01)
+          if (!merged.audioFileName && trans?.audio_file_name) {
+            merged.audioFileName = trans.audio_file_name;
+          }
           if (trans?.transcription) {
             merged.whisperWords = trans.transcription.words || section.whisperWords || [];
             merged.whisperAlignment = trans.transcription.alignment || section.whisperAlignment || [];

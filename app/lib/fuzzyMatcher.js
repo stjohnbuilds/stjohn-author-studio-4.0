@@ -262,6 +262,26 @@ export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBou
     const jMin = Math.max(1, jCenter - BAND);
     const jMax = Math.min(wLen, jCenter + BAND);
 
+    // Marie 2026-06-01: if the ms word at (i-1) is highlighted (second
+    // narrator's line, not in the audio), force the path through this
+    // row to ALWAYS skip it. The trace records "up" (skip ms word) at
+    // every cell in the band, with NO cost — it's an expected absence,
+    // not a normal gap. This stops the matcher from trying to match
+    // these words against unrelated whisper words and pulling the
+    // surrounding path off-track.
+    if (isSkipped(i - 1)) {
+      if (jMin === 1) {
+        curr[0] = prev[0] > NEG_INF ? prev[0] : NEG_INF;
+        trace[i * traceCols] = 2; // up
+      }
+      for (let j = jMin; j <= jMax; j++) {
+        curr[j] = prev[j] > NEG_INF ? prev[j] : NEG_INF;
+        trace[i * traceCols + j] = 2; // up — skip ms word, no penalty
+      }
+      const tmpS = prev; prev = curr; curr = tmpS;
+      continue;
+    }
+
     // Gap: skip this ms word
     if (jMin === 1) {
       curr[0] = i * GAP_COST;

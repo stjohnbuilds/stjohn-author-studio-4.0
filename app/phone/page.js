@@ -2067,17 +2067,30 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   // won't clobber Marie's edits, but tapping a NEW word refreshes the fields.
   useEffect(() => {
     if (!panelOpen || !selectionMeta) {
-      if (!panelOpen) filledForRef.current = null;
+      if (!panelOpen) {
+        filledForRef.current = null;
+        quoteDirtyRef.current = false;
+        narratorDirtyRef.current = false;
+      }
       return;
     }
-    if (filledForRef.current === selectionMeta.start) return;
-    filledForRef.current = selectionMeta.start;
-    setNarratorCustom(false);
+    const selKey = `${selectionMeta.start}:${selectionMeta.end}`;
+    if (filledForRef.current === selKey) return;
+    const prevStart = filledForRef.current == null ? null : Number(String(filledForRef.current).split(':')[0]);
+    const anchorMoved = prevStart !== selectionMeta.start;
+    filledForRef.current = selKey;
+    // The anchor (start) word drives the narrator; only drop out of the
+    // "＋ New" custom field when that anchor actually jumps to a new word.
+    if (anchorMoved) setNarratorCustom(false);
     setFlagDraft((prev) => ({
       ...prev,
-      quote: selectionMeta.quote,
-      page: selectionMeta.page || prev.page,
-      narrator: selectionMeta.narrator || prev.narrator || autoNarrator,
+      // Keep the quote in step with the selection — dragging the end handle
+      // to cover MORE sentences extends the quote — until Marie edits it.
+      quote: quoteDirtyRef.current ? prev.quote : selectionMeta.quote,
+      page: prev.page || selectionMeta.page,
+      narrator: (!narratorDirtyRef.current && anchorMoved)
+        ? (selectionMeta.narrator || prev.narrator || autoNarrator)
+        : prev.narrator,
     }));
   }, [panelOpen, selectionMeta, autoNarrator]);
 

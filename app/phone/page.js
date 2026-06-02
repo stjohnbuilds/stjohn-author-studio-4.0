@@ -3156,7 +3156,10 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         const files = await readAudioFilesFromDirHandle(handle);
         setReloadState('idle');
         if (files.length) { handlePicked(files, { dirHandle: handle, folderName: handle.name || 'Audio folder' }); return; }
-        // No audio in there — let Marie try the manual pickers instead.
+        // Folder opened fine but had no audio — tell Marie instead of
+        // silently popping a second picker.
+        setPickerNote('No audio files in that folder — try another, or use “Pick files”.');
+        return;
       } catch (err) {
         setReloadState('idle');
         if (err && err.name === 'AbortError') return; // Marie cancelled

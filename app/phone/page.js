@@ -3034,12 +3034,102 @@ function BookFlagsList({ book, onOpenFlag, onDeleteFlag }) {
 // (set on the desktop at import time).
 // ---------------------------------------------------------------------------
 
-function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, status, onPick, onClear, tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, unitLabel = 'section' }) {
+function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, status, onPick, onClear, userId = '', audioKey = '', tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, unitLabel = 'section' }) {
   const folderInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const hasFolder = (audioFiles || []).length > 0;
   const ink = tone.ink || PROOF_INK;
   const pastel = tone.pastel || PROOF_PASTEL;
+
+  // Remembered folder for this book (name + filenames + a reusable handle on
+  // browsers that allow it). 'idle' | 'loading' | 'error' for the reload.
+  const [memory, setMemory] = useState(null);
+  const [reloadState, setReloadState] = useState('idle');
+  const triedSilentRef = useRef('');
+
+  // Load the saved folder memory whenever the book changes.
+  useEffect(() => {
+    let alive = true;
+    triedSilentRef.current = '';
+    if (!audioKey) { setMemory(null); return undefined; }
+    readAudioFolderMemory(userId, audioKey).then((rec) => { if (alive) setMemory(rec || null); });
+    return () => { alive = false; };
+  }, [userId, audioKey]);
+
+  // One silent restore attempt per book: if we kept a folder handle AND the
+  // browser still has permission, re-read the files without bugging Marie.
+  // (If permission needs a tap, we leave the visible "Reload" button.)
+  useEffect(() => {
+    if (hasFolder || !memory || !memory.dirHandle || triedSilentRef.current === audioKey) return undefined;
+    triedSilentRef.current = audioKey;
+    let alive = true;
+    (async () => {
+      const perm = await checkDirHandlePermission(memory.dirHandle, false);
+      if (!alive || perm !== 'granted') return;
+      const files = await readAudioFilesFromDirHandle(memory.dirHandle);
+      if (alive && files.length) onPick(files, { dirHandle: memory.dirHandle, folderName: memory.folderName, silent: true });
+    })();
+    return () => { alive = false; };
+  }, [memory, hasFolder, audioKey, onPick]);
+
+  async function persistMemory(files, meta) {
+    const fileNames = (files || []).map((f) => f.name);
+    const next = {
+      folderName: (meta && meta.folderName) || (memory && memory.folderName) || '',
+      fileNames,
+      dirHandle: (meta && meta.dirHandle) || (memory && memory.dirHandle) || null,
+    };
+    setMemory(next);
+    await saveAudioFolderMemory(userId, audioKey, next);
+  }
+
+  function handlePicked(files, meta) {
+    if (!files || !files.length) return;
+    onPick(files, meta);
+    persistMemory(files, meta);
+  }
+
+  // Primary "Pick folder": use the real folder picker where the browser has
+  // it (so we get a reusable handle), else fall back to the file inputs.
+  async function handlePickFolder() {
+    if (supportsDirectoryPicker()) {
+      try {
+        const handle = await window.showDirectoryPicker({ mode: 'read' });
+        setReloadState('loading');
+        const files = await readAudioFilesFromDirHandle(handle);
+        setReloadState('idle');
+        if (files.length) { handlePicked(files, { dirHandle: handle, folderName: handle.name || 'Audio folder' }); return; }
+        // No audio in there — let Marie try the manual pickers instead.
+      } catch (err) {
+        setReloadState('idle');
+        if (err && err.name === 'AbortError') return; // Marie cancelled
+        // Any other error: fall through to the manual file input below.
+      }
+    }
+    folderInputRef.current?.click();
+  }
+
+  // Reopen the remembered folder (Android/Chrome). Needs one "allow" tap.
+  async function handleReload() {
+    if (!memory || !memory.dirHandle) { folderInputRef.current?.click(); return; }
+    setReloadState('loading');
+    const perm = await checkDirHandlePermission(memory.dirHandle, true);
+    if (perm !== 'granted') { setReloadState('error'); return; }
+    const files = await readAudioFilesFromDirHandle(memory.dirHandle);
+    if (files.length) { handlePicked(files, { dirHandle: memory.dirHandle, folderName: memory.folderName }); setReloadState('idle'); }
+    else setReloadState('error');
+  }
+
+  function handleClear() {
+    onClear();
+    clearAudioFolderMemory(userId, audioKey);
+    setMemory(null);
+    setReloadState('idle');
+  }
+
+  const remembered = !hasFolder && memory && ((memory.fileNames || []).length > 0 || memory.folderName);
+  const canReopen = !!(memory && memory.dirHandle);
+
   return (
     <div
       style={{

@@ -3166,12 +3166,12 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
   async function persistMemory(files, meta) {
     const fileNames = (files || []).map((f) => f.name);
     const next = {
-      folderName: (meta && meta.folderName) || (memory && memory.folderName) || '',
+      // Both folderName and dirHandle reflect THIS pick only. A loose "Pick
+      // files" selection (no folder name, no handle) must NOT inherit the
+      // previous folder's name/handle, or the label + reload would point at a
+      // different folder than the files actually loaded.
+      folderName: (meta && meta.folderName) || '',
       fileNames,
-      // Only keep a directory handle if THIS pick supplied one. A "Pick
-      // files" selection (no handle) must clear any stale handle, so the
-      // remembered handle can never point at a different folder than the
-      // remembered fileNames.
       dirHandle: (meta && meta.dirHandle) || null,
     };
     setMemory(next);

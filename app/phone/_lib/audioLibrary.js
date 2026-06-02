@@ -56,6 +56,26 @@ function uniqueLabels(labels = []) {
     });
 }
 
+// Split a normalized stem into word tokens ("chapter 11" -> ["chapter","11"]).
+function stemTokens(value = '') {
+  return audioStem(value).split(' ').filter(Boolean);
+}
+
+// True if `needle` tokens appear as a CONTIGUOUS run inside `haystack`
+// tokens. Whole-token matching — so "chapter 1" does NOT match "chapter 11"
+// (the old substring check did, and would auto-attach the wrong file).
+function tokenRunContains(haystack, needle) {
+  if (!needle.length || needle.length > haystack.length) return false;
+  for (let i = 0; i + needle.length <= haystack.length; i += 1) {
+    let hit = true;
+    for (let j = 0; j < needle.length; j += 1) {
+      if (haystack[i + j] !== needle[j]) { hit = false; break; }
+    }
+    if (hit) return true;
+  }
+  return false;
+}
+
 // Pick one audio file out of `files` whose name (or stem) matches one
 // of `labels`. Try strictest match first.
 export function pickAudioFile(files = [], labels = []) {

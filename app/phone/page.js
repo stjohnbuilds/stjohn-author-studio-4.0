@@ -2399,7 +2399,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
                 {!narratorCustom && (
                   <button
                     type="button"
-                    onClick={() => { setNarratorCustom(true); setFlagDraft((prev) => ({ ...prev, narrator: '' })); }}
+                    onClick={() => { narratorDirtyRef.current = true; setNarratorCustom(true); setFlagDraft((prev) => ({ ...prev, narrator: '' })); }}
                     style={{ background: 'none', border: 'none', color: PROOF_INK, fontSize: '0.62rem', fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
                   >
                     ＋ New

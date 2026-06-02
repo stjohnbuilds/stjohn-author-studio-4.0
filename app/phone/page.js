@@ -2376,7 +2376,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
           <FieldLabel>Quote</FieldLabel>
           <textarea
             value={flagDraft.quote}
-            onChange={(e) => setFlagDraft((prev) => ({ ...prev, quote: e.target.value }))}
+            onChange={(e) => { quoteDirtyRef.current = true; setFlagDraft((prev) => ({ ...prev, quote: e.target.value })); }}
             rows={2}
             style={{ ...popoverInputStyle, fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.45 }}
           />

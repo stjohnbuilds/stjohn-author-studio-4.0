@@ -2413,7 +2413,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
                   placeholder="Type a name…"
                   value={flagDraft.narrator}
                   onChange={(e) => { narratorDirtyRef.current = true; setFlagDraft((prev) => ({ ...prev, narrator: e.target.value })); }}
-                  onBlur={() => { if (!String(flagDraft.narrator).trim()) { setNarratorCustom(false); setFlagDraft((prev) => ({ ...prev, narrator: selectionMeta?.narrator || autoNarrator })); } }}
+                  onBlur={() => { if (!String(flagDraft.narrator).trim()) { narratorDirtyRef.current = false; setNarratorCustom(false); setFlagDraft((prev) => ({ ...prev, narrator: selectionMeta?.narrator || autoNarrator })); } }}
                   style={smallFieldStyle}
                 />
               ) : (

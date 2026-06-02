@@ -100,10 +100,27 @@ const SERVICE_OPTIONS = [
   { id: 'script', label: 'Proof Listen', subtitle: 'Tap to flag while listening', ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL, enabled: true },
 ];
 
+// Decode named HTML entities (&rsquo; &mdash; &hellip; …) the SAME way the
+// reader's DOM does. Without this, plainText built off a stored/fallback
+// string keeps "&rsquo;" literal and buildWordSpans tokenizes it as extra
+// words ("don rsquo t") — drifting every word index after it out of step with
+// the tap index (which comes from the decoded DOM). Cheap no-op when there's
+// no '&'.
+function decodeHtmlEntities(value) {
+  const s = String(value || '');
+  if (!s.includes('&')) return s;
+  if (typeof document === 'undefined') return s;
+  const ta = document.createElement('textarea');
+  ta.innerHTML = s;
+  return ta.value;
+}
+
 function sectionPlainText(section) {
   if (!section) return '';
-  if (section.plainText && typeof section.plainText === 'string') return section.plainText;
-  return htmlToPlainText(String(section.html || section.textHtml || ''));
+  const raw = (section.plainText && typeof section.plainText === 'string')
+    ? section.plainText
+    : htmlToPlainText(String(section.html || section.textHtml || ''));
+  return decodeHtmlEntities(raw);
 }
 function chapterPlainText(chapter) {
   return chapter?.plainText || htmlToPlainText(String(chapter?.html || chapter?.textHtml || ''));

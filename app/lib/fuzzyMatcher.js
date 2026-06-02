@@ -354,6 +354,9 @@ export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBou
   for (let mi = 0; mi < msLen; mi++) {
     if (alignment[mi]) continue;
     if (!msNorm[mi]) continue;
+    // Marie 2026-06-01: highlighted ms words have no partner in the
+    // audio — don't try to interpolate one for them.
+    if (isSkipped(mi)) continue;
 
     // Find nearest anchors on each side
     let prev = mi - 1;

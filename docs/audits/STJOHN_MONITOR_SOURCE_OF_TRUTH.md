@@ -132,6 +132,12 @@ At run start:
 4. If the lock is older than 2 hours, mark it stale, then continue.
 5. Write a fresh lock with date, role, audit zone, and intended output file.
 
+During a long run:
+
+1. Refresh the same lock after every 30 minutes of work.
+2. Record the current file/flow being checked.
+3. Record the next safe resume step.
+
 At run end:
 
 1. Update the lock to `complete`.

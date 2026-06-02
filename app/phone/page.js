@@ -454,13 +454,19 @@ function sentenceTextBetween(plainText, words, startIdx, endIdx) {
   const lo = Math.min(a, b);
   const hi = Math.max(a, b);
   const text = String(plainText || '');
-  // Include the trailing sentence punctuation + any closing quote/bracket
-  // that sits right after the last word, so the quote reads naturally
-  // ("…work?" not "…work") — matching the desktop.
+  // Include a leading opening quote/bracket sitting right BEFORE the first
+  // word, so dialogue keeps its “ or " — matching the desktop, which carries
+  // punctuation on the word token. (Stops at whitespace, so it can't reach
+  // into the previous sentence.)
+  let startOff = words[lo].start;
+  while (startOff > 0 && /["'“‘([]/.test(text[startOff - 1])) startOff -= 1;
+  // Include the trailing terminal punctuation, plus any closing bracket/quote
+  // that comes BEFORE it ("(a lot)." ) or AFTER it ("…now!" ), so the quote
+  // reads naturally and stays balanced — matching the desktop.
   let endOff = words[hi].end;
-  const tail = text.slice(endOff, endOff + 4).match(/^[.!?]+['"”’)\]]*/);
+  const tail = text.slice(endOff, endOff + 5).match(/^[)\]'"”’]*[.!?]+["'”’)\]]*/);
   if (tail) endOff += tail[0].length;
-  return text.slice(words[lo].start, endOff).replace(/\s+/g, ' ').trim();
+  return text.slice(startOff, endOff).replace(/\s+/g, ' ').trim();
 }
 
 function rgbToHexColor(rgb) {

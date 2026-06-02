@@ -1984,7 +1984,12 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const [toast, setToast] = useState('');
   const [audioTime, setAudioTime] = useState(0);
   const [syncEnabled, setSyncEnabled] = useState(false);
+  // True when Marie has tapped "＋ New" to type a narrator not in the list.
+  const [narratorCustom, setNarratorCustom] = useState(false);
   const currentAudioTimeRef = useRef(0);
+  // Which selection start we last auto-filled the draft for, so re-renders
+  // don't clobber edits in progress but a NEW selection does refresh.
+  const filledForRef = useRef(null);
 
   // Reset selection + audio state on section change.
   useEffect(() => {

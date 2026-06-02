@@ -2034,7 +2034,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
       page: page != null ? String(page) : '',
       globalIdx,
     };
-  }, [selectedRange, words, section, book]);
+  }, [selectedRange, words, plainText, wordContext, autoNarrator, section, book]);
 
   // Pre-fill the draft when the panel opens (or the selection changes
   // and the user hasn't typed yet — we don't clobber edits in progress).

@@ -2517,6 +2517,7 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
   // folder Marie picked at the book level, adopt it as the new default.
   useEffect(() => {
     setFile(presetAudioFile || null);
+    adoptedPresetRef.current = presetAudioFile || null;
     setIsPlaying(false);
     setTime(0);
     setLoadError('');
@@ -2525,6 +2526,16 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
     // identity changes within the same section
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionKey, currentTimeRef]);
+
+  // If a matched file arrives AFTER this section opened (e.g. a folder
+  // restore finished, or the book-level match resolved late), adopt it —
+  // but never override audio Marie already loaded or manually picked.
+  useEffect(() => {
+    if (!presetAudioFile || file) return;
+    if (adoptedPresetRef.current === presetAudioFile) return;
+    adoptedPresetRef.current = presetAudioFile;
+    setFile(presetAudioFile);
+  }, [presetAudioFile, file]);
 
   useEffect(() => {
     if (!file) { setAudioUrl(''); return undefined; }

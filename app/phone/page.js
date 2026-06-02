@@ -909,7 +909,8 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
             totalSections={totalChapters}
             unitLabel="chapter"
             status={audioPickStatus}
-            tone={{ ink: QUILL_INK, accent: QUILL_ACCENT, pastel: QUILL_PASTEL }}
+            userId={session?.user?.id}
+            audioKey={projectAudioKey}
             onPick={(files) => {
               setAudioFilesByBook((prev) => ({ ...prev, [projectAudioKey]: files }));
               const matched = countChapterAudioMatches(files, activeProject);

@@ -664,6 +664,28 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-06-01 — Cloud guard: hard whitelist on every Supabase write
+
+- [x] **Wrapped the shared Supabase client with a hard table whitelist.** —
+      completed 2026-06-01. After investigating a cross-app contamination
+      report (T&T's `app_data` row overwritten with Sweetheart Part One),
+      ruled out StJohn 4.0 as the culprit (no code path calls `app_data`
+      or any RPC; `docs/CLOUD_SCHEMA.md:164` explicitly marks `app_data`
+      "unused by current app"). To prevent any future bug or stray
+      library call from leaking 4.0 data into another app's tables,
+      added an `installCloudGuard` wrapper in `packages/cloud-sync/client.js`.
+      The guard monkey-patches `client.from` and `client.rpc`:
+        - `.from("<table>")` is allowed ONLY for the six known tables:
+          `script_sync_projects`, `script_sync_section_transcriptions`,
+          `script_sync_flags`, `quill_projects`, `quill_chapters`,
+          `quill_annotations`. Anything else throws + console.errors.
+        - `.rpc(...)` is blocked entirely (4.0 calls zero RPCs by design).
+        - `.auth` and `.storage` are untouched.
+      Verified with 10 unit tests: all 6 allowed tables go through, `app_data`
+      is blocked, all RPC calls are blocked, auth and storage remain
+      accessible. If the guard ever fires in production, the error
+      message names the offending table/function for diagnosis.
+
 ### 2026-06-01 — Quote-search typography fix + remaining tutorial anchors
 
 - [x] **`normalizeSearchText` now collapses double-spaces left by the

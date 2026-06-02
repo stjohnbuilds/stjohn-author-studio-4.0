@@ -2108,6 +2108,8 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   function clearSelection() {
     setSelectedRange(null);
     setPanelOpen(false);
+    setNarratorCustom(false);
+    filledForRef.current = null;
     setFlagDraft({ quote: '', page: '', note: '', narrator: autoNarrator, type: 'Edit' });
   }
 

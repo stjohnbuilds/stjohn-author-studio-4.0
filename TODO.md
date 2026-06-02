@@ -59,6 +59,18 @@ stores a File System Access handle (one-tap Reload), iOS stores name+count
 `REVIEW_PROMPT_phone-fixes.md`. NOT archived — needs Marie's real-phone
 test (rule 7: done only after Marie clicks it on a real file).
 
+- [ ] **Phone: folder pick didn't auto-attach each chapter's audio (still
+      said "pick").** Root cause (Marie 2026-06-01): `mapPulledProofProjects`
+      in `packages/cloud-sync/proof-sync.js` merged the transcription's
+      words/alignment onto each section but NOT its `audio_file_name`, and
+      `slimBookForCloud` can leave `section.audioFileName` empty — so the
+      phone matcher had no filename to match and fell back to per-file
+      picking. Fix: on pull, set `merged.audioFileName ||= trans.audio_file_name`
+      (mirrors what Quill already does at `quill-sync.js:231`). Needs a
+      re-pull on the phone to take effect; book must have been transcribed
+      so the transcription rows carry the filename. Verified: 13/13 tests
+      pass, `npx next build` clean. Confirms-on-phone pending.
+
 ### 🆕 2026-05-27 — Drive snapshot backup system added
 
 Built end-to-end. Daily on first app-open, per-account opt-in via

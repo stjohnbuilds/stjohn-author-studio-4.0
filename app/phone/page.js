@@ -2041,16 +2041,24 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     };
   }, [selectedRange, words, plainText, wordContext, autoNarrator, section, book]);
 
-  // Pre-fill the draft when the panel opens (or the selection changes
-  // and the user hasn't typed yet — we don't clobber edits in progress).
+  // Pre-fill the draft (quote = whole sentence, page, narrator = detected)
+  // once per selection. Tracking the filled-for start index means a re-render
+  // won't clobber Marie's edits, but tapping a NEW word refreshes the fields.
   useEffect(() => {
-    if (!panelOpen || !selectionMeta) return;
+    if (!panelOpen || !selectionMeta) {
+      if (!panelOpen) filledForRef.current = null;
+      return;
+    }
+    if (filledForRef.current === selectionMeta.start) return;
+    filledForRef.current = selectionMeta.start;
+    setNarratorCustom(false);
     setFlagDraft((prev) => ({
       ...prev,
-      quote: prev.quote || selectionMeta.quote,
-      page: prev.page || selectionMeta.page,
+      quote: selectionMeta.quote,
+      page: selectionMeta.page || prev.page,
+      narrator: selectionMeta.narrator || prev.narrator || autoNarrator,
     }));
-  }, [panelOpen, selectionMeta]);
+  }, [panelOpen, selectionMeta, autoNarrator]);
 
   // Toast helper — small auto-dismiss notice for things like "page
   // number missing" that Marie wants surfaced.

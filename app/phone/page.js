@@ -74,6 +74,14 @@ import {
   countSectionAudioMatches,
   countSectionTotals,
 } from './_lib/audioLibrary.js';
+import {
+  supportsDirectoryPicker,
+  readAudioFolderMemory,
+  saveAudioFolderMemory,
+  clearAudioFolderMemory,
+  readAudioFilesFromDirHandle,
+  checkDirHandlePermission,
+} from './_lib/audioFolderMemory.js';
 
 const QUILL_INK = '#834D5C';
 const QUILL_ACCENT = '#CB8AA0';

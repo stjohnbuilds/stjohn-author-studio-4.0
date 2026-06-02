@@ -2001,9 +2001,12 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   // True when Marie has tapped "＋ New" to type a narrator not in the list.
   const [narratorCustom, setNarratorCustom] = useState(false);
   const currentAudioTimeRef = useRef(0);
-  // Which selection start we last auto-filled the draft for, so re-renders
-  // don't clobber edits in progress but a NEW selection does refresh.
+  // Which selection (start:end) we last auto-filled the draft for, so
+  // re-renders don't clobber edits but extending/moving the selection does
+  // refresh. Once Marie hand-edits the quote or narrator, stop overwriting it.
   const filledForRef = useRef(null);
+  const quoteDirtyRef = useRef(false);
+  const narratorDirtyRef = useRef(false);
 
   // Reset selection + audio state on section change.
   useEffect(() => {

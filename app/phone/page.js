@@ -3129,7 +3129,11 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
     const next = {
       folderName: (meta && meta.folderName) || (memory && memory.folderName) || '',
       fileNames,
-      dirHandle: (meta && meta.dirHandle) || (memory && memory.dirHandle) || null,
+      // Only keep a directory handle if THIS pick supplied one. A "Pick
+      // files" selection (no handle) must clear any stale handle, so the
+      // remembered handle can never point at a different folder than the
+      // remembered fileNames.
+      dirHandle: (meta && meta.dirHandle) || null,
     };
     setMemory(next);
     await saveAudioFolderMemory(userId, audioKey, next);
@@ -3137,6 +3141,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
 
   function handlePicked(files, meta) {
     if (!files || !files.length) return;
+    setPickerNote('');
     onPick(files, meta);
     persistMemory(files, meta);
   }

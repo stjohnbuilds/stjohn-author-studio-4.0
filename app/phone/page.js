@@ -427,7 +427,11 @@ function sentenceWordBounds(plainText, words, idx, maxWords = 60) {
   if (!Array.isArray(words) || !words.length) return { start: idx, end: idx };
   const text = String(plainText || '');
   const i = Math.max(0, Math.min(words.length - 1, Number(idx) || 0));
-  const ENDER = /[.!?]/;
+  // A real sentence break is . ! ? (then any closing quote/bracket) FOLLOWED
+  // by whitespace. Requiring the trailing space stops "3.5", "v1.2", "p.45"
+  // etc. from being read as a sentence end — their gap is just "." with no
+  // following space. (Abbreviations like "Mr." still break, same as desktop.)
+  const ENDER = /[.!?]+["'”’)\]]*\s/;
   let s = i;
   while (s > 0 && i - s < maxWords) {
     if (ENDER.test(text.slice(words[s - 1].end, words[s].start))) break; // sentence ended before word s

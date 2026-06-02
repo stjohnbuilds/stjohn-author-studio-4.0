@@ -3194,7 +3194,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         {hasFolder && (
           <button
             type="button"
-            onClick={onClear}
+            onClick={handleClear}
             aria-label="Clear audio folder"
             style={{ background: 'none', border: 'none', color: '#9B928E', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, padding: '2px 6px' }}
           >

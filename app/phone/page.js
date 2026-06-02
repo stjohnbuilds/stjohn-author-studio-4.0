@@ -1797,6 +1797,8 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
             matchedCount={matchedCount}
             totalSections={totalSections}
             status={audioPickStatus}
+            userId={session?.user?.id}
+            audioKey={audioKey}
             onPick={(files) => {
               setAudioFilesByBook((prev) => ({ ...prev, [audioKey]: files }));
               const matched = countSectionAudioMatches(files, activeBook);

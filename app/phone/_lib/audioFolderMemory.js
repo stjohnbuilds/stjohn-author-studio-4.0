@@ -66,7 +66,9 @@ export async function readAudioFolderMemory(userId, audioKey) {
 }
 
 export async function saveAudioFolderMemory(userId, audioKey, record) {
-  if (!audioKey) return;
+  // Require a real user id (mirrors projectCache.js) so two signed-out users
+  // on a shared device never share one "anonymous" folder-memory bucket.
+  if (!userId || !audioKey) return;
   const db = await openDb();
   if (!db) return;
   return new Promise((resolve) => {

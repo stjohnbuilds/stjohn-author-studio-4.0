@@ -16,14 +16,29 @@ It does not fix product code.
 
 ## Team Shape
 
-Use one Lead Monitor as the manager. The Lead Monitor owns synthesis, bug-log
-dedupe, and the final report.
+Use a small review team, not one lonely monitor.
 
-Worker agents may inspect narrow zones, but they do not decide the final status
-alone. They return evidence to the Lead Monitor.
+Current target shape:
 
-Do not create extra agents unless the work is genuinely separate. More agents
-mean more drift, more cost, and more duplicate findings.
+1. Three independent inspectors review each audit zone.
+2. One zone checker compares the three inspector reports.
+3. One lead organizer keeps the master report, bug log, and source of truth
+   clean.
+4. One fix-roadmap planner turns confirmed issues into numbered, readable fix
+   plans. It does not edit product code.
+
+Inspectors must stay independent. They should not copy each other's wording or
+decisions. The point is to catch what one AI misses.
+
+Inspectors do not update the master report or bug log directly. They write only
+their own separate report. The checker merges findings after comparing all
+three reports.
+
+The checker must preserve disagreements. If Inspector A says a flow passed and
+Inspector B says it failed, the checker records both original claims, performs a
+focused audit if safe, gives an assessment, and marks the conflict as resolved,
+likely, or unclear. If still unsure, it must say `audit unclear` and leave the
+conflict for a later run.
 
 ## Read-Only Wall
 
@@ -87,6 +102,84 @@ The monitor must re-anchor by rereading this file plus
 
 If the agent cannot say which audit zone it is in, it must stop, reread this
 file, and write the next safest step.
+
+## Hourly Run Lock Rule
+
+Codex automations are schedule-based. They do not expose a visible
+`skip if previous run is still active` setting.
+
+To avoid duplicate work, every recurring monitor must use a soft run lock under:
+
+```txt
+docs/audits/monitors/_run_state/
+```
+
+Each recurring role has its own lock file:
+
+- `inspector-a.lock.md`
+- `inspector-b.lock.md`
+- `inspector-c.lock.md`
+- `zone-checker.lock.md`
+- `lead-organizer.lock.md`
+- `fix-roadmap-planner.lock.md`
+
+At run start:
+
+1. Read this file.
+2. Read the role's lock file if it exists.
+3. If the lock says the same role is still running and is less than 2 hours
+   old, write a tiny skipped note and stop.
+4. If the lock is older than 2 hours, mark it stale, then continue.
+5. Write a fresh lock with date, role, audit zone, and intended output file.
+
+At run end:
+
+1. Update the lock to `complete`.
+2. Record output files and next safest step.
+3. If context/time runs out, update the lock to `paused` with the next step.
+
+This is a safety guard, not a perfect operating-system lock. Because product
+code is read-only and each role writes separate audit files, this is enough for
+the monitor campaign.
+
+## Report Ownership
+
+Inspectors write only to separate files:
+
+```txt
+docs/audits/monitors/<campaign>/zone-<zone-slug>/inspector-a.md
+docs/audits/monitors/<campaign>/zone-<zone-slug>/inspector-b.md
+docs/audits/monitors/<campaign>/zone-<zone-slug>/inspector-c.md
+```
+
+The checker writes:
+
+```txt
+docs/audits/monitors/<campaign>/zone-<zone-slug>/checker.md
+docs/audits/monitors/<campaign>/zone-<zone-slug>/conflicts.md
+```
+
+The lead organizer may update:
+
+- `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`
+- `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
+- `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+
+The fix-roadmap planner may update only:
+
+- `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`
+
+## Zone Assignment Rule
+
+Inspectors A, B, and C use the same audit-zone order. On each wake-up, each
+inspector chooses the first zone that does not yet have that inspector's report
+for the current campaign.
+
+The checker chooses the first zone where all three inspector reports exist and
+no checker report exists.
+
+The lead organizer chooses the first checked zone that has not yet been merged
+into the master report.
 
 ## Evidence Rule
 

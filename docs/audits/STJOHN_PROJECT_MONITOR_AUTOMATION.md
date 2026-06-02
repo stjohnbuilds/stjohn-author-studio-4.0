@@ -47,42 +47,76 @@ reread the source-of-truth file, and write the next safest step.
 
 ## Team Roles
 
-### 1. Lead Monitor
+The monitor campaign uses repeated independent review.
 
-Owns the final report. Keeps the bug log organized. Decides whether a finding
-updates an existing item or needs a new item.
+### 1. Inspector A
 
-### 2. Source Map Auditor
+Performs one independent read-only inspection of the next assigned audit zone.
+Writes only its own inspector report.
 
-Checks whether the docs match the actual tree. Looks for doc drift, duplicate
-readers, duplicate cloud clients, duplicate import/export paths, and fake sample
-data.
+### 2. Inspector B
 
-### 3. Desktop Modes Auditor
+Performs a second independent read-only inspection of the same zone sequence.
+Writes only its own inspector report.
 
-Checks Proof Listen, Prep Manuscript, Duet Prep, and Quill & Ink. Uses the app
-tree and existing test assets to build a mode-by-mode health picture.
+### 3. Inspector C
 
-### 4. Phone Auditor
+Performs a third independent read-only inspection of the same zone sequence.
+Writes only its own inspector report.
 
-Checks phone Script and phone Quill. Focuses on safe login flow, project list,
-audio matching, flag/annotation save, export, reload, and phone-specific edge
-cases.
+### 4. Zone Checker
 
-### 5. Cloud And Save Safety Auditor
+Reads Inspector A, B, and C reports for a completed zone. Compares them,
+preserves conflicts, performs a focused follow-up audit if safe, then writes the
+checker report and conflict ledger.
 
-Checks Supabase, local save data, backups, audio privacy, tombstones, queues,
-sign-out, account swap, and two-device risks.
+The checker updates the master report and bug log only after dedupe.
 
-### 6. Export And Package Auditor
+### 5. Lead Organizer
 
-Checks CSV, DOCX, InDesign JSX, backup JSON, transfer bundles, release folder
-rules, Mac/Windows package state, and old-build confusion.
+Reads checker reports. Keeps the master report, source of truth, and campaign
+status organized. It does not treat any single inspector report as final.
 
-### 7. Test Infrastructure Auditor
+### 6. Fix Roadmap Planner
 
-Checks existing tests, scripts, hooks, prior audit artifacts, and whether the
-test suite still covers the riskiest behavior.
+Turns confirmed bugs and strong watchlist risks into numbered roadmap items.
+It may suggest code logic inside the roadmap doc only. It never changes product
+code.
+
+## Hourly Wave Schedule
+
+The preferred two-day campaign schedule is:
+
+- Inspector A: hourly
+- Inspector B: hourly
+- Inspector C: hourly
+- Zone Checker: hourly
+- Lead Organizer: hourly
+- Fix Roadmap Planner: every 30 minutes
+
+Hourly does not mean every role must do heavy work every time. Each role first
+checks its lock file and current assignment. If its prior run still appears
+active, or no ready work exists, it writes a small skipped note and stops.
+
+This gives fast coverage without relying on a hidden "run next when previous
+finishes" trigger.
+
+## Conflict Ledger
+
+The checker must create or update `conflicts.md` for every zone.
+
+Each conflict entry includes:
+
+- Original Inspector A claim.
+- Original Inspector B claim.
+- Original Inspector C claim.
+- Evidence for each claim.
+- Checker follow-up audit, if any.
+- Checker assessment.
+- Status: `resolved`, `likely`, or `audit unclear`.
+- Next check needed.
+
+Never delete the original disagreement. Keep it visible for later review.
 
 ## Run Cycle
 

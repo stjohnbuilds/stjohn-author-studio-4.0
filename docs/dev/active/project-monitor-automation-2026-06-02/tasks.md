@@ -25,4 +25,10 @@
 - [x] Create read-only fix strategy queue.
 - [x] Create fix planner automation instructions.
 - [x] Create 30-minute fix roadmap planner heartbeat.
+- [x] Upgrade monitor source of truth to three-inspector, checker, organizer
+      wave model.
+- [x] Add hourly soft-lock rule so duplicate runs can skip instead of
+      overlapping the same role.
+- [x] Add conflict ledger rules that preserve original disagreements.
+- [x] Add plain-English TLDR/source requirements for fix roadmap items.
 - [ ] Ask Marie before archiving or closing this plan.

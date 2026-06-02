@@ -664,6 +664,31 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-06-01 — Quote-search typography fix + remaining tutorial anchors
+
+- [x] **`normalizeSearchText` now collapses double-spaces left by the
+      punctuation-strip step.** — completed 2026-06-01. Another AI's
+      review caught it: pre-existing bug where the punctuation→space
+      replace introduced internal double spaces. A PDF with "no — go"
+      (em-dash with surrounding spaces) normalised to "no   go", while
+      a manuscript ".docx" with "no—go" (tight em-dash) normalised to
+      "no go". Substring `.includes` then failed and quote-search
+      silently fell back to the slim map. Fix is a trailing
+      `.replace(/\s+/g, ' ').trim()` after the punctuation strip in
+      `app/lib/pdfPaging.js`. Verified: same PDF text + quote that
+      failed under the old normalizer now matches under the new one.
+- [x] **Tutorial steps 3, 4, 7 now have DOM anchors.** — completed
+      2026-06-01. Same review found that `book-title` (step 3),
+      `manuscript-upload` (step 4), and `save-book` (step 7) were
+      declared in `TUTORIAL_STEPS` but never attached to any element.
+      Step 3 in particular auto-checks the input value, which always
+      came back empty, so the tutorial got stuck until the user
+      clicked "Mark done." Added `data-tutorial="book-title"` to the
+      Project name card, `data-tutorial="manuscript-upload"` to the
+      Manuscript file card, and `data-tutorial="save-book"` to the
+      Save button — all in `app/components/ImportFlow.js`. Same
+      pattern as the step 6 (`review-chapters`) fix earlier today.
+
 ### 2026-06-01 — Duet timestamps: stopped fuzzy matcher mis-matching highlighted words
 
 - [x] **Duet's audio matcher now actually skips highlighted words.** —

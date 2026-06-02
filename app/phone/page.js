@@ -2412,14 +2412,14 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
                   autoFocus
                   placeholder="Type a name…"
                   value={flagDraft.narrator}
-                  onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
+                  onChange={(e) => { narratorDirtyRef.current = true; setFlagDraft((prev) => ({ ...prev, narrator: e.target.value })); }}
                   onBlur={() => { if (!String(flagDraft.narrator).trim()) { setNarratorCustom(false); setFlagDraft((prev) => ({ ...prev, narrator: selectionMeta?.narrator || autoNarrator })); } }}
                   style={smallFieldStyle}
                 />
               ) : (
                 <select
                   value={flagDraft.narrator || autoNarrator}
-                  onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
+                  onChange={(e) => { narratorDirtyRef.current = true; setFlagDraft((prev) => ({ ...prev, narrator: e.target.value })); }}
                   style={smallFieldStyle}
                 >
                   {narratorSelectOptions.map((n) => <option key={n} value={n}>{n}</option>)}

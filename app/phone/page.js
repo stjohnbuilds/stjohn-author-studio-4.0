@@ -123,7 +123,11 @@ function sectionPlainText(section) {
   return decodeHtmlEntities(raw);
 }
 function chapterPlainText(chapter) {
-  return chapter?.plainText || htmlToPlainText(String(chapter?.html || chapter?.textHtml || ''));
+  // Same entity-decode as sectionPlainText — Quill's annotation selection uses
+  // buildWordSpans(plainText) against the DOM-based tap index, so it needs the
+  // identical tokenization or annotation ranges would drift on &rsquo; etc.
+  const raw = chapter?.plainText || htmlToPlainText(String(chapter?.html || chapter?.textHtml || ''));
+  return decodeHtmlEntities(raw);
 }
 function chapterHtml(chapter) {
   return String(chapter?.textHtml || chapter?.html || '').trim();

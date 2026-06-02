@@ -3205,7 +3205,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
           type="button"
-          onClick={() => folderInputRef.current?.click()}
+          onClick={handlePickFolder}
           style={{
             flex: '1 1 auto',
             padding: '10px 14px',

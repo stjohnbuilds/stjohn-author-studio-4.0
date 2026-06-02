@@ -2206,6 +2206,18 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL };
   const hasSelection = !!selectedRange;
   const chapterIndex = (book.chapters || []).findIndex((c) => c.id === chapter.id) + 1;
+  // Options for the narrator dropdown: everything known (incl. Engineer)
+  // plus whatever's currently in the draft, so the detected narrator is
+  // always selectable. "＋ New" (a button) flips to a free-text input.
+  const narratorSelectOptions = (() => {
+    const list = [];
+    const push = (v) => { const t = String(v || '').trim(); if (t && !list.includes(t)) list.push(t); };
+    push(flagDraft.narrator);
+    (narratorOptions || []).forEach(push);
+    push('Narrator');
+    push('Engineer');
+    return list;
+  })();
 
   return (
     <main style={phoneRoot(bgColor)}>

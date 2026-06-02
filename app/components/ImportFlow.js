@@ -542,7 +542,7 @@ export default function ImportFlow({
         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 1.2rem' }}>{blurb}</p>
 
         {/* Step 1: Title */}
-        <div style={card}>
+        <div style={card} data-tutorial="book-title">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
             <Badge n={1} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Project name</span>
           </div>
@@ -556,7 +556,7 @@ export default function ImportFlow({
         </div>
 
         {/* Step 2: Upload + heading-level choice */}
-        <div style={card}>
+        <div style={card} data-tutorial="manuscript-upload">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem' }}>
             <Badge n={2} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Manuscript file</span>
           </div>

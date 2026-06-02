@@ -19,12 +19,20 @@ Before touching code, read these files in this order:
 11. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md
 
 Current top priority:
-Keep the read-only project monitor on track. The active automation is
-`stjohn-read-only-project-health-monitor`, scheduled every 4 hours for
-12 total runs. Every monitor run must start from
-`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`, complete one audit
-zone, update the monitor report, dedupe the bug log, and list the next
-safest zone.
+Keep the read-only project monitor on track. The monitor now uses a
+three-inspector wave:
+- `stjohn-inspector-a`, hourly
+- `stjohn-inspector-b`, hourly
+- `stjohn-inspector-c`, hourly
+- `stjohn-zone-checker`, hourly
+- `stjohn-read-only-project-health-monitor`, now the lead organizer, hourly
+- `stjohn-fix-roadmap-planner`, every 30 minutes
+
+Every monitor role must start from
+`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`. Inspectors write separate
+reports only. The checker compares all three reports, preserves conflicts, and
+updates the master report/bug log only after dedupe. The lead organizer keeps
+the source of truth clean.
 
 Also outstanding from earlier sessions:
 - Drive snapshot backup system still needs packaged Mac verification.
@@ -153,15 +161,28 @@ Latest monitor state:
   `docs/audits/STJOHN_MONITOR_LOGIC_REVIEW.md`.
 - Strengthened reusable other-app prompt:
   `docs/audits/OTHER_APP_PROJECT_MONITOR_PROMPT.md`.
-- Recurring automation:
-  `stjohn-read-only-project-health-monitor`, every 4 hours, 12 runs total.
+- Recurring inspector automations:
+  `stjohn-inspector-a`, `stjohn-inspector-b`, and `stjohn-inspector-c`,
+  hourly for 48 scheduled checks each. Each inspector writes only its own
+  report under `docs/audits/monitors/`.
+- Checker automation:
+  `stjohn-zone-checker`, hourly for 48 scheduled checks. It waits until all
+  three inspector reports exist for a zone, preserves conflicts, performs a
+  focused follow-up audit if safe, and writes checker/conflict reports.
+- Lead organizer automation:
+  `stjohn-read-only-project-health-monitor`, hourly for 48 scheduled checks.
+  It now reads checker reports and keeps the master report, bug log, and source
+  truth organized.
 - Fix roadmap planner:
-  `stjohn-fix-roadmap-planner`, every 30 minutes, 24 checks total. It may only
+  `stjohn-fix-roadmap-planner`, every 30 minutes for 96 checks. It may only
   update `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md` with numbered roadmap
-  items like `1.1`, `1.2`, `2.1`. It may offer code logic or snippets inside
-  the roadmap doc, but it must not edit app code.
-- Current endpoint: each run completes one audit zone; campaign ends after
-  12 runs or once all zones have reports and P0/P1/blockers are queued.
+  items like `1.1`, `1.2`, `2.1`. Every item needs a plain-English TLDR for
+  Marie and source references. It may offer code logic or snippets inside the
+  roadmap doc, but it must not edit app code.
+- Current endpoint: every audit zone gets three independent inspector reports,
+  a checker report, conflicts preserved where they exist, and a merged master
+  report entry. P0/P1/blockers must be queued before the campaign is treated as
+  complete.
 
 ## 5.a. New since previous handover — Drive snapshot backups
 

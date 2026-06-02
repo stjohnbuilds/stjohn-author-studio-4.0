@@ -2425,7 +2425,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
                 inputMode="numeric"
                 placeholder="#"
                 value={flagDraft.page}
-                onChange={(e) => setFlagDraft((prev) => ({ ...prev, page: e.target.value }))}
+                onChange={(e) => { pageDirtyRef.current = true; setFlagDraft((prev) => ({ ...prev, page: e.target.value })); }}
                 style={smallFieldStyle}
               />
             </div>

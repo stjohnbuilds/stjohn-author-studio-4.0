@@ -3091,6 +3091,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
   // browsers that allow it). 'idle' | 'loading' | 'error' for the reload.
   const [memory, setMemory] = useState(null);
   const [reloadState, setReloadState] = useState('idle');
+  const [pickerNote, setPickerNote] = useState('');
   const triedSilentRef = useRef('');
   // Keep the latest onPick without making it an effect dependency (the
   // parent passes a fresh arrow each render; depending on it would let a

@@ -708,7 +708,7 @@ export default function ImportFlow({
 
         {/* Step 3 (or 4 with extra step): Chapter picker */}
         {chapters.length > 0 && (
-          <div style={card}>
+          <div style={card} data-tutorial="review-chapters">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <Badge n={extraStepSlot ? 4 : 3} accent={accentColor} /><span style={{ fontWeight: 600, fontSize: '0.925rem' }}>Chapters to include</span>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>

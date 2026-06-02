@@ -2011,14 +2011,23 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     if (!selectedRange) return null;
     const start = Math.min(selectedRange.start, selectedRange.end);
     const end = Math.max(selectedRange.start, selectedRange.end);
-    const quoteText = words.slice(start, end + 1).map((s) => s.word).join(' ');
+    // Auto-pull the WHOLE sentence(s) the selection sits in — not just the
+    // tapped word — so the flag quote matches what the desktop grabs.
+    const sentLo = sentenceWordBounds(plainText, words, start).start;
+    const sentHi = sentenceWordBounds(plainText, words, end).end;
+    const quoteText = sentenceTextBetween(plainText, words, sentLo, sentHi)
+      || words.slice(start, end + 1).map((s) => s.word).join(' ');
     const alignedStart = wordStartTimeFromAlignment(section.whisperAlignment, start);
     const globalIdx = globalWordIndexFor(book, section, start);
     const page = pageNumberForBookWord(book, globalIdx);
+    // Narrator for the tapped word (highlight colour → preceding H2 heading →
+    // section default), mirroring the desktop's per-word attribution.
+    const narrator = narratorForWordContext(book, wordContext[start], autoNarrator);
     return {
       start,
       end,
       quote: quoteText,
+      narrator,
       // Timestamp priority: whisper alignment → live audio playback → 0.
       ts: alignedStart != null ? alignedStart : Number(currentAudioTimeRef.current) || 0,
       tsSource: alignedStart != null ? 'aligned' : (Number(currentAudioTimeRef.current) > 0 ? 'audio' : 'none'),

@@ -2362,18 +2362,37 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
               />
             </div>
             <div>
-              <FieldLabel>Narrator / Engineer</FieldLabel>
-              <input
-                type="text"
-                list="phone-flag-narrators"
-                placeholder={autoNarrator}
-                value={flagDraft.narrator}
-                onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
-                style={smallFieldStyle}
-              />
-              <datalist id="phone-flag-narrators">
-                {narratorOptions.map((n) => <option key={n} value={n} />)}
-              </datalist>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                <FieldLabel>Narrator / Engineer</FieldLabel>
+                {!narratorCustom && (
+                  <button
+                    type="button"
+                    onClick={() => { setNarratorCustom(true); setFlagDraft((prev) => ({ ...prev, narrator: '' })); }}
+                    style={{ background: 'none', border: 'none', color: PROOF_INK, fontSize: '0.62rem', fontWeight: 700, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}
+                  >
+                    ＋ New
+                  </button>
+                )}
+              </div>
+              {narratorCustom ? (
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type a name…"
+                  value={flagDraft.narrator}
+                  onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
+                  onBlur={() => { if (!String(flagDraft.narrator).trim()) { setNarratorCustom(false); setFlagDraft((prev) => ({ ...prev, narrator: selectionMeta?.narrator || autoNarrator })); } }}
+                  style={smallFieldStyle}
+                />
+              ) : (
+                <select
+                  value={flagDraft.narrator || autoNarrator}
+                  onChange={(e) => setFlagDraft((prev) => ({ ...prev, narrator: e.target.value }))}
+                  style={smallFieldStyle}
+                >
+                  {narratorSelectOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              )}
             </div>
             <div>
               <FieldLabel>Type</FieldLabel>

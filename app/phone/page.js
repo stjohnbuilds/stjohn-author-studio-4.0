@@ -3075,10 +3075,10 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
       const perm = await checkDirHandlePermission(memory.dirHandle, false);
       if (!alive || perm !== 'granted') return;
       const files = await readAudioFilesFromDirHandle(memory.dirHandle);
-      if (alive && files.length) onPick(files, { dirHandle: memory.dirHandle, folderName: memory.folderName, silent: true });
+      if (alive && files.length) onPickRef.current(files, { dirHandle: memory.dirHandle, folderName: memory.folderName, silent: true });
     })();
     return () => { alive = false; };
-  }, [memory, hasFolder, audioKey, onPick]);
+  }, [memory, hasFolder, audioKey]);
 
   async function persistMemory(files, meta) {
     const fileNames = (files || []).map((f) => f.name);

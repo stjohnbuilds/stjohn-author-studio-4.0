@@ -664,6 +664,34 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-06-01 — Duet timestamps: stopped fuzzy matcher mis-matching highlighted words
+
+- [x] **Duet's audio matcher now actually skips highlighted words.** —
+      completed 2026-06-01. Engineer reported Duet insertion-point
+      timestamps were "sometimes off by a bit". Root cause: in
+      `PrebuildMode.js:789` the call to `alignTranscriptToManuscript`
+      passes a 4th argument `highlightedIndices` (a Set of manuscript-
+      word positions that are highlighted = second-narrator dialogue
+      not in the audio), but the function signature only accepted 3
+      params — the 4th was silently dropped. The matcher then tried
+      to find the highlighted words in the audio anyway, sometimes
+      latching onto unrelated whisper words and pulling the
+      surrounding path off by one or two words. Symptom: insertion
+      timestamp lands just inside or just past the highlight instead
+      of right before it, and only when surrounding prose isn't
+      strong enough to recover the path. Fix: thread `skipMsIndices`
+      through `alignTranscriptToManuscript` in `app/lib/fuzzyMatcher.js`.
+      When set, the DP forces a "skip this manuscript word" move at
+      those rows with no penalty (expected absence, not a gap). The
+      gap-fill interpolation pass also respects the skip set so it
+      doesn't re-introduce bogus matches. Backward compat: the param
+      is optional; existing callers (Proof, Quill) that pass 2 args
+      see zero behavior change. Verified with unit tests including
+      an adversarial case where the highlighted text echoes audio
+      content elsewhere — without the fix, the matcher matched the
+      echoes instead of the real text; with the fix, real text wins
+      and highlight markers land at the correct end-time.
+
 ### 2026-06-01 — Proof page numbers: ported PDF quote-search back from 3.0
 
 - [x] **Proof flags now resolve page numbers by sentence, not just word

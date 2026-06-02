@@ -3158,7 +3158,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         onChange={(e) => {
           const files = getAudioFiles(e.target.files);
           e.target.value = '';
-          if (files.length) onPick(files);
+          if (files.length) handlePicked(files, { folderName: folderNameFromFiles(files) });
         }}
       />
       <input
@@ -3170,7 +3170,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         onChange={(e) => {
           const files = getAudioFiles(e.target.files);
           e.target.value = '';
-          if (files.length) onPick(files);
+          if (files.length) handlePicked(files, { folderName: folderNameFromFiles(files) });
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

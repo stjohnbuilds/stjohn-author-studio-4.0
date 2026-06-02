@@ -807,7 +807,7 @@ export default function ImportFlow({
                 {pageScanStatus}
               </div>
             )}
-            <button type="button" onClick={commit} disabled={!anyOn || !bookTitle.trim() || scanning} style={{
+            <button type="button" data-tutorial="save-book" onClick={commit} disabled={!anyOn || !bookTitle.trim() || scanning} style={{
               ...primaryBtn,
               width: '100%',
               opacity: (!anyOn || !bookTitle.trim() || scanning) ? 0.5 : 1,

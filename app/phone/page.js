@@ -3180,11 +3180,14 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
     else setReloadState('error');
   }
 
-  function handleClear() {
+  async function handleClear() {
     onClear();
-    clearAudioFolderMemory(userId, audioKey);
     setMemory(null);
     setReloadState('idle');
+    setPickerNote('');
+    // Clear React state first (so the silent-restore effect can't re-fire on
+    // the old memory), then await the IndexedDB delete.
+    await clearAudioFolderMemory(userId, audioKey);
   }
 
   const remembered = !hasFolder && memory && ((memory.fileNames || []).length > 0 || memory.folderName);
@@ -3219,6 +3222,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
           const files = getAudioFiles(e.target.files);
           e.target.value = '';
           if (files.length) handlePicked(files, { folderName: folderNameFromFiles(files) });
+          else setPickerNote('No audio files in that selection.');
         }}
       />
       <input
@@ -3231,6 +3235,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
           const files = getAudioFiles(e.target.files);
           e.target.value = '';
           if (files.length) handlePicked(files, { folderName: folderNameFromFiles(files) });
+          else setPickerNote('No audio files in that selection.');
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

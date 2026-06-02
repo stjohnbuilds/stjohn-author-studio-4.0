@@ -68,6 +68,23 @@ New file: `app/phone/_lib/audioFolderMemory.js` (IndexedDB helper).
   words and appends trailing `.!?` + closing quotes/brackets. `selectionMeta`
   now uses these for the quote (falls back to the old join if empty).
 
+### Fix 4 — Folder pick didn't auto-attach each chapter's audio
+- Symptom: after picking the audio folder, opening a chapter still showed a
+  "pick" prompt and made Marie select each file by hand.
+- Root cause: `mapPulledProofProjects` in `packages/cloud-sync/proof-sync.js`
+  merged the transcription row's words/alignment onto each section but NOT its
+  `audio_file_name`, and `slimBookForCloud` (`cloud-slim.js`) can leave
+  `section.audioFileName` empty on the stored `desktop_book`. So the phone's
+  `pickAudioFile` matcher had no filename and fell back to per-file picking.
+- Fix (one line + comment): on pull, `if (!merged.audioFileName &&
+  trans?.audio_file_name) merged.audioFileName = trans.audio_file_name;`.
+  This mirrors what the Quill pull already does (`quill-sync.js:231`).
+- Verify: confirm this can't OVERWRITE a real desktop-set audioFileName (it
+  only fills when empty); confirm it helps only transcribed sections (no trans
+  row → no filename to borrow); confirm the matcher (`pickAudioFile`,
+  exact→stem→loose) then attaches the file. Note it needs a phone re-pull to
+  take effect. Flag any case where a wrong file could auto-attach.
+
 ## Specific things to verify (be skeptical)
 1. **Index alignment (Fix 2, highest risk).** The tapped word `index` comes from
    `renderReaderContent`'s HTML walk; `wordContext[index]` comes from

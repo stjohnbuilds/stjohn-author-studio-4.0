@@ -10,12 +10,13 @@
       and test-pattern review.
 - [x] Create active monitor plan folder.
 - [x] Create active monitor plan/context/tasks docs.
+- [x] Create monitor source-of-truth anchor doc.
 - [x] Create master monitor instructions under `docs/audits/`.
 - [x] Create living monitor report under `docs/audits/`.
 - [x] Create copy-paste prompt for another app automation.
 - [x] Collect specialist-agent summaries into the monitor report.
 - [x] Run safe command checks and log results.
 - [x] Add doc-drift/watchlist items to the organized bug log.
-- [ ] Set up recurring Codex project monitor automation.
-- [ ] Re-check source goals and structure docs after file edits.
+- [x] Set up recurring Codex project monitor automation.
+- [x] Re-check source goals and structure docs after file edits.
 - [ ] Ask Marie before archiving or closing this plan.

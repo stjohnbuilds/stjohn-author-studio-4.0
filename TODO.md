@@ -71,6 +71,38 @@ test (rule 7: done only after Marie clicks it on a real file).
       so the transcription rows carry the filename. Verified: 13/13 tests
       pass, `npx next build` clean. Confirms-on-phone pending.
 
+Triple-check audit 2026-06-01 (3 parallel adversarial reviewers + manual
+trace). Fixes applied from it:
+  • `audioLibrary.js` pickAudioFile loose match: was substring, so
+    "Chapter 1" wrongly grabbed "Chapter 11.mp3". Now whole-token
+    (`tokenRunContains`) — at worst falls back to manual pick, never the
+    wrong file. (Marie's "RIGHT audio" concern.)
+  • `page.js` sentence detection: decimals/versions ("3.5", "v1.2") were
+    split mid-number → corrupt quote. ENDER now requires `.?!`+space, so
+    decimals stay intact. Abbreviations ("Mr.") still split = desktop parity.
+  • `page.js` flag pre-fill: guard keyed on selection start ONLY meant
+    dragging the END handle to cover more sentences did NOT extend the
+    quote (broke the "highlight more" promise). Now keyed on start:end with
+    quote/narrator "dirty" tracking so it extends but never clobbers edits.
+  • `page.js` PhoneAudioDock: adopts a folder match that arrives AFTER a
+    chapter is already open (late silent-restore) instead of still showing
+    "pick".
+  • `page.js` BookAudioFolderPicker: "Pick files" pick now clears any stale
+    directory handle (handle/fileNames can't diverge); empty-folder pick
+    shows a message instead of silently popping a 2nd picker; non-audio
+    selection now gives feedback; Clear awaits the IndexedDB delete; silent
+    restore no longer fires the status toast.
+  • `audioFolderMemory.js` save now requires a real userId (no shared
+    "anonymous" bucket), mirroring projectCache.
+Quill parity: folder-remember + audio auto-attach apply to Quill (shared
+picker + quill-sync already merges audio_file_name). Sentence-grab +
+per-word narrator are NOT applicable to Quill (annotations are exact word
+ranges, no narrator) — left Quill alone, by design.
+Known/acceptable limits: abbreviation sentence-split (desktop parity);
+Proof audio_file_name fallback only covers transcribed sections (the
+embedded desktop_book copy covers the rest). Build-checker compliant
+(0 added audio inputs / <audio>). Still needs Marie's real-phone test.
+
 ### 🆕 2026-05-27 — Drive snapshot backup system added
 
 Built end-to-end. Daily on first app-open, per-account opt-in via

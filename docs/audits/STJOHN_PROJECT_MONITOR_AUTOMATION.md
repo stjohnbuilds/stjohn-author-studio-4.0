@@ -7,25 +7,43 @@ It may update audit docs and bug logs. It must not change product code.
 
 ## Read First Every Run
 
-1. `READ ME FIRST - OPEN THIS.txt`
-2. `HANDOFF.md`
-3. `CLAUDE.md`
-4. `TODO.md`
-5. `docs/BUILD_PLAN_V4.md`
-6. `docs/APP_STRUCTURE.md`
-7. `docs/SHARED_COMPONENTS.md`
-8. `docs/FRONT_FUNCTION_TREE.md`
-9. `docs/INTERNAL_FUNCTION_TREE.md`
-10. `docs/WIRING_MATRIX.md`
-11. `docs/CLOUD_SCHEMA.md`
-12. `docs/CLOUD_SAFETY_AUDIT.md`
-13. `docs/audits/SCRIPT_AND_SYNC_AUDIT_RUNBOOK.md`
-14. `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
-15. `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`
-16. `package.json`
+1. `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+2. `READ ME FIRST - OPEN THIS.txt`
+3. `HANDOFF.md`
+4. `CLAUDE.md`
+5. `TODO.md`
+6. `docs/BUILD_PLAN_V4.md`
+7. `docs/APP_STRUCTURE.md`
+8. `docs/SHARED_COMPONENTS.md`
+9. `docs/FRONT_FUNCTION_TREE.md`
+10. `docs/INTERNAL_FUNCTION_TREE.md`
+11. `docs/WIRING_MATRIX.md`
+12. `docs/CLOUD_SCHEMA.md`
+13. `docs/CLOUD_SAFETY_AUDIT.md`
+14. `docs/audits/SCRIPT_AND_SYNC_AUDIT_RUNBOOK.md`
+15. `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
+16. `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`
+17. `package.json`
 
 At the start and end of each major section, re-check the source goals and
 `docs/APP_STRUCTURE.md`.
+
+## Drift Reset Rule
+
+The monitor must re-anchor by rereading
+`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`,
+`docs/APP_STRUCTURE.md`, and `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`:
+
+- At the start of every run.
+- Before each major audit zone.
+- After every 30 minutes of work.
+- After every 3 tool-heavy actions or agent reports.
+- Before adding or changing any bug-log entry.
+- Before any Electron, cloud, phone, export, or real-file test.
+- Before writing the final run summary.
+
+If the monitor cannot name the audit zone it is currently in, it must stop,
+reread the source-of-truth file, and write the next safest step.
 
 ## Team Roles
 
@@ -128,6 +146,10 @@ Safe generated data should include:
 - Expected-result notes.
 
 Do not use Marie's real books unless Marie explicitly gives a test package.
+
+If Marie gives manuscript/audio links, copy those files into the dated audit
+artifact folder, create a manifest, and test only that copy. Do not move,
+rename, or overwrite the originals.
 
 ### D. Electron Safety
 
@@ -234,3 +256,14 @@ When stopping, write:
 - Commands already run.
 - Next safest step.
 
+## Clear Endpoint
+
+Each run stops when it has completed one assigned audit zone, updated the report,
+and listed the next safest zone.
+
+The whole monitor campaign is ready to pause when every audit zone has a current
+report, all P0/P1 confirmed bugs are either fixed later or clearly queued, all
+blocked checks say what is missing, and the monitor report has a short
+release-risk summary.
+
+Do not archive, close, pause, or delete the monitor plan until Marie says to.

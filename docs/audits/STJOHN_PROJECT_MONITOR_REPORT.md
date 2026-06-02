@@ -4,13 +4,14 @@ This is the living report for recurring read-only monitor runs.
 
 Master instructions:
 
+- `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
 - `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`
 - `docs/audits/SCRIPT_AND_SYNC_AUDIT_RUNBOOK.md`
 - `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
 
 ## Current Status
 
-Status: first monitor setup pass completed; recurring automation pending.
+Status: first monitor setup pass completed; recurring automation active.
 
 Product code changes: none from this monitor setup.
 
@@ -20,6 +21,23 @@ Dirty app files seen during setup:
 - Current main-thread `git status --short` later showed
   `app/phone/_lib/audioLibrary.js`.
 - The monitor setup did not touch or revert either app file.
+
+Recurring automation:
+
+- ID: `stjohn-read-only-project-health-monitor`
+- Name: `StJohn read-only project health monitor`
+- Schedule: every 4 hours, 12 runs total
+- Workspace: `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0`
+- Rule: read-only for product code; audit docs and generated audit artifacts
+  only.
+- Drift reset: reread `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`,
+  `docs/APP_STRUCTURE.md`, and `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md` before
+  each zone, before bug-log edits, after 30 minutes, or after 3 tool-heavy
+  actions/agent reports.
+- Endpoint: each run completes one assigned zone, updates the report, and lists
+  the next safest zone. The scheduled campaign ends after 12 runs, or sooner
+  only if every zone has a current report and the remaining P0/P1/blockers are
+  clearly queued.
 
 ## Bug Dedupe Rule
 
@@ -196,8 +214,7 @@ Results:
 
 ### Pause Or Next Step
 
-- Next safe step: create the recurring Codex automation and have it run the
-  monitor prompt on a schedule.
+- Next safe step: let the recurring Codex automation run the monitor prompt.
 - First recurring run should create
   `docs/audits/monitors/YYYY-MM-DD-codex-monitor/` and start with source-map
   drift, phone cloud edge cases, and export/package evidence.

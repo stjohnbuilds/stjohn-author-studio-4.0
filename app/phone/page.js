@@ -3213,6 +3213,28 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         )}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {remembered && canReopen && (
+          <button
+            type="button"
+            onClick={handleReload}
+            disabled={reloadState === 'loading'}
+            style={{
+              flex: '1 1 100%',
+              padding: '10px 14px',
+              background: ink,
+              color: 'white',
+              border: '1px solid ' + ink,
+              borderRadius: 999,
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: reloadState === 'loading' ? 'default' : 'pointer',
+              opacity: reloadState === 'loading' ? 0.7 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {reloadState === 'loading' ? 'Reopening…' : `🔄 Reload ${memory.folderName ? '“' + memory.folderName + '”' : 'folder'}`}
+          </button>
+        )}
         <button
           type="button"
           onClick={handlePickFolder}

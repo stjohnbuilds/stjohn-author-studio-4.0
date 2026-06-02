@@ -9,22 +9,25 @@ Before touching code, read these files in this order:
 1. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md
 2. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md
 3. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md
-4. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md
-5. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md
-6. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/INTERNAL_FUNCTION_TREE.md
-7. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md
+4. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md
+5. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md
+6. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md
+7. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md
+8. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/APP_STRUCTURE.md
+9. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md
+10. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/INTERNAL_FUNCTION_TREE.md
+11. /Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md
 
 Current top priority:
-Verify the Drive snapshot backup system added 2026-05-27. Section 5.a of
-this handover lists exactly what was built and which files. Before
-asking Marie to test, run `npm test`, then build the packaged Mac app
-(`npm run release:mac`) and open Settings → Drive snapshots → toggle
-"On for this account" → click "Snapshot now". Confirm a new zip lands
-in `~/Library/CloudStorage/GoogleDrive-mariemackaybooks@gmail.com/My
-Drive/Game Dev/GitHub/App Backups/` and contains the local JSON saves
-plus a `cloud/cloud-snapshot.json`.
+Keep the read-only project monitor on track. The active automation is
+`stjohn-read-only-project-health-monitor`, scheduled every 4 hours for
+12 total runs. Every monitor run must start from
+`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`, complete one audit
+zone, update the monitor report, dedupe the bug log, and list the next
+safest zone.
 
 Also outstanding from earlier sessions:
+- Drive snapshot backup system still needs packaged Mac verification.
 - Prep Word repeat/context export fix (`app/components/prepExport.js`) —
   open the generated `.docx` in real Microsoft Word/LibreOffice and
   confirm side-voice comments land on the correct line.
@@ -60,6 +63,12 @@ Never self-certify. Tests passing is useful, but the app is only truly confirmed
 - If the app build surface changed, run `npm run build`.
 - If packaging is needed, ask or run the existing release commands.
 - Keep `HANDOFF.md` as the single handover file. Do not create dated copies unless Marie asks.
+- For monitor/audit work, product code is read-only. Only audit docs, monitor
+  reports, generated evidence, and organized bug-log entries may be written.
+- Monitor agents must re-anchor to
+  `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` before every audit zone,
+  after 30 minutes, after every 3 heavy actions/reports, before bug-log edits,
+  and before live/cloud/export/real-file tests.
 
 ## 3. Files To Read First, With Exact Paths
 
@@ -68,11 +77,17 @@ Read these first:
 1. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/HANDOFF.md`
 2. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/CLAUDE.md`
 3. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/TODO.md`
-4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md`
-5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md`
-6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/INTERNAL_FUNCTION_TREE.md`
-7. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md`
-8. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
+4. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+5. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`
+6. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`
+7. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_MONITOR_LOGIC_REVIEW.md`
+8. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/BUILD_PLAN_V4.md`
+9. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/APP_STRUCTURE.md`
+10. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/SHARED_COMPONENTS.md`
+11. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/INTERNAL_FUNCTION_TREE.md`
+12. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/FRONT_FUNCTION_TREE.md`
+13. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/CLOUD_SCHEMA.md`
+14. `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/OTHER_APP_PROJECT_MONITOR_PROMPT.md`
 
 For the current top issue, inspect:
 
@@ -111,19 +126,42 @@ Cloud goal:
 
 Latest local commit:
 
-- `b47e742 auto-backup: before Claude edit 2026-05-27 02:34:24`
+- `1e96a97`
 
 Working tree:
 
-- Dirty. Many files are modified/untracked from the active fix work, plus
-  the **Drive snapshot backups** system just added 2026-05-27 (see below).
-- Do not reset or revert without Marie's explicit instruction.
-- `.env.local` is deleted in git status, intentionally part of earlier tracked-env cleanup.
+- Dirty. Do not reset or revert without Marie's explicit instruction.
+- At the time of this handover update, `git status --short` showed
+  `REVIEW_PROMPT_phone-fixes.md` modified before the monitor prompt edits.
+  After the monitor/handover update, docs listed in this section are also
+  modified/untracked. Do not reset or revert without Marie's explicit
+  instruction.
+- `.env.local` was not rechecked in this handover update.
 
 Latest verified tests:
 
-- `npm test -- --test-reporter=spec` passed.
-- Result: **13 tests passed**, 0 failed (gained 2 tests since previous handover).
+- `npm test -- --test-reporter=spec` passed in the monitor setup pass.
+- Result: **13 tests passed**, 0 failed.
+- `node scripts/cloud-safety-test.mjs` passed 6/6 tombstone/cache checks.
+- `npm run guardrails:check:all` completed without errors.
+
+Latest monitor state:
+
+- Created source-of-truth anchor:
+  `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`.
+- Created web-informed logic review:
+  `docs/audits/STJOHN_MONITOR_LOGIC_REVIEW.md`.
+- Strengthened reusable other-app prompt:
+  `docs/audits/OTHER_APP_PROJECT_MONITOR_PROMPT.md`.
+- Recurring automation:
+  `stjohn-read-only-project-health-monitor`, every 4 hours, 12 runs total.
+- Fix roadmap planner:
+  `stjohn-fix-roadmap-planner`, every 30 minutes, 24 checks total. It may only
+  update `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md` with numbered roadmap
+  items like `1.1`, `1.2`, `2.1`. It may offer code logic or snippets inside
+  the roadmap doc, but it must not edit app code.
+- Current endpoint: each run completes one audit zone; campaign ends after
+  12 runs or once all zones have reports and P0/P1/blockers are queued.
 
 ## 5.a. New since previous handover — Drive snapshot backups
 
@@ -179,8 +217,9 @@ in, which the preview can't exercise.
 
 Latest verified build:
 
-- `npm run build` passed.
-- This is a Next.js production build, not a fresh packaged Mac/Windows release.
+- Previous handover said `npm run build` passed.
+- This handover update did not rerun `npm run build`.
+- No fresh packaged Mac/Windows release was built in this handover update.
 
 Known live URL:
 
@@ -210,25 +249,33 @@ Current important export work:
 
 ## 6. Top 5 Next Jobs In Priority Order
 
-1. **Verify the Prep Word repeat/context export fix.**
+1. **Let the read-only monitor complete its 12-run pass.**
 
-   This is top priority. Create or use a real-ish Prep export with repeated short dialogue, existing Word comments, side voices, curly/straight quotes, and text split by formatting if possible. Confirm the generated `.docx` opens cleanly in Word/LibreOffice and the side-voice comments land on the correct line.
+   Each run should start from `STJOHN_MONITOR_SOURCE_OF_TRUTH.md`, complete one
+   audit zone, update the monitor report, and dedupe the bug log. Do not let
+   monitor agents fix code.
 
-2. **Improve/report Prep export uncertainty if needed.**
+2. **Give the monitor safe real-file test inputs if Marie wants stronger proof.**
+
+   Marie can provide manuscript/audio links. The monitor must copy them into a
+   dated audit artifact folder, write a manifest, test only the copy, and never
+   upload audio.
+
+3. **Review the fix roadmap before starting any code fixes.**
+
+   The roadmap lives at `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`. It should
+   show numbered items like `1.1`, `1.2`, `2.1`, with likely files, strategy
+   options, suggested code logic if useful, edge cases, and Marie approval
+   needed.
+
+4. **Verify the Prep Word repeat/context export fix.**
+
+   This is still important. Create or use a real-ish Prep export with repeated short dialogue, existing Word comments, side voices, curly/straight quotes, and text split by formatting if possible. Confirm the generated `.docx` opens cleanly in Word/LibreOffice and the side-voice comments land on the correct line.
+
+5. **Improve/report Prep export uncertainty if needed.**
 
    If context cannot prove a repeated match, decide whether the app should silently use in-order fallback, warn Marie, or create an export log. Current behavior falls back to in-order so it does not become fragile.
 
-3. **Re-check Quill/InDesign export with a real InDesign run if possible.**
-
-   Static checks passed, but InDesign itself was not opened. Verify the real JSX applies highlight, image marker, full spread marker, emotion, custom emotion, character marker, and duplicate text correctly.
-
-4. **Update TODO/docs so the project state is not confusing.**
-
-   The project has stale audit/checklist docs. Put the latest export fixes and remaining checks in `TODO.md` or the relevant active docs so future AIs do not chase old issues.
-
-5. **Continue packaging/release cleanup after export verification.**
-
-   Once export verification is done, package the Mac app again if Marie needs a fresh build. Windows packaging can wait unless she asks.
 
 ## 7. What Only Marie Can Decide Or Do
 
@@ -237,6 +284,10 @@ Current important export work:
 - Marie must decide whether uncertain repeated Prep matches should be skipped, warned, or allowed via in-order fallback.
 - Marie must test real InDesign if the machine/app state requires her setup.
 - Marie must decide when to package Mac/Windows for actual use.
+- Marie must decide whether to provide real manuscript/audio links for the
+  read-only monitor and which book is safe to use.
+- Marie must decide when the 12-run monitor campaign is enough and whether to
+  switch from audit mode to fix mode.
 
 ## 8. Where Things Live And The Commands She Actually Uses
 
@@ -256,6 +307,36 @@ Run tests:
 
 ```bash
 npm test -- --test-reporter=spec
+```
+
+Run cloud safety checks:
+
+```bash
+node scripts/cloud-safety-test.mjs
+```
+
+Run guardrails:
+
+```bash
+npm run guardrails:check:all
+```
+
+Monitor source of truth:
+
+```txt
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md
+```
+
+Fix roadmap:
+
+```txt
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md
+```
+
+Paste-ready prompt for another app monitor:
+
+```txt
+/Users/mariemackay/Dev/StJohn-Author-Studio-4.0/docs/audits/OTHER_APP_PROJECT_MONITOR_PROMPT.md
 ```
 
 Run production build:

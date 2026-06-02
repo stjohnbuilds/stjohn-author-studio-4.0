@@ -154,3 +154,45 @@ Before closing:
 
 - Ask Marie before archiving or closing this plan.
 
+## Step 7 - Web-Informed Logic Hardening
+
+What to do:
+
+- Compare the monitor design against current multi-agent/orchestration and
+  agent-evaluation guidance.
+- Check for obvious bot failure modes: drift, duplicate bugs, runaway scope,
+  unclear manager, missing evidence, missing human gates, and no endpoint.
+- Update the source-of-truth anchor and other-app prompt with any missing
+  guardrails.
+
+What to verify:
+
+- The Lead Monitor owns synthesis and dedupe.
+- Worker agents have narrow zones.
+- Every finding needs evidence.
+- Real data and destructive actions are human-gated.
+- The automation has a bounded run count.
+
+Before moving on:
+
+- Re-check source goals and structure docs.
+
+## Step 8 - Prepare Fix Strategy Queue
+
+What to do:
+
+- Create a read-only fix strategy queue.
+- For confirmed bugs and strong watchlist risks, create cards with possible
+  approaches, recommended approach, likely files, edge cases, tests, and Marie
+  approval needed.
+- Keep fix planning separate from code fixing.
+
+What to verify:
+
+- No product code is edited.
+- The queue makes future approved fixes faster.
+- The queue does not mark anything fixed.
+
+Before moving on:
+
+- Re-check source goals and structure docs.

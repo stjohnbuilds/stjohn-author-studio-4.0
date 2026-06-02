@@ -14,6 +14,17 @@ exports, package readiness, and documentation drift.
 
 It does not fix product code.
 
+## Team Shape
+
+Use one Lead Monitor as the manager. The Lead Monitor owns synthesis, bug-log
+dedupe, and the final report.
+
+Worker agents may inspect narrow zones, but they do not decide the final status
+alone. They return evidence to the Lead Monitor.
+
+Do not create extra agents unless the work is genuinely separate. More agents
+mean more drift, more cost, and more duplicate findings.
+
 ## Read-Only Wall
 
 Allowed:
@@ -23,10 +34,13 @@ Allowed:
 - Use generated audit files.
 - Use Marie-approved real test files only in a safe audit workspace.
 - Update audit docs, monitor reports, bug logs, and generated evidence.
+- Create numbered fix roadmap items in
+  `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`.
 
 Not allowed:
 
 - Fix code.
+- Stage proposed code patches inside product files.
 - Refactor code.
 - Revert user work.
 - Delete, move, overwrite, or rename Marie's real data.
@@ -73,6 +87,20 @@ The monitor must re-anchor by rereading this file plus
 
 If the agent cannot say which audit zone it is in, it must stop, reread this
 file, and write the next safest step.
+
+## Evidence Rule
+
+Every result needs a receipt:
+
+- Command and exit code.
+- Screenshot path.
+- Generated file path.
+- Export path.
+- Console/log excerpt.
+- Code path with file references.
+- Clear note that it was not tested live.
+
+No result may be marked confirmed from confidence alone.
 
 ## Audit Zones
 
@@ -133,6 +161,19 @@ Labels:
 - `watchlist-risk`
 - `fixed-archived`
 
+## Fix Strategy Queue
+
+Confirmed bugs and strong watchlist risks may get a numbered roadmap item in:
+
+- `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`
+
+Roadmap items use numbers like `1.1`, `1.2`, `2.1`, and may include likely
+files, possible strategies, recommended approach, edge cases, commands a future
+fixer should run, and suggested code logic/snippets inside the document only.
+
+Roadmap items are not approval to edit code. Marie must approve a separate fix
+task before any product code changes.
+
 ## Run Endpoint
 
 Each monitor run ends when it has:
@@ -152,4 +193,3 @@ The full monitor campaign is ready to pause when:
 - The report has a short release-risk summary.
 
 Do not archive, close, or delete the monitor plan until Marie says to.
-

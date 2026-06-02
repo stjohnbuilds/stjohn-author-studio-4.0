@@ -19,4 +19,10 @@
 - [x] Add doc-drift/watchlist items to the organized bug log.
 - [x] Set up recurring Codex project monitor automation.
 - [x] Re-check source goals and structure docs after file edits.
+- [x] Search current web guidance for multi-agent monitor/orchestration logic.
+- [x] Add monitor logic review with cited sources.
+- [x] Harden source-of-truth and other-app prompt with manager/evidence/drift gates.
+- [x] Create read-only fix strategy queue.
+- [x] Create fix planner automation instructions.
+- [x] Create 30-minute fix roadmap planner heartbeat.
 - [ ] Ask Marie before archiving or closing this plan.

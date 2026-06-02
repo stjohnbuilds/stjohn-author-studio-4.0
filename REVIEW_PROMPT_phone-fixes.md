@@ -1,135 +1,144 @@
-# Review prompt — paste this whole file into another AI
+# Independent review brief — paste this ENTIRE file into another AI
 
-You are reviewing a code change in someone else's project. Be adversarial and
-specific. Do NOT rubber-stamp. For every issue, name the exact file, function,
-and line area, explain the failure case concretely, and suggest a fix. End with
-a punch-list grouped: 🟥 must-fix (bug/regression), 🟨 should-check (needs real
-data/device), 🟩 fine. Do not give a confidence percentage.
+You are an independent, adversarial code reviewer. Another AI made the changes
+below; your job is to try to BREAK them, not bless them. Be concrete. Do not
+rubber-stamp. Do not give a confidence %. For every finding cite `file:line`,
+the exact failure scenario, and a one-line fix. End with a punch list grouped
+🟥 must-fix (real bug / broken promise / regression) · 🟨 should-check (needs
+real data or a device) · 🟩 verified-fine. If you can, actually run the repo
+(build + tests) and trace the logic; reason from the code, and say what you
+could not test.
 
-## The project (context)
-- Next.js 14 (app router) phone companion to a desktop audiobook-proofing app.
-- The phone app is ONE big file: `app/phone/page.js`. It has two modes:
-  "Script/Proof Listen" (tap a word while listening → save a "flag" for the
-  audio engineer) and "Quill" (annotations). They share a reader component
-  `app/phone/_components/PhoneReader.js` which renders section HTML via
-  `app/phone/_components/renderReaderContent.js` (walks the HTML, assigns each
-  word an incrementing index using the regex `/[A-Za-z0-9']+/g`).
-- Word data: `buildWordSpans(plainText)` (in `packages/quill-engine/normalize.js`)
-  tokenises plain text with the SAME regex `/[A-Za-z0-9']+/g` and returns
-  `{ word, start, end }` where start/end are char offsets into plainText.
-  IMPORTANT: it STRIPS punctuation — `word` has no trailing `.`/`?`/`!`.
-- Rule: audio files NEVER get uploaded to the cloud; only filenames/handles may
-  be stored locally on the device.
+## How to get the code
+Repo root: `/Users/mariemackay/Dev/StJohn-Author-Studio-4.0`
+- `git diff $(git log --oneline --diff-filter=A --follow -- app/phone/_lib/audioFolderMemory.js | tail -1 | awk '{print $1}')^ -- app/phone packages/cloud-sync` shows the whole change set.
+- Build: `npx next build` (must stay green). Tests: `npm test` (13 should pass).
+- Touched files: `app/phone/page.js`, `app/phone/_lib/audioLibrary.js`,
+  `app/phone/_lib/audioFolderMemory.js` (new), `packages/cloud-sync/proof-sync.js`.
 
-## What was changed (3 fixes, all in `app/phone/page.js` unless noted)
-New file: `app/phone/_lib/audioFolderMemory.js` (IndexedDB helper).
+## App context (what matters)
+- Next.js 14 phone companion to a desktop audiobook-proofing app. The phone UI
+  is ONE big file: `app/phone/page.js`. Two modes: **Proof/Script** (tap a word
+  while listening → save a "flag" for the audio engineer) and **Quill**
+  (annotations). They share a reader (`app/phone/_components/PhoneReader.js` →
+  `renderReaderContent.js`, which walks the section HTML and assigns each word an
+  incrementing index via the regex `/[A-Za-z0-9']+/g`).
+- `buildWordSpans(plainText)` (`packages/quill-engine/normalize.js`) tokenises
+  with the SAME regex — it STRIPS punctuation, but each span keeps `start`/`end`
+  char offsets into plainText.
+- HARD RULES: audio files NEVER go to the cloud (only filenames/handles, stored
+  locally). There is ONE shared reader / cloud-sync / audio dock — do not
+  duplicate. A build-checker hook (`.claude/hooks/build-checker.sh`) blocks new
+  `<input type=file accept=audio>`, new `<audio>`, new `class="w"`/`wrapWords(`
+  in non-allowed files, and component-shaped funcs in guarded mode files
+  (page.js is NOT guarded, but the audio/file/word rules apply everywhere).
 
-### Fix 1 — "Remember the audio folder" (was: forgotten on every reload)
-- Before: the picked folder lived only in React state `audioFilesByBook`
-  (resets to `{}` on reload). New: persist per `userId + audioKey` in IndexedDB.
-- `BookAudioFolderPicker` now:
-  - Uses `window.showDirectoryPicker()` when available (Chrome/Android, secure
-    context) → reads audio via `readAudioFilesFromDirHandle` → persists the
-    directory **handle** + folderName + fileNames. Offers a "🔄 Reload" button
-    (`handleReload` → `checkDirHandlePermission(handle, true)` → re-read).
-  - Falls back to the existing `<input webkitdirectory>` / `<input multiple>`
-    on iOS Safari (no API) → persists folderName (from `webkitRelativePath`) +
-    fileNames, shows "Last folder: X · N files" + "Pick again".
-  - Attempts ONE silent restore on open if a handle exists and permission is
-    already `granted` (`useEffect` guarded by `triedSilentRef`, callback held
-    in `onPickRef` to avoid a re-render aborting it).
-  - `handleClear` also clears the saved memory.
-- Wiring: both call sites pass `userId={session?.user?.id}` and `audioKey`
-  (Script: `audioProjectKey('script', book.id)`; Quill: the project key).
+## THE CHANGES (verify each)
 
-### Fix 2 — Flag narrator should match the tapped word (like desktop)
-- Desktop (`app/components/ProofingReader.js` `detectNarrator`) picks the
-  narrator per word: highlight background colour matched to
-  `book.narratorColors[].hex`, else nearest preceding `<h2>` character heading,
-  mapped via `narratorColors` (character → narrator). Phone previously used only
-  a section-level `autoNarratorFor` (generic "Narrator").
-- New: `buildSectionWordContext(html)` walks a DETACHED copy of the section HTML
-  with the SAME `/[A-Za-z0-9']+/g` regex and records, per word index, the active
-  preceding `<h2>` heading + any inline `style.backgroundColor`.
-  `narratorForWordContext(book, ctx, fallback)` mirrors desktop priority
-  (colour → heading → fallback=section narrator). Used in `selectionMeta`.
-- Narrator field UI changed from a text input + `<datalist>` to a `<select>`
-  (lists all options incl. "Engineer", defaults to the detected narrator) plus
-  a "＋ New" button that flips to a free-text input. State: `narratorCustom`.
-- Pre-fill effect now fills quote/page/narrator once per selection, tracked by
-  `filledForRef` (so re-renders don't clobber edits, but a new word refreshes).
+### Feature 1 — Flag quote = the whole SENTENCE (was: one word)
+`app/phone/page.js`: helpers `sentenceWordBounds`, `sentenceTextBetween`; used in
+`selectionMeta` inside `ScriptChapterView`. Because `buildWordSpans` strips
+punctuation, sentence ends are detected by testing the plainText GAP between
+consecutive words. ENDER regex is `/[.!?]+["'”’)\]]*\s/` (must be followed by
+whitespace — so "3.5"/"v1.2" do NOT split). Dragging the selection over more
+words must include ALL covered sentences.
 
-### Fix 3 — Tapping one word grabs the WHOLE sentence (like desktop)
-- Before: quote = `words.slice(start, end+1).map(s=>s.word).join(' ')` (one word).
-- New helpers: `sentenceWordBounds(plainText, words, idx)` expands to sentence
-  bounds by testing the plainText GAP between consecutive words for `[.!?]`
-  (because `word` itself has no punctuation), capped at 60 words each way.
-  `sentenceTextBetween(...)` slices the original plainText between the bound
-  words and appends trailing `.!?` + closing quotes/brackets. `selectionMeta`
-  now uses these for the quote (falls back to the old join if empty).
+### Feature 2 — Flag narrator auto-detected per tapped word + dropdown UI
+`app/phone/page.js`: `buildSectionWordContext(html)` walks a DETACHED copy of the
+section HTML with the same `/[A-Za-z0-9']+/g`, recording per word index the
+nearest preceding `<h2>` heading + inline highlight bg color.
+`narratorForWordContext` mirrors desktop `detectNarrator`
+(`app/components/ProofingReader.js`): color → H2 heading → section fallback.
+The narrator field is now a `<select>` (all options incl. "Engineer"), defaulting
+to the detected narrator, plus a "＋ New" button → free-text input.
 
-### Fix 4 — Folder pick didn't auto-attach each chapter's audio
-- Symptom: after picking the audio folder, opening a chapter still showed a
-  "pick" prompt and made Marie select each file by hand.
-- Root cause: `mapPulledProofProjects` in `packages/cloud-sync/proof-sync.js`
-  merged the transcription row's words/alignment onto each section but NOT its
-  `audio_file_name`, and `slimBookForCloud` (`cloud-slim.js`) can leave
-  `section.audioFileName` empty on the stored `desktop_book`. So the phone's
-  `pickAudioFile` matcher had no filename and fell back to per-file picking.
-- Fix (one line + comment): on pull, `if (!merged.audioFileName &&
-  trans?.audio_file_name) merged.audioFileName = trans.audio_file_name;`.
-  This mirrors what the Quill pull already does (`quill-sync.js:231`).
-- Verify: confirm this can't OVERWRITE a real desktop-set audioFileName (it
-  only fills when empty); confirm it helps only transcribed sections (no trans
-  row → no filename to borrow); confirm the matcher (`pickAudioFile`,
-  exact→stem→loose) then attaches the file. Note it needs a phone re-pull to
-  take effect. Flag any case where a wrong file could auto-attach.
+### Feature 3 — Remember the audio folder per book
+New `app/phone/_lib/audioFolderMemory.js` (IndexedDB: folderName + fileNames +
+optional FileSystem directory handle; NO audio bytes). `BookAudioFolderPicker`
+in page.js uses `showDirectoryPicker()` where available (Chrome/Android) for a
+reusable handle + one-tap "Reload"; falls back to `<input webkitdirectory>` on
+iOS; silent-restore effect re-reads files if permission is already granted.
+Wired into BOTH Proof and Quill picker call sites (`userId` + `audioKey` props).
 
-## Specific things to verify (be skeptical)
-1. **Index alignment (Fix 2, highest risk).** The tapped word `index` comes from
-   `renderReaderContent`'s HTML walk; `wordContext[index]` comes from
-   `buildSectionWordContext`'s HTML walk; `words[index]`/sentence logic come from
-   `buildWordSpans(plainText)`. Do all three stay in lockstep for tricky HTML
-   (a word split across tags like `anno<em>tate</em>`, headings counted as words,
-   `<br>`, nested spans, `&amp;` entities)? Where could they drift by one and put
-   the wrong narrator/sentence on a word? Note: the existing timestamp/page
-   features already rely on tap-index ↔ `words` alignment, so argue whether that
-   proves it or not.
-2. **Fix 2 colour path.** `buildSectionWordContext` reads `node.style.backgroundColor`
-   on a DETACHED node (no computed styles). If the real manuscript HTML applies
-   highlights via CSS classes (not inline styles), the colour match silently
-   yields nothing → falls back to H2/section. Is that acceptable degradation?
-   Does the H2 path actually fire for these books, or will narrator just equal
-   the old section default (no improvement)? Flag as "needs real manuscript HTML".
-3. **Fix 3 edge cases.** Abbreviations ("Mr. Smith"), ellipses ("wait…"),
-   decimals ("3.5"), quotes around dialogue. Confirm the desktop has the SAME
-   limitations (it uses regex `/[.!?]['"]?$/` on whitespace-split words) so this
-   is parity, not a new bug. Any case where the 60-word cap produces a weird
-   half-sentence?
-4. **Fix 1 races & lifecycle.** `BookAudioFolderPicker` calls hooks
-   (`useState`/`useEffect`) — confirm they're unconditional (the component is
-   only rendered inside an `if` branch in the parent, but the hooks are at the
-   top of the child, which is fine). Check the silent-restore effect can't
-   double-fire, can't apply the wrong book's files after a fast book switch, and
-   that `onPickRef` actually prevents the abort-on-re-render bug. Check
-   `showDirectoryPicker` cancellation (`AbortError`) is swallowed, not surfaced.
-5. **Fix 1 honesty.** On iOS / non-secure-context, `supportsDirectoryPicker()` is
-   false → no handle → `canReopen` false → "Pick again" path. Confirm there's no
-   path that promises a one-tap reload it can't deliver. Confirm audio bytes are
-   never written to IndexedDB (only names + handle).
-6. **No regression to Quill.** The picker is shared. `onPick` now receives a 2nd
-   arg `(files, meta)`; the Quill/Script `onPick` handlers ignore it and the
-   picker persists internally. Confirm no double-persist / stale-state bug.
-7. **Build-checker hook compliance** (`.claude/hooks/build-checker.sh`). It blocks,
-   in non-allowed files, any ADDED line matching
-   `<input ... type="file" ... accept="...audio..."`, any new `<audio`, any new
-   `class="w"`/`wrapWords(`, and (in listed mode files only) new
-   `function .*(BookDetail|HomeView|ChapterRow|ReaderView|Setup|Panel|AudioDock|Picker)`.
-   `app/phone/page.js` is NOT a listed mode file, but the file-input/audio/word
-   rules apply everywhere. Confirm this diff adds none of those (it reuses the
-   existing `<input>` elements and adds no `<audio>`/word-renderer).
+### Feature 4 — Folder pick auto-attaches each chapter's audio (was: still "pick")
+`packages/cloud-sync/proof-sync.js` `mapPulledProofProjects`: added
+`if (!merged.audioFileName && trans?.audio_file_name) merged.audioFileName = trans.audio_file_name;`
+so the per-section filename (stored on the transcription row) reaches the phone
+matcher. Mirrors what Quill already does (`quill-sync.js:231`).
 
-## How to get the diff
-`git diff` in the repo root. Touched: `app/phone/page.js`,
-`app/phone/_lib/audioFolderMemory.js` (new), `TODO.md`. The build passes
-(`npx next build` → ✓ Compiled successfully).
+### Hardening from a prior audit (verify these too)
+- `audioLibrary.js` `pickAudioFile` loose match changed from substring to
+  whole-token (`tokenRunContains`/`stemTokens`): "Chapter 1" must NOT match
+  "Chapter 11.mp3". Confirm it still matches legit cases ("Dragon King" in
+  "Dragon King Ch 3").
+- `page.js` flag pre-fill effect: guard now keyed on `start:end` with
+  `quoteDirtyRef`/`narratorDirtyRef` so extending the selection updates the
+  quote, but a hand-edit is never clobbered; narrator only refreshes when the
+  anchor (start) word moves.
+- `page.js` `PhoneAudioDock`: new effect adopts a `presetAudioFile` that arrives
+  AFTER the section mounted, guarded by `adoptedPresetRef` and `if (file) return`
+  so it never clobbers a manual/playing file.
+- `page.js` `BookAudioFolderPicker`: a "Pick files" selection clears any stale
+  directory handle (`persistMemory` dirHandle = `meta.dirHandle || null`);
+  empty-folder pick shows a note instead of popping a second picker; non-audio
+  selection shows a note; `handleClear` awaits the IndexedDB delete; silent
+  restore passes `{silent:true}` and the call sites skip the status toast.
+- `audioFolderMemory.js` `saveAudioFolderMemory` requires a real `userId`.
+
+## PROMISES THAT MUST HOLD (attack these specifically)
+1. Single tap → the whole sentence (with trailing . ? !). Dragging to cover more
+   → ALL covered sentences. Numbers like "3.5" stay intact. Find any tap/drag
+   that yields a corrupt or half-sentence quote (beyond the known abbreviation
+   limit below).
+2. The narrator auto-fills from DESKTOP metadata (`book.narratorColors` + `<h2>`
+   character headings), defaults correctly, and the dropdown always contains the
+   shown value + "Engineer". "＋ New" custom text is never silently reverted
+   except on an empty blur.
+3. After picking ONE folder, every transcribed chapter's audio auto-attaches by
+   name — no per-file picking — and the WRONG file can never auto-attach.
+4. The folder is remembered across logout/login (same account) and app reopen
+   (Android: one-tap reload; iOS: shows name + "Pick again"). No audio bytes ever
+   stored. Two signed-out users can't share a memory bucket.
+
+## RISKIEST ASSUMPTIONS TO HAMMER
+- **Index alignment:** the tap index (renderReaderContent HTML walk),
+  `wordContext` (buildSectionWordContext HTML walk), and `words`/sentence logic
+  (buildWordSpans of plainText) must stay in lockstep. Find HTML where they drift
+  (word split across tags `anno<em>tate</em>`, `&amp;`, `<br>`, headings counted
+  as words, nested colored spans).
+- **Folder restore races:** fast book→book switches, silent restore vs manual
+  pick, stale handle vs fileNames, permission `prompt` vs `granted`.
+- **Narrator color path:** `buildSectionWordContext` reads inline
+  `style.backgroundColor` on a DETACHED node (no computed styles). If the
+  manuscript highlights via CSS classes, color match yields nothing → does it
+  fall back correctly to H2/section? Does H2 detection actually fire for these
+  books, or will narrator just equal the old section default?
+
+## PROOF ↔ QUILL PARITY (the user explicitly asked)
+Confirm: folder-remember + audio auto-attach apply to BOTH (shared picker;
+`quill-sync.js:231` already merges `audio_file_name`). Confirm sentence-grab and
+per-word narrator are correctly NOT applied to Quill (annotations are exact word
+ranges with no narrator; forcing sentences would corrupt the highlight + export
+ranges). Flag anything asymmetric that SHOULD be symmetric, or vice versa.
+
+## KNOWN / ACCEPTED (don't just re-flag — say if you disagree)
+- Abbreviations ("Mr.", "Dr.") still split the sentence — same as the desktop
+  `getSentence`. Accepted as parity.
+- The Proof `audio_file_name` pull-fallback only helps TRANSCRIBED sections; the
+  embedded `desktop_book` copy covers the rest (`cloud-slim.js` does not strip
+  `audioFileName`). Quill writes the name for every chapter, so Quill is more
+  robust.
+- iOS can't silently reopen a folder (Apple restriction) — "Pick again" is by
+  design, not a bug.
+
+## ALREADY VERIFIED (go deeper than this)
+`npx next build` green; `npm test` 13/13; sentence + matcher logic checked in a
+standalone harness (decimals, multi-sentence drags, "1" vs "11"); build-checker:
+0 added audio inputs / `<audio>`. I did NOT drive a real iOS/Android device or
+the live touch UI — React-state timing (pre-fill on end-handle drag, late preset
+adoption) and the `showDirectoryPicker`/`requestPermission` gesture flow are
+reasoned from code, not observed. Prioritise those.
+
+## Output
+Punch list grouped 🟥 / 🟨 / 🟩, each with `file:line`, concrete scenario, and a
+one-line fix. Then: the single highest-risk thing to test on a real phone first.

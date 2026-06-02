@@ -193,10 +193,20 @@ const FILLER_WORDS = new Set(['um', 'uh', 'err', 'erm', 'hmm', 'mm', 'ah', 'oh']
  * Treats the two word arrays as nearly-identical sequences (like diff).
  * Returns array mapping: msWordIdx -> { wordIdx, wordObj, confidence }
  */
-export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBounds) {
+export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBounds, skipMsIndices) {
   const msLen = msWords.length;
   const wLen = whisperWords.length;
   if (!msLen || !wLen) return new Array(msLen).fill(null);
+
+  // Marie 2026-06-01: `skipMsIndices` is an optional Set of manuscript-
+  // word positions that the matcher must NOT try to match against the
+  // transcript. Used by Duet, where highlighted dialogue belongs to a
+  // second narrator who hasn't recorded yet — those words exist in the
+  // manuscript but not in the audio. Without this, the matcher tries
+  // to find those words anyway, fails, and the failed-search noise
+  // pushes nearby timestamps off by a word or two.
+  const skipSet = (skipMsIndices instanceof Set) ? skipMsIndices : null;
+  const isSkipped = skipSet ? (mi) => skipSet.has(mi) : () => false;
 
   const msNorm = msWords.map(normalizeWord);
   const wNorm = whisperWords.map(w => normalizeWord(w?.word));

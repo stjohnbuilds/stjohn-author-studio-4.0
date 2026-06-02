@@ -2034,6 +2034,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const filledForRef = useRef(null);
   const quoteDirtyRef = useRef(false);
   const narratorDirtyRef = useRef(false);
+  const pageDirtyRef = useRef(false);
 
   // Reset selection + audio state on section change.
   useEffect(() => {

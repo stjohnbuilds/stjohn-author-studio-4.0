@@ -400,6 +400,136 @@ function autoNarratorFor(book, section) {
   return mappedNarrator || directSectionNarrator || ch || 'Narrator';
 }
 
+// ---------------------------------------------------------------------------
+// Per-word flag helpers — ported to match the desktop ProofingReader so a
+// flag made on the phone carries the SAME sentence quote + narrator the
+// desktop would have filled in. (Marie 2026-06-01: phone flags were only
+// grabbing the single tapped word, and the narrator wasn't the one for that
+// spot in the chapter.)
+// ---------------------------------------------------------------------------
+
+function normName(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function nameMatches(a, b) {
+  const na = normName(a);
+  const nb = normName(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+// Expand a tapped word out to its full sentence. `buildWordSpans` strips
+// punctuation, but every span keeps its char offsets into `plainText`, which
+// still has the punctuation — so we look at the gap text BETWEEN words for a
+// sentence ender. Mirrors the desktop getSentence; capped so a missing full
+// stop can't swallow the whole chapter.
+function sentenceWordBounds(plainText, words, idx, maxWords = 60) {
+  if (!Array.isArray(words) || !words.length) return { start: idx, end: idx };
+  const text = String(plainText || '');
+  const i = Math.max(0, Math.min(words.length - 1, Number(idx) || 0));
+  const ENDER = /[.!?]/;
+  let s = i;
+  while (s > 0 && i - s < maxWords) {
+    if (ENDER.test(text.slice(words[s - 1].end, words[s].start))) break; // sentence ended before word s
+    s -= 1;
+  }
+  let e = i;
+  while (e < words.length - 1 && e - i < maxWords) {
+    if (ENDER.test(text.slice(words[e].end, words[e + 1].start))) break; // sentence ends after word e
+    e += 1;
+  }
+  return { start: s, end: e };
+}
+
+// The exact original sentence text (with punctuation + natural spacing)
+// spanning two word indices, pulled straight from plainText.
+function sentenceTextBetween(plainText, words, startIdx, endIdx) {
+  if (!Array.isArray(words) || !words.length) return '';
+  const a = Math.max(0, Math.min(words.length - 1, startIdx));
+  const b = Math.max(0, Math.min(words.length - 1, endIdx));
+  const lo = Math.min(a, b);
+  const hi = Math.max(a, b);
+  return String(plainText || '').slice(words[lo].start, words[hi].end).replace(/\s+/g, ' ').trim();
+}
+
+function rgbToHexColor(rgb) {
+  const m = String(rgb || '').match(/\d+/g);
+  if (!m || m.length < 3) return null;
+  return '#' + m.slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+}
+function hexColorDist(a, b) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  return Math.sqrt([16, 8, 0].map((s) => (((ah >> s) & 255) - ((bh >> s) & 255)) ** 2).reduce((x, y) => x + y, 0));
+}
+
+// Walk a DETACHED copy of the section HTML with the SAME word regex
+// buildWordSpans uses, so index N here == index N in `words` == the tapped
+// word index from PhoneReader. For each word we record the nearest preceding
+// H2 character heading and any inline highlight background colour. This is
+// how the phone reproduces the desktop's per-word narrator detection without
+// re-rendering anything.
+function buildSectionWordContext(html) {
+  if (typeof document === 'undefined' || !html) return [];
+  const host = document.createElement('div');
+  host.innerHTML = String(html);
+  const WORD_RE = /[A-Za-z0-9']+/g;
+  const out = [];
+  let heading = '';
+  function walk(node, bg) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = String(node.textContent || '');
+      WORD_RE.lastIndex = 0;
+      while (WORD_RE.exec(text) !== null) out.push({ heading, bg });
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    if (node.tagName === 'H2') {
+      const t = (node.textContent || '').trim();
+      if (t) heading = t;
+    }
+    const ownBg = (node.style && node.style.backgroundColor) || '';
+    const nextBg = ownBg && ownBg !== 'transparent' ? ownBg : bg;
+    Array.from(node.childNodes).forEach((child) => walk(child, nextBg));
+  }
+  Array.from(host.childNodes).forEach((child) => walk(child, ''));
+  return out;
+}
+
+// Narrator for one tapped word: highlight colour first (matched to
+// narratorColors hex), then nearest preceding H2 character heading, then the
+// section-level fallback. Mirrors the desktop detectNarrator priority.
+function narratorForWordContext(book, ctx, fallback) {
+  const colorMappings = (book?.narratorColors || []).filter((nc) => !!nc.hex);
+  if (ctx && ctx.bg && colorMappings.length) {
+    const hex = rgbToHexColor(ctx.bg);
+    const SKIP = ['#fafaf7', '#ffffff', '#f5f5f5', '#fafafa', '#f0fdf4'];
+    if (hex && !SKIP.includes(hex)) {
+      let best = null;
+      let bd = 999;
+      colorMappings.forEach((nc) => { const d = hexColorDist(hex, nc.hex); if (d < bd) { bd = d; best = nc; } });
+      if (best && bd < 85) return best.narratorName || best.characterName || fallback;
+    }
+  }
+  const heading = (ctx && ctx.heading) || '';
+  if (heading) {
+    const nc = (book?.narratorColors || []).find((c) => nameMatches(heading, c.characterName));
+    if (nc) return nc.narratorName || nc.characterName || heading || fallback;
+    return heading || fallback;
+  }
+  return fallback;
+}
+
+// Folder name from a multi-file / webkitdirectory pick. The directory pick
+// gives each File a webkitRelativePath like "AudiobookFolder/ch1.mp3".
+function folderNameFromFiles(files) {
+  for (const f of files || []) {
+    const rel = String(f?.webkitRelativePath || '');
+    if (rel.includes('/')) return rel.split('/')[0];
+  }
+  return '';
+}
+
 export default function PhoneShell() {
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [authSession, setAuthSession] = useState(null);

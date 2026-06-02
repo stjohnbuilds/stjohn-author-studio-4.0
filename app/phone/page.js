@@ -3049,6 +3049,11 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
   const [memory, setMemory] = useState(null);
   const [reloadState, setReloadState] = useState('idle');
   const triedSilentRef = useRef('');
+  // Keep the latest onPick without making it an effect dependency (the
+  // parent passes a fresh arrow each render; depending on it would let a
+  // re-render abort an in-flight silent restore).
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
 
   // Load the saved folder memory whenever the book changes.
   useEffect(() => {

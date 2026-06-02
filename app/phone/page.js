@@ -1811,14 +1811,16 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
             status={audioPickStatus}
             userId={session?.user?.id}
             audioKey={audioKey}
-            onPick={(files) => {
+            onPick={(files, meta) => {
               setAudioFilesByBook((prev) => ({ ...prev, [audioKey]: files }));
-              const matched = countSectionAudioMatches(files, activeBook);
-              setAudioPickStatus(
-                matched
-                  ? `Linked ${matched} of ${countSectionTotals(activeBook)} sections.`
-                  : 'No filenames matched. You can still pick audio per chapter inside the reader.'
-              );
+              if (!meta?.silent) {
+                const matched = countSectionAudioMatches(files, activeBook);
+                setAudioPickStatus(
+                  matched
+                    ? `Linked ${matched} of ${countSectionTotals(activeBook)} sections.`
+                    : 'No filenames matched. You can still pick audio per chapter inside the reader.'
+                );
+              }
             }}
             onClear={() => {
               setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[audioKey]; delete next[activeBook.id]; return next; });

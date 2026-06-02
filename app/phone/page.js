@@ -3137,7 +3137,12 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
   useEffect(() => {
     let alive = true;
     triedSilentRef.current = '';
-    if (!audioKey) { setMemory(null); return undefined; }
+    // Clear stale memory SYNCHRONOUSLY before the async read, so if this
+    // picker instance is reused for a different book, the silent-restore
+    // effect can never fire the previous book's handle against the new key.
+    setMemory(null);
+    setReloadState('idle');
+    if (!audioKey) return undefined;
     readAudioFolderMemory(userId, audioKey).then((rec) => { if (alive) setMemory(rec || null); });
     return () => { alive = false; };
   }, [userId, audioKey]);

@@ -3182,6 +3182,13 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
             <div style={{ fontSize: '0.78rem', color: '#4C4846', marginTop: 2 }}>
               {audioFiles.length} file{audioFiles.length === 1 ? '' : 's'} loaded · matched <strong>{matchedCount}</strong> of {totalSections} {unitLabel}{totalSections === 1 ? '' : 's'}
             </div>
+          ) : remembered ? (
+            <div style={{ fontSize: '0.78rem', color: '#4C4846', marginTop: 2 }}>
+              Last folder: <strong>{memory.folderName || 'your audio'}</strong>{(memory.fileNames || []).length ? ` · ${memory.fileNames.length} file${memory.fileNames.length === 1 ? '' : 's'}` : ''}
+              <div style={{ fontSize: '0.7rem', color: '#6D6663', marginTop: 2 }}>
+                {canReopen ? 'Tap Reload to reopen it (one “allow” tap).' : 'Tap Pick again to reselect it on this phone.'}
+              </div>
+            </div>
           ) : (
             <div style={{ fontSize: '0.78rem', color: '#6D6663', marginTop: 2 }}>
               Pick the folder of audio files for this project — every {unitLabel} auto-attaches.
@@ -3189,6 +3196,9 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
           )}
           {status && (
             <div style={{ fontSize: '0.7rem', color: '#6D6663', marginTop: 4, fontStyle: 'italic' }}>{status}</div>
+          )}
+          {reloadState === 'error' && (
+            <div style={{ fontSize: '0.7rem', color: '#C4514A', marginTop: 4 }}>Couldn’t reopen that folder — pick it again below.</div>
           )}
         </div>
         {hasFolder && (

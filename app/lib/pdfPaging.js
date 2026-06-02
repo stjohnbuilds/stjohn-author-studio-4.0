@@ -1,4 +1,10 @@
 function normalizeSearchText(text) {
+  // Marie 2026-06-01: trailing whitespace collapse fixes a pre-existing
+  // bug where the punctuation\u2192space replace introduced internal double
+  // spaces (e.g. PDF "no \u2014 go" \u2192 "no   go" vs manuscript "no\u2014go" \u2192
+  // "no go"). Without the final collapse, quote-search misses on every
+  // book whose PDF typography differs from its .docx typography around
+  // em-dashes / ellipses / quotes.
   return String(text || '')
     .toLowerCase()
     .replace(/[\u2018\u2019]/g, "'")
@@ -6,6 +12,7 @@ function normalizeSearchText(text) {
     .replace(/\u2026/g, '...')
     .replace(/\s+/g, ' ')
     .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

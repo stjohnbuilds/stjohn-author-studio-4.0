@@ -2503,6 +2503,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel: PROOF_PASTEL }, sectionKey, currentTimeRef, onTimeTick, canSync = false, syncEnabled = false, onToggleSync, defaultFileName = '', presetAudioFile = null, onManualPickAudio = null, allowManualPick = true }) {
   const inputRef = useRef(null);
   const audioRef = useRef(null);
+  const adoptedPresetRef = useRef(null);
   const [file, setFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);

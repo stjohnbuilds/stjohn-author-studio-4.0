@@ -922,14 +922,16 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
             status={audioPickStatus}
             userId={session?.user?.id}
             audioKey={projectAudioKey}
-            onPick={(files) => {
+            onPick={(files, meta) => {
               setAudioFilesByBook((prev) => ({ ...prev, [projectAudioKey]: files }));
-              const matched = countChapterAudioMatches(files, activeProject);
-              setAudioPickStatus(
-                matched
-                  ? `Linked ${matched} of ${countChapterTotals(activeProject)} chapters.`
-                  : 'No filenames matched. You can still pick audio inside the reader.'
-              );
+              if (!meta?.silent) {
+                const matched = countChapterAudioMatches(files, activeProject);
+                setAudioPickStatus(
+                  matched
+                    ? `Linked ${matched} of ${countChapterTotals(activeProject)} chapters.`
+                    : 'No filenames matched. You can still pick audio inside the reader.'
+                );
+              }
             }}
             onClear={() => {
               setAudioFilesByBook((prev) => { const next = { ...prev }; delete next[projectAudioKey]; return next; });

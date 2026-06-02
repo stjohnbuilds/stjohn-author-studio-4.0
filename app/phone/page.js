@@ -3265,6 +3265,9 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
           {reloadState === 'error' && (
             <div style={{ fontSize: '0.7rem', color: '#C4514A', marginTop: 4 }}>Couldn’t reopen that folder — pick it again below.</div>
           )}
+          {pickerNote && (
+            <div style={{ fontSize: '0.7rem', color: '#C4514A', marginTop: 4 }}>{pickerNote}</div>
+          )}
         </div>
         {hasFolder && (
           <button

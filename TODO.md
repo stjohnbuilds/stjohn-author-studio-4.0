@@ -103,6 +103,34 @@ Proof audio_file_name fallback only covers transcribed sections (the
 embedded desktop_book copy covers the rest). Build-checker compliant
 (0 added audio inputs / <audio>). Still needs Marie's real-phone test.
 
+Second review round 2026-06-02 (external bot via REVIEW_PROMPT). Verified
+each finding against the code; fixes applied:
+  • `sentenceTextBetween`: a sentence ending "(a lot)." dropped the ")"
+    and "." (unbalanced quote); and dialogue lost its OPENING quote. Now
+    grabs a leading opening quote/bracket and a closing bracket that
+    precedes the terminal . ! ? — quotes stay balanced + match desktop.
+    (8/8 harness cases incl. dialogue, brackets, decimals.)
+  • Pre-fill effect: the Page field froze after the first selection (quote
+    + narrator refreshed on a new word, page didn't). Now page/quote/
+    narrator all refresh on a NEW anchor word and all stay put while only
+    extending the selection; added `pageDirtyRef` so a typed page is never
+    clobbered. Also fixed: a typed "＋ New" narrator no longer sticks when
+    you tap a different word without saving.
+  • `sectionPlainText` + `chapterPlainText`: decode named HTML entities
+    (&rsquo; &mdash; …) so buildWordSpans tokenizes IDENTICALLY to the
+    reader's DOM tap-index — closes the word-index drift that would mis-
+    anchor the sentence/quote (and Quill annotation ranges) after any such
+    entity. Applies to BOTH Proof and Quill (parity).
+  • Folder picker: clear `memory` synchronously on book change (defensive
+    vs a stale-handle restore race); a "Pick files" selection no longer
+    inherits the previous folder's NAME (was already not inheriting the
+    handle).
+Left as-is (correct): color-class narrator highlights fall back to H2/
+section (can't read computed style off a detached node — needs a real
+coloured manuscript to confirm Marie's books); whole-token matcher may
+miss fuzzy partials like "Kingdom"/"Kingdoms" (deliberate — never attaches
+the wrong file). Tests 13/13, `npx next build` clean.
+
 ### 🆕 2026-05-27 — Drive snapshot backup system added
 
 Built end-to-end. Daily on first app-open, per-account opt-in via

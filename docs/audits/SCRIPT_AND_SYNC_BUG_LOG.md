@@ -101,11 +101,113 @@ permissions, or app launch issues.
   `/Users/mariemackay/Documents/StJohn Author Studio/Save Data/` changes.
 - Archive notes:
 
+## Documentation Drift
+
+Use this section when the docs and current app disagree. These are not product
+bugs unless the mismatch causes a real user failure.
+
+### SAS-AUD-20260602-001 - App tree docs disagree about current mode status
+
+- Date found: 2026-06-02
+- Type: doc-drift
+- Status: open
+- Severity: P2
+- Area: Shell / Docs
+- Plain-English summary: Some source docs still describe early-phase or missing
+  features even though the current code and other docs show all four desktop
+  modes plus phone files exist.
+- Source goal or expected behavior: `docs/APP_STRUCTURE.md` says audits should
+  use the app tree and wiring docs together. `docs/BUILD_PLAN_V4.md`,
+  `docs/FRONT_FUNCTION_TREE.md`, and `docs/WIRING_MATRIX.md` should not give
+  conflicting status for the same user-facing controls.
+- Navigation path tried: Static read-only audit only. No UI navigation.
+- Exact test data used: Source docs and repository tree.
+- Expected result: The build plan, front function tree, internal tree, and
+  wiring matrix agree on current status or clearly mark old notes as stale.
+- Actual result: `docs/BUILD_PLAN_V4.md` still says Phase 1 active;
+  `docs/WIRING_MATRIX.md` marks several mode/phone rows missing; current source
+  files and `docs/FRONT_FUNCTION_TREE.md` say many of those areas exist.
+- Evidence: Code-traced by read-only source map audit on 2026-06-02. Main files
+  seen: `app/page.js`, `app/phone/page.js`, `app/components/PrepManuscriptMode.js`,
+  `app/components/PrebuildMode.js`, `app/components/QuillAndInkMode.js`.
+- Why this is not tester confusion: This is a doc-to-doc and doc-to-tree
+  mismatch, not a hidden UI control.
+- Likely files to inspect: `docs/BUILD_PLAN_V4.md`,
+  `docs/WIRING_MATRIX.md`, `docs/FRONT_FUNCTION_TREE.md`,
+  `docs/APP_STRUCTURE.md`.
+- Suggested fix direction: Do a docs-only tree refresh after the monitor pass,
+  keeping historical plan notes but clearly separating old phase status from
+  current app status.
+- Verification needed after fix: Re-run the source map audit and confirm no row
+  calls an implemented/currently documented control missing without a note.
+- Archive notes:
+
 ## Watchlist Risks
 
 Use this section for code-traced risks that are not reproduced yet.
 
-No watchlist risks logged yet.
+### SAS-AUD-20260602-002 - Phone Quill saves have no offline queue or visible pending state
+
+- Date found: 2026-06-02
+- Type: watchlist-risk
+- Status: open
+- Severity: P1 if reproduced; currently code-traced only
+- Area: Phone Quill / Cloud
+- Plain-English summary: Phone Proof has an offline flag queue, but Phone Quill
+  appears to save by pushing the whole project and logging failures. If a Quill
+  phone save fails, a later refresh might lose an unsynced annotation.
+- Source goal or expected behavior: Phone Quill should safely round-trip
+  annotation metadata to desktop. Audio stays local; annotation text and
+  metadata sync to cloud.
+- Navigation path tried: Static code trace only. Not reproduced live.
+- Exact test data used: None; no live test data used.
+- Expected result: Failed phone Quill annotation saves should either queue,
+  show a clear pending warning, or keep a recoverable local backup until cloud
+  catches up.
+- Actual result: Code trace suggests failed pushes are logged, but no Quill
+  phone pending queue/banner was found.
+- Evidence: Code-traced areas: `app/phone/page.js` Quill save path and
+  `packages/cloud-sync/quill-sync.js`.
+- Why this is not tester confusion: This is not a confirmed UI failure. It is a
+  risk found by static reading.
+- Likely files to inspect: `app/phone/page.js`,
+  `packages/cloud-sync/quill-sync.js`, `packages/cloud-sync/flag-queue.js`.
+- Suggested fix direction: If live testing reproduces the risk, add a Quill
+  single-annotation queue or a clear recoverable pending state similar to Proof
+  flags.
+- Verification needed after fix: Phone Quill offline annotation save, reconnect,
+  refresh desktop, confirm the final annotation appears and no duplicate is
+  created.
+- Archive notes:
+
+### SAS-AUD-20260602-003 - Pending Proof flag queue count may not be user-scoped
+
+- Date found: 2026-06-02
+- Type: watchlist-risk
+- Status: open
+- Severity: P2 if reproduced; currently code-traced only
+- Area: Phone Script / Cloud
+- Plain-English summary: The phone may show a pending flag count from another
+  account because the queue count appears global rather than scoped to the
+  signed-in Supabase user.
+- Source goal or expected behavior: Account A data must not appear when Account
+  B signs in. Phone cache and pending sync state should be user-scoped.
+- Navigation path tried: Static code trace only. Not reproduced live.
+- Exact test data used: None; no live test data used.
+- Expected result: Signing out of one account and into another should show only
+  the second account's projects, flags, pending counts, and cache.
+- Actual result: Code trace suggests the pending flag queue count may be global.
+- Evidence: Code-traced area: `packages/cloud-sync/flag-queue.js`.
+- Why this is not tester confusion: This is not a confirmed UI failure. It is a
+  risk found by static reading.
+- Likely files to inspect: `packages/cloud-sync/flag-queue.js`,
+  `app/phone/page.js`.
+- Suggested fix direction: If live testing reproduces it, scope pending queue
+  counts and storage keys by user id and project id.
+- Verification needed after fix: Create a pending flag in Account A, sign out,
+  sign into Account B, confirm no Account A pending count or project data is
+  visible.
+- Archive notes:
 
 ## Entry Template
 

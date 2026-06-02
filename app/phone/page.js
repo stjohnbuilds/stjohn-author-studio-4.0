@@ -2014,6 +2014,8 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
     setPanelOpen(false);
     setNarratorCustom(false);
     filledForRef.current = null;
+    quoteDirtyRef.current = false;
+    narratorDirtyRef.current = false;
     setFlagDraft({
       quote: '',
       page: '',

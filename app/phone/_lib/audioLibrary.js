@@ -101,9 +101,15 @@ export function pickAudioFile(files = [], labels = []) {
   for (const label of names) {
     const expected = audioStem(label);
     if (expected.length < 5) continue;
+    const expectedTokens = stemTokens(label);
+    if (!expectedTokens.length) continue;
     const loose = audioFiles.filter((f) => {
       const stem = audioStem(f.name);
-      return stem.length >= 5 && (stem.includes(expected) || expected.includes(stem));
+      if (stem.length < 5) return false;
+      const fileTokens = stemTokens(f.name);
+      // Whole-token containment in either direction — avoids "1" matching
+      // "11" while still catching "Dragon King" inside "Dragon King Ch 3".
+      return tokenRunContains(fileTokens, expectedTokens) || tokenRunContains(expectedTokens, fileTokens);
     });
     if (loose.length === 1) return loose[0];
   }

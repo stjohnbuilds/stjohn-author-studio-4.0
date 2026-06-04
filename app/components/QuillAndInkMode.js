@@ -347,9 +347,23 @@ function mergeAnnotationsPreservingNewerLocal(localAnnotations = [], cloudAnnota
   return Array.from(byId.values()).sort((a, b) => annotationTime(a) - annotationTime(b));
 }
 
-function mergeProjectLists(local, cloud) {
+function mergeProjectLists(local, cloud, { pruneRemoteDeleted = false } = {}) {
+  let workingLocal = local || [];
+  if (pruneRemoteDeleted) {
+    // Drop any local project whose cloudId is missing from the cloud
+    // list — that project was deleted on another device. Local-only
+    // drafts (no cloudId) always survive: they haven't been pushed yet,
+    // so cloud-absence is expected. Caller MUST only set
+    // pruneRemoteDeleted when (a) signed in, (b) local hydration
+    // finished, and (c) the cloud pull actually succeeded.
+    const cloudIds = new Set();
+    for (const cp of cloud || []) {
+      if (cp?.cloudId) cloudIds.add(cp.cloudId);
+    }
+    workingLocal = workingLocal.filter((lp) => !lp?.cloudId || cloudIds.has(lp.cloudId));
+  }
   const byId = new Map();
-  for (const p of local) byId.set(p.id, p);
+  for (const p of workingLocal) byId.set(p.id, p);
   for (const p of cloud) {
     const existing = byId.get(p.id);
     if (!existing) { byId.set(p.id, p); continue; }

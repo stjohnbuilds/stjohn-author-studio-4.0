@@ -1037,6 +1037,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         projects={allProjects}
         onOpen={openProject}
         onNew={() => setView('setup')}
+        cloudPullError={cloudPullError}
       />
     </div>
   );

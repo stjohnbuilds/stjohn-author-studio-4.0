@@ -1198,7 +1198,7 @@ function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
                     <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{chapterCount} chapters · {annCount} annotations</div>
                   </div>
-                  <span style={{ color: 'var(--text-light)', fontSize: '1.2rem', paddingLeft: 10 }}>›</span>
+                  <span aria-hidden="true" style={{ color: 'var(--text-light)', fontSize: '1.2rem', paddingLeft: 10 }}>›</span>
                 </button>
               );
             })}

@@ -1140,7 +1140,12 @@ export default function PrebuildMode({ modeToggle = null }) {
             // Manual tick overrides auto-scanned signal — so Marie can
             // mark a chapter done even if it hasn't been scanned, or
             // un-mark a scanned chapter she wants to revisit.
-            completed: typeof ch.completed === 'boolean' ? ch.completed : !!ch.scanned,
+            // Auto fallback reads `ch.transcribed` (the field that
+            // scanChapterIntoProject actually writes); `ch.scanned`
+            // was never written, so the old fallback was always false
+            // and Marie had to manually tick every scanned chapter.
+            // (SAS-AUD-20260602-008, Block 6.)
+            completed: typeof ch.completed === 'boolean' ? ch.completed : Boolean(ch.transcribed || ch.scanned),
             characterName: null,
             narratorName: null,
             chapterTitle: ch.title,

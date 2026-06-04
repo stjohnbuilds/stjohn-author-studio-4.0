@@ -1,6 +1,15 @@
 # Build Plan v4 — StJohn Author Studio
 
-Status: ACTIVE. Phase 1 in progress.
+> **Current-status note (2026-06-03).** The phase list below is
+> historical. All four desktop modes (Proof, Prep, Duet, Quill) and
+> the phone companion (Script + Quill) exist and run today. For the
+> current source layout and audit targets, read
+> [`docs/APP_STRUCTURE.md`](APP_STRUCTURE.md) and
+> [`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`](audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md).
+> The phase progression below is kept so future readers can see how the
+> app got here, not to claim where it is.
+
+Status: ACTIVE. (Phase progression is historical — see note above.)
 Author: Marie + Claude (Opus 4.7).
 Replaces every previous plan (2.0 docs are archived).
 

@@ -96,23 +96,39 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .upsert(chapterRows, { onConflict: 'project_id,local_id' });
     if (error) throw error;
   }
-  // Drop chapters that were removed locally.
+  // Drop chapters that were removed locally. Errors here used to be
+  // ignored, so a failed prune left orphan rows AND the success hash
+  // (set at the bottom) would still be stored as if the push worked.
   const keepLocalIds = chapterRows.map((c) => c.local_id);
   if (keepLocalIds.length) {
-    await supabase
+    const { error: pruneChaptersError } = await supabase
       .from('quill_chapters')
       .delete()
       .eq('project_id', cloudProjectId)
       .not('local_id', 'in', toPostgrestInList(keepLocalIds));
+    if (pruneChaptersError) {
+      throw new Error(`Quill save incomplete: couldn't remove old chapters (${pruneChaptersError.message})`);
+    }
   } else {
-    await supabase.from('quill_chapters').delete().eq('project_id', cloudProjectId);
+    const { error: pruneChaptersError } = await supabase
+      .from('quill_chapters')
+      .delete()
+      .eq('project_id', cloudProjectId);
+    if (pruneChaptersError) {
+      throw new Error(`Quill save incomplete: couldn't remove old chapters (${pruneChaptersError.message})`);
+    }
   }
 
-  // 3) Get the chapter id map (local_id -> uuid) for annotation FK.
-  const { data: chapterIdRows } = await supabase
+  // 3) Get the chapter id map (local_id -> uuid) for annotation FK. If
+  // this lookup silently failed, every annotation below fell back to
+  // chapter_id: null, corrupting the cloud copy.
+  const { data: chapterIdRows, error: chapterLookupError } = await supabase
     .from('quill_chapters')
     .select('id, local_id')
     .eq('project_id', cloudProjectId);
+  if (chapterLookupError) {
+    throw new Error(`Quill save incomplete: couldn't read chapter ids (${chapterLookupError.message})`);
+  }
   const chapterIdByLocal = new Map((chapterIdRows || []).map((r) => [r.local_id, r.id]));
 
   // 4) Upsert annotations.

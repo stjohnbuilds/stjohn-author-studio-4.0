@@ -276,6 +276,12 @@ export default function ChapterReader({
   const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
   const [actionPos, setActionPos] = useState(null);
   const draggingClearRef = useRef(false);
+  // Keyboard cursor — when set, the named word index has a visible
+  // focus ring and Enter/Space triggers the same handler as a mouse
+  // double-click. Lets a keyboard or screen-reader user open the word
+  // action menu without a pointer. (SAS-AUD-20260602-022, Block 9 / 12.2.)
+  const paperRef = useRef(null);
+  const [kbCursor, setKbCursor] = useState(null);
 
   // Keep the action button aligned to the first selected unit as the
   // layout shifts (scroll, resize, content changes). rAF gives React

@@ -193,25 +193,9 @@ function formatTimestamp(seconds) {
   return `${m}:${String(s).padStart(2,'0')}`;
 }
 
-// Adobe Audition decimal time: M:SS.mmm  (e.g. 2:41.199) or H:MM:SS.mmm if ≥1h
-//
-// Normalize total milliseconds FIRST, then derive H/M/S/ms from that.
-// The old shape computed ms via Math.round(fraction * 1000), which
-// could return 1000 at second boundaries (e.g. seconds=61.9996 gave
-// "1:01.1000" instead of "1:02.000"). (SAS-AUD-20260602-009, Block 6.)
-function formatAuditionTime(seconds) {
-  if (!Number.isFinite(seconds)) return null;
-  if (seconds < 0) return null;
-  const totalMs = Math.round(seconds * 1000);
-  const wholeSeconds = Math.floor(totalMs / 1000);
-  const ms = totalMs - wholeSeconds * 1000;
-  const h = Math.floor(wholeSeconds / 3600);
-  const m = Math.floor((wholeSeconds % 3600) / 60);
-  const s = wholeSeconds % 60;
-  const msStr = String(ms).padStart(3, '0');
-  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${msStr}`;
-  return `${m}:${String(s).padStart(2,'0')}.${msStr}`;
-}
+// Adobe Audition decimal time helper lives in packages/audio-engine
+// so both Duet and the regression tests share one source.
+import { formatAuditionTime } from '../../packages/audio-engine/audition-time.js';
 
 // ─── Highlight class → hex mapping ────────────────────────────────────────────
 const HL_HEX = {

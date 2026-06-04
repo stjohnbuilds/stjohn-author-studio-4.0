@@ -14,6 +14,7 @@ in a single chat. The build-checker hook will hard-block fresh copies.
 | Audio dock (play, speed, jumps, transcription/follow slots) | `<AudioDock>` | `app/components/AudioDock.js` |
 | Manuscript .docx upload + chapter picker + scene-split | `<ImportFlow>` | `app/components/ImportFlow.js` |
 | Sticky top bar, save badge, mode tokens, button styles | `ReaderChrome` exports | `app/components/ReaderChrome.js` |
+| Accessible modal (role=dialog, focus trap, Escape, focus return) | `<AppDialog>` | `app/components/AppDialog.js` |
 | Home/back morphing pill | `<HomeBackPill>` | same |
 | Profile / sign-out pill | `<ProfilePill>` | same |
 | Per-mode CSS var override | `modeAccentVars(tone)` | same |

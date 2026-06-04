@@ -417,17 +417,11 @@ function isSafeBookId(id) {
 function mergeProofBookLists(localBooks, cloudBooks, { pruneRemoteDeleted = false } = {}) {
   let workingLocal = localBooks || [];
   if (pruneRemoteDeleted) {
-    // Any local book with a cloudId that's missing from the cloud list
-    // has been deleted on another device — drop it. Local-only drafts
-    // (no cloudId) always survive: they haven't been pushed yet, so
-    // their absence from the cloud is expected. Caller MUST only set
-    // pruneRemoteDeleted when (a) the user is signed in, (b) local
-    // hydration completed, and (c) the cloud pull actually succeeded.
-    const cloudIds = new Set();
-    for (const cb of cloudBooks || []) {
-      if (cb?.cloudId) cloudIds.add(cb.cloudId);
-    }
-    workingLocal = workingLocal.filter((lb) => !lb?.cloudId || cloudIds.has(lb.cloudId));
+    // Cross-device delete prune: drop local books whose cloudId is
+    // missing from a successful cloud pull. Logic lives in
+    // packages/cloud-sync/cross-device-prune.js so Proof, Quill, and
+    // the regression tests share one source.
+    workingLocal = filterLocalForCloudPrune(workingLocal, cloudBooks);
   }
   const byId = new Map(workingLocal.map((b) => [b.id, b]));
   for (const cb of cloudBooks || []) {

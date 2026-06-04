@@ -2845,10 +2845,9 @@ function TutorialWrapUpModal({ onClose }) {
           100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(76, 72, 70, 0.18); }
         }
       `}</style>
-      <div id="tutorial-wrapup-title-wrapper">
-        <div style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent-dark)', marginBottom:8 }}>
-          Tutorial wrap-up
-        </div>
+      <div id="tutorial-wrapup-title" style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent-dark)', marginBottom:8 }}>
+        Tutorial wrap-up
+      </div>
         <div style={{ fontSize:'1.12rem', fontWeight:700, color:'var(--text)', marginBottom:10 }}>
           You are ready to start proofing
         </div>

@@ -5,3 +5,4 @@ export * from './text-normalize/index.js';
 export * from './word-import/index.js';
 export * from './dialogue-detection/index.js';
 export * from './dialogue-safety-check/index.js';
+export * from './merge-dialogue-assignments.js';

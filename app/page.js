@@ -2951,13 +2951,13 @@ function TutorialStartModal({ onStart, onClose }) {
             Not now
           </button>
           <button
+            type="button"
             onClick={onStart}
             style={{ padding:'10px 16px', borderRadius:12, border:'1px solid var(--accent)', background:'var(--accent)', color:'white', fontWeight:700, cursor:'pointer', boxShadow:'0 10px 24px var(--accent-shadow-strong)' }}
           >
             Start tutorial
           </button>
         </div>
-      </div>
-    </div>
+    </AppDialog>
   );
 }

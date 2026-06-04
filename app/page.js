@@ -1280,7 +1280,7 @@ export default function Home() {
     if (el()) { await window.electron.exportBackup(books); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(books,null,2)],{type:'application/json'}));
-    a.download = 'audiobook-proofer-backup.json'; a.click();
+    a.download = 'stjohn-author-studio-backup.json'; a.click();
   }
 
   async function handleImport() {

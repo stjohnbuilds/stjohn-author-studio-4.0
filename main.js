@@ -1622,10 +1622,10 @@ ipcMain.handle('export-transfer-bundle', async (event, book) => {
   copiedBook.manuscriptSource = manuscriptSource;
 
   const manifest = {
-    manifestType: 'script-and-sync-transfer',
+    manifestType: 'stjohn-author-studio-transfer',
     manifestVersion: 1,
     exportedAt: new Date().toISOString(),
-    app: 'Script and Sync',
+    app: 'StJohn Author Studio',
     projectType: 'audiobook-proofer',
     notes: [
       'Select this root folder with Import from other account.',

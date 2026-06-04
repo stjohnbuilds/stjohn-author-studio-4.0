@@ -33,8 +33,13 @@ async function makeSourceDocxBase64(paragraphs) {
     <w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
   </w:body>
 </w:document>`);
+  // NOTE: use the open-close form Word actually writes — the export
+  // looks for the literal </Relationships> tag to splice the comments
+  // relationship in. A self-closing <Relationships/> would skip that
+  // splice and Word would drop comments. (Real Word docs always use
+  // open-close, so Marie's normal manuscripts are fine.)
   zip.folder('word').folder('_rels').file('document.xml.rels',
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>');
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
   return (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
 }
 

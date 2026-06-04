@@ -1543,7 +1543,12 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
     if (!chapter || !selectedRange) return;
     const start = selectedRange.start;
     const end = selectedRange.end;
-    const selectedText = wordSpans.slice(start, end + 1).map((s) => s.word).join(' ');
+    // Pull the exact text from the chapter's plain-text index so phantom
+    // spaces inside words / before punctuation never leak into a saved
+    // annotation. Falls back to the old join if the index didn't build.
+    const selectedText = chapterPlainIndex
+      ? sliceUnitsRange(chapterPlainIndex, start, end)
+      : wordSpans.slice(start, end + 1).map((s) => s.word).join(' ');
     const textContext = buildSelectionTextContext(plainText, wordSpans, start, end);
 
     const updatedAnnotations = [];

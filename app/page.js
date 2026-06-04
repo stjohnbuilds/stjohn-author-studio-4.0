@@ -1228,7 +1228,17 @@ export default function Home() {
   async function importBooks(data) {
     try {
       const arr = Array.isArray(JSON.parse(data)) ? JSON.parse(data) : [JSON.parse(data)];
-      const merged = [...arr, ...books].filter((b,i,a) => a.findIndex(x=>x.id===b.id)===i);
+      // Re-imports are an explicit user action to bring a book back.
+      // Strip any inherited cloudId so the cross-device delete prune
+      // treats them as fresh local drafts — they will survive even if
+      // that cloudId was previously deleted on another device, and the
+      // next cloud push will create new cloud rows with fresh ids.
+      const arrSansCloudId = arr.map((b) => {
+        if (!b || typeof b !== 'object') return b;
+        const { cloudId: _drop, ...rest } = b;
+        return rest;
+      });
+      const merged = [...arrSansCloudId, ...books].filter((b,i,a) => a.findIndex(x=>x.id===b.id)===i);
       await persist(merged);
       alert(`Imported ${arr.length} book(s).`);
     } catch { alert('Invalid file.'); }

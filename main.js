@@ -483,7 +483,10 @@ function rewriteBookAudioPathsForTransferImport(book, importDir) {
                 const next = { ...section };
                 delete next.transferAudioPath;
                 if (!relativeAudioPath) return next;
-                const audioPath = path.join(importDir, ...String(relativeAudioPath).split('/').filter(Boolean));
+                // safeJoinInsideDir rejects `..` segments so a tampered
+                // transfer manifest cannot point at files outside the
+                // unpacked transfer folder.
+                const audioPath = safeJoinInsideDir(importDir, String(relativeAudioPath));
                 return {
                   ...next,
                   audioPath: null,

@@ -940,12 +940,35 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const idx=rawIdx;
     const inRange=idx>=0&&idx<words.length;
     const sent=inRange?getSentence(words,idx):null;
-    const before=inRange?words.slice(sent.start,idx).join(' '):'';
-    const after=inRange?words.slice(idx+1,sent.end+1).join(' '):'';
-    const sentHtml=inRange?((before?before+' ':'')+'<em class="fw">'+esc(words[idx])+'</em>'+(after?' '+after:'')):'';
-    // Marie 2026-05-26: collapse any double-spaces inherited from the
-    // source .docx so the quote pastes cleanly into Word / Sheets.
-    const sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' ').replace(/\s+/g,' ').trim():'';
+    // Prefer source-of-truth slice from the chapter's plain-text index
+    // (no phantom spaces inside words like "Kar ma" or "all ."). If the
+    // index didn't build (rare error path), fall back to box-join.
+    const idxOk = inRange
+      && chapterIndex
+      && chapterIndex.unitMeta?.[sent.start]
+      && chapterIndex.unitMeta?.[sent.end]
+      && chapterIndex.unitMeta?.[idx];
+    let sentPlain, sentHtml;
+    if (idxOk) {
+      sentPlain = sliceUnitsRange(chapterIndex, sent.start, sent.end);
+      const sentStartCh = chapterIndex.unitMeta[sent.start].plainStart;
+      const wordStartCh = chapterIndex.unitMeta[idx].plainStart;
+      const wordEndCh = unitWordEnd(chapterIndex, idx);
+      const sentEndCh = chapterIndex.unitMeta[sent.end].plainNext;
+      const beforePart = chapterIndex.plainText.slice(sentStartCh, wordStartCh).replace(/\s+/g, ' ').trim();
+      const wordPart = chapterIndex.plainText.slice(wordStartCh, wordEndCh);
+      const afterPart = chapterIndex.plainText.slice(wordEndCh, sentEndCh).replace(/\s+/g, ' ').trim();
+      sentHtml = (beforePart ? beforePart + ' ' : '')
+        + '<em class="fw">' + esc(wordPart) + '</em>'
+        + (afterPart ? ' ' + afterPart : '');
+    } else {
+      const before=inRange?words.slice(sent.start,idx).join(' '):'';
+      const afterTxt=inRange?words.slice(idx+1,sent.end+1).join(' '):'';
+      sentHtml=inRange?((before?before+' ':'')+'<em class="fw">'+esc(words[idx])+'</em>'+(afterTxt?' '+afterTxt:'')):'';
+      // Marie 2026-05-26: collapse any double-spaces inherited from the
+      // source .docx so the quote pastes cleanly into Word / Sheets.
+      sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' ').replace(/\s+/g,' ').trim():'';
+    }
     const detectedNar=inRange?detectNarrator(wordElsRef.current[idx],narratorColors,defaultNarrator,textRef.current):defaultNarrator;
     const autoNar=sceneMappedNarrator||detectedNar;
     const autoPage=getAutoPageNumber(idx, sentPlain);

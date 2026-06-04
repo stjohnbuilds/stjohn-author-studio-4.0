@@ -1861,16 +1861,20 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   }
 
   function openSceneProof(chapter, section) {
-    const url = audioUrls[section.id];
-    if (!url) return;
+    // Allow opening WITHOUT audio attached — lets Marie test flags,
+    // page numbers, and reader behaviour without the audio-attach
+    // friction every time. ProofingReader handles audioUrl=null
+    // cleanly (early-returns the audio-setup effect). Flag timestamp
+    // will be blank in that case.
+    const url = audioUrls[section.id] || null;
     onProof(buildProofSectionForReader(chapter, section), url);
   }
 
   function openChapterProof(chapter) {
-    // Proof: needs audio attached before opening (listen flow).
-    // Quill: open straight into the reader even without audio (annotate flow).
-    const firstSection = (chapter?.sections || []).find(sec => !!audioUrls[sec.id])
-      || (mode === 'quill' ? (chapter?.sections || [])[0] : null);
+    // Prefer the first section with audio attached; otherwise fall
+    // back to the first section so the chapter still opens.
+    const sections = chapter?.sections || [];
+    const firstSection = sections.find(sec => !!audioUrls[sec.id]) || sections[0];
     if (!firstSection) return;
     openSceneProof(chapter, firstSection);
   }

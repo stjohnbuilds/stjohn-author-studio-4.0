@@ -396,8 +396,22 @@ function mergeLocalSectionTranscription(localSection, cloudSection) {
 // saved on the phone), we splice the local audioPath / audioPaths back
 // in by matching section.id — otherwise Marie's audio attachments get
 // wiped on every cloud-newer pull.
-function mergeProofBookLists(localBooks, cloudBooks) {
-  const byId = new Map((localBooks || []).map((b) => [b.id, b]));
+function mergeProofBookLists(localBooks, cloudBooks, { pruneRemoteDeleted = false } = {}) {
+  let workingLocal = localBooks || [];
+  if (pruneRemoteDeleted) {
+    // Any local book with a cloudId that's missing from the cloud list
+    // has been deleted on another device — drop it. Local-only drafts
+    // (no cloudId) always survive: they haven't been pushed yet, so
+    // their absence from the cloud is expected. Caller MUST only set
+    // pruneRemoteDeleted when (a) the user is signed in, (b) local
+    // hydration completed, and (c) the cloud pull actually succeeded.
+    const cloudIds = new Set();
+    for (const cb of cloudBooks || []) {
+      if (cb?.cloudId) cloudIds.add(cb.cloudId);
+    }
+    workingLocal = workingLocal.filter((lb) => !lb?.cloudId || cloudIds.has(lb.cloudId));
+  }
+  const byId = new Map(workingLocal.map((b) => [b.id, b]));
   for (const cb of cloudBooks || []) {
     if (!cb?.id) continue;
     const existing = byId.get(cb.id);

@@ -1233,14 +1233,30 @@ export default function Home() {
       // treats them as fresh local drafts — they will survive even if
       // that cloudId was previously deleted on another device, and the
       // next cloud push will create new cloud rows with fresh ids.
-      const arrSansCloudId = arr.map((b) => {
+      //
+      // Also: if the imported id would tip a path-traversal check in
+      // main.js (e.g. an id like "../../etc/passwd"), regenerate it
+      // here at the import boundary so a poisoned id never enters
+      // local state. The main-side helper still blocks the runtime
+      // escape, but catching it here also prevents the broken book
+      // from sitting in books.json and failing later on rescan.
+      // Mirrors main.js safeJoinInsideDir's rule (Block 3a).
+      let regenerated = 0;
+      const arrSansCloudId = arr.map((b, i) => {
         if (!b || typeof b !== 'object') return b;
         const { cloudId: _drop, ...rest } = b;
+        if (!isSafeBookId(rest.id)) {
+          regenerated += 1;
+          rest.id = Date.now() + i;
+        }
         return rest;
       });
       const merged = [...arrSansCloudId, ...books].filter((b,i,a) => a.findIndex(x=>x.id===b.id)===i);
       await persist(merged);
-      alert(`Imported ${arr.length} book(s).`);
+      const note = regenerated > 0
+        ? ` (${regenerated} had unsafe ids and got fresh ones)`
+        : '';
+      alert(`Imported ${arr.length} book(s)${note}.`);
     } catch { alert('Invalid file.'); }
   }
 

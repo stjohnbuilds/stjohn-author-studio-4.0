@@ -503,6 +503,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       if (Object.keys(rebuiltRuntime.audio).length) setChapterAudios(rebuiltRuntime.audio);
       if (Object.keys(rebuiltRuntime.transcripts).length) setChapterTranscripts(rebuiltRuntime.transcripts);
       setHydrated(true);                     // ← render now, don't wait for cloud
+      hydratedRef.current = true;            // unblock cross-device delete prune
       cameFromCloudRef.current = true;       // suppress the first persist round-trip
       const supabase = getSupabaseClient();
       if (!supabase) return;

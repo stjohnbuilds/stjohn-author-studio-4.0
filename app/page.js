@@ -2399,32 +2399,27 @@ function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew
   const [showHomeInfo, setShowHomeInfo] = useState(false);
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>
-      {showHomeInfo && (
-        <div
-          onClick={() => setShowHomeInfo(false)}
-          style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
-          >
-            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
-              <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Proof Listen</div>
-              <button onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:'var(--accent-dark)',border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
-                Close
-              </button>
-            </div>
-            <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
-              <p style={{ margin:0 }}>
-                Script and Sync Proof Listen helps you listen to your audiobook against the original manuscript and flag every spot where the narrator misread, skipped, or repeated a line.
-              </p>
-              <p style={{ margin:0 }}>
-                Each flag captures the misread quote, the page number, the narrator&apos;s timestamp, and your note. Export the full list of flags as a CSV (or Adobe Audition markers) for your engineer.
-              </p>
-            </div>
-          </div>
+      <AppDialog
+        open={showHomeInfo}
+        onClose={() => setShowHomeInfo(false)}
+        titleId="proof-about-title"
+        panelStyle={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
+      >
+        <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
+          <div id="proof-about-title" style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Proof Listen</div>
+          <button type="button" onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:'var(--accent-dark)',border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
+            Close
+          </button>
         </div>
-      )}
+        <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
+          <p style={{ margin:0 }}>
+            Script and Sync Proof Listen helps you listen to your audiobook against the original manuscript and flag every spot where the narrator misread, skipped, or repeated a line.
+          </p>
+          <p style={{ margin:0 }}>
+            Each flag captures the misread quote, the page number, the narrator&apos;s timestamp, and your note. Export the full list of flags as a CSV (or Adobe Audition markers) for your engineer.
+          </p>
+        </div>
+      </AppDialog>
       <div style={{ marginBottom:'1.9rem', textAlign:'center', position:'relative' }}>
         <button
           onClick={() => setShowHomeInfo(true)}

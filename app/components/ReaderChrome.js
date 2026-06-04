@@ -303,6 +303,7 @@ export function HomePill({ onClick, tone = 'prep', usesCustomDragRegion }) {
       type="button"
       onClick={onClick}
       title="Back to library"
+      aria-label="Back to library"
       style={{
         position: 'fixed',
         top: usesCustomDragRegion ? 44 : 18,
@@ -322,7 +323,7 @@ export function HomePill({ onClick, tone = 'prep', usesCustomDragRegion }) {
         WebkitAppRegion: 'no-drag',
       }}
     >
-      ⌂ Home
+      <span aria-hidden="true">⌂</span> Home
     </button>
   );
 }

@@ -1162,8 +1162,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
             )}
             {(onPrevChapter || onNextChapter) && (
               <>
-                <button onClick={()=>onPrevChapter?.()} disabled={!canPrevChapter} title="Previous chapter" style={{ ...cbtn({padding:'6px 9px',borderRadius:999,background:'transparent'}), opacity:canPrevChapter?1:0.38 }}>←</button>
-                <button onClick={()=>onNextChapter?.()} disabled={!canNextChapter} title="Next chapter" style={{ ...cbtn({padding:'6px 9px',borderRadius:999,background:'transparent'}), opacity:canNextChapter?1:0.38 }}>→</button>
+                <button type="button" onClick={()=>onPrevChapter?.()} disabled={!canPrevChapter} title="Previous chapter" aria-label="Previous chapter" style={{ ...cbtn({padding:'6px 9px',borderRadius:999,background:'transparent'}), opacity:canPrevChapter?1:0.38 }}><span aria-hidden="true">←</span></button>
+                <button type="button" onClick={()=>onNextChapter?.()} disabled={!canNextChapter} title="Next chapter" aria-label="Next chapter" style={{ ...cbtn({padding:'6px 9px',borderRadius:999,background:'transparent'}), opacity:canNextChapter?1:0.38 }}><span aria-hidden="true">→</span></button>
               </>
             )}
             <button onClick={openSearch} style={{ background:'transparent',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'1rem',padding:'4px 5px' }} title="Search text (Ctrl/⌘+F)">🔍</button>

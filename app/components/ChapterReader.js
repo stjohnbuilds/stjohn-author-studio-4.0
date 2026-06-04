@@ -443,7 +443,12 @@ export default function ChapterReader({
           under the sticky bar (bug Marie screenshotted). */}
       <div style={{ width: READER_WIDTH, margin: '0 auto', padding: `${headerExtra ? 8 : 90}px 0 ${paperPaddingBottom}px` }}>
         <div
+          ref={paperRef}
           className={READER_BODY_CLASS}
+          tabIndex={0}
+          role="region"
+          aria-label="Chapter text. Arrow keys move between words, Enter opens word actions, Escape clears the cursor."
+          onKeyDown={onPaperKeyDown}
           style={{
             background: READER_PAGE_BG,
             border: '1px solid var(--border)',
@@ -454,6 +459,7 @@ export default function ChapterReader({
             minHeight: '60vh',
             userSelect: 'none',
             WebkitUserSelect: 'none',
+            outline: 'none',
           }}
         >
           {renderedContent}

@@ -2893,7 +2893,7 @@ function TutorialWrapUpModal({ onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </AppDialog>
   );
 }
 

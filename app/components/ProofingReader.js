@@ -1286,7 +1286,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
               <span style={{ fontFamily:'monospace',fontWeight:700,color:'var(--accent)',fontSize:'0.95rem' }}>{fmtTime(flagPanel.ts)}</span>
               <span style={{ fontSize:'0.72rem',background:'var(--cream)',color:'var(--text-muted)',padding:'2px 8px',borderRadius:20,fontWeight:600,border:'1px solid var(--border-light)' }}>{flagPanel.autoNar}</span>
             </div>
-            <button onClick={dismissFlag} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'0.875rem' }}>✕</button>
+            <button type="button" onClick={dismissFlag} aria-label="Dismiss flag" title="Dismiss flag" style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'0.875rem' }}><span aria-hidden="true">✕</span></button>
           </div>
           <div>
             <div style={{ fontSize:'0.65rem',fontWeight:600,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:4 }}>Quote</div>

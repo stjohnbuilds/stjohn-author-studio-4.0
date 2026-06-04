@@ -451,6 +451,20 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     tone: 'proof',
   }), [section?.id, section?.html, includeChapterPreroll]);
 
+  // Plain-text index: same word-split order as the DOM render, but slice
+  // from the original characters so flag quotes don't grow phantom
+  // spaces inside words ("Kar<span>ma</span>" → "Karma", not "Kar ma").
+  const chapterIndex = useMemo(() => {
+    if (!section) return null;
+    try {
+      const html = withChapterPrerollHtml(section, includeChapterPreroll);
+      return buildChapterPlainTextIndex(html, 'whitespace');
+    } catch (err) {
+      console.warn('chapterIndex build failed; falling back to box-join quote:', err);
+      return null;
+    }
+  }, [section?.id, section?.html, includeChapterPreroll]);
+
   // Re-init section
   useEffect(()=>{
     if(!textRef.current||!section)return;

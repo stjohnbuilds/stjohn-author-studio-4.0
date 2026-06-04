@@ -209,7 +209,7 @@ export async function pullQuillProjects(supabase) {
     .select('id, project_id, chapter_id, local_id, class_id, class_label, option_id, option_label, label, color, word_start, word_end, selected_text, timestamp, note, content_hash, created_at, updated_at')
     .in('project_id', projectIds);
   if (annotationsError) {
-    throw new Error(`Quill sync incomplete: couldn't read annotations (${annotationsError.message})`);
+    throw new Error(`couldn't read Quill annotations from cloud (${annotationsError.message})`);
   }
 
   const chaptersByProject = new Map();

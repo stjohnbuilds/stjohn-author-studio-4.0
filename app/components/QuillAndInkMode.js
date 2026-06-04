@@ -476,6 +476,11 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   // + post-save cloudId backfill) — skips the cloud push side of the
   // persist effect to avoid echo-loops.
   const cameFromCloudRef = useRef(false);
+  // Mirror of `hydrated` state for the cloud-pull closure to read
+  // synchronously. Cross-device delete pruning waits for this so a
+  // cloud pull racing the local load can't briefly look like
+  // "everything was deleted."
+  const hydratedRef = useRef(false);
 
   // hydrate — local first, render immediately, cloud merges in the
   // background. Previously `setHydrated(true)` lived in a `finally`

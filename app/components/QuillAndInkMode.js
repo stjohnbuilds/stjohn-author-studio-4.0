@@ -1092,32 +1092,27 @@ function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
   const [headerImageOk, setHeaderImageOk] = useState(true);
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '5.2rem 1.25rem 4rem' }}>
-      {showHomeInfo && (
-        <div
-          onClick={() => setShowHomeInfo(false)}
-          style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
-          >
-            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
-              <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Quill &amp; Ink</div>
-              <button onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:QUILL.ink,border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
-                Close
-              </button>
-            </div>
-            <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
-              <p style={{ margin:0 }}>
-                Quill &amp; Ink Design Studio helps you mark up a manuscript for special-edition print design. Drag across any words and tag them as Image, Highlight, Emotion, or a Character voice.
-              </p>
-              <p style={{ margin:0 }}>
-                Export to a CSV for reference plus an InDesign .jsx script that re-creates every annotation as a character style, ready to drop onto your typeset pages.
-              </p>
-            </div>
-          </div>
+      <AppDialog
+        open={showHomeInfo}
+        onClose={() => setShowHomeInfo(false)}
+        titleId="quill-about-title"
+        panelStyle={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
+      >
+        <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
+          <div id="quill-about-title" style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Quill &amp; Ink</div>
+          <button type="button" onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:QUILL.ink,border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
+            Close
+          </button>
         </div>
-      )}
+        <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
+          <p style={{ margin:0 }}>
+            Quill &amp; Ink Design Studio helps you mark up a manuscript for special-edition print design. Drag across any words and tag them as Image, Highlight, Emotion, or a Character voice.
+          </p>
+          <p style={{ margin:0 }}>
+            Export to a CSV for reference plus an InDesign .jsx script that re-creates every annotation as a character style, ready to drop onto your typeset pages.
+          </p>
+        </div>
+      </AppDialog>
       <div style={{ textAlign: 'center', marginBottom: '1.9rem', position: 'relative' }}>
         <button
           onClick={() => setShowHomeInfo(true)}

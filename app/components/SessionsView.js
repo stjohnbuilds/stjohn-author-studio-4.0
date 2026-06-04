@@ -2943,7 +2943,13 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   >
                     {chapterComplete ? '✓' : (chapterPartial ? '–' : '')}
                   </button>
-                  <button onClick={()=>setExpanded(e=>({...e,[ch.id]:!isExpanded}))} style={{ display:'flex',alignItems:'center',gap:10,background:'transparent',border:'none',cursor:'pointer',textAlign:'left',padding:0,flex:'1 1 260px',minWidth:220 }}>
+                  <button
+                    type="button"
+                    onClick={()=>setExpanded(e=>({...e,[ch.id]:!isExpanded}))}
+                    aria-expanded={isExpanded}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} chapter ${chapterDisplayNumber(ch, chIndex)}: ${ch.title}`}
+                    style={{ display:'flex',alignItems:'center',gap:10,background:'transparent',border:'none',cursor:'pointer',textAlign:'left',padding:0,flex:'1 1 260px',minWidth:220 }}
+                  >
                     <div style={{ display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0 }}>
                       <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:44,padding:'3px 8px',borderRadius:999,background:'white',border:'1px solid var(--border-light)',fontSize:'0.67rem',fontWeight:700,color:'var(--text-muted)' }}>
                         {chapterDisplayNumber(ch, chIndex)}

@@ -1202,9 +1202,9 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
           />
           {searchHits.length>0&&<span style={{ fontSize:'0.72rem',color:'var(--text-muted)',whiteSpace:'nowrap' }}>{searchHitIdx+1} / {searchHits.length}</span>}
           {searchHits.length===0&&searchQuery.trim()&&<span style={{ fontSize:'0.72rem',color:'var(--danger)',whiteSpace:'nowrap' }}>Not found</span>}
-          <button onClick={()=>searchStep(-1)} disabled={searchHits.length<2} style={{ ...cbtn(),padding:'4px 8px',opacity:searchHits.length<2?0.4:1 }}>↑</button>
-          <button onClick={()=>searchStep(1)} disabled={searchHits.length<2} style={{ ...cbtn(),padding:'4px 8px',opacity:searchHits.length<2?0.4:1 }}>↓</button>
-          <button onClick={closeSearch} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'0.875rem',padding:'0 4px' }}>✕</button>
+          <button type="button" onClick={()=>searchStep(-1)} disabled={searchHits.length<2} aria-label="Previous search hit" title="Previous hit" style={{ ...cbtn(),padding:'4px 8px',opacity:searchHits.length<2?0.4:1 }}><span aria-hidden="true">↑</span></button>
+          <button type="button" onClick={()=>searchStep(1)} disabled={searchHits.length<2} aria-label="Next search hit" title="Next hit" style={{ ...cbtn(),padding:'4px 8px',opacity:searchHits.length<2?0.4:1 }}><span aria-hidden="true">↓</span></button>
+          <button type="button" onClick={closeSearch} aria-label="Close search" title="Close search" style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'0.875rem',padding:'0 4px' }}><span aria-hidden="true">✕</span></button>
         </div>
         </div>
       )}

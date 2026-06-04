@@ -60,6 +60,7 @@ import {
   clearTombstone,
   applyTombstonesToCloudList,
   formatCloudErrorMessage,
+  filterLocalForCloudPrune,
 } from '../../packages/cloud-sync';
 
 const QUILL = MODE_TOKENS.quill;

@@ -118,6 +118,34 @@ export function resolveAnnotationSelection({ classId, optionId, projectOptions }
   };
 }
 
+// Returns the set of annotation ids that should be removed when the
+// user deletes `target`. A "main" annotation (not character/markerOnly)
+// is treated as a bundle with any same-range character markers
+// attached to it — saveAnnotation already groups them on load and
+// save, so delete must do the same or the markers get orphaned.
+// (Audit fix SAS-AUD-20260602-006, Block 4.)
+//
+// Deleting a character marker is the inverse: only its own id, never
+// cascading to peer markers or to the main annotation they accompany.
+export function idsForAnnotationBundle(target, allAnnotations) {
+  const ids = new Set();
+  if (!target?.id) return ids;
+  ids.add(target.id);
+  const isMarker = target.classId === 'character' || !!target.markerOnly;
+  if (isMarker) return ids;
+  const start = Number(target.wordStart);
+  const end = Number(target.wordEnd ?? target.wordStart);
+  for (const a of allAnnotations || []) {
+    if (!a?.id || a.id === target.id) continue;
+    if (!(a.classId === 'character' || a.markerOnly)) continue;
+    if (a.sectionId !== target.sectionId) continue;
+    if (Number(a.wordStart) !== start) continue;
+    if (Number(a.wordEnd ?? a.wordStart) !== end) continue;
+    ids.add(a.id);
+  }
+  return ids;
+}
+
 export function createAnnotation({ selection, option, sectionId, sectionTitle, chapterNumber, wordStart, wordEnd, selectedText, textContext, timestamp, note }) {
   const resolved = selection || {
     classId: option?.classId || option?.category || 'highlight',

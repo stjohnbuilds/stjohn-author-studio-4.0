@@ -2077,6 +2077,11 @@ ipcMain.handle('backup-make-snapshot', async (_, payload = {}) => {
     zip.file('cloud/cloud-snapshot.json', JSON.stringify(cloudSnapshot, null, 2));
   }
 
+  // Honest cloud status: cloudIncluded is only true when every cloud
+  // read succeeded. A partial-or-failed snapshot still writes the local
+  // backup (Marie's daily safety net) but the manifest says so clearly.
+  const snapshotStatus = cloudSnapshot?.status
+    || (cloudSnapshot ? 'partial-or-failed' : 'not-included');
   zip.file('manifest.json', JSON.stringify({
     snapshotType: 'stjohn-author-studio-backup',
     schemaVersion: 1,
@@ -2087,7 +2092,12 @@ ipcMain.handle('backup-make-snapshot', async (_, payload = {}) => {
       localFiles: Object.fromEntries(
         Object.entries(localFiles).map(([name, content]) => [name, content ? content.length : 0])
       ),
-      cloudIncluded: !!cloudSnapshot,
+      cloudIncluded: snapshotStatus === 'complete',
+      cloudStatus: snapshotStatus,
+      cloudProofStatus: cloudSnapshot?.proof?.status || null,
+      cloudQuillStatus: cloudSnapshot?.quill?.status || null,
+      cloudProofError: cloudSnapshot?.proof?.error || null,
+      cloudQuillError: cloudSnapshot?.quill?.error || null,
     },
   }, null, 2));
 

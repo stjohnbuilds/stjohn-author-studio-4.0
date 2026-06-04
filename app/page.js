@@ -33,6 +33,7 @@ import {
   clearProofPushCache,
   clearQuillPushCache,
   formatCloudErrorMessage,
+  filterLocalForCloudPrune,
 } from '../packages/cloud-sync';
 import {
   isBackupEnabledForUser,

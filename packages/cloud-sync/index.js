@@ -12,3 +12,4 @@ export * from './quill-sync.js';
 export * from './proof-sync.js';
 export * from './tombstones.js';
 export * from './flag-queue.js';
+export * from './cross-device-prune.js';

@@ -38,13 +38,8 @@ win:
   icon: build/icon.ico
   signAndEditExecutable: false
   target:
-    - target: portable
-      arch: [x64]
     - target: nsis
       arch: [x64]
-
-portable:
-  artifactName: StJohn Author Studio (Portable).exe
 
 nsis:
   artifactName: StJohn Author Studio Setup.exe

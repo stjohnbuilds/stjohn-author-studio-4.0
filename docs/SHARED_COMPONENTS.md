@@ -42,8 +42,9 @@ mode-specific extras (Proof audio queue, Duet scan navigator, etc.).
 These are tracked in `TODO.md` as next-session refactors:
 
 - **Reader (Proof migration)** — Quill uses `<ChapterReader>` as of 2026-05-24. Proof still has its own `ProofingReader.js` (1546 lines, audio sync + flag tapping) and is logged for next-session migration; high risk because it's Marie's anchor mode. Prep and Duet stay on their own readers permanently because their interaction models are structurally different (Prep = dialogue spans, Duet = read-only block highlights).
+- **Phone reader** — `app/phone/_components/PhoneReader.js` is a separate component from the desktop `<ChapterReader>`. The build plan's "one shared reader" target hasn't reached the phone yet. Don't claim a `packages/reader-engine/` or `app/components/Reader/` exists — neither does today.
 - **Home view** — each mode has its own project-list page. Quill's is the simplest. Extract a `ModeHome` component using Quill as the baseline.
-- **Confirm dialogs** — every mode uses `window.confirm()`. Replace with a shared `<ConfirmDialog />` for visual consistency.
+- **Confirm dialogs** — every mode uses `window.confirm()`. The new `<AppDialog>` (added Block 9, 2026-06-03) is the accessible modal primitive; a future `<ConfirmDialog />` could compose on top of it.
 
 ## How to extend (instead of fork)
 

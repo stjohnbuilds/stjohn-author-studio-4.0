@@ -1398,7 +1398,7 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
                 style={{ ...popoverInputStyle, flex: 1, marginBottom: 0 }}
               />
               <button type="button" onClick={() => addCustomOption(selectedClass.id)} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
-              <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniRoundButtonStyle('#9B928E')}>×</button>
+              <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} aria-label="Cancel adding custom option" title="Cancel" style={miniRoundButtonStyle('#9B928E')}><span aria-hidden="true">×</span></button>
             </div>
           )}
           <div style={{ borderTop: '1px solid #EAE0D6', paddingTop: 8, marginBottom: 8 }}>
@@ -1441,7 +1441,7 @@ function QuillChapterView({ project, chapter, readerSettings, onBack, onOpenSett
                   style={{ ...popoverInputStyle, flex: 1, marginBottom: 0 }}
                 />
                 <button type="button" onClick={() => addCustomOption('character')} style={miniRoundButtonStyle(QUILL_ACCENT)}>+</button>
-                <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniRoundButtonStyle('#9B928E')}>×</button>
+                <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} aria-label="Cancel adding custom option" title="Cancel" style={miniRoundButtonStyle('#9B928E')}><span aria-hidden="true">×</span></button>
               </div>
             )}
           </div>

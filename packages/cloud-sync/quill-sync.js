@@ -195,14 +195,22 @@ export async function pullQuillProjects(supabase) {
   if (!projects?.length) return [];
 
   const projectIds = projects.map((p) => p.id);
-  const { data: chapters } = await supabase
+  // Empty data is fine; an error is not — silently swallowing here used
+  // to rebuild projects with blank chapters/annotations and look "synced."
+  const { data: chapters, error: chaptersError } = await supabase
     .from('quill_chapters')
     .select('id, project_id, local_id, title, position, plain_text, text_html, alignment, audio_file_name, content_hash')
     .in('project_id', projectIds);
-  const { data: annotations } = await supabase
+  if (chaptersError) {
+    throw new Error(`Quill sync incomplete: couldn't read chapters (${chaptersError.message})`);
+  }
+  const { data: annotations, error: annotationsError } = await supabase
     .from('quill_annotations')
     .select('id, project_id, chapter_id, local_id, class_id, class_label, option_id, option_label, label, color, word_start, word_end, selected_text, timestamp, note, content_hash, created_at, updated_at')
     .in('project_id', projectIds);
+  if (annotationsError) {
+    throw new Error(`Quill sync incomplete: couldn't read annotations (${annotationsError.message})`);
+  }
 
   const chaptersByProject = new Map();
   for (const ch of chapters || []) {

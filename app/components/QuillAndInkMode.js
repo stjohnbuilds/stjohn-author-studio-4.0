@@ -51,6 +51,11 @@ import {
   buildInDesignJsx,
   buildAnnotationsDocxBlob,
 } from '../../packages/quill-engine';
+// Source-of-truth plain text + per-word-box positions. Replaces the old
+// `htmlToPlainText` path which inserted a space for every inline tag —
+// that's why "Kar<span>ma</span>" became "Kar ma" and "<em>all</em>."
+// became "all ." in annotation `selectedText` and `textContext`.
+import { buildChapterPlainTextIndex, sliceUnitsRange } from '../../packages/manuscript-engine';
 import {
   getSupabaseClient,
   pushQuillProject,

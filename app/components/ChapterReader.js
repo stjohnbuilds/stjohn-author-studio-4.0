@@ -321,6 +321,71 @@ export default function ChapterReader({
     [chapter?.id, chapter?.textHtml, chapter?.html, selectedRange?.start, selectedRange?.end, unitDecoration, renderUnitOverlay, unitSplitMode, tone]
   );
 
+  // Visible focus ring on the cursored word — applied to the DOM
+  // directly so the (heavy, memoized) renderChapter output doesn't
+  // re-build on every arrow key.
+  useEffect(() => {
+    const root = paperRef.current;
+    if (!root) return undefined;
+    const prev = root.querySelector('[data-cr-kb-cursor="1"]');
+    if (prev) {
+      prev.removeAttribute('data-cr-kb-cursor');
+      prev.style.outline = '';
+      prev.style.outlineOffset = '';
+      prev.style.borderRadius = '';
+    }
+    if (kbCursor == null) return undefined;
+    const el = root.querySelector(`[data-cr-unit="${kbCursor}"]`);
+    if (!el) return undefined;
+    el.setAttribute('data-cr-kb-cursor', '1');
+    el.style.outline = `2px solid ${token.ink}`;
+    el.style.outlineOffset = '2px';
+    el.style.borderRadius = '3px';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return () => {
+      if (el) {
+        el.removeAttribute('data-cr-kb-cursor');
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+        el.style.borderRadius = '';
+      }
+    };
+  }, [kbCursor, chapter?.id, token.ink]);
+
+  // Reset cursor on chapter change so we don't point at a stale idx.
+  useEffect(() => { setKbCursor(null); }, [chapter?.id]);
+
+  const onPaperKeyDown = (e) => {
+    const root = paperRef.current;
+    if (!root) return;
+    const units = root.querySelectorAll('[data-cr-unit]');
+    if (!units.length) return;
+    const last = units.length - 1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      setKbCursor((c) => (c == null ? 0 : Math.min(last, c + (e.key === 'ArrowDown' ? 10 : 1))));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setKbCursor((c) => (c == null ? 0 : Math.max(0, c - (e.key === 'ArrowUp' ? 10 : 1))));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setKbCursor(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setKbCursor(last);
+    } else if ((e.key === 'Enter' || e.key === ' ') && kbCursor != null) {
+      // Same intent as double-click on a word: open the mode-specific
+      // action (flag / annotation / etc).
+      if (onUnitDoubleClick) {
+        e.preventDefault();
+        onUnitDoubleClick(kbCursor, e);
+      }
+    } else if (e.key === 'Escape' && kbCursor != null) {
+      e.preventDefault();
+      setKbCursor(null);
+    }
+  };
+
   if (!chapter) {
     return (
       <div style={{ padding: '5.2rem 1.25rem', textAlign: 'center', color: 'var(--text-muted)' }}>

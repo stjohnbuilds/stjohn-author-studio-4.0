@@ -303,7 +303,7 @@ async function idbGet(key) {
 }
 
 function exportAllCSV(book) {
-  const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Note','Should Say']];
+  const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Misread Quote','Should Say']];
   (book.chapters||[]).forEach(ch=>{
     (ch.sections||[]).filter(s=>s.flags?.length).forEach(sec=>{
       (sec.flags||[]).forEach(fl=>rows.push([csvEsc(ch.title),csvEsc(sec.audioFileName||''),csvEsc(fl.page),csvEsc(fmtTime(fl.ts)),csvEsc(fl.narrator),csvEsc(fl.type),csvEsc(fl.sentPlain||''),csvEsc(fl.note||'')]));
@@ -382,7 +382,7 @@ async function exportAuditionMarkers(book) {
 }
 
 function exportSectionCSV(ch, sec) {
-  const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Note','Should Say']];
+  const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Misread Quote','Should Say']];
   (sec.flags||[]).forEach(fl=>rows.push([csvEsc(ch.title),csvEsc(sec.audioFileName||''),csvEsc(fl.page),csvEsc(fmtTime(fl.ts)),csvEsc(fl.narrator),csvEsc(fl.type),csvEsc(fl.sentPlain||''),csvEsc(fl.note||'')]));
   dl(rows.map(r=>r.join(',')).join('\r\n'),`${ch.title}-${sec.title}.csv`,'text/csv');
 }

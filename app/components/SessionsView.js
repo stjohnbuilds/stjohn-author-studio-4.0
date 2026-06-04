@@ -3033,7 +3033,6 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     {audioUploadMode === 'chapter' && (
                       <button
                         onClick={()=>openChapterProof(ch)}
-                        disabled={mode !== 'quill' && !chapterHasAudioForAll}
                         style={btn({
                           fontSize:'0.72rem',
                           padding:'4px 11px',
@@ -3041,10 +3040,15 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                           color:(mode === 'quill' || chapterHasAudioForAll)?'var(--accent-dark)':'var(--text-light)',
                           borderColor:(mode === 'quill' || chapterHasAudioForAll)?'var(--accent-border-strong)':'var(--border)',
                           fontWeight:700,
-                          cursor:(mode === 'quill' || chapterHasAudioForAll)?'pointer':'not-allowed',
+                          cursor:'pointer',
+                          opacity:(mode === 'quill' || chapterHasAudioForAll)?1:0.75,
                         })}
-                        title={mode === 'quill' ? 'Open this chapter to annotate' : 'Play and proof this chapter'}
-                        aria-label={mode === 'quill' ? 'Open this chapter to annotate' : 'Play and proof this chapter'}
+                        title={(mode === 'quill' || chapterHasAudioForAll)
+                          ? (mode === 'quill' ? 'Open this chapter to annotate' : 'Play and proof this chapter')
+                          : 'Open this chapter (no audio attached — opens for flagging only)'}
+                        aria-label={(mode === 'quill' || chapterHasAudioForAll)
+                          ? (mode === 'quill' ? 'Open this chapter to annotate' : 'Play and proof this chapter')
+                          : 'Open this chapter (no audio attached — opens for flagging only)'}
                       >
                         ▶
                       </button>

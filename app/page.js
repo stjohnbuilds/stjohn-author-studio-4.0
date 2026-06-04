@@ -2545,15 +2545,15 @@ function TransferNoticeModal({ notice, onClose }) {
   const lines = Array.isArray(notice?.lines) ? notice.lines.filter(Boolean) : [];
   const isError = notice?.tone === 'error';
   return (
-    <div
-      onClick={onClose}
-      style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.24)',backdropFilter:'blur(4px)',zIndex:1500,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
+    <AppDialog
+      open
+      onClose={onClose}
+      titleId="transfer-notice-title"
+      containerStyle={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.24)',backdropFilter:'blur(4px)',zIndex:1500,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
+      panelStyle={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px' }}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px' }}
-      >
-        <div style={{ fontSize:'1rem',fontWeight:800,color:isError ? 'var(--danger)' : 'var(--text)',marginBottom:10 }}>
+      <>
+        <div id="transfer-notice-title" style={{ fontSize:'1rem',fontWeight:800,color:isError ? 'var(--danger)' : 'var(--text)',marginBottom:10 }}>
           {notice?.title || 'Transfer update'}
         </div>
         <div style={{ maxHeight:'min(34vh, 240px)',overflowY:'auto',border:'1px solid var(--border-light)',borderRadius:14,background:'var(--accent-surface)',padding:'12px 13px',fontSize:'0.82rem',lineHeight:1.55,color:'var(--text)' }}>

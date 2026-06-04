@@ -528,14 +528,19 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         if (cancelled) return;
         // Successful pull (even empty) clears any prior error banner.
         setCloudPullError('');
-        if (!rawCloudProjects.length) return;
         // Drop anything the user has tombstoned, and re-issue cloud
         // delete for ids that came back. This is what fixes Marie's
         // "delete doesn't really stick" bug.
         const cloudProjects = applyTombstonesToCloudList('quill', rawCloudProjects, supabase, deleteQuillProject);
-        if (!cloudProjects.length) return;
+        // Always merge — even an empty cloud list — so cross-device
+        // remote-delete prunes local cloud-owned projects. Block 1's
+        // strict error checks mean we only reach here on a successful
+        // pull, so an empty cloudProjects here genuinely means "cloud
+        // has none." Prune only when local hydration completed.
         cameFromCloudRef.current = true;     // the merge isn't a user edit
-        setAllProjects((current) => mergeProjectLists(current, cloudProjects));
+        setAllProjects((current) => mergeProjectLists(current, cloudProjects, {
+          pruneRemoteDeleted: hydratedRef.current,
+        }));
       } catch (e) {
         const msg = formatCloudErrorMessage(e);
         console.warn('[Quill] cloud pull failed:', msg);

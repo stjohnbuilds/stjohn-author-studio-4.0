@@ -202,7 +202,7 @@ export async function pullQuillProjects(supabase) {
     .select('id, project_id, local_id, title, position, plain_text, text_html, alignment, audio_file_name, content_hash')
     .in('project_id', projectIds);
   if (chaptersError) {
-    throw new Error(`Quill sync incomplete: couldn't read chapters (${chaptersError.message})`);
+    throw new Error(`couldn't read Quill chapters from cloud (${chaptersError.message})`);
   }
   const { data: annotations, error: annotationsError } = await supabase
     .from('quill_annotations')

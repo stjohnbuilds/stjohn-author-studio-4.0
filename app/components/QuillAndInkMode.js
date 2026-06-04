@@ -1047,7 +1047,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 // Home — project list
 // ===========================================================================
 
-function QuillHomeView({ projects, onOpen, onNew }) {
+function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
   // ? info modal + image header — mirrors Duet's pattern in PrebuildMode.js.
   // Marie 2026-05-26: "copy DUET which already has one, that exactly."
   // headerImageOk: until the pink PNG (quill-and-ink-header.png) is dropped

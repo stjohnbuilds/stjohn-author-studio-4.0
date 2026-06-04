@@ -1973,7 +1973,7 @@ function SettingsCog({
           <div data-tutorial="settings-panel" style={{ position:'fixed', top:68, right:16, zIndex:1199, width:'min(384px, 92vw)', maxHeight:'80vh', overflowY:'auto', background:'white', border:'1px solid var(--border)', borderRadius:18, padding:'12px', boxShadow:'0 14px 30px rgba(0,0,0,0.12)' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
               <h3 style={{ margin:0, fontSize:'1.05rem', color:'var(--text)' }}>Settings</h3>
-              <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:'1.1rem' }}>✕</button>
+              <button type="button" onClick={onClose} aria-label="Close settings" title="Close settings" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:'1.1rem' }}><span aria-hidden="true">✕</span></button>
             </div>
 
             {/* Profile card at top — Marie 2026-05-26: replaces the

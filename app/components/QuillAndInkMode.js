@@ -394,6 +394,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   // Per-chapter transcription state — alignment from whisper, sync table
   // for audio↔word mapping, progress UI. { alignment, syncTable, progress, status }
   const [chapterTranscripts, setChapterTranscripts] = useState({});
+  // Surface cloud-pull failures so Quill matches Proof's "Cloud sync
+  // failed: …" banner instead of being silent in the console.
+  const [cloudPullError, setCloudPullError] = useState('');
 
   // Run whisper transcription for a single chapter. Same path Proof uses
   // (transcribeAudio → alignTranscriptToManuscript → buildSyncTable).

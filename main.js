@@ -1644,13 +1644,13 @@ ipcMain.handle('export-transfer-bundle', async (event, book) => {
     },
   };
 
-  fs.writeFileSync(path.join(bundleDir, 'script-and-sync-transfer.json'), JSON.stringify(manifest, null, 2), 'utf8');
+  fs.writeFileSync(path.join(bundleDir, 'stjohn-author-studio-transfer.json'), JSON.stringify(manifest, null, 2), 'utf8');
   bumpTransferProgress('Wrote transfer manifest.');
   fs.writeFileSync(path.join(dataDir, 'book.json'), JSON.stringify(copiedBook, null, 2), 'utf8');
   fs.writeFileSync(path.join(bundleDir, 'README.txt'), [
-    'Script and Sync Transfer Folder',
+    'StJohn Author Studio Transfer Folder',
     '',
-    'In Script and Sync, choose Create new book, then Import from other account.',
+    'In StJohn Author Studio, choose Create new book, then Import from other account.',
     'Select this folder. The app will copy the bundled audio/manuscript into its Save Data folder and relink the imported audiobook.',
   ].join('\n'), 'utf8');
   sendTransferProgress({ active: true, percent: 100, message: 'Transfer folder ready.' });

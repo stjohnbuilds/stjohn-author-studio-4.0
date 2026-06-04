@@ -150,7 +150,7 @@ function csvEsc(value) {
 }
 
 function buildFlagsCsv(book) {
-  const rows = [['Chapter', 'Audio File', 'Page', 'Timestamp', 'Narrator/Engineer', 'Type', 'Note', 'Should Say']];
+  const rows = [['Chapter', 'Audio File', 'Page', 'Timestamp', 'Narrator/Engineer', 'Type', 'Misread Quote', 'Should Say']];
   (book?.chapters || []).forEach((ch) => {
     (ch.sections || []).forEach((sec) => {
       (sec.flags || []).forEach((fl) => {

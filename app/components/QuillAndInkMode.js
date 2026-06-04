@@ -979,6 +979,14 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 	                      ? { ...nextChapter, ...incoming.transcription }
 	                      : nextChapter;
 	                  }),
+                // When a chapter is removed from book detail, drop its
+                // annotations too. Otherwise stale annotations stay in
+                // the saved project, get pushed to cloud as
+                // chapter_id: null, and continue to appear in exports.
+                // Reorder/rename are safe — keptIds includes them.
+                // (SAS-AUD-20260602-007, Block 4.)
+                annotations: (p.annotations || [])
+                  .filter((a) => !a?.sectionId || keptIds.has(a.sectionId)),
 	              }));
               const audioPatch = {};
               updated.chapters.forEach((ch) => {

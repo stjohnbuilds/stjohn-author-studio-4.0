@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ImportFlow, { parseChaptersFromHtml } from './ImportFlow';
 import BookDetail from './BookDetail';
 import ProofBookDetail from './SessionsView';
+import AppDialog from './AppDialog';
 import {
   STYLE_MAP,
   convertShadingToHighlight,

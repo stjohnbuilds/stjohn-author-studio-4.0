@@ -35,11 +35,13 @@ test('mid-word inline span — "Kar<span>ma</span>" becomes "Karma"', () => {
     '<p>Kar<span class="hl-yellow">ma</span>, I heard him say.</p>',
     'whitespace',
   );
-  // Units: Kar, ma,, I, heard, him, say.
-  assert.equal(idx.unitMeta.length, 6);
-  assert.equal(sliceUnitsRange(idx, 0, 5), 'Karma, I heard him say.');
-  // The first two units share the same word; slicing just them gives "Karma,"
-  assert.equal(sliceUnitsRange(idx, 0, 1), 'Karma,');
+  // Units (whitespace-split, per text node):
+  // "Kar" | "ma" | "," | "I" | "heard" | "him" | "say."  = 7
+  assert.equal(idx.unitMeta.length, 7);
+  // Whole slice — proves no "Kar ma" phantom space
+  assert.equal(sliceUnitsRange(idx, 0, 6), 'Karma, I heard him say.');
+  // First two units cover the broken-apart word — should re-join cleanly
+  assert.equal(sliceUnitsRange(idx, 0, 1), 'Karma');
 });
 
 test('mid-word inline span splitting "get" — "g<span>et</span>" becomes "get"', () => {

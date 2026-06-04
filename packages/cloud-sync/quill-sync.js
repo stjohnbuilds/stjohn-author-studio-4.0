@@ -107,7 +107,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .eq('project_id', cloudProjectId)
       .not('local_id', 'in', toPostgrestInList(keepLocalIds));
     if (pruneChaptersError) {
-      throw new Error(`Quill save incomplete: couldn't remove old chapters (${pruneChaptersError.message})`);
+      throw new Error(`couldn't remove old Quill chapters in cloud (${pruneChaptersError.message})`);
     }
   } else {
     const { error: pruneChaptersError } = await supabase
@@ -115,7 +115,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .delete()
       .eq('project_id', cloudProjectId);
     if (pruneChaptersError) {
-      throw new Error(`Quill save incomplete: couldn't remove old chapters (${pruneChaptersError.message})`);
+      throw new Error(`couldn't remove old Quill chapters in cloud (${pruneChaptersError.message})`);
     }
   }
 

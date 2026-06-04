@@ -2577,14 +2577,15 @@ function TransferNoticeModal({ notice, onClose }) {
         </div>
         <div style={{ display:'flex',justifyContent:'flex-end',marginTop:14 }}>
           <button
+            type="button"
             onClick={onClose}
             style={{ padding:'10px 18px',borderRadius:999,border:'1px solid var(--accent)',background:'var(--accent)',color:'white',fontWeight:800,cursor:'pointer',boxShadow:'0 10px 24px var(--accent-shadow)' }}
           >
             OK
           </button>
         </div>
-      </div>
-    </div>
+      </>
+    </AppDialog>
   );
 }
 

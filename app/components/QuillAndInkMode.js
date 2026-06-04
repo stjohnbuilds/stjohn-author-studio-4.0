@@ -1585,18 +1585,29 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
 
   function deleteEditingAnnotation() {
     if (!editingAnnotationId) return;
-    updateProject((p) => ({
-      ...p,
-      annotations: (p.annotations || []).filter((a) => a.id !== editingAnnotationId),
-    }));
+    updateProject((p) => {
+      const list = p.annotations || [];
+      const target = list.find((a) => a.id === editingAnnotationId);
+      if (!target) return p;
+      // Bundle-delete: same-range character markers go with the main
+      // annotation, matching how openExistingAnnotation/saveAnnotation
+      // already treat them. Without this, deleting an annotation that
+      // has character tags leaves orphan markers in the dock, exports,
+      // and cloud payload. (SAS-AUD-20260602-006, Block 4.)
+      const drop = idsForAnnotationBundle(target, list);
+      return { ...p, annotations: list.filter((a) => !drop.has(a.id)) };
+    });
     clearSelection();
   }
 
   function deleteAnnotation(id) {
-    updateProject((p) => ({
-      ...p,
-      annotations: (p.annotations || []).filter((a) => a.id !== id),
-    }));
+    updateProject((p) => {
+      const list = p.annotations || [];
+      const target = list.find((a) => a.id === id);
+      if (!target) return p;
+      const drop = idsForAnnotationBundle(target, list);
+      return { ...p, annotations: list.filter((a) => !drop.has(a.id)) };
+    });
     if (editingAnnotationId === id) clearSelection();
   }
 

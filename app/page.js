@@ -671,10 +671,14 @@ export default function Home() {
       const rawCloudBooks = await pullProofProjects(supabase);
       const cloudBooks = applyTombstonesToCloudList('proof', rawCloudBooks || [], supabase, deleteProofProject)
         .map((book) => (book?.cloudId ? applyFlagQueueToBook(book.cloudId, book) : book));
-      if (cloudBooks.length) {
-        cameFromProofCloudRef.current = true;
-        setBooks((current) => mergeProofBookLists(current, cloudBooks));
-      }
+      // Always merge — even an empty cloud list — so cross-device
+      // remote-delete prunes local cloud-owned books. Block 1's strict
+      // error checks mean we only reach here on a successful pull, so
+      // an empty cloudBooks here genuinely means "cloud has none."
+      cameFromProofCloudRef.current = true;
+      setBooks((current) => mergeProofBookLists(current, cloudBooks, {
+        pruneRemoteDeleted: booksHydratedRef.current,
+      }));
       const ownerId = authSession?.user?.id;
       if (ownerId) {
         await Promise.all(cloudBooks

@@ -468,9 +468,13 @@ function copyDirectoryContents(sourceDir, targetDir) {
 }
 
 function findTransferManifestPath(rootDir) {
+  // Current filename first, then legacy filenames from prior brands.
+  // Marie can still import old "script and sync" bundles. (Block 7.)
   const candidates = [
+    'stjohn-author-studio-transfer.json',
     'script-and-sync-transfer.json',
     'transfer-manifest.json',
+    path.join('data', 'stjohn-author-studio-transfer.json'),
     path.join('data', 'script-and-sync-transfer.json'),
   ];
   return candidates.map(candidate => path.join(rootDir, candidate)).find(fileExists) || null;

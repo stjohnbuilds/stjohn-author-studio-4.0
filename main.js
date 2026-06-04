@@ -1106,7 +1106,11 @@ function getManuscriptSourcesDir() {
 }
 
 function getManuscriptSourcePath(bookId) {
-  return path.join(getManuscriptSourcesDir(), `${String(bookId)}.docx`);
+  // Use safeJoinInsideDir so a crafted bookId like "../../etc/passwd"
+  // cannot escape Save Data/Manuscript Sources/ on save, read, or
+  // rescan. Throws on any escape attempt — callers should let the
+  // error bubble to the IPC reply so the renderer can show it.
+  return safeJoinInsideDir(getManuscriptSourcesDir(), `${String(bookId)}.docx`);
 }
 
 function saveManuscriptSource({ bookId, data }) {

@@ -83,23 +83,61 @@ Turns confirmed bugs and strong watchlist risks into numbered roadmap items.
 It may suggest code logic inside the roadmap doc only. It never changes product
 code.
 
-## Hourly Wave Schedule
+## Thirty-Minute Wave Schedule
 
 The preferred two-day campaign schedule is:
 
-- Inspector A: hourly
-- Inspector B: hourly
-- Inspector C: hourly
-- Zone Checker: hourly
-- Lead Organizer: hourly
+- Inspector A: every 30 minutes
+- Inspector B: every 30 minutes
+- Inspector C: every 30 minutes
+- Zone Checker: every 30 minutes
+- Lead Organizer: every 30 minutes
 - Fix Roadmap Planner: every 30 minutes
 
-Hourly does not mean every role must do heavy work every time. Each role first
-checks its lock file and current assignment. If its prior run still appears
-active, or no ready work exists, it writes a small skipped note and stops.
+Paused extra lane:
+
+- Inspector D
+- Inspector E
+- Inspector F
+- Zone Checker B
+
+Do not run the paused extra lane unless Marie explicitly re-approves it.
+
+Every 30 minutes does not mean every role must do heavy work every time. Each
+role first checks its lock file and current assignment. If its prior run still
+appears active, or no ready work exists, it writes a small skipped note and
+stops.
 
 This gives fast coverage without relying on a hidden "run next when previous
 finishes" trigger.
+
+## Subscription Window Single-Lane Rule
+
+Updated 2026-06-02 for Marie's subscription window.
+
+Use one active lane with 30-minute wake-ups. This speeds up the campaign
+without dropping the three-report quality bar:
+
+- Inspector A
+- Inspector B
+- Inspector C
+- Zone Checker
+
+Inspector D, Inspector E, Inspector F, and Zone Checker B are paused. They must
+not create active campaign reports unless Marie explicitly re-approves a second
+lane.
+
+Inspectors A/B/C must use the active priority order from
+`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`. The checker only merges A/B/C
+reports. The lead organizer reads checker reports only.
+
+Do not create ad hoc folders like `zone-05a`, `zone-05b`, or `zone-05c` unless
+`docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` declares the subzone slug, the
+three assigned inspector reports, the checker report, and the lead-merge rule.
+
+Folders are not the problem. Untracked slices are the problem. A folder counts
+only when the source-of-truth file explains what was checked, who checked it,
+how conflicts merge, and how the lead marks it complete.
 
 ## Conflict Ledger
 
@@ -117,6 +155,24 @@ Each conflict entry includes:
 - Next check needed.
 
 Never delete the original disagreement. Keep it visible for later review.
+
+## Full App Coverage
+
+The source-of-truth audit-zone list is the authority. It now includes both
+StJohn-specific zones and broad cross-cutting zones:
+
+- Product zones: desktop shell/settings, Proof, Prep, Duet, Quill, Phone
+  Script, Phone Quill, cloud/save/backups, exports/releases, tests/scripts.
+- Internal architecture: components, routes, stores, services, helpers, engines,
+  queues, bridges, and duplicated logic.
+- User experience quality: screens, buttons, popups, states, navigation,
+  accessibility, keyboard use, layout, responsive behavior, text overflow,
+  console errors, and performance.
+- Security/privacy: filesystem access, secrets, tokens, broad permissions,
+  destructive commands, dependency risks, local-only data boundaries, and leaks.
+
+Every mode zone should include its own user-facing workflow checks plus the
+relevant cross-cutting checks.
 
 ## Run Cycle
 

@@ -31,4 +31,10 @@
       overlapping the same role.
 - [x] Add conflict ledger rules that preserve original disagreements.
 - [x] Add plain-English TLDR/source requirements for fix roadmap items.
+- [x] Start first manual three-inspector wave for source goals and app tree
+      drift.
+- [x] Upgrade other-app handover prompt to the full three-inspector/checker
+      monitor pattern.
+- [x] Add explicit cross-cutting zones for internal architecture, UX quality,
+      accessibility/layout/performance, security, and privacy.
 - [ ] Ask Marie before archiving or closing this plan.

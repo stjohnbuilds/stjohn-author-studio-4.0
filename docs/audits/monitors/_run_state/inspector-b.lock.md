@@ -1,0 +1,41 @@
+# Inspector B Lock
+
+- Role: Inspector B
+- Status: complete
+- Started: 2026-06-03 16:55:59 PDT
+- Finished: 2026-06-03 16:56:20 PDT
+- Campaign checked: `2026-06-02-manual-start`
+- Audit zone: none
+- Intended output file: none
+- Result: skipped. The only declared campaign folder is still `2026-06-02-manual-start`, and every declared zone in that campaign already has an `inspector-b.md` report.
+- Dirty files seen:
+  - `docs/audits/OTHER_APP_PROJECT_MONITOR_PROMPT.md`
+  - `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
+  - `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`
+  - `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+  - `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`
+  - `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`
+  - `docs/dev/active/project-monitor-automation-2026-06-02/tasks.md`
+  - `docs/audits/monitors/` (untracked)
+- Source docs rechecked:
+  - `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+  - `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`
+  - `docs/BUILD_PLAN_V4.md`
+  - `docs/APP_STRUCTURE.md`
+  - `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
+- Commands run:
+  - `sed -n '1,260p' docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` (exit 0)
+  - `sed -n '1,260p' docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md` (exit 0)
+  - `sed -n '1,260p' docs/BUILD_PLAN_V4.md` (exit 0)
+  - `sed -n '1,260p' docs/APP_STRUCTURE.md` (exit 0)
+  - `if test -f docs/audits/monitors/_run_state/inspector-b.lock.md; then sed -n '1,220p' docs/audits/monitors/_run_state/inspector-b.lock.md; else echo '__NO_LOCK__'; fi` (exit 0)
+  - `sed -n '260,420p' docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` (exit 0)
+  - `sed -n '1,120p' docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md` (exit 0)
+  - `find docs/audits/monitors -mindepth 1 -maxdepth 3 -type f | sort` (exit 0)
+  - `env TZ=America/Vancouver date '+%Y-%m-%d %H:%M:%S %Z'` (exit 0)
+  - `git status --short` (exit 0)
+  - `sed -n '1,120p' docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` (exit 0)
+  - `sed -n '1,120p' docs/APP_STRUCTURE.md` (exit 0)
+  - `sed -n '1,80p' docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md` (exit 0)
+  - `date -u '+%Y-%m-%dT%H:%M:%SZ' && env TZ=America/Vancouver date '+%Y-%m-%d %H:%M:%S %Z'` (exit 0)
+- Next safe step: wait for a newly declared monitor campaign folder or for a declared active-campaign zone to be missing `inspector-b.md`.

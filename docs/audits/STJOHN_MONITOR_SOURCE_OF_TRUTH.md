@@ -103,7 +103,7 @@ The monitor must re-anchor by rereading this file plus
 If the agent cannot say which audit zone it is in, it must stop, reread this
 file, and write the next safest step.
 
-## Hourly Run Lock Rule
+## Thirty-Minute Run Lock Rule
 
 Codex automations are schedule-based. They do not expose a visible
 `skip if previous run is still active` setting.
@@ -122,6 +122,13 @@ Each recurring role has its own lock file:
 - `zone-checker.lock.md`
 - `lead-organizer.lock.md`
 - `fix-roadmap-planner.lock.md`
+
+Paused extra-lane lock files, used only if Marie re-approves the second lane:
+
+- `inspector-d.lock.md`
+- `inspector-e.lock.md`
+- `inspector-f.lock.md`
+- `zone-checker-b.lock.md`
 
 At run start:
 
@@ -175,14 +182,76 @@ The fix-roadmap planner may update only:
 
 - `docs/audits/STJOHN_FIX_STRATEGY_QUEUE.md`
 
+## Marie Progress Update Rule
+
+Any user-facing monitor update, chat status reply, lead-organizer summary, or
+fix-roadmap status reply must end with a short progress footer for Marie:
+
+```txt
+Audit completion: <percent>% checked/usable; <percent>% raw inspector coverage if different.
+ETA: <best realistic remaining time>, with the current local time used for the estimate.
+```
+
+Use checker-confirmed zones as the main completion percent because those are
+the usable audit results. If lead custody is behind checker output, say so in
+plain language. If the raw inspector percent is more than 10 points different,
+include both numbers so Marie can see that work is happening before it is fully
+filed.
+
+Do not invent precision. Round to the nearest 5% unless the exact zone count is
+important. If the ETA is uncertain because locks are running or a checker is
+waiting, give a realistic range and explain the bottleneck in one sentence.
+
 ## Zone Assignment Rule
 
-Inspectors A, B, and C use the same audit-zone order. On each wake-up, each
-inspector chooses the first zone that does not yet have that inspector's report
-for the current campaign.
+Updated 2026-06-02 for Marie's subscription window.
 
-The checker chooses the first zone where all three inspector reports exist and
-no checker report exists.
+Use one active audit lane with 30-minute wake-ups while preserving the
+three-inspector quality bar.
+
+The active lane uses Inspector A, Inspector B, Inspector C, and the Zone
+Checker.
+
+The earlier second-lane idea is paused to avoid coordination risk. Inspector D,
+Inspector E, Inspector F, and Zone Checker B must not create active campaign
+reports unless Marie explicitly re-approves the second lane.
+
+Do not create ad hoc folders like `zone-05a`, `zone-05b`, or `zone-05c`
+unless this source-of-truth file defines exactly what the split means and how
+the checker/lead must merge it.
+
+Folders are not the problem. Untracked slices are the problem.
+
+Every completed zone must have:
+
+- A declared slug.
+- Three independent inspector reports.
+- A checker report.
+- Conflicts preserved where applicable.
+- Lead merge into the master report before it counts as complete.
+
+Active priority order:
+
+1. Proof Listen.
+2. Cloud, auth, audio privacy, save data, and backups.
+3. Exports, imports, release packages, and old-build confusion.
+4. Prep Manuscript.
+5. Quill & Ink.
+6. Internal architecture.
+7. Tests, scripts, hooks, and coverage gaps.
+8. Security and privacy.
+9. Phone Script.
+10. Phone Quill.
+11. Duet Prep.
+12. Desktop shell and settings.
+13. User experience quality.
+
+Inspectors A, B, and C use the active priority order. On each wake-up, each
+inspector chooses the first active zone that does not yet have that inspector's
+report for the current campaign.
+
+The checker chooses the first active zone where Inspector A, B, and C reports
+exist and no checker report exists.
 
 The lead organizer chooses the first checked zone that has not yet been merged
 into the master report.
@@ -216,6 +285,16 @@ Run one zone at a time.
 9. Cloud, auth, audio privacy, save data, and backups.
 10. Exports, imports, release packages, and old-build confusion.
 11. Tests, scripts, hooks, and coverage gaps.
+12. Internal architecture: components, routes, stores, services, helpers,
+    engines, queues, bridges, and duplicated logic.
+13. User experience quality: accessibility, keyboard use, layout, responsive
+    behavior, text overflow, console errors, and performance hotspots.
+14. Security and privacy: filesystem access, secrets, tokens, broad
+    permissions, destructive commands, dependency risks, and data leaks.
+
+Cross-cutting checks from Zones 12-14 should also be considered inside every
+user-facing zone. For example, Proof Listen should be checked as a workflow,
+but also for layout, console errors, local-save safety, and privacy boundaries.
 
 ## User-Like Testing
 

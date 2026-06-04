@@ -228,14 +228,14 @@ export async function pullProofProjects(supabase) {
     .select('project_id, section_id, transcription, audio_file_name')
     .in('project_id', projectIds);
   if (transcriptionsError) {
-    throw new Error(`Cloud sync incomplete: couldn't read transcriptions (${transcriptionsError.message})`);
+    throw new Error(`couldn't read transcriptions from cloud (${transcriptionsError.message})`);
   }
   const { data: flags, error: flagsError } = await supabase
     .from('script_sync_flags')
     .select('project_id, section_id, local_id, flag')
     .in('project_id', projectIds);
   if (flagsError) {
-    throw new Error(`Cloud sync incomplete: couldn't read flags (${flagsError.message})`);
+    throw new Error(`couldn't read flags from cloud (${flagsError.message})`);
   }
 
   const transByProjectSection = new Map();

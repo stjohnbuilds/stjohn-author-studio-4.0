@@ -1228,8 +1228,30 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const chapterIndex = chapters.findIndex((c) => c.id === chapterId);
   const chapter = chapters[chapterIndex] || null;
 
-  const plainText = chapter?.plainText || htmlToPlainText(chapter?.textHtml || '');
-  const wordSpans = useMemo(() => buildWordSpans(plainText), [plainText]);
+  // Build the chapter's plain text + per-unit positions from the source
+  // HTML using the new index helper, NOT the old `htmlToPlainText`
+  // (which inserts a space for every inline tag — that's the "Kar ma"
+  // bug). Quill uses regex split (alphanumeric only), same as
+  // ChapterReader's default, so unit count matches saved annotations.
+  const chapterPlainIndex = useMemo(() => {
+    const html = chapter?.textHtml || chapter?.html || '';
+    try { return buildChapterPlainTextIndex(html, 'regex'); }
+    catch (err) { console.warn('chapterPlainIndex build failed:', err); return null; }
+  }, [chapter?.id, chapter?.textHtml, chapter?.html]);
+  const plainText = chapterPlainIndex?.plainText || chapter?.plainText || htmlToPlainText(chapter?.textHtml || '');
+  // Shape the index into the `{word,start,end}` rows the rest of the
+  // file already uses (search, context, popover anchor, etc.). Fall back
+  // to the old buildWordSpans path only if the index didn't build.
+  const wordSpans = useMemo(() => {
+    if (chapterPlainIndex?.unitMeta?.length) {
+      return chapterPlainIndex.unitMeta.map((u) => {
+        const seg = chapterPlainIndex.plainText.slice(u.plainStart, u.plainNext);
+        const word = (seg.match(/^\S*/)?.[0]) || '';
+        return { word, start: u.plainStart, end: u.plainStart + word.length };
+      });
+    }
+    return buildWordSpans(plainText);
+  }, [chapterPlainIndex, plainText]);
 
   // Character chip strip below the sticky bar — same look as Proof's
   // narrator strip. Pulls from project.annotationOptions where classId

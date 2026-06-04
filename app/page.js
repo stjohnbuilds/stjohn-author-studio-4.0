@@ -501,6 +501,11 @@ export default function Home() {
   const proofCloudPushTimerRef = useRef(null);
   const lastSignedOutUserIdRef = useRef(null);
   const restoredLocalForSessionRef = useRef('');
+  // True once loadBooks() resolved at least once. Cross-device delete
+  // pruning waits for this so a slow cloud pull that lands during the
+  // brief pre-hydrate window cannot misread "local is still loading"
+  // as "local has nothing" and wipe Marie's library.
+  const booksHydratedRef = useRef(false);
   const clientPlatform = typeof navigator === 'undefined'
     ? 'unknown'
     : String(navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();

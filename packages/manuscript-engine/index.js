@@ -6,3 +6,4 @@ export * from './word-import/index.js';
 export * from './dialogue-detection/index.js';
 export * from './dialogue-safety-check/index.js';
 export * from './merge-dialogue-assignments.js';
+export * from './chapter-plain-text/index.js';

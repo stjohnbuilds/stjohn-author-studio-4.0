@@ -598,7 +598,18 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       (ch.sections || []).forEach(sec => {
         const audioKey = getSectionAudioKey(sec);
         if (!audioKey) return;
-        const mappedNarrator = (book.narratorColors || []).find(nc => nameMatches(sec.characterName, nc.characterName));
+        // Try section.characterName first (set by the parser when an
+        // H2 scene heading matches a known character). If that's null —
+        // common when the .docx has chapter-only headings like
+        // "Chapter 9" — also try the section title and the chapter
+        // title so a chapter literally named after the POV character
+        // still lights up the breakdown. Without this, every chapter
+        // falls through to "Unassigned narrator".
+        const mappedNarrator = (book.narratorColors || []).find(nc => (
+          nameMatches(sec.characterName, nc.characterName)
+          || nameMatches(sec.title, nc.characterName)
+          || nameMatches(ch.title, nc.characterName)
+        ));
         rows.push({
           id: sec.id,
           chapterId: ch.id,

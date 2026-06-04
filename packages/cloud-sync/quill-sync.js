@@ -165,7 +165,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .eq('project_id', cloudProjectId)
       .not('local_id', 'in', toPostgrestInList(keepAnnIds));
     if (pruneAnnotationsError) {
-      throw new Error(`Quill save incomplete: couldn't remove old annotations (${pruneAnnotationsError.message})`);
+      throw new Error(`couldn't remove old Quill annotations in cloud (${pruneAnnotationsError.message})`);
     }
   } else {
     const { error: pruneAnnotationsError } = await supabase
@@ -173,7 +173,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
       .delete()
       .eq('project_id', cloudProjectId);
     if (pruneAnnotationsError) {
-      throw new Error(`Quill save incomplete: couldn't remove old annotations (${pruneAnnotationsError.message})`);
+      throw new Error(`couldn't remove old Quill annotations in cloud (${pruneAnnotationsError.message})`);
     }
   }
 

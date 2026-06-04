@@ -2898,7 +2898,14 @@ function TutorialWrapUpModal({ onClose }) {
 
 function TutorialStartModal({ onStart, onClose }) {
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(28, 18, 44, 0.36)', backdropFilter:'blur(5px)', zIndex:1405, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+    <AppDialog
+      open
+      onClose={onClose}
+      closeOnOutsideClick={false}
+      titleId="tutorial-start-title"
+      containerStyle={{ position:'fixed', inset:0, background:'rgba(28, 18, 44, 0.36)', backdropFilter:'blur(5px)', zIndex:1405, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}
+      panelStyle={{ width:'min(560px, 100%)', background:'linear-gradient(180deg, var(--accent-surface) 0%, #ffffff 100%)', border:'1px solid var(--accent-border)', borderRadius:26, boxShadow:'0 28px 70px var(--accent-shadow-strong)', padding:'22px 22px 20px', animation:'apTutorialModalPop 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}
+    >
       <style>{`
         @keyframes apTutorialModalPop {
           from { opacity: 0; transform: translateY(14px) scale(0.985); }
@@ -2913,10 +2920,9 @@ function TutorialStartModal({ onStart, onClose }) {
           to { width: 100%; opacity: 1; }
         }
       `}</style>
-      <div style={{ width:'min(560px, 100%)', background:'linear-gradient(180deg, var(--accent-surface) 0%, #ffffff 100%)', border:'1px solid var(--accent-border)', borderRadius:26, boxShadow:'0 28px 70px var(--accent-shadow-strong)', padding:'22px 22px 20px', animation:'apTutorialModalPop 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both' }}>
-        <div style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent-dark)', marginBottom:8 }}>
-          Tutorial start
-        </div>
+      <div id="tutorial-start-title" style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent-dark)', marginBottom:8 }}>
+        Tutorial start
+      </div>
         <div style={{ fontSize:'0.92rem', color:'var(--text)', lineHeight:1.7, marginBottom:14, animation:'apTutorialIntroReveal 420ms ease-out both' }}>
           This is an audiobook proofing tool. Load in your manuscript, your audio, and your character names, and it will help line everything up so you can catch the little things before they slip through.
         </div>

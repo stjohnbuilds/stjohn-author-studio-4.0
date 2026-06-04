@@ -1110,6 +1110,12 @@ function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
         <h1 style={{ position:'absolute',width:1,height:1,padding:0,margin:-1,overflow:'hidden',clip:'rect(0, 0, 0, 0)',whiteSpace:'nowrap',border:0 }}>Quill &amp; Ink Design Studio</h1>
       </div>
 
+      {cloudPullError && (
+        <div style={{ marginBottom:8,padding:'6px 10px',background:'#fdecea',color:'#a23a2f',border:'1px solid #f5c6c0',borderRadius:8,fontSize:'0.75rem' }}>
+          Cloud sync failed: {cloudPullError}
+        </div>
+      )}
+
       <section style={{ background: 'rgba(255,255,255,0.78)', border: '1px solid var(--border)', borderRadius: 22, padding: '1rem', marginBottom: 14 }}>
         <button
           onClick={onNew}

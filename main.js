@@ -1668,7 +1668,7 @@ ipcMain.handle('export-transfer-bundle', async (event, book) => {
 
 ipcMain.handle('import-transfer-bundle', async () => {
   const result = await dialog.showOpenDialog({
-    title: 'Select Script and Sync transfer folder',
+    title: 'Select StJohn Author Studio transfer folder',
     properties: ['openDirectory'],
     buttonLabel: 'Import Transfer Folder',
   });
@@ -1676,11 +1676,14 @@ ipcMain.handle('import-transfer-bundle', async () => {
 
   const sourceDir = result.filePaths[0];
   const manifestPath = findTransferManifestPath(sourceDir);
-  if (!manifestPath) throw new Error('No Script and Sync transfer manifest was found in that folder.');
+  if (!manifestPath) throw new Error('No StJohn Author Studio transfer manifest was found in that folder.');
 
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  if (manifest?.manifestType !== 'script-and-sync-transfer' || manifest?.projectType !== 'audiobook-proofer') {
-    throw new Error('That folder is not an Audiobook Proofer transfer folder.');
+  // Accept current and legacy manifest types so old "script and sync"
+  // bundles still import. (Block 7 — preserve compatibility.)
+  const acceptedManifestTypes = new Set(['stjohn-author-studio-transfer', 'script-and-sync-transfer']);
+  if (!acceptedManifestTypes.has(manifest?.manifestType) || manifest?.projectType !== 'audiobook-proofer') {
+    throw new Error('That folder is not a StJohn Author Studio transfer folder.');
   }
   if (!manifest.book) throw new Error('The transfer folder does not contain audiobook data.');
 

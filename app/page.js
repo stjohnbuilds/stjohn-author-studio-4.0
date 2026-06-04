@@ -396,6 +396,22 @@ function mergeLocalSectionTranscription(localSection, cloudSection) {
 // saved on the phone), we splice the local audioPath / audioPaths back
 // in by matching section.id — otherwise Marie's audio attachments get
 // wiped on every cloud-newer pull.
+
+// True for ids that are safe to use as a filename in main.js (e.g. as
+// `${id}.docx` inside Save Data/Manuscript Sources/). Numeric ids are
+// always safe; strings must avoid `..`, path separators, null bytes,
+// leading slashes, and scheme-like prefixes. Mirrors main.js
+// safeJoinInsideDir (Block 3a). Keep these two in sync.
+function isSafeBookId(id) {
+  if (typeof id === 'number' && Number.isFinite(id)) return true;
+  if (typeof id !== 'string' || !id.length) return false;
+  if (id.includes('\0')) return false;
+  if (id.includes('..')) return false;
+  if (id.includes('/') || id.includes('\\')) return false;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(id)) return false;
+  return true;
+}
+
 function mergeProofBookLists(localBooks, cloudBooks, { pruneRemoteDeleted = false } = {}) {
   let workingLocal = localBooks || [];
   if (pruneRemoteDeleted) {

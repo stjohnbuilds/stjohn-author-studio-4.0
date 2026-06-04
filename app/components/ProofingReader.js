@@ -521,7 +521,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
       audio.currentTime = nextStart;
       offRef.current = nextOffset;
-      audio.playbackRate = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, defaultListeningSpeed || 2));
+      audio.playbackRate = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, defaultListeningSpeed || 1));
       startSync();
     };
     audio.addEventListener('loadedmetadata',onMeta,{once:true});

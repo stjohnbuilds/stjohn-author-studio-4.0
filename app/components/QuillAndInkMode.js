@@ -353,17 +353,9 @@ function mergeAnnotationsPreservingNewerLocal(localAnnotations = [], cloudAnnota
 function mergeProjectLists(local, cloud, { pruneRemoteDeleted = false } = {}) {
   let workingLocal = local || [];
   if (pruneRemoteDeleted) {
-    // Drop any local project whose cloudId is missing from the cloud
-    // list — that project was deleted on another device. Local-only
-    // drafts (no cloudId) always survive: they haven't been pushed yet,
-    // so cloud-absence is expected. Caller MUST only set
-    // pruneRemoteDeleted when (a) signed in, (b) local hydration
-    // finished, and (c) the cloud pull actually succeeded.
-    const cloudIds = new Set();
-    for (const cp of cloud || []) {
-      if (cp?.cloudId) cloudIds.add(cp.cloudId);
-    }
-    workingLocal = workingLocal.filter((lp) => !lp?.cloudId || cloudIds.has(lp.cloudId));
+    // Cross-device delete prune (shared with Proof) — see
+    // packages/cloud-sync/cross-device-prune.js for the rule.
+    workingLocal = filterLocalForCloudPrune(workingLocal, cloud);
   }
   const byId = new Map();
   for (const p of workingLocal) byId.set(p.id, p);

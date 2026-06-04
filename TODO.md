@@ -12,6 +12,51 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-04 — Flag-quote "Kar ma" phantom-space bug + narrator breakdown regression
+
+- [x] **Proof flag quote: exact text from the .docx, not box-join with
+      spaces.** The reader splits the manuscript into one box per word,
+      then `openFlagAtIndex` glued boxes back with `.join(' ')`. Any
+      inline tag boundary inside a word (italic on "all", a hidden span
+      around "Kar" / "g") left a phantom space — "all .", "Kar ma",
+      "g et" — in the QUOTE field. Built a per-chapter plain-text index
+      that records each word-box's start/end character in the original
+      decoded text; `sentPlain` and `sentHtml` now slice from that
+      instead of joining. Files: new
+      `packages/manuscript-engine/chapter-plain-text/index.js`, wired
+      into `ProofingReader.openFlagAtIndex`. Old saved flags untouched.
+      Fallback path kept if the index ever fails to build. 9 regression
+      tests added. 90/90 tests pass. — completed 2026-06-04
+- [x] **Quill annotations: same fix in shared engine.** Quill stored
+      `selectedText` and `textContext` via `htmlToPlainText` + `.join(' ')`
+      — same phantom-space bug. Switched `QuillReaderView` to derive
+      `plainText` and `wordSpans` from the new index, and made
+      `saveAnnotation` slice via `sliceUnitsRange`. Unit count is
+      unchanged (regex split — `[A-Za-z0-9']+`), so old saved
+      annotations' `wordStart`/`wordEnd` still point at the right
+      words. — completed 2026-06-04
+- [x] **Audiobook breakdown: harden narrator lookup.** In
+      `SessionsView.sectionTimingRows`, when `sec.characterName` is
+      null (true for any chapter parsed without H2 character-name
+      scene headings — Marie's current manuscript), also try
+      `sec.title` and `ch.title`. Catches chapters literally named
+      after the POV character. — completed 2026-06-04
+- [ ] **Audiobook breakdown: still partial — needs Marie's .docx to
+      finish.** The harden-the-lookup pass above only helps when the
+      chapter or section title contains the character name. Marie's
+      current screenshot shows generic titles like "Chapter 9", so
+      every chapter still falls through to "Unassigned narrator". The
+      correct fix is to either (a) re-import the manuscript with
+      character-named H2 scene headings, or (b) add a UI to manually
+      assign POV character per chapter. Decision needs Marie + a look
+      at the actual .docx. The 3.0 build worked because that
+      manuscript had character-named scene headings.
+- [ ] **Page-number consistency — BENCHED at Marie's request
+      2026-06-04.** The whole stack is fragile (PDF page text search +
+      ± page adjustment + paging extraction). Marie has explicitly
+      parked it. Do NOT propose page-number work until she re-opens
+      this.
+
 ### 🆕 2026-06-01 — Phone companion: three fixes Marie reported
 
 All live in `app/phone/page.js` (phone is one big file). Doing them one

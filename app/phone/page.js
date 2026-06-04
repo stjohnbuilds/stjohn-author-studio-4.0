@@ -956,7 +956,7 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
                 setAudioPickStatus(
                   matched
                     ? `Linked ${matched} of ${countChapterTotals(activeProject)} chapters.`
-                    : 'No filenames matched. You can still pick audio inside the reader.'
+                    : 'No filenames matched. Tap a chapter on this screen to pick its audio folder again — the reader cannot pick audio.'
                 );
               }
             }}

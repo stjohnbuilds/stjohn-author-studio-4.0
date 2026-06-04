@@ -18,6 +18,10 @@ import {
   getMsIdxAtTime,
   getAudioTimeForMsIdx,
 } from '../../packages/audio-engine';
+// Source-of-truth plain text for the chapter + per-word-box positions.
+// Used by the flag-quote builder so that inline formatting boundaries
+// inside a word (italic/span/tracked-change) don't leak a fake space.
+import { buildChapterPlainTextIndex, sliceUnitsRange, unitWordEnd } from '../../packages/manuscript-engine';
 
 function fmtTime(sec){const s=Math.floor(sec),m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+s%60;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

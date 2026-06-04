@@ -41,6 +41,17 @@ function safeJoinInsideDir(rootDir, relativePath) {
   if (typeof relativePath !== 'string' || !relativePath.length) {
     throw new Error('Refused unsafe path: empty input.');
   }
+  // Reject obviously-absolute paths upfront. After segment split they
+  // would re-anchor under rootDir and *look* safe — but the intent was
+  // clearly to escape (or to hand the app a system path), so refuse.
+  if (/^[\\/]/.test(relativePath)) {
+    throw new Error(`Refused unsafe path: absolute input ${JSON.stringify(relativePath)}.`);
+  }
+  // Reject scheme-like inputs (file://, http:, C:, etc). These have no
+  // business reaching this helper from a backup or manifest field.
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(relativePath)) {
+    throw new Error(`Refused unsafe path: scheme-like input ${JSON.stringify(relativePath)}.`);
+  }
   const segments = relativePath.split(/[\\/]+/).filter(Boolean);
   if (!segments.length) {
     throw new Error('Refused unsafe path: no usable segments.');

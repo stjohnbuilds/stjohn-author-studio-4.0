@@ -72,14 +72,38 @@ export function needsSnapshotToday(userId) {
 
 async function buildCloudSnapshot(supabase) {
   if (!supabase) return null;
-  const [proof, quill] = await Promise.all([
-    pullProofProjects(supabase).catch(() => []),
-    pullQuillProjects(supabase).catch(() => []),
+  // Track each source separately so the backup manifest can tell the
+  // truth instead of claiming "cloud included" after a swallowed error.
+  let proofProjects = [];
+  let proofError = null;
+  let quillProjects = [];
+  let quillError = null;
+  const [proofResult, quillResult] = await Promise.allSettled([
+    pullProofProjects(supabase),
+    pullQuillProjects(supabase),
   ]);
+  if (proofResult.status === 'fulfilled') {
+    proofProjects = proofResult.value || [];
+  } else {
+    proofError = proofResult.reason?.message || 'Proof cloud read failed';
+  }
+  if (quillResult.status === 'fulfilled') {
+    quillProjects = quillResult.value || [];
+  } else {
+    quillError = quillResult.reason?.message || 'Quill cloud read failed';
+  }
+  const proofOk = proofError === null;
+  const quillOk = quillError === null;
+  const status = proofOk && quillOk ? 'complete' : 'partial-or-failed';
   return {
     capturedAt: new Date().toISOString(),
-    proofProjects: proof || [],
-    quillProjects: quill || [],
+    status,
+    proof: { status: proofOk ? 'ok' : 'failed', error: proofError, projects: proofProjects },
+    quill: { status: quillOk ? 'ok' : 'failed', error: quillError, projects: quillProjects },
+    // Legacy fields kept so any older reader of cloud-snapshot.json still
+    // sees the projects it expects.
+    proofProjects,
+    quillProjects,
   };
 }
 

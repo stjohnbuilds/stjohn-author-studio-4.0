@@ -525,28 +525,12 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           ...ch,
           sections: ch.sections.map((sec) => {
             if (sec.sectionIndex !== sectionIndex) return sec;
-            // Preserve assignments by matching new spans to old BY OCCURRENCE
-            // (not just text). The old code keyed only on sp.text and kept
-            // the first old span for each text, which meant three identical
-            // lines that were assigned to characters A, B, C all came back
-            // as A after a Fix/rescan. Now: bucket old spans by text in
-            // their original order, then for each new span pop the next
-            // unused old span of the same text. First→first, second→second,
-            // and so on. Extra new spans get no prior; missing new spans
-            // just drop the unused old assignments. (SAS-AUD-20260602-005,
-            // Block 5.)
-            const oldByText = new Map();
-            (sec.dialogueSpans || []).forEach((sp) => {
-              if (!oldByText.has(sp.text)) oldByText.set(sp.text, []);
-              oldByText.get(sp.text).push(sp);
-            });
-            const mergedSpans = nextSpans.map((sp) => {
-              const bucket = oldByText.get(sp.text);
-              const prior = bucket && bucket.length ? bucket.shift() : null;
-              return prior
-                ? { ...sp, characterId: prior.characterId || null, sideVoiceId: prior.sideVoiceId || null }
-                : sp;
-            });
+            // Preserve assignments by matching new spans to old BY
+            // OCCURRENCE — first→first, second→second, etc. The shared
+            // helper lives in packages/manuscript-engine so the test
+            // suite verifies the same source the app runs.
+            // (SAS-AUD-20260602-005, Block 5.)
+            const mergedSpans = mergeDialogueAssignmentsByOccurrence(sec.dialogueSpans, nextSpans);
             // Append the paragraph edit to a side-list so the export can
             // replay it onto the original .docx. We dedupe by oldText to
             // keep the list small if Marie edits the same paragraph

@@ -221,14 +221,22 @@ export async function pullProofProjects(supabase) {
   if (!projects?.length) return [];
 
   const projectIds = projects.map((p) => p.id);
-  const { data: transcriptions } = await supabase
+  // Empty data is fine; an error is not — silently swallowing here used
+  // to rebuild books with blank flags/transcriptions and look "synced."
+  const { data: transcriptions, error: transcriptionsError } = await supabase
     .from('script_sync_section_transcriptions')
     .select('project_id, section_id, transcription, audio_file_name')
     .in('project_id', projectIds);
-  const { data: flags } = await supabase
+  if (transcriptionsError) {
+    throw new Error(`Cloud sync incomplete: couldn't read transcriptions (${transcriptionsError.message})`);
+  }
+  const { data: flags, error: flagsError } = await supabase
     .from('script_sync_flags')
     .select('project_id, section_id, local_id, flag')
     .in('project_id', projectIds);
+  if (flagsError) {
+    throw new Error(`Cloud sync incomplete: couldn't read flags (${flagsError.message})`);
+  }
 
   const transByProjectSection = new Map();
   for (const t of transcriptions || []) {

@@ -2892,7 +2892,6 @@ function TutorialWrapUpModal({ onClose }) {
             Start proofing
           </button>
         </div>
-      </div>
     </AppDialog>
   );
 }

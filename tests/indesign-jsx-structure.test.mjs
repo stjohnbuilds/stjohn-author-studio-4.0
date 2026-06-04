@@ -99,8 +99,11 @@ test('GREP escape covers regex metacharacters AND collapses whitespace', () => {
   // Without these, parens / brackets around dialogue would never
   // match, and a paragraph-break in the source vs a single space in
   // InDesign would also miss.
-  assert.ok(jsx.includes('.replace(/[\\^$.*+?()[\\]{}|]/g, "\\$&")'), 'regex metacharacter escape missing');
-  assert.ok(jsx.includes('.replace(/\\s+/g, "\\s+")'), 'whitespace flexibility escape missing');
+  // (Each \\ in the assertion string is one backslash in the actual
+  // JSX file — the rendered JS source contains backslash-escaped
+  // regex characters.)
+  assert.ok(jsx.includes('.replace(/[\\\\^$.*+?()[\\]{}|]/g, "\\\\$&")'), 'regex metacharacter escape missing');
+  assert.ok(jsx.includes('.replace(/\\s+/g, "\\\\s+")'), 'whitespace flexibility escape missing');
 });
 
 test('Duplicate-text disambiguation uses a used-key map so the same target is not re-applied', () => {

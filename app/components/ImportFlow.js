@@ -290,7 +290,12 @@ export default function ImportFlow({
   // suggested shift BEFORE clicking Save. For the docx-only LibreOffice
   // path the scan runs on commit (too slow to block on upload).
   const [preScannedPdfPaging, setPreScannedPdfPaging] = useState(null);
-  const [currentAdjustment, setCurrentAdjustment] = useState(0);
+  // Default to -1: most real manuscripts have at least one front-matter
+  // page (title, epigraph, etc.) that pushes printed "Chapter 1" off
+  // page 1. -1 makes the common case correct out of the box; the auto-
+  // detected suggestion overrides this when a PDF scan finds something
+  // specific. Marie can still nudge it ±1 in the UI.
+  const [currentAdjustment, setCurrentAdjustment] = useState(-1);
   const [hasScanned, setHasScanned] = useState(false);
 
   const accentColor = accent || 'var(--accent)';

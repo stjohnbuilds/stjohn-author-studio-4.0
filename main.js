@@ -1689,8 +1689,11 @@ ipcMain.handle('import-transfer-bundle', async () => {
   };
 
   const manuscriptRelativePath = manifest.book?.manuscriptSource?.relativePath;
+  // safeJoinInsideDir rejects `..` segments so a tampered transfer
+  // manifest cannot read manuscript bytes from outside the unpacked
+  // transfer folder.
   const sourceManuscriptPath = manuscriptRelativePath
-    ? path.join(importDir, ...String(manuscriptRelativePath).split('/').filter(Boolean))
+    ? safeJoinInsideDir(importDir, String(manuscriptRelativePath))
     : null;
   if (sourceManuscriptPath && fs.existsSync(sourceManuscriptPath)) {
     saveManuscriptSource({

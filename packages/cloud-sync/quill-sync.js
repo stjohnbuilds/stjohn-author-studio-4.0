@@ -127,7 +127,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
     .select('id, local_id')
     .eq('project_id', cloudProjectId);
   if (chapterLookupError) {
-    throw new Error(`Quill save incomplete: couldn't read chapter ids (${chapterLookupError.message})`);
+    throw new Error(`couldn't read Quill chapter ids from cloud (${chapterLookupError.message})`);
   }
   const chapterIdByLocal = new Map((chapterIdRows || []).map((r) => [r.local_id, r.id]));
 

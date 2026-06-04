@@ -327,7 +327,7 @@ export default function ImportFlow({
       setPdfBytes(null);
       setPreScannedPdfPaging(null);
       setHasScanned(false);
-      setCurrentAdjustment(0);
+      setCurrentAdjustment(-1);
       return;
     }
     setErr('');

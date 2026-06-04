@@ -1874,7 +1874,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
                 style={{ flex: 1, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.82rem' }}
               />
               <button onClick={() => addCustomOption(selectedClass.id)} style={miniCircleBtn(QUILL.accent)}>+</button>
-              <button onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniCircleBtn('var(--text-light)')}>×</button>
+              <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} aria-label="Cancel adding custom option" title="Cancel" style={miniCircleBtn('var(--text-light)')}><span aria-hidden="true">×</span></button>
             </div>
           )}
 
@@ -1916,7 +1916,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
                   style={{ flex: 1, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.82rem' }}
                 />
                 <button onClick={() => addCustomOption('character')} style={miniCircleBtn(QUILL.accent)}>+</button>
-                <button onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} style={miniCircleBtn('var(--text-light)')}>×</button>
+                <button type="button" onClick={() => { setCustomAddClassId(''); setCustomLabel(''); }} aria-label="Cancel adding custom option" title="Cancel" style={miniCircleBtn('var(--text-light)')}><span aria-hidden="true">×</span></button>
               </div>
             )}
           </div>

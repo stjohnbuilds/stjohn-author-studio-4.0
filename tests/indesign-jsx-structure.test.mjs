@@ -131,11 +131,23 @@ test('Highlight applies underline (not fill) so the original text colour survive
   assert.match(jsx, /originalFillColor = target\.fillColor/);
 });
 
-test('Annotations are sorted by chapterNumber, then word start, then id', () => {
-  // Stable order matters: highlight + character on the same range must
-  // apply highlight first so character marker insert is appended cleanly.
-  assert.match(jsx, /Number\(a\.chapterNumber \|\| 0\) - Number\(b\.chapterNumber \|\| 0\)/);
-  assert.match(jsx, /Number\(a\.wordStart \|\| 0\) - Number\(b\.wordStart \|\| 0\)/);
+test('Annotation payload is sorted by chapterNumber then word start', () => {
+  // The sort happens at generation time so the script does NOT contain
+  // the comparator — but the embedded payload must be ordered.
+  const m = jsx.match(/var lovewornAnnotations = ([\s\S]*?);\n\n  if/);
+  assert.ok(m, 'annotation payload must be in the script');
+  const parsed = JSON.parse(m[1]);
+  for (let i = 1; i < parsed.length; i += 1) {
+    const prev = parsed[i - 1];
+    const cur = parsed[i];
+    const prevCh = Number(prev.chapterNumber || 0);
+    const curCh = Number(cur.chapterNumber || 0);
+    if (prevCh !== curCh) {
+      assert.ok(prevCh <= curCh, `chapter order broken at index ${i}`);
+    } else {
+      assert.ok(Number(prev.wordStart || 0) <= Number(cur.wordStart || 0), `word order broken at index ${i}`);
+    }
+  }
 });
 
 test('Each placed annotation is tagged with its id for later lookup', () => {

@@ -271,6 +271,7 @@ export function HomeBackPill({ icon = '⌂', onClick, usesCustomDragRegion = fal
         type="button"
         onClick={onClick}
         title={icon === '⌂' ? 'Back to your projects' : 'Back to the book'}
+        aria-label={icon === '⌂' ? 'Back to your projects' : 'Back to the book'}
         style={{
           border: 'none',
           background: 'transparent',
@@ -284,7 +285,7 @@ export function HomeBackPill({ icon = '⌂', onClick, usesCustomDragRegion = fal
           WebkitAppRegion: 'no-drag',
         }}
       >
-        {icon}
+        <span aria-hidden="true">{icon}</span>
       </button>
     </div>
   );

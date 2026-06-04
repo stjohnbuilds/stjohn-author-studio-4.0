@@ -194,9 +194,8 @@ function formatTimestamp(seconds) {
   return `${m}:${String(s).padStart(2,'0')}`;
 }
 
-// Adobe Audition decimal time helper lives in packages/audio-engine
-// so both Duet and the regression tests share one source.
-import { formatAuditionTime } from '../../packages/audio-engine/audition-time.js';
+// Adobe Audition decimal time helper imported at the top of this file
+// from packages/audio-engine/audition-time.js (shared with tests).
 
 // ─── Highlight class → hex mapping ────────────────────────────────────────────
 const HL_HEX = {

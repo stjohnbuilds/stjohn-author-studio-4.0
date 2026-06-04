@@ -791,32 +791,27 @@ function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }
   const [headerImageOk, setHeaderImageOk] = useState(true);
   return (
     <div style={{ maxWidth: HOME_CONTAINER, margin: '0 auto', padding: '4.7rem 1.25rem 4.25rem' }}>
-      {showHomeInfo && (
-        <div
-          onClick={() => setShowHomeInfo(false)}
-          style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
-          >
-            <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
-              <div style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Prep Manuscript</div>
-              <button onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:PREP_INK,border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
-                Close
-              </button>
-            </div>
-            <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
-              <p style={{ margin:0 }}>
-                Script and Sync Prep Manuscript helps you mark up a dialogue-heavy manuscript before recording. Tag who says what, assign side voices for one-time characters, and fix missing close-quotes inline.
-              </p>
-              <p style={{ margin:0 }}>
-                Export a Word doc where each character&apos;s lines are colour-coded and side-voice dialogue carries a real Word comment for your narrator.
-              </p>
-            </div>
-          </div>
+      <AppDialog
+        open={showHomeInfo}
+        onClose={() => setShowHomeInfo(false)}
+        titleId="prep-about-title"
+        panelStyle={{ width:'min(520px, 100%)',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'20px 20px 18px' }}
+      >
+        <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:12 }}>
+          <div id="prep-about-title" style={{ fontSize:'1rem',fontWeight:700,color:'var(--text)' }}>About Prep Manuscript</div>
+          <button type="button" onClick={() => setShowHomeInfo(false)} style={{ padding:'6px 10px',fontSize:'0.74rem',color:PREP_INK,border:'1px solid var(--accent-border)',background:'white',borderRadius:8,fontWeight:700,cursor:'pointer' }}>
+            Close
+          </button>
         </div>
-      )}
+        <div style={{ display:'grid',gap:10,fontSize:'0.85rem',lineHeight:1.6,color:'var(--text-muted)' }}>
+          <p style={{ margin:0 }}>
+            Script and Sync Prep Manuscript helps you mark up a dialogue-heavy manuscript before recording. Tag who says what, assign side voices for one-time characters, and fix missing close-quotes inline.
+          </p>
+          <p style={{ margin:0 }}>
+            Export a Word doc where each character&apos;s lines are colour-coded and side-voice dialogue carries a real Word comment for your narrator.
+          </p>
+        </div>
+      </AppDialog>
       <header style={{ marginBottom: '1.9rem', textAlign: 'center', position: 'relative' }}>
         <button
           onClick={() => setShowHomeInfo(true)}

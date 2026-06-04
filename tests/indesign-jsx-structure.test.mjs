@@ -96,11 +96,11 @@ test('GREP preferences are cleared before AND after each search', () => {
 });
 
 test('GREP escape covers regex metacharacters AND collapses whitespace', () => {
-  // Without these, parens / brackets / curly quotes around dialogue
-  // would never match, and a paragraph-break in the source vs a single
-  // space in InDesign would also miss.
-  assert.match(jsx, /\.replace\(\/\[\\\\\^\$\.\*\+\?\(\)\[\\\]\{\}\|\]\/g/);
-  assert.match(jsx, /\.replace\(\/\\s\+\/g, "\\\\s\+"\)/);
+  // Without these, parens / brackets around dialogue would never
+  // match, and a paragraph-break in the source vs a single space in
+  // InDesign would also miss.
+  assert.ok(jsx.includes('.replace(/[\\^$.*+?()[\\]{}|]/g, "\\$&")'), 'regex metacharacter escape missing');
+  assert.ok(jsx.includes('.replace(/\\s+/g, "\\s+")'), 'whitespace flexibility escape missing');
 });
 
 test('Duplicate-text disambiguation uses a used-key map so the same target is not re-applied', () => {

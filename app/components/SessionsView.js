@@ -3062,8 +3062,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                         <button
                           key={`compact-${sec.id}`}
                           onClick={()=>openSceneProof(ch, sec)}
-                          disabled={!hasAudio}
-                          title={sec.characterName ? `${sec.title} — ${sec.characterName}${sec.narratorName ? ` / ${sec.narratorName}` : ''}` : sec.title}
+                          title={hasAudio
+                            ? (sec.characterName ? `${sec.title} — ${sec.characterName}${sec.narratorName ? ` / ${sec.narratorName}` : ''}` : sec.title)
+                            : `${sec.title} (no audio attached — opens for flagging only)`}
                           style={{
                             width:'100%',
                             display:'flex',
@@ -3073,9 +3074,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                             border:'none',
                             borderTop:'1px solid var(--border-light)',
                             background:'white',
-                            cursor:hasAudio?'pointer':'not-allowed',
+                            cursor:'pointer',
                             textAlign:'left',
-                            opacity:hasAudio?1:0.55,
+                            opacity:hasAudio?1:0.7,
                           }}
                         >
                           <div style={{ width:8,height:8,borderRadius:2,background:ncColor?.hex||'transparent',border:ncColor?'none':'1px dashed var(--border)',flexShrink:0 }} />

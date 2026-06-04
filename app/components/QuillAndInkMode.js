@@ -1737,9 +1737,9 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
                 />
                 {searchHits.length > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{searchHitIdx + 1} / {searchHits.length}</span>}
                 {searchHits.length === 0 && searchQuery.trim() && <span style={{ fontSize: '0.72rem', color: 'var(--danger)', whiteSpace: 'nowrap' }}>Not found</span>}
-                <button onClick={() => searchStep(-1)} disabled={searchHits.length < 2} style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}>↑</button>
-                <button onClick={() => searchStep(1)} disabled={searchHits.length < 2} style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}>↓</button>
-                <button onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchHits([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '0 4px' }}>✕</button>
+                <button type="button" onClick={() => searchStep(-1)} disabled={searchHits.length < 2} aria-label="Previous search hit" title="Previous hit" style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}><span aria-hidden="true">↑</span></button>
+                <button type="button" onClick={() => searchStep(1)} disabled={searchHits.length < 2} aria-label="Next search hit" title="Next hit" style={{ padding: '4px 8px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', opacity: searchHits.length < 2 ? 0.4 : 1 }}><span aria-hidden="true">↓</span></button>
+                <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchHits([]); }} aria-label="Close search" title="Close search" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '0 4px' }}><span aria-hidden="true">✕</span></button>
               </div>
             )}
             {characterStrip}

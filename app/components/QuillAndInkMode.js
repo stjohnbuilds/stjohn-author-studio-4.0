@@ -505,7 +505,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         const { data } = await supabase.auth.getSession();
         if (!data?.session?.user) return;
         const rawCloudProjects = await pullQuillProjects(supabase);
-        if (cancelled || !rawCloudProjects.length) return;
+        if (cancelled) return;
+        // Successful pull (even empty) clears any prior error banner.
+        setCloudPullError('');
+        if (!rawCloudProjects.length) return;
         // Drop anything the user has tombstoned, and re-issue cloud
         // delete for ids that came back. This is what fixes Marie's
         // "delete doesn't really stick" bug.
@@ -514,7 +517,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         cameFromCloudRef.current = true;     // the merge isn't a user edit
         setAllProjects((current) => mergeProjectLists(current, cloudProjects));
       } catch (e) {
-        console.warn('[Quill] cloud pull failed:', formatCloudErrorMessage(e));
+        const msg = formatCloudErrorMessage(e);
+        console.warn('[Quill] cloud pull failed:', msg);
+        if (!cancelled) setCloudPullError(msg);
       }
     })();
     return () => { cancelled = true; };

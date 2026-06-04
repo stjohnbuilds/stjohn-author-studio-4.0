@@ -1090,7 +1090,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
   function exportCSV(){
     const { chapterName, audioName } = getChapterAudioMeta();
-    const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Note','Should Say']];
+    const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Misread Quote','Should Say']];
     flags.forEach(fl=>rows.push([`"${chapterName}"`,`"${audioName}"`,`"${fl.page}"`,`"${fmtTime(fl.ts)}"`,`"${fl.narrator}"`,`"${fl.type}"`,`"${(fl.sentPlain||'').replace(/"/g,'""')}"`,`"${(fl.note||'').replace(/"/g,'""')}"`]));
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\r\n')],{type:'text/csv'}));a.download=`${section.title||'section'}.csv`;a.click();
   }
@@ -1329,7 +1329,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
               </div>
             </div>
             <div style={{ display:'grid',gridTemplateColumns:'1.1fr 1fr 0.55fr 0.6fr 1fr 0.7fr 1.4fr 1.1fr',gap:6,fontSize:'0.68rem' }}>
-              {['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Note','Should Say'].map((h)=><div key={h} style={{ fontWeight:600,color:'var(--text-muted)' }}>{h}</div>)}
+              {['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Misread Quote','Should Say'].map((h)=><div key={h} style={{ fontWeight:600,color:'var(--text-muted)' }}>{h}</div>)}
               {buildSheetCells(flagDraft,flagPanel.ts).map((v,i)=><div key={i} style={{ color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }} title={v}>{v||' '}</div>)}
             </div>
           </div>

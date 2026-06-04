@@ -180,8 +180,13 @@ The app stores local data in `Save Data/`. Important JSON files include:
 - `prebuild-projects.json`
 - `prep-manuscript-projects.json`
 - `quill-projects.json`
+- `quill-project-list.json` (lightweight Quill summary index used for
+  the home list without loading every full project)
 
 Manuscript source files live under `Save Data/Manuscript Sources/`.
+Path-boundary checks in `main.js` (`safeJoinInsideDir`) prevent
+imported/external data from escaping `Save Data/Manuscript Sources/`
+when a book id is used as a filename.
 
 Audits must protect this folder. Do not delete, move, or overwrite Marie's
 real saved data.

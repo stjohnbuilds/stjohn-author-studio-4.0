@@ -1,7 +1,16 @@
 # Wiring Matrix — 4.0
 
-Status: **Skeleton.** Phase 1 of v4.0. Fills in row by row as Marie
-clicks each button on a real file.
+> **Current-status note (2026-06-03).** Many rows below say
+> `MISSING` for buttons that actually ship today (e.g. Prep import,
+> Duet markers, Quill annotations, Phone Script/Quill flows). This
+> matrix has not been re-walked since Phase 1 and is treated as
+> historical. For the current source layout, see
+> [`docs/APP_STRUCTURE.md`](APP_STRUCTURE.md) and
+> [`docs/SHARED_COMPONENTS.md`](SHARED_COMPONENTS.md). The
+> `verified live` column is still the canonical gate: a row only
+> counts as verified when Marie has clicked it on a real file.
+
+Status: **Skeleton (historical).** Original spec from Phase 1 of v4.0.
 
 One row per user-visible button. A row only flips to **verified live**
 when Marie has clicked it on a real audiobook / manuscript / phone

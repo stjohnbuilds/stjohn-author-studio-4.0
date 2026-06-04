@@ -2830,7 +2830,14 @@ function TutorialOverlay({ step, stepIndex, totalSteps, minimized, steps, comple
 
 function TutorialWrapUpModal({ onClose }) {
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(28, 18, 44, 0.36)', backdropFilter:'blur(5px)', zIndex:1405, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+    <AppDialog
+      open
+      onClose={onClose}
+      closeOnOutsideClick={false}
+      titleId="tutorial-wrapup-title"
+      containerStyle={{ position:'fixed', inset:0, background:'rgba(28, 18, 44, 0.36)', backdropFilter:'blur(5px)', zIndex:1405, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}
+      panelStyle={{ width:'min(520px, 100%)', background:'linear-gradient(180deg, var(--accent-surface) 0%, #ffffff 100%)', border:'1px solid var(--accent-border)', borderRadius:26, boxShadow:'0 28px 70px var(--accent-shadow-strong)', padding:'22px 22px 20px' }}
+    >
       <style>{`
         @keyframes apProofGlow {
           0% { transform: translateY(0); box-shadow: 0 10px 24px rgba(76, 72, 70, 0.18); }
@@ -2838,7 +2845,7 @@ function TutorialWrapUpModal({ onClose }) {
           100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(76, 72, 70, 0.18); }
         }
       `}</style>
-      <div style={{ width:'min(520px, 100%)', background:'linear-gradient(180deg, var(--accent-surface) 0%, #ffffff 100%)', border:'1px solid var(--accent-border)', borderRadius:26, boxShadow:'0 28px 70px var(--accent-shadow-strong)', padding:'22px 22px 20px' }}>
+      <div id="tutorial-wrapup-title-wrapper">
         <div style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--accent-dark)', marginBottom:8 }}>
           Tutorial wrap-up
         </div>

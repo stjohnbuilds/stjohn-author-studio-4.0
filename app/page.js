@@ -111,14 +111,29 @@ function hashText(value) {
   return `h${(hash >>> 0).toString(36)}`;
 }
 
+// Mirrors SessionsView.equivalentAudioKeys — tolerates path:/name: drift
+// across modes so a `path:`-stored transcription still matches when
+// looked up by file name (e.g. after the user moved the audio file).
+function equivalentAudioKeys(audioKey) {
+  if (!audioKey) return [];
+  const keys = [audioKey];
+  if (typeof audioKey === 'string' && audioKey.startsWith('path:')) {
+    const fileName = audioKey.slice('path:'.length).replace(/^.*[\\/]/, '');
+    const nameKey = fileName ? `name:${normText(fileName)}` : '';
+    if (nameKey) keys.push(nameKey);
+  }
+  return Array.from(new Set(keys));
+}
+
 function hasCurrentSectionTranscription(section, expectedAudioKey, expectedTextHash) {
+  const expectedAudioKeys = equivalentAudioKeys(expectedAudioKey);
   return !!(
     section &&
-    Array.isArray(section.whisperWords) &&
-    section.whisperWords.length &&
     Array.isArray(section.whisperAlignment) &&
     section.whisperAlignment.length &&
-    section.whisperAudioKey === expectedAudioKey &&
+    section.whisperAudioKey &&
+    section.whisperTextHash &&
+    expectedAudioKeys.includes(section.whisperAudioKey) &&
     section.whisperTextHash === expectedTextHash
   );
 }

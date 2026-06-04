@@ -87,18 +87,8 @@ async function persistBooks(books) {
   catch { alert('Storage full — please export a backup.'); }
 }
 
-function normText(s) {
-  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
-// Must produce the SAME shape as SessionsView.getSectionAudioKey, or the
-// "is this transcription still current?" check below silently fails and
-// the reader opens with no alignment. See docs/audits/STJOHN_NEXT_CHAPTER_BUG_AUDIT_REPORT.md.
 function sectionAudioKey(section) {
-  const storedAudioPath = getSectionStoredAudioPath(section);
-  if (storedAudioPath) return `path:${storedAudioPath}`;
-  if (section?.audioFileName) return `name:${normText(section.audioFileName)}`;
-  return null;
+  return getSectionStoredAudioPath(section) || section?.audioFileName || null;
 }
 
 function hashText(value) {

@@ -87,8 +87,18 @@ async function persistBooks(books) {
   catch { alert('Storage full — please export a backup.'); }
 }
 
+function normText(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Must match SessionsView.getSectionAudioKey shape — stored whisperAudioKey
+// uses the prefixed form, so raw-form comparisons silently fail.
+// See docs/audits/STJOHN_NEXT_CHAPTER_BUG_AUDIT_REPORT.md.
 function sectionAudioKey(section) {
-  return getSectionStoredAudioPath(section) || section?.audioFileName || null;
+  const storedAudioPath = getSectionStoredAudioPath(section);
+  if (storedAudioPath) return `path:${storedAudioPath}`;
+  if (section?.audioFileName) return `name:${normText(section.audioFileName)}`;
+  return null;
 }
 
 function hashText(value) {

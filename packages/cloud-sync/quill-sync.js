@@ -159,15 +159,27 @@ export async function pushQuillProject(supabase, project, ownerId) {
   }
   const keepAnnIds = annotationRows.map((a) => a.local_id);
   if (keepAnnIds.length) {
-    await supabase
+    const { error: pruneAnnotationsError } = await supabase
       .from('quill_annotations')
       .delete()
       .eq('project_id', cloudProjectId)
       .not('local_id', 'in', toPostgrestInList(keepAnnIds));
+    if (pruneAnnotationsError) {
+      throw new Error(`Quill save incomplete: couldn't remove old annotations (${pruneAnnotationsError.message})`);
+    }
   } else {
-    await supabase.from('quill_annotations').delete().eq('project_id', cloudProjectId);
+    const { error: pruneAnnotationsError } = await supabase
+      .from('quill_annotations')
+      .delete()
+      .eq('project_id', cloudProjectId);
+    if (pruneAnnotationsError) {
+      throw new Error(`Quill save incomplete: couldn't remove old annotations (${pruneAnnotationsError.message})`);
+    }
   }
 
+  // Only stamp the success hash after every required write succeeded.
+  // This is the skip gate for future pushes, so a partial failure here
+  // must NOT remember itself as done.
   lastPushHashByCloudId.set(cloudProjectId, compositeHash);
   return cloudProjectId;
 }

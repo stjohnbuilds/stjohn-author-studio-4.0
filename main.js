@@ -26,43 +26,9 @@ let staticServer = null;
 // Path-boundary helpers — Block 3a (audit findings SAS-AUD-20260602-016
 // + -017). Use these for ANY file path built from data that came from
 // outside the app (imported books, transfer manifests, IPC payloads).
-// Without these, a crafted backup with `../../etc/passwd`-style segments
-// could trick the app into reading or writing outside the intended root.
-function assertResolvedInsideDir(rootDir, candidate) {
-  const root = path.resolve(rootDir);
-  const resolved = path.resolve(root, candidate);
-  const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
-  if (resolved !== root && !resolved.startsWith(rootWithSep)) {
-    throw new Error(`Refused unsafe path: "${candidate}" would resolve outside ${rootDir}.`);
-  }
-  return resolved;
-}
-function safeJoinInsideDir(rootDir, relativePath) {
-  if (typeof relativePath !== 'string' || !relativePath.length) {
-    throw new Error('Refused unsafe path: empty input.');
-  }
-  // Reject obviously-absolute paths upfront. After segment split they
-  // would re-anchor under rootDir and *look* safe — but the intent was
-  // clearly to escape (or to hand the app a system path), so refuse.
-  if (/^[\\/]/.test(relativePath)) {
-    throw new Error(`Refused unsafe path: absolute input ${JSON.stringify(relativePath)}.`);
-  }
-  // Reject scheme-like inputs (file://, http:, C:, etc). These have no
-  // business reaching this helper from a backup or manifest field.
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(relativePath)) {
-    throw new Error(`Refused unsafe path: scheme-like input ${JSON.stringify(relativePath)}.`);
-  }
-  const segments = relativePath.split(/[\\/]+/).filter(Boolean);
-  if (!segments.length) {
-    throw new Error('Refused unsafe path: no usable segments.');
-  }
-  for (const seg of segments) {
-    if (seg === '..' || seg === '.' || seg.includes('\0')) {
-      throw new Error(`Refused unsafe path: contains ${JSON.stringify(seg)}.`);
-    }
-  }
-  return assertResolvedInsideDir(rootDir, path.join(...segments));
-}
+// Implementation lives in packages/cloud-sync/path-safety.cjs so both
+// main.js and the regression tests share one source.
+const { assertResolvedInsideDir, safeJoinInsideDir } = require('./packages/cloud-sync/path-safety.cjs');
 
 function getWindowsIconPath() {
   const candidates = app.isPackaged

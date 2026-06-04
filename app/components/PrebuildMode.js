@@ -6,6 +6,7 @@ import ImportFlow, { parseChaptersFromHtml } from './ImportFlow';
 import BookDetail from './BookDetail';
 import ProofBookDetail from './SessionsView';
 import AppDialog from './AppDialog';
+import { formatAuditionTime } from '../../packages/audio-engine/audition-time.js';
 import {
   STYLE_MAP,
   convertShadingToHighlight,

@@ -533,8 +533,15 @@ export default function Home() {
 
   useEffect(() => {
     setIsElectron(!!el());
-    loadBooks().then(setBooks).catch((error) => {
+    loadBooks().then((loaded) => {
+      setBooks(loaded);
+      booksHydratedRef.current = true;
+    }).catch((error) => {
       console.error('Failed to load books.', error);
+      // Mark hydrated even on read failure — an empty/failed load is
+      // still a known state. Leaving this false would block cross-
+      // device delete pruning forever.
+      booksHydratedRef.current = true;
     });
     if (el()) window.electron.getDataLocation?.().then(setDataLocation).catch((error) => {
       console.error('Failed to load data location.', error);

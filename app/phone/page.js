@@ -1035,7 +1035,7 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
                       {isTranscribed && <TranscribedPill tone={{ ink: QUILL_INK, pastel: QUILL_PASTEL }} />}
                     </div>
                   </div>
-                  <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+                  <span aria-hidden="true" style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
                 </button>
               </div>
             );
@@ -1092,7 +1092,7 @@ function QuillPhoneService({ session, onSignOut, onBackToServices, readerSetting
                 {p.chapters?.length || 0} chapters · {p.annotations?.length || 0} annotations
               </div>
             </div>
-            <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+            <span aria-hidden="true" style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
           </button>
         ))}
       </section>
@@ -1913,7 +1913,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
                         )}
                       </div>
                     </div>
-                    <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+                    <span aria-hidden="true" style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
                   </button>
                 );
               })}
@@ -1981,7 +1981,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
                   {chapterCount} chapter{chapterCount === 1 ? '' : 's'} · {flagCount} flag{flagCount === 1 ? '' : 's'}
                 </div>
               </div>
-              <span style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
+              <span aria-hidden="true" style={{ color: '#9B928E', fontSize: '1.2rem' }}>›</span>
             </button>
           );
         })}

@@ -2957,7 +2957,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                       <span style={{ fontWeight:700,fontSize:'0.92rem',color:'var(--text)',flex:1 }}>{ch.title}</span>
                     </div>
                     {chDone===chTotal&&chTotal>0&&<span style={{ fontSize:'0.72rem',color:'var(--accent-dark)',fontWeight:700 }}>✓</span>}
-                    <span style={{ color:'var(--text-light)',fontSize:'0.76rem',marginLeft:2 }}>{isExpanded?'▲':'▼'}</span>
+                    <span aria-hidden="true" style={{ color:'var(--text-light)',fontSize:'0.76rem',marginLeft:2 }}>{isExpanded?'▲':'▼'}</span>
                   </button>
                   <div style={{ display:'flex',alignItems:'center',gap:6,marginLeft:'auto',flexWrap:'wrap' }}>
                     {chapterAudioName&&(

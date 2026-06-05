@@ -166,6 +166,27 @@ function normHex(h) {
   return /^[0-9a-f]{6}$/.test(s) ? s : '';
 }
 
+// Euclidean distance in RGB space — mirrors detectNarrator() in
+// ProofingReader. Used to tolerate small drift between the .docx's
+// actual color and the hex we saved on the narrator entry.
+function hexDist(a, b) {
+  if (!a || !b) return Infinity;
+  const ah = parseInt(a, 16);
+  const bh = parseInt(b, 16);
+  if (!Number.isFinite(ah) || !Number.isFinite(bh)) return Infinity;
+  let sum = 0;
+  for (const s of [16, 8, 0]) {
+    const av = (ah >> s) & 255;
+    const bv = (bh >> s) & 255;
+    sum += (av - bv) * (av - bv);
+  }
+  return Math.sqrt(sum);
+}
+const HEX_DIST_THRESHOLD = 85;
+const SKIP_HEXES = new Set([
+  'ffffff', 'fafafa', 'fafaf7', 'f5f5f5', 'f0fdf4', 'fffffe', 'fefefe',
+]);
+
 export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
   const source = String(sectionHtml || '');
   // Build BOTH a class map and a hex map. The hex map is essential for

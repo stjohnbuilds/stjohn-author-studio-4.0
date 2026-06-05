@@ -96,3 +96,93 @@ test('regex split mode (Quill) excludes punctuation from units', () => {
   assert.equal(idx.unitMeta.length, 2);
   assert.equal(sliceUnitsRange(idx, 0, 1), 'Hello, world!');
 });
+
+// ---------------------------------------------------------------------------
+// tallyCharacterWordCounts — Audiobook Timing Detail breakdown
+//
+// Walks a section's HTML and counts words per character using the
+// existing hl-* highlight spans + book.narratorColors mapping. No new
+// metadata: derives entirely from data the .docx already carries.
+// ---------------------------------------------------------------------------
+
+const NARRATORS = [
+  { cls: 'hl-pink',    hex: '#FDDEE8', characterName: 'Karma',   narratorName: 'Daryl' },
+  { cls: 'hl-yellow',  hex: '#FFF8DC', characterName: 'Phantom', narratorName: 'Mark' },
+  { cls: 'hl-blue',    hex: '#DDEEFF', characterName: 'Crescent', narratorName: 'Alyssa' },
+];
+
+test('tally: highlighted dialogue routes to the right character', () => {
+  const result = tallyCharacterWordCounts(
+    `<p>She walked in. <span class="hl-pink">"Don't get me in shit, Karma,"</span> he muttered.</p>`,
+    NARRATORS,
+  );
+  assert.ok(result, 'returns tallies');
+  // narrator-side: "She walked in." (3) + "he muttered." (2) = 5
+  assert.equal(result.tallies[NARRATOR_KEY], 5);
+  // Karma-side: "Don't get me in shit, Karma," = 6
+  assert.equal(result.tallies.Karma, 6);
+});
+
+test('tally: multiple character highlights in one section', () => {
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-yellow">Phantom spoke first.</span> Then <span class="hl-pink">Karma replied softly.</span></p>`,
+    NARRATORS,
+  );
+  assert.equal(result.tallies.Phantom, 3);
+  assert.equal(result.tallies.Karma, 3);
+  assert.equal(result.tallies[NARRATOR_KEY], 1); // "Then"
+});
+
+test('tally: nested spans — inner mapped class wins', () => {
+  // mammoth occasionally nests an emphasis span inside a highlight one.
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-yellow">Phantom said <em>quietly</em>.</span></p>`,
+    NARRATORS,
+  );
+  assert.equal(result.tallies.Phantom, 3); // "Phantom said quietly."
+  assert.ok(!(NARRATOR_KEY in result.tallies));
+});
+
+test('tally: unmapped highlight class is treated as narrator', () => {
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-darkred">Unmapped colour here.</span></p>`,
+    NARRATORS,
+  );
+  // hl-darkred isn't in the narrator mapping → counts as narrator
+  assert.equal(result.tallies[NARRATOR_KEY], 3);
+});
+
+test('tally: returns null when no characters are mapped', () => {
+  const result = tallyCharacterWordCounts(
+    `<p>plain text</p>`,
+    [], // empty mapping
+  );
+  assert.equal(result, null);
+});
+
+test('tally: edge case — no H1/H2, just paragraphs and spans', () => {
+  // Marie's worry: what if the .docx doesn't use H1/H2 the way the
+  // parser expects? Answer: this function doesn't care about headings
+  // at all — it only looks at hl-* spans. Robust to any structure.
+  const result = tallyCharacterWordCounts(
+    `<div><span class="hl-pink">Karma talked.</span> Some narration.</div>`,
+    NARRATORS,
+  );
+  assert.equal(result.tallies.Karma, 2);
+  assert.equal(result.tallies[NARRATOR_KEY], 2);
+});
+
+test('tally: entire chapter under one character', () => {
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-yellow">Every word in this chapter is mine, said Phantom.</span></p>`,
+    NARRATORS,
+  );
+  assert.equal(result.tallies.Phantom, 9);
+  assert.ok(!(NARRATOR_KEY in result.tallies));
+});
+
+test('tally: empty HTML returns empty tallies (not null)', () => {
+  const result = tallyCharacterWordCounts('', NARRATORS);
+  assert.ok(result);
+  assert.deepEqual(result.tallies, {});
+});

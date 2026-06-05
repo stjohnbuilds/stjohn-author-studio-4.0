@@ -544,6 +544,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     id: ch.id,
     title: ch.title,
     included: true,
+    // POV-character pick per chapter. When set, the Save below stamps
+    // every section in this chapter with this characterName, so the
+    // Audiobook Timing Detail breakdown matches them to the right
+    // narrator — for books whose .docx doesn't carry character-named
+    // H2 scene headings (Marie's current case).
+    characterPick: ch.characterName
+      || ((ch.sections || []).find(s => s.characterName)?.characterName)
+      || '',
     sections: (ch.sections || []).map(sec => ({
       id: sec.id,
       title: sec.title,

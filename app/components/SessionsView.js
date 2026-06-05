@@ -803,8 +803,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     const rows = [];
     chapters.forEach(ch => {
       (ch.sections || []).forEach(sec => {
-        const audioKey = getSectionAudioKey(sec);
-        if (!audioKey) return;
+        const audioKey = getSectionAudioKey(sec); // null when no audio attached
         // PRIMARY — use the highlight data the .docx already carries.
         // mammoth wraps each character's dialogue in <span class="hl-*">
         // at import; book.narratorColors maps those classes to

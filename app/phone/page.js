@@ -2550,7 +2550,18 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
   const [isPlaying, setIsPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [rate, setRate] = useState(1);
+  // Per-narrator speed memory: start at the stored value for this
+  // section's narrator (or 1.5 default). When the user changes speed,
+  // write it back to the same key so the next chapter voiced by the
+  // same narrator opens at the same speed. Falls back to 'default'
+  // when section.narratorName isn't set — same fallback the desktop uses.
+  const narratorKey = (sectionKey && typeof sectionKey === 'object' && sectionKey.narratorName) || 'default';
+  const [rate, setRate] = useState(() => getNarratorSpeed(narratorKey));
+  useEffect(() => { setRate(getNarratorSpeed(narratorKey)); }, [narratorKey]);
+  const handleRateChange = useCallback((next) => {
+    setRate(next);
+    saveNarratorSpeed(narratorKey, next);
+  }, [narratorKey]);
   const [loadError, setLoadError] = useState('');
 
   // When the user navigates to a different section, reset all transient

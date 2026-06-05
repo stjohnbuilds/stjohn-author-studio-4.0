@@ -132,3 +132,92 @@ export function unitWordEnd(index, idx) {
   const wordOnly = span.match(/^\S*/);
   return u.plainStart + (wordOnly ? wordOnly[0].length : 0);
 }
+
+// Tally word counts per character within a chapter's HTML by walking
+// the existing highlight-class spans that mammoth injected at import
+// (<span class="hl-yellow"> / hl-pink / etc.). Each entry in
+// narratorColors pairs a class name (and hex) with a character +
+// narrator, so we use the SAME mapping the reader uses per-word.
+//
+// Inputs:
+//   sectionHtml    — section.html as it came out of mammoth.
+//   narratorColors — book.narratorColors. Each row: { cls, hex,
+//                    characterName, narratorName }.
+//
+// Returns:
+//   { tallies, narratorKey }  where tallies is { [characterName]: wordCount }
+//   plus tallies[narratorKey] for words NOT in any character span.
+//   Returns null if there are no mapped characters at all (caller can
+//   then fall through to its old per-section behaviour).
+//
+// No DOM. No fetch. No new persisted data — derives entirely from
+// what's already on disk + the existing mapping. The breakdown is
+// proportional: a chapter that's 80% pink + 20% no-highlight emits two
+// rows weighted 80/20, and the duration aggregator splits the chapter's
+// runtime by that weight.
+const NARRATOR_KEY = '__narrator__';
+export { NARRATOR_KEY };
+
+export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
+  const source = String(sectionHtml || '');
+  const classMap = new Map();
+  (narratorColors || []).forEach((nc) => {
+    const name = String(nc?.characterName || '').trim();
+    const cls = String(nc?.cls || '').trim();
+    if (name && cls) classMap.set(cls, name);
+  });
+  if (!classMap.size) return null;
+
+  const tallies = {};
+  const add = (key, w) => { if (w > 0) tallies[key] = (tallies[key] || 0) + w; };
+  const countWords = (s) => {
+    const m = String(s || '').match(/\S+/g);
+    return m ? m.length : 0;
+  };
+
+  // Stack of active character contexts. Each frame is { tag, char }.
+  // `char` is the character name OR null when the open span isn't a
+  // mapped highlight (so we still pop the matching close).
+  const stack = [];
+  let cursor = 0;
+  TAG_RE.lastIndex = 0;
+  let m;
+  while ((m = TAG_RE.exec(source)) !== null) {
+    if (m.index > cursor) {
+      const text = source.slice(cursor, m.index);
+      // Strip entities so words aren't double-counted across &amp;.
+      const decoded = text.replace(/&[a-zA-Z]+;|&#\d+;|&#x[0-9a-fA-F]+;/g, ' ');
+      const active = stack.length ? stack[stack.length - 1].char : null;
+      add(active || NARRATOR_KEY, countWords(decoded));
+    }
+    const isClose = !!m[1];
+    const tag = m[2].toUpperCase();
+    if (tag === 'SPAN' && !isClose) {
+      // Look for class="…"
+      const attrs = m[0];
+      const classMatch = attrs.match(/class\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      const classStr = classMatch ? (classMatch[1] || classMatch[2] || classMatch[3] || '') : '';
+      let char = stack.length ? stack[stack.length - 1].char : null;
+      if (classStr) {
+        for (const c of classStr.split(/\s+/)) {
+          if (classMap.has(c)) { char = classMap.get(c); break; }
+        }
+      }
+      stack.push({ tag: 'SPAN', char });
+    } else if (tag === 'SPAN' && isClose) {
+      // Pop the most recent SPAN frame (matches author intent for
+      // well-formed mammoth output).
+      for (let i = stack.length - 1; i >= 0; i -= 1) {
+        if (stack[i].tag === 'SPAN') { stack.splice(i, 1); break; }
+      }
+    }
+    cursor = TAG_RE.lastIndex;
+  }
+  if (cursor < source.length) {
+    const text = source.slice(cursor);
+    const decoded = text.replace(/&[a-zA-Z]+;|&#\d+;|&#x[0-9a-fA-F]+;/g, ' ');
+    const active = stack.length ? stack[stack.length - 1].char : null;
+    add(active || NARRATOR_KEY, countWords(decoded));
+  }
+  return { tallies, narratorKey: NARRATOR_KEY };
+}

@@ -20,7 +20,7 @@ const REUBEN_CSV = [
   'Chapter 50,,,,Micheal (Sin),Other,The word: Present,,,,',
 ].join('\n');
 
-test('writes one .txt file per chapter', () => {
+test('writes one .csv file per chapter, with the Marker_[…] prefix Audition expects', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
   const names = out.files.map((f) => f.name);
   assert.ok(names.includes('Marker_[Chapter 2].csv'));

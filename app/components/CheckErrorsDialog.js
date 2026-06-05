@@ -94,8 +94,15 @@ function buildImportedFlagList(book, csvRows) {
       ts: Number(r.ts) || 0,
       narrator: String(r.narrator || ''),
       type: String(r.type || ''),
-      quote: String(r.quote || ''),
-      should: String(r.should || ''),
+      // Position-based: col 7 + col 8 of the source CSV. Whichever is
+      // longer is treated as the manuscript quote, the other as the
+      // engineer note. Same rule the marker writer uses.
+      quote: (String(r.colEight || '').length >= String(r.colSeven || '').length)
+        ? String(r.colEight || '')
+        : String(r.colSeven || ''),
+      should: (String(r.colEight || '').length >= String(r.colSeven || '').length)
+        ? String(r.colSeven || '')
+        : String(r.colEight || ''),
       idx: null,
       unmatched: !matchedChapter,
       audioFileHint: r.audioFileHint || '',

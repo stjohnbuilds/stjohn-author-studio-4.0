@@ -133,6 +133,8 @@ export function buildMarkerFilesFromCsv(text, bookOrTitle) {
     files,
     folderName,
     totalMarkers: files.reduce((n, f) => n + (f.content.split('\n').length - 1), 0),
+    csvMarkers,
+    savedMarkers,
     skippedNoTimestamp,
     chapters: files.length,
   };

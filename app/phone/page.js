@@ -68,6 +68,9 @@ import {
   DEFAULT_PHONE_READER_SETTINGS,
 } from './_lib/readerSettings.js';
 import { readPhoneProjectCache, writePhoneProjectCache } from './_lib/projectCache.js';
+// Per-narrator speed memory — same store the desktop uses, so 1.45 on
+// Mark chapters there equals 1.45 here.
+import { getNarratorSpeed, saveNarratorSpeed } from '../lib/narratorSpeedMemory';
 import {
   getAudioFiles,
   pickAudioFile,

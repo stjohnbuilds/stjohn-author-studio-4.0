@@ -388,6 +388,51 @@ async function exportAuditionMarkers(book) {
   }
 }
 
+// Same writer SessionsView.exportAuditionMarkers uses for in-app
+// flags, but fed by a CSV. The marker .txt files are byte-identical
+// (header, tab columns, time format, folder name), so the engineer
+// can't tell whether they came from the app's saved flags or a
+// pasted-in CSV. Position-based — column names ignored.
+async function exportMarkersFromCsv(book) {
+  if (typeof document === 'undefined') return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,text/csv';
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    let text = '';
+    try { text = await file.text(); }
+    catch (err) {
+      alert(`Couldn't read that CSV: ${err?.message || err}`);
+      return;
+    }
+    let result;
+    try { result = buildMarkerFilesFromCsv(text, book?.title || 'book'); }
+    catch (err) {
+      alert(`Couldn't parse that CSV: ${err?.message || err}`);
+      return;
+    }
+    if (!result.files.length) {
+      alert('No markers could be made from that CSV — none of the rows had a valid timestamp.');
+      return;
+    }
+    const skippedMsg = result.skippedNoTimestamp > 0
+      ? `\n\n${result.skippedNoTimestamp} row(s) had no timestamp — skipped.`
+      : '';
+    const electron = typeof window !== 'undefined' ? window.electron : null;
+    if (electron?.exportMarkersFolder) {
+      const outDir = await electron.exportMarkersFolder({ folderName: result.folderName, files: result.files });
+      if (!outDir) return;
+      alert(`Made ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s) in:\n${outDir}${skippedMsg}`);
+      return;
+    }
+    result.files.forEach((f) => dl(f.content, f.name, 'text/tab-separated-values'));
+    alert(`Downloaded ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s).${skippedMsg}`);
+  };
+  input.click();
+}
+
 function exportSectionCSV(ch, sec) {
   const rows=[['Chapter','Audio File','Page','Timestamp','Narrator/Engineer','Type','Misread Quote','Should Say']];
   (sec.flags||[]).forEach(fl=>rows.push([csvEsc(ch.title),csvEsc(sec.audioFileName||''),csvEsc(fl.page),csvEsc(fmtTime(fl.ts)),csvEsc(fl.narrator),csvEsc(fl.type),csvEsc(fl.sentPlain||''),csvEsc(fl.note||'')]));

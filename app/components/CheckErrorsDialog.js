@@ -176,17 +176,22 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   ), [sectionInfo.section, current?.quote]);
 
   // Pick the seek time. Preference order:
-  // 1. If the flag has an idx AND the section has a fresh
-  //    whisperAlignment for the current audio, use the whisper-aligned
-  //    time (handles re-recorded chapters with shifted pacing).
+  // 1. If the flag has an idx AND the section has a whisperAlignment,
+  //    build a sync table from it (same shape Proof uses internally)
+  //    and ask it where the manuscript word lives in the current audio.
+  //    Handles re-recorded chapters with shifted pacing.
   // 2. Otherwise the flag's ts as-is.
   const seekStart = useMemo(() => {
     if (!current) return 0;
     const sec = sectionInfo.section;
     const alignment = Array.isArray(sec?.whisperAlignment) ? sec.whisperAlignment : null;
     if (current.idx != null && alignment && alignment.length >= 4) {
-      const aligned = getAudioTimeForMsIdx(alignment, current.idx);
-      if (Number.isFinite(aligned) && aligned >= 0) return aligned;
+      try {
+        const tbl = buildSyncTable(alignment);
+        const aligned = getAudioTimeForMsIdx(tbl, current.idx);
+        if (Number.isFinite(aligned) && aligned >= 0) return aligned;
+      } catch {}
+      return current.ts;
     }
     return current.ts;
   }, [current, sectionInfo.section]);

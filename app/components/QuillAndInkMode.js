@@ -28,6 +28,11 @@ import ChapterReader, {
 import AudioDock from './AudioDock';
 import { transcribeAudio } from '../lib/transcriptionWorker';
 import { alignTranscriptToManuscript } from '../lib/fuzzyMatcher';
+// Same per-narrator speed memory as desktop Proof. Quill rarely has
+// distinct narrators per chapter, but reusing the helper means the
+// stored speed is shared across the whole app — set 1.45 in Proof
+// and Quill opens at 1.45 too.
+import { getNarratorSpeed, saveNarratorSpeed } from '../lib/narratorSpeedMemory';
 import {
   buildSyncTable as buildDirectSyncTable,
   getMsIdxAtTime,

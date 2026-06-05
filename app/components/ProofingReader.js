@@ -412,6 +412,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   const activeSceneHeadingRef=useRef(section.title || section.characterName || section.chapterTitle || '');
   const activeCharacterLabelRef=useRef(section.characterName || section.title || section.chapterTitle || '');
   const activeNarratorLabelRef=useRef(section.narratorName || section.characterName || 'Narrator');
+  // Narrator key used by the per-narrator speed-memory helper. Set
+  // when the section's audio loads; read by applyPlaybackSpeed to save
+  // under the right key.
+  const narratorKeyRef=useRef('default');
 
   useEffect(()=>{
     useWhisperSyncRef.current = useWhisperSync;

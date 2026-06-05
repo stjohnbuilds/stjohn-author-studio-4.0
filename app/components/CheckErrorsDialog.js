@@ -227,48 +227,14 @@ function extractContextParagraphs(sectionHtml, quote) {
 }
 
 // Renders the target paragraph with the flagged sentence highlighted
-// AND a moving word-by-word highlight that follows the playing audio.
-// Falls back gracefully to the static highlight when there's no
-// transcription (no alignment) — and to plain text if the quote
-// can't be located.
-function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, alignment, audioRef }) {
-  const [currentLocalIdx, setCurrentLocalIdx] = useState(-1);
-  const tblRef = useRef(null);
-
-  useEffect(() => {
-    if (!Array.isArray(alignment) || alignment.length < 4) { tblRef.current = null; return; }
-    try { tblRef.current = buildSyncTable(alignment); }
-    catch { tblRef.current = null; }
-  }, [alignment]);
-
-  useEffect(() => {
-    const audio = audioRef?.current;
-    if (!audio || paragraphStartWordIdx == null) { setCurrentLocalIdx(-1); return; }
-    let raf = null;
-    function tick() {
-      raf = null;
-      const tbl = tblRef.current;
-      if (!tbl) return;
-      const t = audio.currentTime;
-      const msIdx = getMsIdxAtTime(tbl, t, -1);
-      setCurrentLocalIdx(Number.isFinite(msIdx) && msIdx >= 0 ? msIdx - paragraphStartWordIdx : -1);
-      if (!audio.paused) raf = requestAnimationFrame(tick);
-    }
-    function schedule() { if (!raf) raf = requestAnimationFrame(tick); }
-    audio.addEventListener('play', schedule);
-    audio.addEventListener('pause', schedule);
-    audio.addEventListener('timeupdate', schedule);
-    audio.addEventListener('seeked', schedule);
-    schedule();
-    return () => {
-      audio.removeEventListener('play', schedule);
-      audio.removeEventListener('pause', schedule);
-      audio.removeEventListener('timeupdate', schedule);
-      audio.removeEventListener('seeked', schedule);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [audioRef, paragraphStartWordIdx, alignment]);
-
+// (static yellow band) AND the audio's currently-spoken word highlighted
+// amber. The dialog hoists the audio subscription so this component is
+// pure props — `currentLocalIdx` is just "which word inside this
+// paragraph is being spoken right now, or -1 if none / no transcription".
+function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChapterMsIdx }) {
+  const currentLocalIdx = (Number.isFinite(currentChapterMsIdx) && currentChapterMsIdx >= 0 && paragraphStartWordIdx != null)
+    ? currentChapterMsIdx - paragraphStartWordIdx
+    : -1;
   const text = String(target || '');
   if (!text) return '(paragraph not found in chapter HTML)';
 

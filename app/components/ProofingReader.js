@@ -22,6 +22,9 @@ import {
 // Used by the flag-quote builder so that inline formatting boundaries
 // inside a word (italic/span/tracked-change) don't leak a fake space.
 import { buildChapterPlainTextIndex, sliceUnitsRange, unitWordEnd } from '../../packages/manuscript-engine';
+// Per-narrator playback-speed memory. Mark at 1.45 stays 1.45 when she
+// returns from a Daryl chapter at 1.5. Same helper used by Quill + phone.
+import { deriveNarratorKey, getNarratorSpeed, saveNarratorSpeed, DEFAULT_NARRATOR_SPEED } from '../lib/narratorSpeedMemory';
 
 function fmtTime(sec){const s=Math.floor(sec),m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+s%60;}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}

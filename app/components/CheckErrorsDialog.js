@@ -457,6 +457,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
         <div style={{ padding: '10px 18px', background: '#fdf2f2', color: '#7a2424', fontSize: '0.82rem', borderBottom: '1px solid #f0d4d4' }}>{csvError}</div>
       )}
 
+      {/* Scrollable middle — chapter title, info strip, and the manuscript text context */}
       <div style={{ flex: 1, overflow: 'auto', padding: '14px 18px' }}>
         {total === 0 ? (
           <div style={{ padding: '40px 8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
@@ -485,16 +486,32 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
             <div style={{ marginBottom: 14 }}>
               {context.before && <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
               <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
-                {renderTargetWithHighlight(context.target, current?.quote)}
+                <LiveTargetParagraph
+                  target={context.target}
+                  quote={current?.quote}
+                  paragraphStartWordIdx={context.targetStartWordIdx}
+                  alignment={sectionInfo.section?.whisperAlignment}
+                  audioRef={audioRef}
+                />
               </p>
               {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
             </div>
-            {current.should && (
-              <div style={{ background: '#eef7ef', border: '1px solid #c2dec5', borderRadius: 8, padding: '10px 12px', fontSize: '0.86rem', lineHeight: 1.5, marginBottom: 14 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b6a3f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Comment</div>
-                {current.should}
-              </div>
-            )}
+          </>
+        ) : null}
+      </div>
+
+      {/* Sticky bottom stack — Comment, then Player, then Prev/Next.
+          All flex-shrink so they always stay in view while the
+          manuscript context above scrolls. */}
+      {total > 0 && current && (
+        <div style={{ flexShrink: 0, background: 'white', borderTop: '1px solid var(--border-light)' }}>
+          {current.should && (
+            <div style={{ background: '#eef7ef', border: '1px solid #c2dec5', borderRadius: 8, padding: '10px 12px', fontSize: '0.86rem', lineHeight: 1.5, margin: '12px 18px 8px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b6a3f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Comment</div>
+              {current.should}
+            </div>
+          )}
+          <div style={{ padding: '0 18px 8px' }}>
             {audioUrl ? (
               <AudioDock
                 audioRef={audioRef}
@@ -511,9 +528,9 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                   : 'No audio attached to this chapter yet — attach it on the book detail page, then re-open this popup.'}
               </div>
             )}
-          </>
-        ) : null}
-      </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderTop: '1px solid var(--border-light)', background: 'white', flexShrink: 0 }}>
         <button

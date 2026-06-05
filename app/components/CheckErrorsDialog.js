@@ -397,19 +397,54 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   }, [current, sectionInfo.section]);
 
   // Auto-seek + play when the current flag changes.
+  //
+  // Tricky: setting `currentTime` on an <audio> only works once
+  // `duration` is known. If the audio element has been around (e.g.,
+  // because the same file was already loaded) `loadedmetadata` may have
+  // already fired BEFORE this effect attaches its listener, so the
+  // simple "wait for the event" pattern silently misses it and the
+  // audio stays at 0:00 — the bug Marie hit on a 09:17 flag. Fix:
+  //   • try the seek immediately
+  //   • try again on `loadedmetadata` / `durationchange` / `canplay`
+  //   • also poll every 60ms for up to 4s as a final safety net
+  //   • flip a `didSeek` flag so we only seek once per (audio, flag)
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !audioUrl || !current) return;
     const leadStart = Math.max(0, seekStart - SEEK_LEAD_SECONDS);
-    function onReady() {
-      try {
-        a.currentTime = leadStart;
-        a.play?.().catch(() => { /* user-gesture rules — silent */ });
-      } catch {}
+    let didSeek = false;
+    let cancelled = false;
+    let pollTimer = null;
+    let pollsLeft = 70; // ~4.2s of polling at 60ms intervals
+
+    function trySeek() {
+      if (cancelled || didSeek) return;
+      if (Number.isFinite(a.duration) && a.duration > 0) {
+        didSeek = true;
+        try {
+          a.currentTime = Math.min(leadStart, Math.max(0, a.duration - 0.1));
+          a.play?.().catch(() => { /* user-gesture rules — silent */ });
+        } catch {}
+        return;
+      }
+      if (pollsLeft > 0) {
+        pollsLeft -= 1;
+        pollTimer = setTimeout(trySeek, 60);
+      }
     }
-    if (a.readyState >= 1) onReady();
-    else a.addEventListener('loadedmetadata', onReady, { once: true });
-    return () => { a.removeEventListener('loadedmetadata', onReady); };
+
+    trySeek();
+    a.addEventListener('loadedmetadata', trySeek);
+    a.addEventListener('durationchange', trySeek);
+    a.addEventListener('canplay', trySeek);
+
+    return () => {
+      cancelled = true;
+      if (pollTimer) clearTimeout(pollTimer);
+      a.removeEventListener('loadedmetadata', trySeek);
+      a.removeEventListener('durationchange', trySeek);
+      a.removeEventListener('canplay', trySeek);
+    };
   }, [audioUrl, current?.id, seekStart]);
 
   function step(delta) {

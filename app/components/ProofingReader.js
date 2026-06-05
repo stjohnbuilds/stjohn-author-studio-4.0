@@ -542,7 +542,20 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
       audio.currentTime = nextStart;
       offRef.current = nextOffset;
-      audio.playbackRate = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, defaultListeningSpeed || 1));
+      // Per-narrator memory wins over the global default. If this
+      // narrator has been listened-to before, restore the speed Marie
+      // last set for them. Otherwise fall back to the global default
+      // (which is 1.5 unless the user picked something else in
+      // Settings). [Marie 2026-06-04]
+      const narratorKey = deriveNarratorKey(section, narratorColors);
+      narratorKeyRef.current = narratorKey;
+      const remembered = getNarratorSpeed(narratorKey, defaultListeningSpeed || DEFAULT_NARRATOR_SPEED);
+      const effective = Math.max(PLAYBACK_SPEED_MIN, Math.min(PLAYBACK_SPEED_MAX, remembered || 1));
+      audio.playbackRate = effective;
+      playbackRateRef.current = effective;
+      syncSpeedRef.current = effective;
+      setSyncSpeed(effective);
+      setListenSpeed(effective);
       startSync();
     };
     audio.addEventListener('loadedmetadata',onMeta,{once:true});

@@ -236,17 +236,20 @@ export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
         if (classMap.has(c)) return classMap.get(c);
       }
     }
-    // 2) Inline-style hex match — covers ALL cases where the narrator's
-    //    cls is null but the hex is set, including manual color picks
-    //    and shading-detected colors.
-    if (hexMap.size) {
+    // 2) Inline-style hex match. Fuzzy distance (mirrors Proof's
+    //    detectNarrator) so a span hex that's a few RGB points off
+    //    from the saved narrator hex still routes to the right
+    //    character. Covers all cases where cls is null but hex is
+    //    set — manual color picks, shading-detected colors, etc.
+    if (hexList.length) {
       const styleMatch = attrs.match(/style\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
       const styleStr = styleMatch ? (styleMatch[1] || styleMatch[2] || '') : '';
       if (styleStr) {
         const hexAll = styleStr.match(/#([0-9a-fA-F]{3,6})/g) || [];
         for (const raw of hexAll) {
           const h = normHex(raw);
-          if (h && hexMap.has(h)) return hexMap.get(h);
+          const matched = bestHexMatch(h);
+          if (matched) return matched;
         }
       }
     }

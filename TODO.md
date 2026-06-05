@@ -42,16 +42,37 @@ Always read `HANDOFF.md` first, then this file.
       `sec.title` and `ch.title`. Catches chapters literally named
       after the POV character. — completed 2026-06-04
 - [x] **Audiobook breakdown: per-chapter character picker.**
-      Confirmed by reading the OLD Script and Sync 3.0 source that the
-      parser + breakdown logic are byte-for-byte identical between 3.0
-      and 4.0 — so the regression is purely the data: Marie's current
-      .docx no longer produces character-named H2 scene headings, so
-      `sec.characterName` stays null. Added a compact `<select>` next
-      to each chapter row in the Edit panel listing the narrator
-      characters; on Save, the pick is stamped onto every section in
-      that chapter AND onto `ch.characterName`. Breakdown matcher now
-      checks both. Works for ANY book regardless of how its .docx is
-      structured. — completed 2026-06-04
+      [SUPERSEDED + REVERTED 2026-06-04 — Marie said no new UI / no new
+      metadata. The picker dropdown, characterPick state, and save-flow
+      propagation are gone. The 4-way matcher fallback (sec.character
+      → ch.character → sec.title → ch.title) stays as harmless lookup
+      logic. Replaced by the "shift the display, use existing data"
+      task below.] — completed 2026-06-04
+- [x] **Audiobook breakdown: use existing highlight data (no new
+      metadata, no new UI).** Replaces the picker above. The
+      breakdown popup now derives character per section from the
+      `<span class="hl-yellow">` / hl-pink etc. spans mammoth already
+      injects at import + the existing book.narratorColors mapping
+      (same data Proof's per-word `detectNarrator` already reads). New
+      pure-string helper `tallyCharacterWordCounts` in
+      `packages/manuscript-engine/chapter-plain-text/`. SessionsView
+      `sectionTimingRows` emits one row per character per section;
+      `durationSummary` weights time by word count. So a chapter
+      that's 80% pink + 20% no-highlight → 80% of its runtime under
+      Daryl, 20% under Narrator. No H1/H2 requirement — robust to any
+      heading structure. Falls back to the old per-section behaviour
+      when the book has no narrator mapping or no highlights. 8 new
+      regression tests (17 total in the file, 98/98 across the
+      project). — completed 2026-06-04
+- [x] **Proof flag default ts: prefer whisper-aligned time when a
+      transcription exists.** Phone already did this
+      (`wordStartTimeFromAlignment`). Desktop Proof's `openFlag` used
+      raw `audio.currentTime` — inaccurate when manual sliding has
+      drifted from the real spoken word. Now: if syncTable has ≥4
+      entries, the flag's default ts comes from `getAudioTimeForMsIdx`
+      for the resolved manuscript word. Falls back to currentTime if
+      no alignment. Works whether the "T" sync toggle is on or off.
+      — completed 2026-06-04
 - [ ] **Page-number consistency — BENCHED at Marie's request
       2026-06-04.** The whole stack is fragile (PDF page text search +
       ± page adjustment + paging extraction). Marie has explicitly

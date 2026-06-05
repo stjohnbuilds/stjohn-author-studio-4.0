@@ -190,3 +190,56 @@ test('tally: empty HTML returns empty tallies (not null)', () => {
   assert.ok(result);
   assert.deepEqual(result.tallies, {});
 });
+
+// ---------------------------------------------------------------------------
+// Hex-fallback path: when narrator entries have cls=null but hex set —
+// Marie's actual case for any color picked manually or extracted from
+// Word shading. Mammoth bakes the hex into an inline style on every
+// highlight span via applyHexColors, so we can match by hex.
+// ---------------------------------------------------------------------------
+
+const NARRATORS_HEX_ONLY = [
+  { cls: null, hex: '#FDDEE8', characterName: 'Karma',   narratorName: 'Daryl' },
+  { cls: null, hex: '#FFF8DC', characterName: 'Phantom', narratorName: 'Mark' },
+];
+
+test('tally: hex-only narrators match spans by inline-style background', () => {
+  const result = tallyCharacterWordCounts(
+    `<p>Then <span class="hl-pink" style="background:#FDDEE8">Karma spoke up</span> and laughed.</p>`,
+    NARRATORS_HEX_ONLY,
+  );
+  assert.equal(result.tallies.Karma, 3);
+  assert.equal(result.tallies[NARRATOR_KEY], 3); // "Then" + "and laughed."
+});
+
+test('tally: hex match is case-insensitive and handles 3-char hex', () => {
+  const result = tallyCharacterWordCounts(
+    // 3-char #fdc would not match Karma; testing a real 6-char Phantom hex in upper case
+    `<p><span style="background:#FFF8DC">Phantom shouted three words.</span></p>`,
+    NARRATORS_HEX_ONLY,
+  );
+  assert.equal(result.tallies.Phantom, 4);
+});
+
+test('tally: class wins over hex when both are set on the same narrator', () => {
+  const narrators = [
+    { cls: 'hl-pink', hex: '#FDDEE8', characterName: 'Karma', narratorName: 'Daryl' },
+  ];
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-pink" style="background:#FDDEE8">two words</span></p>`,
+    narrators,
+  );
+  assert.equal(result.tallies.Karma, 2);
+});
+
+test('tally: when only hexMap is populated (no cls anywhere), still works', () => {
+  // Regression test for the bug Marie hit: every narrator had cls=null,
+  // classMap was empty, the function returned null and the breakdown
+  // fell back to "Unassigned narrator".
+  const result = tallyCharacterWordCounts(
+    `<p><span class="hl-pink" style="background:#FDDEE8">Karma talked</span> here.</p>`,
+    NARRATORS_HEX_ONLY,
+  );
+  assert.ok(result, 'returns tallies — does NOT return null');
+  assert.equal(result.tallies.Karma, 2);
+});

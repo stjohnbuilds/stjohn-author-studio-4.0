@@ -2427,6 +2427,20 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               </div>
               <button onClick={()=>setShowTimingDetails(false)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700 })}>Close</button>
             </div>
+            {(() => {
+              const characterCount = (durationSummary.characterRows || []).length;
+              const mappedCount = (book.narratorColors || []).filter(nc => (nc.characterName || '').trim()).length;
+              const onlyNarrator = characterCount <= 1 && (durationSummary.characterRows?.[0]?.name === 'Narrator' || durationSummary.characterRows?.[0]?.name === 'Unassigned character');
+              if (onlyNarrator && mappedCount > 0) {
+                return (
+                  <div style={{ background:'#fff8e6',border:'1px solid #ead9a2',borderRadius:12,padding:'10px 12px',marginBottom:12,fontSize:'0.8rem',color:'#6b5212',lineHeight:1.5 }}>
+                    <strong>No character colors detected in your manuscript text.</strong>{' '}
+                    You have <strong>{mappedCount}</strong> narrators mapped at the top of this page, but none of their colors appear as highlights inside the chapter HTML. Common reasons: dialogue colored with Word's <em>font color</em> instead of <em>highlight</em>, or different hex values between the .docx and the narrator mapping. Everything is being attributed to the default Narrator until at least one mapped color shows up in the text.
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))',gap:12 }}>
               <div style={{ background:'var(--accent-surface)',border:'1px solid var(--accent-border)',borderRadius:18,padding:'12px 14px' }}>
                 <div style={{ fontSize:'0.76rem',fontWeight:700,color:'var(--accent-dark)',marginBottom:10 }}>By character</div>

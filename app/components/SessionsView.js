@@ -2611,8 +2611,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <div style={{ width:'min(760px, 100%)',maxHeight:'min(78vh, 720px)',overflow:'auto',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px 18px 16px' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:14 }}>
               <div>
-                <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:4 }}>Audiobook timing detail</div>
-                <div style={{ fontSize:'0.82rem',color:'var(--text-muted)' }}>Separate runtime totals by character and by assigned narrator.</div>
+                <div style={{ fontSize:'0.72rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--accent-dark)',marginBottom:4 }}>Audiobook breakdown</div>
+                <div style={{ fontSize:'0.82rem',color:'var(--text-muted)' }}>Word counts and runtime per character and per assigned narrator. Runtime shows where audio is attached; word counts come straight from the manuscript.</div>
               </div>
               <button onClick={()=>setShowTimingDetails(false)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontWeight:700 })}>Close</button>
             </div>

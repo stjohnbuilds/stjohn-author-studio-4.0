@@ -409,7 +409,7 @@ async function exportMarkersFromCsv(book) {
       return;
     }
     let result;
-    try { result = buildMarkerFilesFromCsv(text, book?.title || 'book'); }
+    try { result = buildMarkerFilesFromCsv(text, book); }
     catch (err) {
       alert(`Couldn't parse that CSV: ${err?.message || err}`);
       return;
@@ -418,6 +418,9 @@ async function exportMarkersFromCsv(book) {
       alert('No markers could be made from that CSV — none of the rows had a valid timestamp.');
       return;
     }
+    const breakdownMsg = (result.savedMarkers > 0 || result.csvMarkers > 0)
+      ? ` (${result.csvMarkers} from CSV + ${result.savedMarkers} from saved flags, merged per chapter)`
+      : '';
     const skippedMsg = result.skippedNoTimestamp > 0
       ? `\n\n${result.skippedNoTimestamp} row(s) had no timestamp — skipped.`
       : '';
@@ -425,11 +428,11 @@ async function exportMarkersFromCsv(book) {
     if (electron?.exportMarkersFolder) {
       const outDir = await electron.exportMarkersFolder({ folderName: result.folderName, files: result.files });
       if (!outDir) return;
-      alert(`Made ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s) in:\n${outDir}${skippedMsg}`);
+      alert(`Made ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s)${breakdownMsg} in:\n${outDir}${skippedMsg}`);
       return;
     }
     result.files.forEach((f) => dl(f.content, f.name, 'text/tab-separated-values'));
-    alert(`Downloaded ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s).${skippedMsg}`);
+    alert(`Downloaded ${result.totalMarkers} marker(s) across ${result.chapters} chapter file(s)${breakdownMsg}.${skippedMsg}`);
   };
   input.click();
 }

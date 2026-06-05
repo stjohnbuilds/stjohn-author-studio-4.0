@@ -198,16 +198,26 @@ export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
   // as an inline style (`style="background:#FDDEE8"` from applyHexColors),
   // so a hex match catches every case the class match misses.
   const classMap = new Map();
-  const hexMap = new Map();
+  const hexList = []; // [{ name, hex }] — fuzzy-distance matched, not exact
   (narratorColors || []).forEach((nc) => {
     const name = String(nc?.characterName || '').trim();
     if (!name) return;
     const cls = String(nc?.cls || '').trim();
     if (cls) classMap.set(cls, name);
     const hex = normHex(nc?.hex);
-    if (hex) hexMap.set(hex, name);
+    if (hex) hexList.push({ name, hex });
   });
-  if (!classMap.size && !hexMap.size) return null;
+  if (!classMap.size && !hexList.length) return null;
+  function bestHexMatch(spanHex) {
+    if (!spanHex || SKIP_HEXES.has(spanHex)) return null;
+    let best = null;
+    let bd = Infinity;
+    for (const entry of hexList) {
+      const d = hexDist(spanHex, entry.hex);
+      if (d < bd) { bd = d; best = entry; }
+    }
+    return best && bd < HEX_DIST_THRESHOLD ? best.name : null;
+  }
 
   const tallies = {};
   const add = (key, w) => { if (w > 0) tallies[key] = (tallies[key] || 0) + w; };

@@ -778,7 +778,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         // here, emit one row per character per section, and let the
         // duration aggregator below distribute the section's audio
         // time proportionally. No new metadata, no schema change.
-        const tally = tallyCharacterWordCounts(sec.html || '', book.narratorColors);
+        // PRIMARY: DOM-based tally — mirrors Proof's per-word
+        // detectNarrator using getComputedStyle, so it picks up any
+        // colored background regardless of whether it came from an
+        // inline `style="..."`, a class with a stylesheet rule, or a
+        // parent element. Falls back to the pure-string tally only
+        // when we're not in a browser (defence in depth — SessionsView
+        // is 'use client' so this is just paranoia).
+        let tally = tallyCharacterWordCountsDom(sec.html || '', book.narratorColors);
+        if (!tally) tally = tallyCharacterWordCounts(sec.html || '', book.narratorColors);
+        const TALLY_KEY = tally?.narratorKey || TALLY_NARRATOR_KEY;
         const totalSecWords = tally
           ? Object.values(tally.tallies).reduce((s, n) => s + n, 0)
           : 0;
@@ -790,7 +799,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             nameMatches('Narrator', nc.characterName)
           ));
           Object.entries(tally.tallies).forEach(([character, wordCount]) => {
-            const isUnmapped = character === TALLY_NARRATOR_KEY;
+            const isUnmapped = character === TALLY_KEY;
             const charLabel = isUnmapped ? 'Narrator' : character;
             const mapped = isUnmapped
               ? defaultNarratorRow

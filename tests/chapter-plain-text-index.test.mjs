@@ -11,6 +11,8 @@ import {
   buildChapterPlainTextIndex,
   sliceUnitsRange,
   unitWordEnd,
+  tallyCharacterWordCounts,
+  NARRATOR_KEY,
 } from '../packages/manuscript-engine/chapter-plain-text/index.js';
 
 test('plain text and unit count for simple paragraph', () => {

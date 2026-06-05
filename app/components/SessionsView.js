@@ -401,47 +401,6 @@ function nameMatches(a, b) {
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 
-// Tally word count per character within a section's HTML using the
-// existing highlight-class data: mammoth wraps Word highlights as
-// <span class="hl-yellow">, <span class="hl-pink">, etc., and
-// book.narratorColors maps each class to a character + narrator. Words
-// that aren't inside any character-mapped span fall under the default
-// narrator ("Narrator"). Returns { tallies: { [characterName|"Narrator"]: wordCount } }
-// or null if no characters are mapped or the DOM isn't available
-// (e.g., server-rendered first paint).
-const UNMAPPED_NARRATOR = 'Narrator';
-function tallyCharacterWordCounts(sectionHtml, narratorColors) {
-  if (typeof document === 'undefined') return null;
-  const classMap = new Map();
-  (narratorColors || []).forEach(nc => {
-    const charName = (nc.characterName || '').trim();
-    if (charName && nc.cls) classMap.set(String(nc.cls), charName);
-  });
-  if (!classMap.size) return null;
-  const div = document.createElement('div');
-  div.innerHTML = String(sectionHtml || '');
-  const tallies = {};
-  function add(key, w) { if (w > 0) tallies[key] = (tallies[key] || 0) + w; }
-  function countWords(text) {
-    const m = String(text || '').match(/\S+/g);
-    return m ? m.length : 0;
-  }
-  function walk(node, currentChar) {
-    if (node.nodeType === 3) { add(currentChar || UNMAPPED_NARRATOR, countWords(node.nodeValue)); return; }
-    if (node.nodeType !== 1) return;
-    let nextChar = currentChar;
-    if (node.tagName === 'SPAN' && node.className) {
-      const classes = String(node.className).split(/\s+/);
-      for (const c of classes) {
-        if (classMap.has(c)) { nextChar = classMap.get(c); break; }
-      }
-    }
-    for (const child of node.childNodes) walk(child, nextChar);
-  }
-  for (const child of div.childNodes) walk(child, null);
-  return { tallies };
-}
-
 function fmtDuration(totalSec) {
   const sec = Math.max(0, Math.floor(Number(totalSec) || 0));
   const h = Math.floor(sec / 3600);

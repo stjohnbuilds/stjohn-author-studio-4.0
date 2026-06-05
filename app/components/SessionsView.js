@@ -2528,8 +2528,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <>
             {actionButtonsOverride !== null ? actionButtonsOverride : (
               <>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border-strong)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>setShowCheckErrors(true)} title="Walk through saved flags or upload a CSV and re-listen against the current audio">Check errors</button>
                 <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>exportAllCSV(book)} title="Export the full flags spreadsheet">Export Flags</button>
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'var(--accent-light)',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Export one marker file per matching chapter label for the engineer">Export for Engineer</button>
                 <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={()=>{ void exportMarkersFromCsv(book); }} title="Pick a CSV (your export or the engineer template) and convert it to Audition marker files — same format as Export for Engineer">Make markers from CSV</button>
                 {isElectron && onTransferExport && (
                   <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700})} onClick={onTransferExport} title="Create a Transfer folder with audiobook data and copied audio files">Transfer</button>

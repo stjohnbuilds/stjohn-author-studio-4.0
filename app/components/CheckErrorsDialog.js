@@ -23,11 +23,11 @@
 // time instead so a re-recorded chapter with shifted pacing still lands
 // on the right word.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AppDialog from './AppDialog';
 import AudioDock from './AudioDock';
 import { parseFlagCsv } from '../lib/csvFlagImport';
-import { getAudioTimeForMsIdx, buildSyncTable } from '../../packages/audio-engine';
+import { getAudioTimeForMsIdx, getMsIdxAtTime, buildSyncTable } from '../../packages/audio-engine';
 
 const SEEK_LEAD_SECONDS = 10;
 

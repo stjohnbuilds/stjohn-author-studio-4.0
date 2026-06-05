@@ -137,7 +137,7 @@ export default function BookDetail({
                   justifyContent: 'center',
                 }}
               >
-                🗑
+                <IconTrash size={16} />
               </button>
             )}
           </div>

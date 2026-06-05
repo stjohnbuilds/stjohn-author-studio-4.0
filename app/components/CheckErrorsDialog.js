@@ -27,7 +27,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AppDialog from './AppDialog';
 import AudioDock from './AudioDock';
 import { parseFlagCsv } from '../lib/csvFlagImport';
-import { getAudioTimeForMsIdx } from '../../packages/audio-engine';
+import { getAudioTimeForMsIdx, buildSyncTable } from '../../packages/audio-engine';
 
 const SEEK_LEAD_SECONDS = 10;
 

@@ -12,6 +12,31 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-04 — Make markers from CSV + position-based CSV parser
+
+- [x] **CSV parser rewritten position-based.** Column names ignored
+      completely (Marie 2026-06-04: "even if a column were named
+      grgefkjuhfndjkhnf it would still spit out the right
+      timestamps"). Row counts as a data row when slot 0 has a
+      chapter title AND slot 3 parses as a clock-style time
+      (M:SS or H:MM:SS). Project / Author / MANUSCRIPT LINK /
+      "DONE" placeholders / blank rows / typed text in the
+      timestamp slot all get skipped. Multi-line quoted cells
+      (newline inside a "...") merged into one row. 10 tests.
+      — completed 2026-06-04
+- [x] **"Make markers from CSV" button next to Export for Engineer.**
+      Click → file picker → parses CSV → writes one .txt per chapter
+      in a `{title} audition markers` folder, byte-identical format
+      to Export for Engineer: header `Name\tStart\tDuration\tTime
+      Format\tType\tDescription`, `0:00.000` duration, `decimal`,
+      `Cue`, sorted by start time, M:SS.mmm clock. Name = longer of
+      slots 7/8 (the manuscript quote), Description = the shorter
+      (engineer's note). Skipped-row count surfaced in the
+      success alert ("3 rows had no timestamp — skipped"). Uses
+      the existing Electron `exportMarkersFolder` path, falls
+      back to per-file browser download. 10 tests. 118/118 across
+      the project. — completed 2026-06-04
+
 ### 🆕 2026-06-04 — Check Errors popup (re-listen workflow)
 
 - [x] **"Check errors" popup — saved flags OR uploaded CSV, same UI.**

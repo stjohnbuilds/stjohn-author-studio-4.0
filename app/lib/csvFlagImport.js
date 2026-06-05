@@ -115,7 +115,10 @@ export function parseFlagCsv(text) {
       // chapter that mentions "chapter" or starts with a digit).
       // That way the "Chapter" header row + Project/Author/etc.
       // don't get counted as skips.
-      if (/chapter|^\d/i.test(chapterTitle)) skippedNoTimestamp += 1;
+      // Match data-like row patterns. The literal header row says
+      // just "Chapter" (no space, no number), so we require a space-
+      // or-number suffix to avoid double-counting it as a skip.
+      if (/^(chapter\s|\d+(\s|$))/i.test(chapterTitle)) skippedNoTimestamp += 1;
       continue;
     }
     rows.push({

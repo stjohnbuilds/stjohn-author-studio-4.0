@@ -644,14 +644,48 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       (ch.sections || []).forEach(sec => {
         const audioKey = getSectionAudioKey(sec);
         if (!audioKey) return;
-        // Try section.characterName first (set by the parser when an
-        // H2 scene heading matches a known character, OR by the
-        // per-chapter character picker in the Edit panel). Then
-        // ch.characterName (also set by the picker). Then sec.title
-        // and ch.title for the case where the heading literally IS
-        // the character name. Without these fallbacks, every chapter
-        // in a .docx without character-named H2 scene headings falls
-        // through to "Unassigned narrator".
+        // PRIMARY — use the highlight data the .docx already carries.
+        // mammoth wraps each character's dialogue in <span class="hl-*">
+        // at import; book.narratorColors maps those classes to
+        // characters + narrators. We tally word counts per character
+        // here, emit one row per character per section, and let the
+        // duration aggregator below distribute the section's audio
+        // time proportionally. No new metadata, no schema change.
+        const tally = tallyCharacterWordCounts(sec.html || '', book.narratorColors);
+        const totalSecWords = tally
+          ? Object.values(tally.tallies).reduce((s, n) => s + n, 0)
+          : 0;
+        if (tally && totalSecWords > 0) {
+          // Default narrator label for the unmapped portion ("Narrator").
+          // If the book happens to have a narrator-row whose characterName
+          // is literally "Narrator", honour its narratorName.
+          const defaultNarratorRow = (book.narratorColors || []).find(nc => (
+            nameMatches('Narrator', nc.characterName)
+          ));
+          Object.entries(tally.tallies).forEach(([character, wordCount]) => {
+            const isUnmapped = character === TALLY_NARRATOR_KEY;
+            const charLabel = isUnmapped ? 'Narrator' : character;
+            const mapped = isUnmapped
+              ? defaultNarratorRow
+              : (book.narratorColors || []).find(nc => nameMatches(nc.characterName, character));
+            const narrator = String(mapped?.narratorName || mapped?.characterName || 'Narrator').trim() || 'Narrator';
+            rows.push({
+              id: `${sec.id}::${charLabel}`,
+              chapterId: ch.id,
+              completed: !!sec.completed,
+              narrator,
+              character: charLabel,
+              audioKey,
+              wordCount: Math.max(1, wordCount),
+              hasUrl: !!audioUrls[sec.id],
+            });
+          });
+          return;
+        }
+        // FALLBACK — no narrator mapping yet, or section has no
+        // highlights at all. Keep the old per-section behaviour:
+        // try sec.characterName → sec.title → ch.title so books with
+        // character-named scene headings still light up.
         const mappedNarrator = (book.narratorColors || []).find(nc => (
           nameMatches(sec.characterName, nc.characterName)
           || nameMatches(ch.characterName, nc.characterName)

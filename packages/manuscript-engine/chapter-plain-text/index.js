@@ -158,15 +158,35 @@ export function unitWordEnd(index, idx) {
 const NARRATOR_KEY = '__narrator__';
 export { NARRATOR_KEY };
 
+function normHex(h) {
+  if (!h) return '';
+  let s = String(h).trim().toLowerCase().replace(/^#/, '');
+  // Expand 3-char hex (#abc → #aabbcc) so all comparisons are uniform.
+  if (/^[0-9a-f]{3}$/.test(s)) s = s.split('').map((c) => c + c).join('');
+  return /^[0-9a-f]{6}$/.test(s) ? s : '';
+}
+
 export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
   const source = String(sectionHtml || '');
+  // Build BOTH a class map and a hex map. The hex map is essential for
+  // Marie's case: narrator entries created from shading-extraction OR
+  // from the manual color-picker have `cls: null` (see ManuscriptSetup.js
+  // lines 158-176), so the original class-only match silently produced
+  // an empty classMap → null result → fallback to the old per-section
+  // breakdown. Mammoth's output for any highlight has the hex baked in
+  // as an inline style (`style="background:#FDDEE8"` from applyHexColors),
+  // so a hex match catches every case the class match misses.
   const classMap = new Map();
+  const hexMap = new Map();
   (narratorColors || []).forEach((nc) => {
     const name = String(nc?.characterName || '').trim();
+    if (!name) return;
     const cls = String(nc?.cls || '').trim();
-    if (name && cls) classMap.set(cls, name);
+    if (cls) classMap.set(cls, name);
+    const hex = normHex(nc?.hex);
+    if (hex) hexMap.set(hex, name);
   });
-  if (!classMap.size) return null;
+  if (!classMap.size && !hexMap.size) return null;
 
   const tallies = {};
   const add = (key, w) => { if (w > 0) tallies[key] = (tallies[key] || 0) + w; };
@@ -175,9 +195,34 @@ export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
     return m ? m.length : 0;
   };
 
+  function attrsToChar(attrs, parentChar) {
+    // 1) Class match — predefined hl-yellow/hl-pink/etc. when narrator
+    //    entry carries that class.
+    const classMatch = attrs.match(/class\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const classStr = classMatch ? (classMatch[1] || classMatch[2] || classMatch[3] || '') : '';
+    if (classStr && classMap.size) {
+      for (const c of classStr.split(/\s+/)) {
+        if (classMap.has(c)) return classMap.get(c);
+      }
+    }
+    // 2) Inline-style hex match — covers ALL cases where the narrator's
+    //    cls is null but the hex is set, including manual color picks
+    //    and shading-detected colors.
+    if (hexMap.size) {
+      const styleMatch = attrs.match(/style\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
+      const styleStr = styleMatch ? (styleMatch[1] || styleMatch[2] || '') : '';
+      if (styleStr) {
+        const hexAll = styleStr.match(/#([0-9a-fA-F]{3,6})/g) || [];
+        for (const raw of hexAll) {
+          const h = normHex(raw);
+          if (h && hexMap.has(h)) return hexMap.get(h);
+        }
+      }
+    }
+    return parentChar;
+  }
+
   // Stack of active character contexts. Each frame is { tag, char }.
-  // `char` is the character name OR null when the open span isn't a
-  // mapped highlight (so we still pop the matching close).
   const stack = [];
   let cursor = 0;
   TAG_RE.lastIndex = 0;
@@ -185,7 +230,6 @@ export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
   while ((m = TAG_RE.exec(source)) !== null) {
     if (m.index > cursor) {
       const text = source.slice(cursor, m.index);
-      // Strip entities so words aren't double-counted across &amp;.
       const decoded = text.replace(/&[a-zA-Z]+;|&#\d+;|&#x[0-9a-fA-F]+;/g, ' ');
       const active = stack.length ? stack[stack.length - 1].char : null;
       add(active || NARRATOR_KEY, countWords(decoded));
@@ -193,20 +237,10 @@ export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
     const isClose = !!m[1];
     const tag = m[2].toUpperCase();
     if (tag === 'SPAN' && !isClose) {
-      // Look for class="…"
-      const attrs = m[0];
-      const classMatch = attrs.match(/class\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-      const classStr = classMatch ? (classMatch[1] || classMatch[2] || classMatch[3] || '') : '';
-      let char = stack.length ? stack[stack.length - 1].char : null;
-      if (classStr) {
-        for (const c of classStr.split(/\s+/)) {
-          if (classMap.has(c)) { char = classMap.get(c); break; }
-        }
-      }
+      const parentChar = stack.length ? stack[stack.length - 1].char : null;
+      const char = attrsToChar(m[0], parentChar);
       stack.push({ tag: 'SPAN', char });
     } else if (tag === 'SPAN' && isClose) {
-      // Pop the most recent SPAN frame (matches author intent for
-      // well-formed mammoth output).
       for (let i = stack.length - 1; i >= 0; i -= 1) {
         if (stack[i].tag === 'SPAN') { stack.splice(i, 1); break; }
       }

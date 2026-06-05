@@ -23,21 +23,21 @@ const REUBEN_CSV = [
 test('writes one .txt file per chapter', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
   const names = out.files.map((f) => f.name);
-  assert.ok(names.includes('Chapter 2.txt'));
-  assert.ok(names.includes('Chapter 4.txt'));
+  assert.ok(names.includes('Marker_[Chapter 2].csv'));
+  assert.ok(names.includes('Marker_[Chapter 4].csv'));
   assert.equal(out.files.length, 2, 'Chapter 50 has no timestamp → no file');
 });
 
 test('exact header line matches Export for Engineer', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const firstLine = ch2.content.split('\n')[0];
   assert.equal(firstLine, 'Name\tStart\tDuration\tTime Format\tType\tDescription');
 });
 
 test('each marker row has the right 6 tab-separated cells', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const lines = ch2.content.split('\n');
   // skip header
   const cells = lines[1].split('\t');
@@ -49,7 +49,7 @@ test('each marker row has the right 6 tab-separated cells', () => {
 
 test('markers within a chapter are sorted by Start time', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const dataLines = ch2.content.split('\n').slice(1);
   const starts = dataLines.map((line) => line.split('\t')[1]);
   assert.deepEqual(starts, ['1:37.000', '2:59.000']);
@@ -57,7 +57,7 @@ test('markers within a chapter are sorted by Start time', () => {
 
 test('Name = longer cell, Description = shorter cell', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const lines = ch2.content.split('\n');
   // Row at 2:59 has col7="the word 'instability' drops off..." (~40 chars),
   // col8="Karma did not have a hope" (~25 chars). Wait — 8 is shorter
@@ -72,7 +72,7 @@ test('Name = longer cell, Description = shorter cell', () => {
 
 test('row with empty col7 + non-empty col8 uses col8 as Name', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, 'Anarchy');
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const row137 = ch2.content.split('\n').find((l) => l.includes('1:37.000'));
   const cells = row137.split('\t');
   assert.equal(cells[0], 'find SB found');
@@ -90,7 +90,7 @@ test('rows with no timestamp are skipped + counted', () => {
 });
 
 test('marker filename strips characters Audition would choke on', () => {
-  assert.equal(markerFileName('Chapter 2'), 'Chapter 2.txt');
+  assert.equal(markerFileName('Chapter 2'), 'Marker_[Chapter 2].csv');
   assert.equal(markerFileName('Crescent-Chapter One'), 'Crescent-Chapter One.txt');
   assert.equal(markerFileName('Chapter / 3'), 'Chapter _ 3.txt');
 });
@@ -137,7 +137,7 @@ const BOOK_WITH_FLAGS = {
 
 test('merge: passing the book merges saved flags into per-chapter files', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, BOOK_WITH_FLAGS);
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const dataLines = ch2.content.split('\n').slice(1);
   // CSV gave Chapter 2 two markers (1:37 + 2:59); saved flags gave two more (0:30 + 10:00).
   assert.equal(dataLines.length, 4);
@@ -148,7 +148,7 @@ test('merge: passing the book merges saved flags into per-chapter files', () => 
 
 test('merge: markers in merged file sorted by Start time regardless of source', () => {
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, BOOK_WITH_FLAGS);
-  const ch2 = out.files.find((f) => f.name === 'Chapter 2.txt');
+  const ch2 = out.files.find((f) => f.name === 'Marker_[Chapter 2].csv');
   const dataLines = ch2.content.split('\n').slice(1);
   const starts = dataLines.map((line) => line.split('\t')[1]);
   // Sorted: 0:30, 1:37, 2:59, 10:00
@@ -159,7 +159,7 @@ test('merge: chapter that only has saved flags (no CSV rows) still gets a file',
   // CSV has no rows for Chapter 4 with a valid ts (the one in REUBEN_CSV has
   // no timestamp). Saved flags add one. We should still get a Chapter 4 file.
   const out = buildMarkerFilesFromCsv(REUBEN_CSV, BOOK_WITH_FLAGS);
-  const ch4 = out.files.find((f) => f.name === 'Chapter 4.txt');
+  const ch4 = out.files.find((f) => f.name === 'Marker_[Chapter 4].csv');
   assert.ok(ch4, 'Chapter 4 file exists (from saved flags alone)');
   const lines = ch4.content.split('\n').slice(1);
   // CSV had Chapter 4 at 00:40 too → 2 markers
@@ -180,7 +180,7 @@ test('merge: duplicate timestamps (CSV + saved at same time) both kept', () => {
     ],
   };
   const out = buildMarkerFilesFromCsv(csv, book);
-  const ch9 = out.files.find((f) => f.name === 'Chapter 9.txt');
+  const ch9 = out.files.find((f) => f.name === 'Marker_[Chapter 9].csv');
   const dataLines = ch9.content.split('\n').slice(1);
   // Two markers, both at 1:00.000, both kept
   assert.equal(dataLines.length, 2);

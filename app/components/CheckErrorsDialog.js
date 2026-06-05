@@ -39,6 +39,67 @@ function nameMatches(a, b) {
   if (!na || !nb) return false;
   return na === nb || na.includes(nb) || nb.includes(na);
 }
+// Render the target paragraph with the flagged sentence highlighted
+// inline. We do a soft (whitespace-collapsed, case-insensitive) match
+// so minor punctuation/spacing drift between the saved flag quote and
+// the paragraph text doesn't break the highlight. If we can't find
+// the quote at all, the whole paragraph just renders with no extra
+// styling.
+function renderTargetWithHighlight(target, quote) {
+  const text = String(target || '');
+  if (!text) return '(paragraph not found in chapter HTML)';
+  const q = String(quote || '').trim();
+  if (!q) return text;
+  const normTarget = text.toLowerCase().replace(/\s+/g, ' ');
+  const normQuote = q.toLowerCase().replace(/\s+/g, ' ');
+  const idx = normTarget.indexOf(normQuote);
+  if (idx < 0) {
+    // Soft fallback: try matching just the first 5 words of the quote
+    const head = normQuote.split(' ').slice(0, 5).join(' ');
+    const fallbackIdx = head ? normTarget.indexOf(head) : -1;
+    if (fallbackIdx < 0) return text;
+    return splitWithHighlight(text, normTarget, fallbackIdx, head.length);
+  }
+  return splitWithHighlight(text, normTarget, idx, normQuote.length);
+}
+
+// Map a position in the normalised text back to the original text by
+// walking both in lockstep, then render <before><highlight><after>.
+function splitWithHighlight(original, normalised, normStart, normLen) {
+  let oi = 0;
+  let ni = 0;
+  let originalStart = 0;
+  let originalEnd = original.length;
+  while (oi < original.length && ni < normStart) {
+    const oc = original[oi];
+    const nc = normalised[ni];
+    if (oc.toLowerCase() === nc) { oi += 1; ni += 1; continue; }
+    if (/\s/.test(oc)) { oi += 1; continue; }
+    // Drift — bail out and return whole text
+    return original;
+  }
+  originalStart = oi;
+  let matched = 0;
+  while (oi < original.length && matched < normLen) {
+    const oc = original[oi];
+    const nc = normalised[normStart + matched];
+    if (oc.toLowerCase() === nc) { oi += 1; matched += 1; continue; }
+    if (/\s/.test(oc)) { oi += 1; continue; }
+    return original;
+  }
+  originalEnd = oi;
+  const before = original.slice(0, originalStart);
+  const hl = original.slice(originalStart, originalEnd);
+  const after = original.slice(originalEnd);
+  return (
+    <>
+      {before}
+      <mark style={{ background: '#fff2a8', padding: '0 2px', borderRadius: 3 }}>{hl}</mark>
+      {after}
+    </>
+  );
+}
+
 function fmtTime(sec) {
   const s = Math.max(0, Math.floor(Number(sec) || 0));
   const m = Math.floor(s / 60);

@@ -133,13 +133,17 @@ test('tally: multiple character highlights in one section', () => {
   assert.equal(result.tallies[NARRATOR_KEY], 1); // "Then"
 });
 
-test('tally: nested spans — inner mapped class wins', () => {
-  // mammoth occasionally nests an emphasis span inside a highlight one.
+test('tally: nested elements inherit the outer highlight character', () => {
+  // mammoth sometimes nests <em>/<strong> inside a highlight span. The
+  // inner text should still count toward the outer character — and any
+  // tag boundary that splits a token (like </em>.) just becomes
+  // separate tokens via the same \\S+ split the reader uses.
   const result = tallyCharacterWordCounts(
     `<p><span class="hl-yellow">Phantom said <em>quietly</em>.</span></p>`,
     NARRATORS,
   );
-  assert.equal(result.tallies.Phantom, 3); // "Phantom said quietly."
+  // Tokens: "Phantom", "said", "quietly", "."  → all routed to Phantom
+  assert.equal(result.tallies.Phantom, 4);
   assert.ok(!(NARRATOR_KEY in result.tallies));
 });
 

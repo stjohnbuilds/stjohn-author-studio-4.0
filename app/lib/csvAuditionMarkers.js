@@ -38,20 +38,33 @@ export function markerFileName(label) {
 //   { files, folderName, totalMarkers, skippedNoTimestamp, chapters }.
 // `files` is an array of { name, content } ready for
 // electron.exportMarkersFolder OR a zip download fallback.
-export function buildMarkerFilesFromCsv(text, bookTitle) {
+// Accepts either a book title string (backward-compat) OR the full
+// book object. When the book object is passed, this MERGES the CSV
+// markers with the in-app saved flag markers — one file per chapter
+// containing both, sorted by Start time. Duplicates at the same
+// timestamp are LEFT IN (Marie 2026-06-04: "if there are duplicates
+// in timestamp just leave them"), so the engineer sees both
+// perspectives at the same moment.
+export function buildMarkerFilesFromCsv(text, bookOrTitle) {
+  const isBook = bookOrTitle && typeof bookOrTitle === 'object';
+  const bookTitle = isBook ? (bookOrTitle?.title || 'book') : (bookOrTitle || 'book');
   const { rows, skippedNoTimestamp } = parseFlagCsv(text);
   const groups = new Map();
+  function groupFor(label) {
+    const groupKey = String(label || '').toLowerCase().trim() || 'chapter';
+    const existing = groups.get(groupKey);
+    if (existing) return existing;
+    const fresh = { label, markers: [], csvCount: 0, savedCount: 0 };
+    groups.set(groupKey, fresh);
+    return fresh;
+  }
+
+  // 1) CSV-imported markers — same column-7/8 length-wins rule.
   rows.forEach((row) => {
     const startSeconds = Number(row.ts);
     const start = formatAuditionTime(startSeconds);
     if (!start) return; // ts ≤ 0 already filtered by parser, defence in depth
-    const groupKey = String(row.chapterTitle || '').toLowerCase().trim() || 'chapter';
-    const group = groups.get(groupKey) || { label: row.chapterTitle, markers: [] };
-    // Position-based mapping (column names are ignored). The two text
-    // cells get sorted by length: longer = the manuscript quote → Name,
-    // shorter = the engineer-style note → Description. This matches
-    // Export for Engineer for app-style CSVs (col 6 = quote, longer)
-    // AND for engineer-template CSVs (col 7 = quote, longer).
+    const group = groupFor(row.chapterTitle);
     const a = cleanMarkerField(row.colSeven);
     const b = cleanMarkerField(row.colEight);
     let name = '';
@@ -69,11 +82,39 @@ export function buildMarkerFilesFromCsv(text, bookTitle) {
       name = a;
       description = b;
     }
-    group.markers.push({ startSeconds, start, name: name || `Marker ${group.markers.length + 1}`, description });
-    groups.set(groupKey, group);
+    group.markers.push({ startSeconds, start, name: name || `Marker ${group.markers.length + 1}`, description, source: 'csv' });
+    group.csvCount += 1;
   });
 
+  // 2) Saved in-app flag markers — merged into the same per-chapter
+  //    buckets so the engineer gets ONE file per chapter that contains
+  //    both sources. Same shape as exportAuditionMarkers builds.
+  if (isBook && Array.isArray(bookOrTitle?.chapters)) {
+    bookOrTitle.chapters.forEach((chapter) => {
+      const group = groupFor(chapter?.title || 'Chapter');
+      (chapter.sections || []).forEach((section) => {
+        (section.flags || []).forEach((flag) => {
+          const startSeconds = Number(flag?.ts);
+          const start = formatAuditionTime(startSeconds);
+          if (!start) return;
+          group.markers.push({
+            startSeconds,
+            start,
+            name: cleanMarkerField(flag?.sentPlain) || `Marker ${group.markers.length + 1}`,
+            description: cleanMarkerField(flag?.note),
+            source: 'saved',
+          });
+          group.savedCount += 1;
+        });
+      });
+    });
+  }
+
+  // 3) Write per-chapter files. Sort by Start time. Duplicates at the
+  //    same timestamp stay in (per Marie's instruction).
   const files = [];
+  let csvMarkers = 0;
+  let savedMarkers = 0;
   groups.forEach((group) => {
     if (!group.markers.length) return;
     group.markers.sort((m1, m2) => m1.startSeconds - m2.startSeconds);
@@ -82,6 +123,8 @@ export function buildMarkerFilesFromCsv(text, bookTitle) {
       lines.push([m.name, m.start, DURATION, TIME_FORMAT, CUE_TYPE, m.description].join('\t'));
     });
     files.push({ name: markerFileName(group.label), content: lines.join('\n') });
+    csvMarkers += group.csvCount;
+    savedMarkers += group.savedCount;
   });
 
   const folderBase = cleanMarkerField(bookTitle || 'book') || 'book';

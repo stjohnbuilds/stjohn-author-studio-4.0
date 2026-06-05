@@ -445,6 +445,122 @@ function exportSectionCSV(ch, sec) {
 
 function dl(content, filename, type) { const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=filename;a.click(); }
 
+// --------------------------------------------------------------------------
+// DOM-based character tally for the Audiobook Timing Detail breakdown.
+//
+// This MIRRORS Proof's per-word detectNarrator() exactly: mount the
+// chapter HTML off-screen, walk up the parent chain of every word's
+// element, read getComputedStyle().backgroundColor, hex-distance match
+// to narratorColors with the SAME 85 threshold.
+//
+// Why DOM and not string parsing: the reader's detectNarrator works on
+// Marie's data because it uses the computed style — which picks up the
+// background regardless of whether it came from an inline `style="..."`
+// attribute, a class with a stylesheet rule, or a parent element. The
+// string parser only sees inline styles, which is why "all five
+// narrators detected per-word in Proof, none detected in the breakdown."
+//
+// Inject the same .hl-* CSS the reader uses (once, into <head>) so the
+// off-screen container resolves those classes to real backgrounds even
+// without Proof's reader styles in scope.
+// --------------------------------------------------------------------------
+const HL_PALETTE_CSS = `
+.hl-yellow{background:#FFF8DC}.hl-green{background:#DFF2E3}
+.hl-cyan{background:#DFF4F7}.hl-magenta,.hl-pink{background:#FDDEE8}
+.hl-blue{background:#DDEEFF}.hl-red{background:#FDDEDE}
+.hl-darkblue{background:#D4E5F9}.hl-darkcyan{background:#D4F0F5}
+.hl-darkgreen{background:#D4EDD9}.hl-darkmagenta{background:#F0D9F7}
+.hl-darkred{background:#F9D9D9}.hl-darkyellow{background:#FFF0CC}
+.hl-lightgray{background:#F2F2F0}.hl-darkgray{background:#E6E5E0}
+`;
+const HL_STYLE_ID = '__breakdown_hl_palette__';
+function ensureHlPaletteStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(HL_STYLE_ID)) return;
+  const s = document.createElement('style');
+  s.id = HL_STYLE_ID;
+  s.textContent = HL_PALETTE_CSS;
+  document.head.appendChild(s);
+}
+
+const BREAKDOWN_SKIP_HEXES = new Set(['#fafaf7', '#ffffff', '#f5f5f5', '#fafafa', '#f0fdf4']);
+const BREAKDOWN_NARRATOR_KEY = '__narrator__';
+
+function rgbToHex_breakdown(rgb) {
+  if (!rgb) return null;
+  const m = rgb.match(/\d+/g);
+  if (!m || m.length < 3) return null;
+  return '#' + m.slice(0, 3).map((n) => parseInt(n, 10).toString(16).padStart(2, '0')).join('');
+}
+function hexDist_breakdown(a, b) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  return Math.sqrt([16, 8, 0].reduce((acc, s) => acc + (((ah >> s) & 255) - ((bh >> s) & 255)) ** 2, 0));
+}
+
+function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
+  if (typeof document === 'undefined') return null;
+  const mapping = (narratorColors || [])
+    .map((nc) => {
+      const name = String(nc?.characterName || '').trim();
+      let hex = String(nc?.hex || '').trim().toLowerCase();
+      if (hex && !hex.startsWith('#')) hex = '#' + hex;
+      if (/^#[0-9a-f]{3}$/.test(hex)) hex = '#' + hex.slice(1).split('').map((c) => c + c).join('');
+      return { name, hex };
+    })
+    .filter((m) => m.name && /^#[0-9a-f]{6}$/.test(m.hex));
+  if (!mapping.length) return null;
+  ensureHlPaletteStyles();
+
+  const host = document.createElement('div');
+  host.setAttribute('aria-hidden', 'true');
+  host.style.cssText = 'position:absolute;left:-99999px;top:-99999px;visibility:hidden;pointer-events:none;width:600px;';
+  host.innerHTML = String(sectionHtml || '');
+  document.body.appendChild(host);
+
+  const tallies = {};
+  const add = (k, n) => { if (n > 0) tallies[k] = (tallies[k] || 0) + n; };
+
+  function bgCharOf(startEl) {
+    let el = startEl;
+    while (el && el !== host) {
+      try {
+        const bg = window.getComputedStyle(el).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+          const hex = rgbToHex_breakdown(bg);
+          if (hex && !BREAKDOWN_SKIP_HEXES.has(hex)) {
+            let best = null;
+            let bd = 999;
+            for (const m of mapping) {
+              const d = hexDist_breakdown(hex, m.hex);
+              if (d < bd) { bd = d; best = m; }
+            }
+            if (best && bd < 85) return best.name;
+          }
+        }
+      } catch {}
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  try {
+    const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const text = node.nodeValue || '';
+      const wordCount = (text.match(/\S+/g) || []).length;
+      if (!wordCount) continue;
+      const char = bgCharOf(node.parentElement);
+      add(char || BREAKDOWN_NARRATOR_KEY, wordCount);
+    }
+  } finally {
+    document.body.removeChild(host);
+  }
+
+  return { tallies, narratorKey: BREAKDOWN_NARRATOR_KEY };
+}
+
 function normText(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
 function nameMatches(a, b) {
   const na = normText(a), nb = normText(b);

@@ -7,6 +7,7 @@ import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './Manuscri
 import InfoTip from './InfoTip';
 import SharedBookDetail from './BookDetail';
 import CheckErrorsDialog from './CheckErrorsDialog';
+import { buildMarkerFilesFromCsv } from '../lib/csvAuditionMarkers';
 import { buildWordSpans, htmlToPlainText } from '../../packages/quill-engine';
 // Audiobook Timing Detail breakdown helper. Walks the section HTML and
 // tallies word counts per character using the EXISTING hl-* highlight

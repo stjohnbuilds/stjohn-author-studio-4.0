@@ -12,6 +12,25 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-04 — Playback speed: 1.5 default + per-narrator memory
+
+- [x] **Default listening speed is now 1.5x.** Changed in
+      `app/page.js`: the initial state and the localStorage-fallback
+      both now resolve to 1.5 instead of 2. Books that previously
+      saved 2 keep using 2 (the preset is in the valid range); books
+      where nothing was saved start at 1.5. — completed 2026-06-04
+- [x] **Per-narrator speed memory — shared across Proof / Quill /
+      phone.** New `app/lib/narratorSpeedMemory.js` stores per-narrator
+      speed under `ap-narrator-speed:<NarratorName>` in localStorage.
+      Narrator key derived from `section.narratorName` first, else
+      the dominant highlight character → narrator via the existing
+      `tallyCharacterWordCounts` + `book.narratorColors` mapping, else
+      `'default'`. So Marie's Mark chapters open at her last Mark
+      speed (e.g. 1.45), Daryl chapters at her last Daryl speed (e.g.
+      1.5), etc. — and the speed she sets in Proof is honoured by
+      Quill + phone too (they share the `'default'` slot). No new
+      data on book / section / chapter. — completed 2026-06-04
+
 ### 🆕 2026-06-04 — Flag-quote "Kar ma" phantom-space bug + narrator breakdown regression
 
 - [x] **Proof flag quote: exact text from the .docx, not box-join with

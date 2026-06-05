@@ -2361,6 +2361,12 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           </div>
         );
       })()}
+      <CheckErrorsDialog
+        open={showCheckErrors}
+        onClose={()=>setShowCheckErrors(false)}
+        book={book}
+        audioUrls={audioUrls}
+      />
       {showTimingDetails && (
         <div style={{ position:'fixed',inset:0,background:'rgba(28, 18, 44, 0.18)',backdropFilter:'blur(4px)',zIndex:1300,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px' }} onClick={()=>setShowTimingDetails(false)}>
           <div style={{ width:'min(760px, 100%)',maxHeight:'min(78vh, 720px)',overflow:'auto',background:'white',border:'1px solid var(--accent-border)',borderRadius:24,boxShadow:'0 24px 60px var(--accent-shadow-strong)',padding:'18px 18px 16px' }} onClick={e=>e.stopPropagation()}>

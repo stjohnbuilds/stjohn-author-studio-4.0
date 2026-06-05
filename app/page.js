@@ -615,8 +615,8 @@ export default function Home() {
         if (LISTEN_SPEED_PRESETS.includes(speed)) {
           setReaderDefaultListeningSpeed(speed);
         } else {
-          setReaderDefaultListeningSpeed(2);
-          localStorage.setItem('ap-default-listening-speed', '2');
+          setReaderDefaultListeningSpeed(1.5);
+          localStorage.setItem('ap-default-listening-speed', '1.5');
         }
       }
     } catch {}

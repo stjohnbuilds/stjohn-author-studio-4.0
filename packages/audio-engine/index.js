@@ -92,7 +92,12 @@ export function getMsIdxAtTime(syncTable, audioTime, fallbackIdx) {
 // the audio time to seek to. Used for "jump to this word" and for
 // computing where the cursor should be when navigating chapters.
 export function getAudioTimeForMsIdx(syncTable, targetMsIdx) {
-  const tbl = Array.isArray(syncTable) ? syncTable : [];
+  // Defensive: callers occasionally pass an array of raw whisper words
+  // (no msIdx field) or an array with null/undefined entries. Filter
+  // to entries that have the {msIdx, t} shape this function expects.
+  const tbl = (Array.isArray(syncTable) ? syncTable : []).filter((row) => (
+    row && typeof row === 'object' && Number.isFinite(row.msIdx) && Number.isFinite(row.t)
+  ));
   const target = Number(targetMsIdx);
   if (!tbl.length || !Number.isFinite(target)) return null;
 

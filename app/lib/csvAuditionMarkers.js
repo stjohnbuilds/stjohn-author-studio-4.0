@@ -26,12 +26,20 @@ function cleanMarkerField(s) {
   return String(s || '').replace(/\s+/g, ' ').trim();
 }
 
-// Filesystem-safe filename — same rules SessionsView uses so the files
-// land alongside the in-app exports cleanly. Allows letters / digits /
-// space / dash / underscore / parens / dot.
+// Filesystem-safe filename — IDENTICAL to SessionsView.markerFileName
+// (see the in-app "Export for Engineer" path) so Audition treats the
+// two outputs the same way. CRITICAL: extension must be .csv, not
+// .txt — Audition refuses to import .txt marker files even when the
+// content is tab-separated. (Marie 2026-06-04 bug: "the ones from
+// PREP work in audition but now these ones aren't working for
+// engineer" — Prep + the in-app exporter both use .csv; this one
+// was the odd one out using .txt.)
 export function markerFileName(label) {
-  const base = String(label || 'Chapter').replace(/[^\w \-().]+/g, '_').trim() || 'Chapter';
-  return `${base}.txt`;
+  const safeLabel = String(label || 'Chapter')
+    .replace(/[/\\?%*:|"<>]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim() || 'Chapter';
+  return `Marker_[${safeLabel}].csv`;
 }
 
 // Build the marker list from the parsed CSV rows. Returns

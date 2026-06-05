@@ -89,10 +89,11 @@ test('rows with no timestamp are skipped + counted', () => {
   assert.ok(out.skippedNoTimestamp >= 1, 'at least the "Chapter 50" row + "18 DONE" placeholder counted');
 });
 
-test('marker filename strips characters Audition would choke on', () => {
+test('marker filename matches SessionsView.markerFileName (Marker_[…].csv)', () => {
   assert.equal(markerFileName('Chapter 2'), 'Marker_[Chapter 2].csv');
-  assert.equal(markerFileName('Crescent-Chapter One'), 'Crescent-Chapter One.txt');
-  assert.equal(markerFileName('Chapter / 3'), 'Chapter _ 3.txt');
+  assert.equal(markerFileName('Crescent-Chapter One'), 'Marker_[Crescent-Chapter One].csv');
+  // forward slash is an illegal path char — replaced with _
+  assert.equal(markerFileName('Chapter / 3'), 'Marker_[Chapter _ 3].csv');
 });
 
 test('empty book title falls back to "book audition markers"', () => {

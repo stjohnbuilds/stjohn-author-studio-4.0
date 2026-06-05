@@ -398,52 +398,71 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
 
   // Auto-seek + play when the current flag changes.
   //
-  // Tricky: setting `currentTime` on an <audio> only works once
-  // `duration` is known. If the audio element has been around (e.g.,
-  // because the same file was already loaded) `loadedmetadata` may have
-  // already fired BEFORE this effect attaches its listener, so the
-  // simple "wait for the event" pattern silently misses it and the
-  // audio stays at 0:00 — the bug Marie hit on a 09:17 flag. Fix:
-  //   • try the seek immediately
-  //   • try again on `loadedmetadata` / `durationchange` / `canplay`
-  //   • also poll every 60ms for up to 4s as a final safety net
-  //   • flip a `didSeek` flag so we only seek once per (audio, flag)
+  // Pitfalls handled:
+  //  • setting `currentTime` only sticks once `duration` is known →
+  //    try on multiple readiness events + poll for ~6s as a fallback
+  //  • calling `play()` immediately after setting `currentTime` can
+  //    leave the audio paused at 0 OR playing from the OLD position
+  //    on browsers/Electron — the seek hasn't settled. Wait for the
+  //    `seeked` event before play. (Marie 2026-06-04 bug: first flag
+  //    at 50s played from 0.)
+  //  • `seeked` may never fire if we're already at the target — 800ms
+  //    fallback timeout calls play() anyway
+  //  • `didSeek` flag so we only fire once per (audio, flag)
   useEffect(() => {
     const a = audioRef.current;
     if (!a || !audioUrl || !current) return;
-    const leadStart = Math.max(0, seekStart - SEEK_LEAD_SECONDS);
+    const target = Math.max(0, seekStart - SEEK_LEAD_SECONDS);
     let didSeek = false;
     let cancelled = false;
     let pollTimer = null;
-    let pollsLeft = 70; // ~4.2s of polling at 60ms intervals
+    let pollsLeft = 100; // ~6s of polling at 60ms
 
-    function trySeek() {
+    function startPlayWhenSeeked() {
+      let playTimer = null;
+      const onSeeked = () => {
+        a.removeEventListener('seeked', onSeeked);
+        if (playTimer) clearTimeout(playTimer);
+        if (!cancelled) a.play?.().catch(() => { /* autoplay blocked — silent */ });
+      };
+      a.addEventListener('seeked', onSeeked);
+      // Some seeks land instantly and never fire `seeked`. Fall back.
+      playTimer = setTimeout(() => {
+        a.removeEventListener('seeked', onSeeked);
+        if (!cancelled) a.play?.().catch(() => {});
+      }, 800);
+    }
+
+    function doSeek() {
       if (cancelled || didSeek) return;
-      if (Number.isFinite(a.duration) && a.duration > 0) {
-        didSeek = true;
-        try {
-          a.currentTime = Math.min(leadStart, Math.max(0, a.duration - 0.1));
-          a.play?.().catch(() => { /* user-gesture rules — silent */ });
-        } catch {}
-        return;
-      }
-      if (pollsLeft > 0) {
+      if (!Number.isFinite(a.duration) || a.duration <= 0) return;
+      didSeek = true;
+      const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
+      startPlayWhenSeeked();
+      try { a.currentTime = clamped; } catch {}
+    }
+
+    function poll() {
+      if (cancelled || didSeek) return;
+      doSeek();
+      if (!didSeek && pollsLeft > 0) {
         pollsLeft -= 1;
-        pollTimer = setTimeout(trySeek, 60);
+        pollTimer = setTimeout(poll, 60);
       }
     }
 
-    trySeek();
-    a.addEventListener('loadedmetadata', trySeek);
-    a.addEventListener('durationchange', trySeek);
-    a.addEventListener('canplay', trySeek);
+    doSeek();
+    a.addEventListener('loadedmetadata', doSeek);
+    a.addEventListener('durationchange', doSeek);
+    a.addEventListener('canplay', doSeek);
+    poll();
 
     return () => {
       cancelled = true;
       if (pollTimer) clearTimeout(pollTimer);
-      a.removeEventListener('loadedmetadata', trySeek);
-      a.removeEventListener('durationchange', trySeek);
-      a.removeEventListener('canplay', trySeek);
+      a.removeEventListener('loadedmetadata', doSeek);
+      a.removeEventListener('durationchange', doSeek);
+      a.removeEventListener('canplay', doSeek);
     };
   }, [audioUrl, current?.id, seekStart]);
 

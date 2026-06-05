@@ -185,25 +185,147 @@ function findSectionInChapter(book, chapterId, sectionId) {
 // (already in memory) — no DOM walk, no new data.
 function extractContextParagraphs(sectionHtml, quote) {
   const html = String(sectionHtml || '');
-  if (!html) return { before: '', target: '', after: '' };
-  // Split on </p> (mammoth output has flat paragraph structure).
-  const paragraphs = html.split(/<\/p>/i)
-    .map((p) => p.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+  if (!html) return { before: '', target: '', after: '', targetStartWordIdx: 0 };
+  // Split on every block-level closing tag (not just </p> — mammoth
+  // wraps headings and quoted blocks too). Strip remaining inline tags.
+  const paragraphs = html.split(/<\/(?:p|div|h[1-6]|blockquote|li)>/i)
+    .map((p) => p.replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ').trim())
     .filter(Boolean);
-  if (!paragraphs.length) return { before: '', target: '', after: '' };
+  if (!paragraphs.length) return { before: '', target: '', after: '', targetStartWordIdx: 0 };
+
+  // Cumulative chapter word-index BEFORE each paragraph — so the live
+  // highlight can convert "current chapter word" → "word inside this
+  // paragraph". Counts every \\S+ in every preceding paragraph so the
+  // total matches what the reader's whisper sync table uses.
+  const wordCounts = paragraphs.map((p) => (p.match(/\S+/g) || []).length);
+  const startIdxs = [];
+  let acc = 0;
+  for (const n of wordCounts) { startIdxs.push(acc); acc += n; }
+
+  // Locate the paragraph containing the quote. Try the full quote
+  // first, then the first 5 words as a soft fallback (handles minor
+  // punctuation drift between the saved quote and the manuscript).
   const q = normText(quote);
+  let idx = -1;
   if (q) {
-    const idx = paragraphs.findIndex((p) => normText(p).includes(q));
-    if (idx >= 0) {
-      return {
-        before: paragraphs[idx - 1] || '',
-        target: paragraphs[idx],
-        after: paragraphs[idx + 1] || '',
-      };
+    idx = paragraphs.findIndex((p) => normText(p).includes(q));
+    if (idx < 0) {
+      const head = q.split(' ').slice(0, 5).join(' ');
+      if (head) idx = paragraphs.findIndex((p) => normText(p).includes(head));
     }
   }
-  // No quote match → fall back to the first paragraph + the next.
-  return { before: '', target: paragraphs[0], after: paragraphs[1] || '' };
+  if (idx < 0) idx = 0;
+
+  return {
+    before: paragraphs[idx - 1] || '',
+    target: paragraphs[idx] || '',
+    after: paragraphs[idx + 1] || '',
+    targetStartWordIdx: startIdxs[idx] || 0,
+  };
+}
+
+// Renders the target paragraph with the flagged sentence highlighted
+// AND a moving word-by-word highlight that follows the playing audio.
+// Falls back gracefully to the static highlight when there's no
+// transcription (no alignment) — and to plain text if the quote
+// can't be located.
+function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, alignment, audioRef }) {
+  const [currentLocalIdx, setCurrentLocalIdx] = useState(-1);
+  const tblRef = useRef(null);
+
+  useEffect(() => {
+    if (!Array.isArray(alignment) || alignment.length < 4) { tblRef.current = null; return; }
+    try { tblRef.current = buildSyncTable(alignment); }
+    catch { tblRef.current = null; }
+  }, [alignment]);
+
+  useEffect(() => {
+    const audio = audioRef?.current;
+    if (!audio || paragraphStartWordIdx == null) { setCurrentLocalIdx(-1); return; }
+    let raf = null;
+    function tick() {
+      raf = null;
+      const tbl = tblRef.current;
+      if (!tbl) return;
+      const t = audio.currentTime;
+      const msIdx = getMsIdxAtTime(tbl, t, -1);
+      setCurrentLocalIdx(Number.isFinite(msIdx) && msIdx >= 0 ? msIdx - paragraphStartWordIdx : -1);
+      if (!audio.paused) raf = requestAnimationFrame(tick);
+    }
+    function schedule() { if (!raf) raf = requestAnimationFrame(tick); }
+    audio.addEventListener('play', schedule);
+    audio.addEventListener('pause', schedule);
+    audio.addEventListener('timeupdate', schedule);
+    audio.addEventListener('seeked', schedule);
+    schedule();
+    return () => {
+      audio.removeEventListener('play', schedule);
+      audio.removeEventListener('pause', schedule);
+      audio.removeEventListener('timeupdate', schedule);
+      audio.removeEventListener('seeked', schedule);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [audioRef, paragraphStartWordIdx, alignment]);
+
+  const text = String(target || '');
+  if (!text) return '(paragraph not found in chapter HTML)';
+
+  // Find the flagged quote's char range in the paragraph (for static
+  // yellow highlight).
+  const q = String(quote || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normText2 = text.toLowerCase().replace(/\s+/g, ' ');
+  let quoteHeadInNorm = -1;
+  if (q) {
+    quoteHeadInNorm = normText2.indexOf(q);
+    if (quoteHeadInNorm < 0) {
+      const head = q.split(' ').slice(0, 5).join(' ');
+      if (head) quoteHeadInNorm = normText2.indexOf(head);
+    }
+  }
+  const quoteTailInNorm = quoteHeadInNorm >= 0 && q
+    ? quoteHeadInNorm + q.length
+    : -1;
+
+  // Walk tokens. Word tokens get a wordIdx counter (matched against
+  // currentLocalIdx for the moving highlight). Whitespace tokens just
+  // render as-is.
+  const tokens = text.split(/(\s+)/);
+  const out = [];
+  let wordIdx = 0;
+  let normPos = 0;
+  tokens.forEach((tok, i) => {
+    if (!tok) return;
+    if (/^\s+$/.test(tok)) {
+      out.push(<React.Fragment key={`s${i}`}>{tok}</React.Fragment>);
+      normPos += 1; // collapsed-whitespace consumes one char in normText2
+      return;
+    }
+    const myIdx = wordIdx++;
+    const myNormStart = normPos;
+    const myNormEnd = normPos + tok.toLowerCase().length;
+    normPos = myNormEnd;
+    const inQuote = quoteHeadInNorm >= 0
+      && myNormStart < quoteTailInNorm
+      && myNormEnd > quoteHeadInNorm;
+    const isCurrent = myIdx === currentLocalIdx;
+    const style = {};
+    if (inQuote) {
+      style.background = '#fff2a8';
+      style.padding = '0 2px';
+      style.borderRadius = 3;
+    }
+    if (isCurrent) {
+      style.background = '#ffd166';
+      style.boxShadow = '0 0 0 1px #c98a00';
+      style.padding = '0 2px';
+      style.borderRadius = 3;
+      style.transition = 'background 0.08s ease';
+    }
+    out.push(<span key={`w${i}`} style={style}>{tok}</span>);
+  });
+  return out;
 }
 
 export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {

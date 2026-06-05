@@ -7,6 +7,11 @@ import { STYLE_MAP, convertShadingToHighlight, parseStructure } from './Manuscri
 import InfoTip from './InfoTip';
 import SharedBookDetail from './BookDetail';
 import { buildWordSpans, htmlToPlainText } from '../../packages/quill-engine';
+// Audiobook Timing Detail breakdown helper. Walks the section HTML and
+// tallies word counts per character using the EXISTING hl-* highlight
+// spans + book.narratorColors mapping. No new metadata, no UI change
+// outside the popup itself.
+import { tallyCharacterWordCounts, NARRATOR_KEY as TALLY_NARRATOR_KEY } from '../../packages/manuscript-engine';
 
 const PLAYBACK_SPEED_MIN = 0.5;
 const PLAYBACK_SPEED_MAX = 4;

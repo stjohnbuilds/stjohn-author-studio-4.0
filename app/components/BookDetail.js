@@ -16,6 +16,7 @@
 //   (separate 2385-line refactor logged in TODO).
 
 import React from 'react';
+import { IconTrash } from './icons';
 import {
   HomeBackPill,
   SaveBadge,

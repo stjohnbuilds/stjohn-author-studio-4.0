@@ -12,6 +12,32 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-04 — Check Errors popup (re-listen workflow)
+
+- [x] **"Check errors" popup — saved flags OR uploaded CSV, same UI.**
+      New `app/components/CheckErrorsDialog.js`. Walks one flag at a
+      time. Top-right toggle: "Saved flags" reads
+      `book.chapters[].sections[].flags` as-is. "Upload CSV" parses
+      the existing export format (Chapter / Audio File / Page /
+      Timestamp / Narrator/Engineer / Type / Misread Quote / Should
+      Say) AND Marie's engineer-template spreadsheet variant (column
+      labels "File name" / "Note" for the same columns; scans past
+      Project / Author / MANUSCRIPT LINK pre-rows). CSV-imported
+      flags are in-memory only — never saved to the book.
+      Walker body shows chapter / page / timestamp / narrator /
+      type / quote / should-say + the paragraph context (before /
+      flagged / after) lifted from the existing section HTML. Audio
+      auto-plays from `max(0, ts − 10s)` using the chapter's currently
+      attached audio. If the chapter has a whisperAlignment and the
+      flag has a manuscript idx, seek time uses
+      `getAudioTimeForMsIdx` so re-recorded chapters with shifted
+      pacing still land on the right word (falls back to original ts
+      otherwise). Reuses existing AppDialog + AudioDock + the same
+      flag shape. CSV parser is column-name-tolerant, case-insensitive,
+      and scans past header noise. 10 new regression tests; 108/108
+      pass overall. Button sits next to "Breakdown" on the book
+      detail page. — completed 2026-06-04
+
 ### 🆕 2026-06-04 — Playback speed: 1.5 default + per-narrator memory
 
 - [x] **Default listening speed is now 1.5x.** Changed in

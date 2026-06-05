@@ -3055,11 +3055,13 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     <span style={{ fontSize:'0.62rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'var(--text-light)',fontWeight:700 }}>Left</span>
                     <span style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalTimeLeftSeconds)}</span>
                   </div>
-                  {durationSummary.cachedKeys > 0 && (
-                    <button onClick={()=>setShowTimingDetails(true)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.68rem',fontWeight:700,padding:'3px 8px' })}>
-                      Breakdown
-                    </button>
-                  )}
+                  {/* Breakdown is always available — it shows word counts
+                      even when no audio has been attached yet, so Marie
+                      can see her whole book's distribution before any
+                      recording exists. */}
+                  <button onClick={()=>setShowTimingDetails(true)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.68rem',fontWeight:700,padding:'3px 8px' })}>
+                    Breakdown
+                  </button>
                 </div>
               </div>
             </div>

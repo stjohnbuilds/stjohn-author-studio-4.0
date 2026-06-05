@@ -41,16 +41,17 @@ Always read `HANDOFF.md` first, then this file.
       scene headings — Marie's current manuscript), also try
       `sec.title` and `ch.title`. Catches chapters literally named
       after the POV character. — completed 2026-06-04
-- [ ] **Audiobook breakdown: still partial — needs Marie's .docx to
-      finish.** The harden-the-lookup pass above only helps when the
-      chapter or section title contains the character name. Marie's
-      current screenshot shows generic titles like "Chapter 9", so
-      every chapter still falls through to "Unassigned narrator". The
-      correct fix is to either (a) re-import the manuscript with
-      character-named H2 scene headings, or (b) add a UI to manually
-      assign POV character per chapter. Decision needs Marie + a look
-      at the actual .docx. The 3.0 build worked because that
-      manuscript had character-named scene headings.
+- [x] **Audiobook breakdown: per-chapter character picker.**
+      Confirmed by reading the OLD Script and Sync 3.0 source that the
+      parser + breakdown logic are byte-for-byte identical between 3.0
+      and 4.0 — so the regression is purely the data: Marie's current
+      .docx no longer produces character-named H2 scene headings, so
+      `sec.characterName` stays null. Added a compact `<select>` next
+      to each chapter row in the Edit panel listing the narrator
+      characters; on Save, the pick is stamped onto every section in
+      that chapter AND onto `ch.characterName`. Breakdown matcher now
+      checks both. Works for ANY book regardless of how its .docx is
+      structured. — completed 2026-06-04
 - [ ] **Page-number consistency — BENCHED at Marie's request
       2026-06-04.** The whole stack is fragile (PDF page text search +
       ± page adjustment + paging extraction). Marie has explicitly

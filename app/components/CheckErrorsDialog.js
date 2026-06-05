@@ -243,16 +243,21 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
   const q = String(quote || '').trim().toLowerCase().replace(/\s+/g, ' ');
   const normText2 = text.toLowerCase().replace(/\s+/g, ' ');
   let quoteHeadInNorm = -1;
+  let matchLength = q.length;
   if (q) {
     quoteHeadInNorm = normText2.indexOf(q);
     if (quoteHeadInNorm < 0) {
+      // Soft fallback: match just the first 5 words. The highlight length
+      // must shrink to the head length too, otherwise words past the
+      // actual match get painted yellow (the bug Marie nearly hit).
       const head = q.split(' ').slice(0, 5).join(' ');
-      if (head) quoteHeadInNorm = normText2.indexOf(head);
+      if (head) {
+        quoteHeadInNorm = normText2.indexOf(head);
+        if (quoteHeadInNorm >= 0) matchLength = head.length;
+      }
     }
   }
-  const quoteTailInNorm = quoteHeadInNorm >= 0 && q
-    ? quoteHeadInNorm + q.length
-    : -1;
+  const quoteTailInNorm = quoteHeadInNorm >= 0 ? quoteHeadInNorm + matchLength : -1;
 
   // Walk tokens. Word tokens get a wordIdx counter (matched against
   // currentLocalIdx for the moving highlight). Whitespace tokens just

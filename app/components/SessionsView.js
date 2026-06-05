@@ -968,29 +968,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         const sectionsAfterUntick = includedSectionIds
           ? (ch.sections || []).filter(sec => includedSectionIds.has(sec.id))
           : (ch.sections || []);
-        // Chapter-level POV pick (set via the per-chapter dropdown in
-        // the Edit panel). When Marie picks one, every section in this
-        // chapter gets stamped with that characterName — overrides the
-        // title/H2 auto-match so the Audiobook Timing Detail breakdown
-        // groups the right runtime under the right narrator. Picking
-        // "— Pick character —" leaves sections alone.
-        const pickedName = (editCh?.characterPick || '').trim();
-        const pickedNarrator = pickedName
-          ? finalNarrators.find(nc => nameMatches(nc.characterName, pickedName))
-          : null;
         return {
           ...ch,
-          // Save the pick on the chapter so the dropdown remembers it next time.
-          characterName: pickedName || ch.characterName || null,
           sections: sectionsAfterUntick.map(sec => {
-            if (pickedNarrator) {
-              return {
-                ...sec,
-                characterName: pickedNarrator.characterName,
-                narratorName: pickedNarrator.narratorName || pickedNarrator.characterName || null,
-                isCharPOV: true,
-              };
-            }
             const byTitle = finalNarrators.find(nc => nameMatches(sec.title, nc.characterName));
             const byExisting = !byTitle ? finalNarrators.find(nc => nameMatches(sec.characterName, nc.characterName)) : null;
             const match = byTitle || byExisting;

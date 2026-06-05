@@ -500,16 +500,19 @@ function hexDist_breakdown(a, b) {
 
 function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
   if (typeof document === 'undefined') return null;
-  const mapping = (narratorColors || [])
-    .map((nc) => {
-      const name = String(nc?.characterName || '').trim();
-      let hex = String(nc?.hex || '').trim().toLowerCase();
-      if (hex && !hex.startsWith('#')) hex = '#' + hex;
-      if (/^#[0-9a-f]{3}$/.test(hex)) hex = '#' + hex.slice(1).split('').map((c) => c + c).join('');
-      return { name, hex };
-    })
-    .filter((m) => m.name && /^#[0-9a-f]{6}$/.test(m.hex));
-  if (!mapping.length) return null;
+  // EVERY narrator entry counts — even those without a hex — because
+  // we ALSO match by H2 scene heading (the main driver for Marie's
+  // books, where each scene's text is attributed to the H2 character
+  // even when most of the prose isn't color-highlighted).
+  const allMapping = (narratorColors || []).map((nc) => {
+    const name = String(nc?.characterName || '').trim();
+    let hex = String(nc?.hex || '').trim().toLowerCase();
+    if (hex && !hex.startsWith('#')) hex = '#' + hex;
+    if (/^#[0-9a-f]{3}$/.test(hex)) hex = '#' + hex.slice(1).split('').map((c) => c + c).join('');
+    return { name, hex: /^#[0-9a-f]{6}$/.test(hex) ? hex : null };
+  }).filter((m) => m.name);
+  if (!allMapping.length) return null;
+  const colorMapping = allMapping.filter((m) => m.hex);
   ensureHlPaletteStyles();
 
   const host = document.createElement('div');
@@ -528,10 +531,10 @@ function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
         const bg = window.getComputedStyle(el).backgroundColor;
         if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
           const hex = rgbToHex_breakdown(bg);
-          if (hex && !BREAKDOWN_SKIP_HEXES.has(hex)) {
+          if (hex && !BREAKDOWN_SKIP_HEXES.has(hex) && colorMapping.length) {
             let best = null;
             let bd = 999;
-            for (const m of mapping) {
+            for (const m of colorMapping) {
               const d = hexDist_breakdown(hex, m.hex);
               if (d < bd) { bd = d; best = m; }
             }
@@ -544,6 +547,31 @@ function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
     return null;
   }
 
+  // Pre-collect every heading in document order. For each one, decide
+  // which mapped character its text belongs to (fuzzy nameMatches —
+  // "Phantom" heading matches a "Phantom" character; "Phantom — Day
+  // One" still matches via substring). Headings that don't match any
+  // character get null and are ignored (so a generic "Chapter 9" h1
+  // doesn't wipe out the previously-active character).
+  const headings = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+  const headingEntries = headings.map((h) => {
+    const text = (h.textContent || '').trim();
+    const m = allMapping.find((mm) => nameMatches(text, mm.name));
+    return { el: h, char: m ? m.name : null };
+  });
+  function nearestHeadingChar(el) {
+    let result = null;
+    for (const h of headingEntries) {
+      const rel = h.el.compareDocumentPosition(el);
+      if ((rel & Node.DOCUMENT_POSITION_FOLLOWING) || h.el === el) {
+        if (h.char) result = h.char;
+      } else if (rel & Node.DOCUMENT_POSITION_PRECEDING) {
+        break;
+      }
+    }
+    return result;
+  }
+
   try {
     const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
     while (walker.nextNode()) {
@@ -551,7 +579,13 @@ function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
       const text = node.nodeValue || '';
       const wordCount = (text.match(/\S+/g) || []).length;
       if (!wordCount) continue;
-      const char = bgCharOf(node.parentElement);
+      // Priority — mirrors detectNarrator exactly:
+      //   1) colored highlight band on this word (covers dialogue
+      //      flagged by background colour even mid-scene)
+      //   2) nearest preceding character-named heading (covers the
+      //      bulk narration of a POV scene)
+      //   3) "Narrator" fallback
+      const char = bgCharOf(node.parentElement) || nearestHeadingChar(node.parentElement);
       add(char || BREAKDOWN_NARRATOR_KEY, wordCount);
     }
   } finally {

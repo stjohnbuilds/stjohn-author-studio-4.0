@@ -461,7 +461,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
       panelStyle={{ maxWidth: 760, width: '92vw', height: '85vh', maxHeight: '85vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 60px rgba(28, 18, 44, 0.25)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--border-light)', flexShrink: 0, background: 'white' }}>
-        <h2 id={dialogTitleId} style={{ margin: 0, fontSize: '1.04rem', fontWeight: 700, flex: 1 }}>Check errors</h2>
+        <h2 id={dialogTitleId} style={{ margin: 0, fontSize: '1.04rem', fontWeight: 700, flex: 1 }}>See errors</h2>
         <div style={{ display: 'flex', gap: 6 }}>
           <button type="button" style={pillBtn(mode === 'saved')} onClick={() => setMode('saved')}>Saved flags</button>
           <button type="button" style={pillBtn(mode === 'imported')} onClick={() => fileInputRef.current?.click()}>Upload CSV</button>

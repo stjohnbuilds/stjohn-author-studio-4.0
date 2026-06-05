@@ -1799,6 +1799,8 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
 	            audioRef={audioRef}
 	            audioUrl={audioUrl}
 	            label={audioFileName || ''}
+	            speed={playbackSpeed}
+	            onSpeedChange={handleSpeedChange}
 	            rightActions={syncTable && syncTable.length >= 4 ? (
 	              <>
 	                {/* Marie 2026-05-26: matches Proof's "T" transcription

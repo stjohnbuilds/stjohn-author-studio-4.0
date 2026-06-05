@@ -2768,7 +2768,7 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
           </div>
           <select
             value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
+            onChange={(e) => handleRateChange(Number(e.target.value))}
             aria-label="Playback speed"
             style={{ padding: '3px 4px', borderRadius: 6, border: '1px solid #DDD0C4', fontSize: '0.7rem', background: 'white', color: '#4C4846' }}
           >

@@ -313,10 +313,12 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               </div>
             )}
             <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Context</div>
-              {context.before && <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)' }}>{context.before}</p>}
-              <p style={{ margin: '0 0 6px', fontSize: '0.9rem', color: 'var(--text)', fontWeight: 500 }}>{context.target || '(paragraph not found in chapter HTML)'}</p>
-              {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)' }}>{context.after}</p>}
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Where it is in the chapter</div>
+              {context.before && <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
+              <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
+                {renderTargetWithHighlight(context.target, current?.quote)}
+              </p>
+              {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
             </div>
             {audioUrl ? (
               <AudioDock

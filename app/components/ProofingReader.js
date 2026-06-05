@@ -992,7 +992,18 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const words = msWordsRef.current;
     if(!words.length) return;
     const idx = Math.min(words.length - 1, Math.max(0, rawIdx));
-    openFlagAtIndex(idx, a.currentTime);
+    // Default flag timestamp: if a transcription exists for this
+    // section, use the WHISPER-aligned time for the manuscript word
+    // we landed on — that matches what the phone already does and is
+    // more accurate than audio.currentTime when manual sliding has
+    // drifted from the real spoken word. Falls back to currentTime
+    // when no alignment is available. (Marie 2026-06-04)
+    let flagTs = a.currentTime;
+    if (syncTableRef.current.length >= 4) {
+      const aligned = getAudioTimeForMsIdx(syncTableRef.current, idx);
+      if (Number.isFinite(aligned) && aligned >= 0) flagTs = aligned;
+    }
+    openFlagAtIndex(idx, flagTs);
   }
 
   function saveFlag(){

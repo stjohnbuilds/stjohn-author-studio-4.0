@@ -878,17 +878,35 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
 
   const durationSummary = useMemo(() => {
     const rows = sectionTimingRows;
+    // Word counts run on EVERY row regardless of audio. Time only runs
+    // on rows whose audioKey has a cached duration. Characters that
+    // exist in the manuscript but don't have audio yet still appear
+    // in the breakdown — with a real word count and a "—" for time —
+    // so Marie can see her whole book's distribution before any audio
+    // is recorded.
+    const narratorTotals = {};
+    const narratorCharacters = {};
+    const characterTotals = {};
+    const narratorWords = {};
+    const characterWords = {};
+
+    rows.forEach(row => {
+      const w = Math.max(0, Number(row.wordCount) || 0);
+      narratorWords[row.narrator] = (narratorWords[row.narrator] || 0) + w;
+      characterWords[row.character] = (characterWords[row.character] || 0) + w;
+      if (!narratorCharacters[row.narrator]) narratorCharacters[row.narrator] = new Set();
+      narratorCharacters[row.narrator].add(row.character);
+    });
+
     const grouped = new Map();
     rows.forEach(row => {
+      if (!row.audioKey) return; // skip word-count-only rows from the time grouping
       if (!grouped.has(row.audioKey)) grouped.set(row.audioKey, []);
       grouped.get(row.audioKey).push(row);
     });
 
     let totalAudiobookSeconds = 0;
     let totalTimeLeftSeconds = 0;
-    const narratorTotals = {};
-    const narratorCharacters = {};
-    const characterTotals = {};
     let cachedKeys = 0;
 
     grouped.forEach((groupRows, key) => {
@@ -903,23 +921,36 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         const sectionSec = totalSec * (weight / Math.max(1, weightSum));
         narratorTotals[row.narrator] = (narratorTotals[row.narrator] || 0) + sectionSec;
         characterTotals[row.character] = (characterTotals[row.character] || 0) + sectionSec;
-        if (!narratorCharacters[row.narrator]) narratorCharacters[row.narrator] = new Set();
-        narratorCharacters[row.narrator].add(row.character);
         if (!row.completed) totalTimeLeftSeconds += sectionSec;
       });
     });
 
-    const narratorRows = Object.entries(narratorTotals)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, seconds]) => ({
-        name,
-        seconds,
-        characters: [...(narratorCharacters[name] || [])].sort((a, b) => a.localeCompare(b)),
-      }));
+    // Merge character + narrator keys from BOTH the time totals AND the
+    // word totals so characters with words-only or audio-only still appear.
+    const allCharacterNames = new Set([
+      ...Object.keys(characterTotals),
+      ...Object.keys(characterWords),
+    ]);
+    const allNarratorNames = new Set([
+      ...Object.keys(narratorTotals),
+      ...Object.keys(narratorWords),
+    ]);
 
-    const characterRows = Object.entries(characterTotals)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, seconds]) => ({ name, seconds }));
+    const characterRows = Array.from(allCharacterNames)
+      .map(name => ({ name, seconds: characterTotals[name] || 0, words: characterWords[name] || 0 }))
+      // Sort by words primarily (stable across audio-or-no-audio states),
+      // breaking ties on seconds so the order stays meaningful when the
+      // whole book IS recorded too.
+      .sort((a, b) => (b.words - a.words) || (b.seconds - a.seconds));
+
+    const narratorRows = Array.from(allNarratorNames)
+      .map(name => ({
+        name,
+        seconds: narratorTotals[name] || 0,
+        words: narratorWords[name] || 0,
+        characters: [...(narratorCharacters[name] || [])].sort((a, b) => a.localeCompare(b)),
+      }))
+      .sort((a, b) => (b.words - a.words) || (b.seconds - a.seconds));
 
     return {
       totalAudiobookSeconds,

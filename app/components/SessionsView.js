@@ -2789,31 +2789,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <>
             {actionButtonsOverride !== null ? actionButtonsOverride : (
               <>
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border-strong)',background:'var(--accent-light)',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6})} onClick={()=>setShowCheckErrors(true)} title="Walk through saved flags or upload a CSV and re-listen against the current audio"><IconEye size={15} />See errors</button>
-                <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6})} onClick={()=>exportAllCSV(book)} title="Download the full flags spreadsheet (CSV)"><IconDownload size={15} />Flags CSV</button>
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Download Audition marker files — one per chapter, for the engineer"><IconDownload size={15} />Engineer markers</button>
-                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6})} onClick={()=>{ void exportMarkersFromCsv(book); }} title="Pick a CSV (yours or the engineer template) and convert it into Audition marker files — same format as Engineer markers"><IconPlus size={15} />Markers from CSV</button>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border-strong)',background:'var(--accent-light)',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>setShowCheckErrors(true)} title="Walk through saved flags or upload a CSV and re-listen against the current audio"><IconEye size={14} />See errors</button>
+                <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>exportAllCSV(book)} title="Download the full flags spreadsheet (CSV)"><IconDownload size={14} />Flags</button>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Download Audition marker files (one per chapter) from your saved flags — for the engineer"><IconDownload size={14} />Engineer</button>
+                <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>{ void exportMarkersFromCsv(book); }} title="Pick a CSV (yours or the engineer template) and turn it into Audition marker files. Merges in your saved flags too, so the engineer gets one file per chapter with everything in it."><IconPlus size={14} />Markers</button>
                 {isElectron && onTransferExport && (
-                  <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6})} onClick={onTransferExport} title="Download a full package (book data + copied audio) so another machine or account can pick up exactly where this one left off"><IconTransfer size={15} />Transfer</button>
+                  <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={onTransferExport} title="Download a full package (book data + copied audio) so another machine or account can pick up exactly where this one left off"><IconTransfer size={14} />Transfer</button>
                 )}
               </>
             )}
-            <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
-            {mode !== 'quill' && (
-              <button
-                type="button"
-                style={btn({
-                  color:getPageNumberInfo().hasPdfMap ? 'var(--success)' : 'var(--warning)',
-                  borderColor:getPageNumberInfo().hasPdfMap ? '#b9d6bf' : '#e0c682',
-                  background:'white',
-                  fontWeight:700,
-                })}
-                onClick={() => setShowPagePanel(true)}
-                title="Page number source and PDF upload"
-              >
-                Page
-              </button>
-            )}
+            <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>editingMeta ? saveBookMetaEdits() : setEditingMeta(true)}>{editingMeta ? 'Save changes' : 'Edit book data'}</button>
           </>
         )}
         containerWidth={showFloatingNav ? 'min(900px, calc(100vw - 560px))' : 'min(900px, calc(100vw - 2.2rem))'}

@@ -338,7 +338,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
         ) : null}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderTop: '1px solid var(--border-light)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderTop: '1px solid var(--border-light)', background: 'white', flexShrink: 0 }}>
         <button
           type="button"
           onClick={() => step(-1)}

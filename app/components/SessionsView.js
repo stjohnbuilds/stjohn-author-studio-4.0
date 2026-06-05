@@ -2631,17 +2631,18 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               return null;
             })()}
             {(() => {
-              // Pre-compute totals + colour lookup once. Pill rows
-              // (color dot + name + time + percentage), same look as
-              // the narrator chip strip on the book detail page so the
-              // breakdown feels like the same family.
-              const charTotal = durationSummary.characterRows.reduce((s, r) => s + (Number(r.seconds) || 0), 0);
-              const narTotal = durationSummary.narratorRows.reduce((s, r) => s + (Number(r.seconds) || 0), 0);
+              // Percentages by WORD COUNT — stable whether or not the
+              // audio's been recorded yet. Time shows when known, "—"
+              // when not. Word count always shows.
+              const charWordTotal = durationSummary.characterRows.reduce((s, r) => s + (Number(r.words) || 0), 0);
+              const narWordTotal = durationSummary.narratorRows.reduce((s, r) => s + (Number(r.words) || 0), 0);
               const colorFor = (name) => {
                 const nc = (book.narratorColors || []).find(c => nameMatches(c.characterName, name));
                 return nc?.hex || null;
               };
               const fmtPct = (n) => (n >= 9.5 ? Math.round(n) : n.toFixed(1)) + '%';
+              const fmtWords = (n) => Number(n || 0).toLocaleString();
+              const fmtTimeOrDash = (s) => (s > 0 ? fmtDuration(s) : '—');
               const PILL = {
                 display:'flex',alignItems:'center',gap:10,
                 padding:'7px 12px',
@@ -2650,8 +2651,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 borderRadius:999,
                 fontSize:'0.8rem',
               };
-              const TIME = { color:'var(--text)', fontWeight:700, fontVariantNumeric:'tabular-nums' };
-              const PCT = { color:'var(--text-muted)', fontSize:'0.7rem', fontVariantNumeric:'tabular-nums', minWidth:42, textAlign:'right' };
+              const TIME = { color:'var(--text)', fontWeight:700, fontVariantNumeric:'tabular-nums', minWidth:54, textAlign:'right' };
+              const WORDS = { color:'var(--text-muted)', fontSize:'0.72rem', fontVariantNumeric:'tabular-nums', minWidth:56, textAlign:'right' };
+              const PCT = { color:'var(--text)', fontSize:'0.75rem', fontWeight:600, fontVariantNumeric:'tabular-nums', minWidth:44, textAlign:'right' };
               const DOT = (hex) => ({
                 width:10, height:10, borderRadius:3,
                 background: hex || 'transparent',
@@ -2659,17 +2661,21 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                 flexShrink:0,
               });
               return (
-                <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))',gap:12 }}>
+                <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))',gap:12 }}>
                   <div style={{ background:'var(--accent-surface)',border:'1px solid var(--accent-border)',borderRadius:18,padding:'12px 14px' }}>
-                    <div style={{ fontSize:'0.76rem',fontWeight:700,color:'var(--accent-dark)',marginBottom:10 }}>By character</div>
+                    <div style={{ display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:6,marginBottom:10 }}>
+                      <div style={{ fontSize:'0.76rem',fontWeight:700,color:'var(--accent-dark)' }}>By character</div>
+                      <div style={{ fontSize:'0.65rem',color:'var(--text-light)' }}>% by word count</div>
+                    </div>
                     <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
                       {durationSummary.characterRows.map(row => {
-                        const pct = charTotal > 0 ? (row.seconds / charTotal) * 100 : 0;
+                        const pct = charWordTotal > 0 ? (row.words / charWordTotal) * 100 : 0;
                         return (
-                          <div key={`char-${row.name}`} style={PILL}>
+                          <div key={`char-${row.name}`} style={PILL} title={`${fmtWords(row.words)} words${row.seconds > 0 ? ` · ${fmtDuration(row.seconds)} of audio` : ' · no audio yet'}`}>
                             <span style={DOT(colorFor(row.name))} />
                             <span style={{ flex:1, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.name}</span>
-                            <span style={TIME}>{fmtDuration(row.seconds)}</span>
+                            <span style={TIME}>{fmtTimeOrDash(row.seconds)}</span>
+                            <span style={WORDS}>{fmtWords(row.words)}w</span>
                             <span style={PCT}>{fmtPct(pct)}</span>
                           </div>
                         );
@@ -2677,14 +2683,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     </div>
                   </div>
                   <div style={{ background:'var(--accent-surface)',border:'1px solid var(--accent-border)',borderRadius:18,padding:'12px 14px' }}>
-                    <div style={{ fontSize:'0.76rem',fontWeight:700,color:'var(--accent-dark)',marginBottom:10 }}>By narrator</div>
+                    <div style={{ display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:6,marginBottom:10 }}>
+                      <div style={{ fontSize:'0.76rem',fontWeight:700,color:'var(--accent-dark)' }}>By narrator</div>
+                      <div style={{ fontSize:'0.65rem',color:'var(--text-light)' }}>% by word count</div>
+                    </div>
                     <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
                       {durationSummary.narratorRows.map(row => {
-                        const pct = narTotal > 0 ? (row.seconds / narTotal) * 100 : 0;
-                        // Use the first character's colour as the pill dot
+                        const pct = narWordTotal > 0 ? (row.words / narWordTotal) * 100 : 0;
                         const firstChar = (row.characters || [])[0];
                         return (
-                          <div key={`nar-${row.name}`} style={{ ...PILL, alignItems:'flex-start', flexWrap:'wrap' }}>
+                          <div key={`nar-${row.name}`} style={{ ...PILL, alignItems:'flex-start' }} title={`${fmtWords(row.words)} words${row.seconds > 0 ? ` · ${fmtDuration(row.seconds)} of audio` : ' · no audio yet'}`}>
                             <span style={{ ...DOT(colorFor(firstChar)), marginTop:5 }} />
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.name}</div>
@@ -2692,7 +2700,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                                 <div style={{ fontSize:'0.68rem',color:'var(--text-light)',marginTop:2 }}>{row.characters.join(', ')}</div>
                               )}
                             </div>
-                            <span style={TIME}>{fmtDuration(row.seconds)}</span>
+                            <span style={TIME}>{fmtTimeOrDash(row.seconds)}</span>
+                            <span style={WORDS}>{fmtWords(row.words)}w</span>
                             <span style={PCT}>{fmtPct(pct)}</span>
                           </div>
                         );

@@ -1258,6 +1258,18 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
     return buildWordSpans(plainText);
   }, [chapterPlainIndex, plainText]);
 
+  // Per-narrator speed memory. Quill doesn't always have a clearly
+  // mapped narrator per chapter, so we use 'default' as the key —
+  // which means Quill shares one stored speed with the rest of the
+  // app and the user's speed sticks across chapters.
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => getNarratorSpeed('default'));
+  useEffect(() => { setPlaybackSpeed(getNarratorSpeed('default')); }, [chapter?.id]);
+  const handleSpeedChange = useCallback((next) => {
+    const v = typeof next === 'function' ? next(playbackSpeed) : next;
+    setPlaybackSpeed(v);
+    saveNarratorSpeed('default', v);
+  }, [playbackSpeed]);
+
   // Character chip strip below the sticky bar — same look as Proof's
   // narrator strip. Pulls from project.annotationOptions where classId
   // === 'character'. Visible only when characters exist.

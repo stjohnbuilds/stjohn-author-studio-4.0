@@ -523,7 +523,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioUploadMode, setAudioUploadMode] = useState('chapter');
   const [readerIncludeChapterPreroll, setReaderIncludeChapterPreroll] = useState(true);
-  const [readerDefaultListeningSpeed, setReaderDefaultListeningSpeed] = useState(2);
+  const [readerDefaultListeningSpeed, setReaderDefaultListeningSpeed] = useState(1.5);
   const [pagefinderColumn, setPagefinderColumn] = useState('G');
   const [pagefinderStartRow, setPagefinderStartRow] = useState(6);
   const [pagefinderPageOffset, setPagefinderPageOffset] = useState(-1);

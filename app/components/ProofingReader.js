@@ -787,6 +787,9 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       setSyncSpeed(clamped);
     }
     setListenSpeed(clamped);
+    // Remember this speed under the current narrator's key so the next
+    // chapter voiced by the same narrator opens at this speed.
+    saveNarratorSpeed(narratorKeyRef.current, clamped);
   }
 
   function stepPlaybackSpeed(delta){

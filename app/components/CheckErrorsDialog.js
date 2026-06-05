@@ -356,31 +356,23 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
             </div>
             <div style={{ fontSize: '1.02rem', fontWeight: 700, marginBottom: 4 }}>{current.chapterTitle}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14 }}>
-              <span><strong style={{ color: 'var(--text)' }}>Page</strong> {current.page || '—'}</span>
               <span><strong style={{ color: 'var(--text)' }}>At</strong> {fmtTime(current.ts)}</span>
               {current.narrator && <span><strong style={{ color: 'var(--text)' }}>Narrator</strong> {current.narrator}</span>}
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
             </div>
-            {current.quote && (
-              <div style={{ background: '#fff8e6', border: '1px solid #ead9a2', borderRadius: 8, padding: '10px 12px', fontSize: '0.86rem', lineHeight: 1.5, marginBottom: 10 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#8c6d1f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>What was flagged</div>
-                {current.quote}
-              </div>
-            )}
-            {current.should && (
-              <div style={{ background: '#eef7ef', border: '1px solid #c2dec5', borderRadius: 8, padding: '10px 12px', fontSize: '0.86rem', lineHeight: 1.5, marginBottom: 14 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b6a3f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Should say</div>
-                {current.should}
-              </div>
-            )}
-            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Where it is in the chapter</div>
+            <div style={{ marginBottom: 14 }}>
               {context.before && <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
               <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
                 {renderTargetWithHighlight(context.target, current?.quote)}
               </p>
               {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
             </div>
+            {current.should && (
+              <div style={{ background: '#eef7ef', border: '1px solid #c2dec5', borderRadius: 8, padding: '10px 12px', fontSize: '0.86rem', lineHeight: 1.5, marginBottom: 14 }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3b6a3f', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Comment</div>
+                {current.should}
+              </div>
+            )}
             {audioUrl ? (
               <AudioDock
                 audioRef={audioRef}

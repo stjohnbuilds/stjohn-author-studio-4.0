@@ -358,6 +358,52 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     sectionInfo.section ? extractContextParagraphs(sectionInfo.section.html, current?.quote) : { before: '', target: '', after: '' }
   ), [sectionInfo.section, current?.quote]);
 
+  // Live word-following highlight — same mechanism Proof's reader uses:
+  // build a sync table from whisperAlignment (manuscript-word ↔ audio-
+  // time), then on every audio tick look up the current msIdx. We
+  // hoist this to the dialog (not inside the paragraph component) so
+  // the effect re-runs when audioUrl changes — by then AudioDock has
+  // mounted its <audio> and audioRef.current is real. Was the bug that
+  // caused the highlight to never start: the listener was attached
+  // before the audio element existed.
+  const [currentMsIdx, setCurrentMsIdx] = useState(-1);
+  const syncTblRef = useRef(null);
+  useEffect(() => {
+    const alignment = sectionInfo.section?.whisperAlignment;
+    if (!Array.isArray(alignment) || alignment.length < 4) { syncTblRef.current = null; return; }
+    try { syncTblRef.current = buildSyncTable(alignment); }
+    catch { syncTblRef.current = null; }
+  }, [sectionInfo.section?.id, sectionInfo.section?.whisperAlignment]);
+  useEffect(() => {
+    if (!audioUrl) { setCurrentMsIdx(-1); return; }
+    const audio = audioRef.current;
+    if (!audio) { setCurrentMsIdx(-1); return; }
+    let raf = null;
+    function tick() {
+      raf = null;
+      const tbl = syncTblRef.current;
+      if (!tbl) return;
+      const msIdx = getMsIdxAtTime(tbl, audio.currentTime, -1);
+      setCurrentMsIdx(Number.isFinite(msIdx) && msIdx >= 0 ? msIdx : -1);
+      if (!audio.paused) raf = requestAnimationFrame(tick);
+    }
+    function schedule() { if (raf == null) raf = requestAnimationFrame(tick); }
+    audio.addEventListener('play', schedule);
+    audio.addEventListener('pause', schedule);
+    audio.addEventListener('timeupdate', schedule);
+    audio.addEventListener('seeked', schedule);
+    audio.addEventListener('loadedmetadata', schedule);
+    schedule();
+    return () => {
+      audio.removeEventListener('play', schedule);
+      audio.removeEventListener('pause', schedule);
+      audio.removeEventListener('timeupdate', schedule);
+      audio.removeEventListener('seeked', schedule);
+      audio.removeEventListener('loadedmetadata', schedule);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [audioUrl, current?.id]);
+
   // Pick the seek time. Preference order:
   // 1. If the flag has an idx AND the section has a whisperAlignment,
   //    build a sync table from it (same shape Proof uses internally)

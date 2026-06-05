@@ -1,31 +1,28 @@
-// CSV → flag list importer for the Check Errors popup.
+// CSV → flag/marker importer for the Check Errors popup and the
+// "Make markers from CSV" button.
 //
-// Accepts:
-//   - The exact CSV the app already exports (Chapter | Audio File |
-//     Page | Timestamp | Narrator/Engineer | Type | Misread Quote |
-//     Should Say). See SessionsView.js / ProofingReader.js exporters.
-//   - Marie's engineer-template spreadsheet which uses the same
-//     columns under slightly different labels ("File name" for "Audio
-//     File", "Note" for "Misread Quote"). Scans past the project /
-//     author / MANUSCRIPT LINK pre-header rows automatically — starts
-//     reading data the line AFTER the header row is found.
+// POSITION-BASED, column names are ignored entirely.
+// Marie's instruction (2026-06-04): the columns are always in the same
+// order regardless of what the header labels say — even if a column
+// were named "grgefkjuhfndjkhnf" the parser should still pull the
+// right timestamp.
 //
-// Returns rows of the same shape the in-app "saved flag" walker uses,
-// so the dialog body is identical for both sources.
-
-const REQUIRED_HEADER_TOKEN = 'chapter';
-
-// Column-name aliases. All lower-cased + trimmed for the match.
-const COLUMN_ALIASES = {
-  chapter:    ['chapter'],
-  audio:      ['audio file', 'audio', 'file name', 'filename', 'file'],
-  page:       ['page'],
-  timestamp:  ['timestamp', 'time', 'time stamp'],
-  narrator:   ['narrator/engineer', 'narrator', 'engineer', 'narrator / engineer'],
-  type:       ['type'],
-  quote:      ['misread quote', 'quote', 'note', 'misread'],
-  should:     ['should say', 'should say:', 'correction', 'fix'],
-};
+// Column slots (0-indexed) — the order the app's own CSV export and
+// Marie's engineer-template spreadsheet both use:
+//   0  Chapter title
+//   1  Audio file name (informational only)
+//   2  Page (informational only)
+//   3  Timestamp                ← REQUIRED for a row to count
+//   4  Narrator / Engineer
+//   5  Type
+//   6  "Column seven" — Misread Quote (app) or Note (engineer template)
+//   7  "Column eight" — Should Say (app) or Should Say: (engineer template)
+//
+// A row counts as a data row when it has a non-empty chapter in slot 0
+// AND a clock-style timestamp (M:SS or H:MM:SS) in slot 3. Every other
+// row — project headers, author lines, "MANUSCRIPT LINK" rows, blank
+// rows, "DONE" placeholder rows, rows with no timestamp — is naturally
+// skipped.
 
 // Parse one CSV line — handles quoted cells with escaped quotes ("").
 export function parseCsvLine(line) {
@@ -55,78 +52,83 @@ export function parseCsvLine(line) {
   return out.map((s) => s.trim());
 }
 
-function normaliseHeader(s) {
-  return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-function findColumnIndices(cells) {
-  const indices = {};
-  cells.forEach((raw, i) => {
-    const norm = normaliseHeader(raw);
-    for (const [key, aliases] of Object.entries(COLUMN_ALIASES)) {
-      if (aliases.includes(norm)) {
-        if (indices[key] == null) indices[key] = i;
-        break;
-      }
-    }
-  });
-  return indices;
-}
-
-// "01:37" → 97, "1:02:30" → 3750, "" → 0
+// "01:37" → 97, "1:02:30" → 3750, "" / junk / "DONE" / "#" → 0
 export function parseTimestampToSeconds(input) {
   const raw = String(input || '').trim();
   if (!raw) return 0;
+  // Must look like a clock time. Reject "DONE", "#", letters, etc.
+  if (!/^\d{1,2}(:\d{1,2}){1,2}(\.\d+)?$/.test(raw)) return 0;
   const parts = raw.split(':').map((p) => Number(p));
   if (parts.some((n) => !Number.isFinite(n))) return 0;
-  if (parts.length === 1) return Math.max(0, parts[0]);
   if (parts.length === 2) return Math.max(0, parts[0] * 60 + parts[1]);
   if (parts.length === 3) return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
   return 0;
 }
 
-// Main entry. Returns { rows, headerLine, skippedLines }.
-// `rows` is an array of { chapterTitle, ts, page, narrator, type, quote, should, audioFileHint }.
-export function parseFlagCsv(text) {
-  const lines = String(text || '').split(/\r?\n/);
-  let headerIdx = -1;
-  let headerCells = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const cells = parseCsvLine(lines[i]);
-    const norm = cells.map(normaliseHeader);
-    if (norm.includes(REQUIRED_HEADER_TOKEN)) {
-      // Confirm at least one other recognisable column to avoid a
-      // stray "Chapter" cell elsewhere triggering a false header.
-      const ix = findColumnIndices(cells);
-      if (ix.chapter != null && (ix.timestamp != null || ix.page != null)) {
-        headerIdx = i;
-        headerCells = cells;
-        break;
-      }
+// CSVs sometimes have a multi-line cell (a newline inside a "..."
+// quoted cell). A naive split('\n') would chop that cell into two
+// rows. We merge follow-up lines back together when an opening
+// quote hasn't been closed yet.
+function joinMultilineRows(lines) {
+  const out = [];
+  let buf = '';
+  for (const line of lines) {
+    const candidate = buf ? buf + '\n' + line : line;
+    // Count unescaped quotes — odd = still inside a quoted cell.
+    let quoteCount = 0;
+    for (let i = 0; i < candidate.length; i += 1) {
+      if (candidate[i] === '"') quoteCount += 1;
+    }
+    if (quoteCount % 2 === 1) {
+      buf = candidate;
+    } else {
+      out.push(candidate);
+      buf = '';
     }
   }
-  if (headerIdx === -1) {
-    return { rows: [], headerLine: -1, skippedLines: lines.length, error: 'No header row found. Looking for a row that contains "Chapter" plus "Timestamp" or "Page".' };
-  }
-  const ix = findColumnIndices(headerCells);
+  if (buf) out.push(buf);
+  return out;
+}
+
+// Main entry. Walks every row, keeps only those with a valid chapter
+// title in slot 0 AND a parseable timestamp in slot 3. Returns:
+//   { rows, totalLinesScanned, skippedNoTimestamp }
+// where each row is { chapterTitle, audioFileHint, page, ts, tsRaw,
+// narrator, type, colSeven, colEight }.
+export function parseFlagCsv(text) {
+  const rawLines = String(text || '').split(/\r?\n/);
+  const lines = joinMultilineRows(rawLines);
   const rows = [];
-  for (let i = headerIdx + 1; i < lines.length; i += 1) {
-    const raw = lines[i];
-    if (!raw || !raw.trim()) continue;
-    const cells = parseCsvLine(raw);
-    const chapterTitle = ix.chapter != null ? cells[ix.chapter] : '';
+  let skippedNoTimestamp = 0;
+  let scanned = 0;
+  for (const line of lines) {
+    if (!line || !line.trim()) continue;
+    scanned += 1;
+    const cells = parseCsvLine(line);
+    if (cells.length < 4) continue;
+    const chapterTitle = (cells[0] || '').trim();
     if (!chapterTitle) continue;
+    const tsRaw = (cells[3] || '').trim();
+    const ts = parseTimestampToSeconds(tsRaw);
+    if (ts <= 0) {
+      // Only count rows that LOOK like data candidates (have a
+      // chapter that mentions "chapter" or starts with a digit).
+      // That way the "Chapter" header row + Project/Author/etc.
+      // don't get counted as skips.
+      if (/chapter|^\d/i.test(chapterTitle)) skippedNoTimestamp += 1;
+      continue;
+    }
     rows.push({
       chapterTitle,
-      audioFileHint: ix.audio != null ? cells[ix.audio] : '',
-      page: ix.page != null ? cells[ix.page] : '',
-      ts: parseTimestampToSeconds(ix.timestamp != null ? cells[ix.timestamp] : ''),
-      tsRaw: ix.timestamp != null ? cells[ix.timestamp] : '',
-      narrator: ix.narrator != null ? cells[ix.narrator] : '',
-      type: ix.type != null ? cells[ix.type] : '',
-      quote: ix.quote != null ? cells[ix.quote] : '',
-      should: ix.should != null ? cells[ix.should] : '',
+      audioFileHint: cells[1] || '',
+      page: cells[2] || '',
+      ts,
+      tsRaw,
+      narrator: cells[4] || '',
+      type: cells[5] || '',
+      colSeven: cells[6] || '',
+      colEight: cells[7] || '',
     });
   }
-  return { rows, headerLine: headerIdx, skippedLines: headerIdx };
+  return { rows, totalLinesScanned: scanned, skippedNoTimestamp };
 }

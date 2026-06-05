@@ -2573,6 +2573,19 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                               {i + 1}
                             </span>
                             <span style={{ flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textDecoration:c.included?'none':'line-through' }}>{c.title}</span>
+                            {mode !== 'duet' && (
+                              <select
+                                value={c.characterPick || ''}
+                                onChange={e => setEditChapters(cs => cs.map((cc, ci) => ci === i ? { ...cc, characterPick: e.target.value } : cc))}
+                                title="Assign POV character — used by the Audiobook Timing Detail breakdown"
+                                style={{ fontSize:'0.7rem',color:c.characterPick?'var(--text)':'var(--text-muted)',background:'white',border:'1px solid var(--border-light)',borderRadius:6,padding:'2px 4px',cursor:'pointer',maxWidth:120 }}
+                              >
+                                <option value="">— Pick character —</option>
+                                {(editNarrators || []).filter(nc => (nc.characterName || '').trim()).map((nc, ni) => (
+                                  <option key={ni} value={nc.characterName}>{nc.characterName}</option>
+                                ))}
+                              </select>
+                            )}
                             {hasScenes && (
                               <button
                                 type="button"

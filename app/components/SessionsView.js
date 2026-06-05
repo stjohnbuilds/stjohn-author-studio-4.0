@@ -2814,9 +2814,6 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                       Breakdown
                     </button>
                   )}
-                  <button onClick={()=>setShowCheckErrors(true)} title="Walk through saved flags or upload a CSV to re-listen against the current audio" style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.68rem',fontWeight:700,padding:'3px 8px' })}>
-                    Check errors
-                  </button>
                 </div>
               </div>
             </div>

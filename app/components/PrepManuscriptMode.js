@@ -1015,6 +1015,7 @@ function BookDetailView({
         subtitle={`${project.chapters.length} chapter${project.chapters.length === 1 ? '' : 's'} · ${counts.assigned}/${counts.total} assigned (${pct}%)`}
       >
         <SaveBadge status={saveStatus} />
+        <button type="button" onClick={() => setShowBreakdown(true)} style={topBtn()} title="Word-count breakdown by character (by H1/H2/H3 headings in the manuscript)">Breakdown</button>
         <button type="button" onClick={onReplace} style={topBtn()}>Replace</button>
         {onDelete && <TrashButton onClick={onDelete} title="Delete this project" />}
       </StickyTopBar>

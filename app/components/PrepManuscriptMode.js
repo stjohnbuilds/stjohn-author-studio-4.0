@@ -75,17 +75,18 @@ const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 // Marie 2026-05-26: "got this pink, this red, but it's not pink. I like
 // pink. Pink pink is default." Re-ordered so the first two characters
 // added are both pink-family before stepping out to peach / yellow.
+// Marie 2026-06-06: matched to ManuscriptSetup.js DEFAULT_MANUAL_COLORS
+// so adding a new character in Prep cycles through the SAME swatches
+// the rest of the app uses (Proof's narrator setup, etc.). Pink first
+// so it looks identical when Marie clicks "+ Add character" anywhere.
 const CHARACTER_PALETTE = [
-  '#F8D2DA', // pastel pink
-  '#F4DCEC', // pastel rose (pink-family, was 10th)
-  '#ECDEF6', // pastel lavender (pink→purple bridge, was 9th)
-  '#F8E0D2', // pastel peach
-  '#FBF1C8', // pastel yellow
-  '#E4F0D8', // pastel mint
-  '#D8EFE0', // pastel green
-  '#D8EAEA', // pastel cyan
-  '#DEE9F5', // pastel blue
-  '#E2DCF6', // pastel periwinkle
+  '#f8bbd0', // pink
+  '#c8e6c9', // mint
+  '#bbdefb', // blue
+  '#e1bee7', // lavender
+  '#ffcdd2', // rose
+  '#ffe0b2', // peach
+  '#fff9c4', // yellow
 ];
 
 // ===========================================================================

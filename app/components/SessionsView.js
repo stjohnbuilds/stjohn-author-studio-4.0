@@ -833,11 +833,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           ));
           Object.entries(tally.tallies).forEach(([character, wordCount]) => {
             const isUnmapped = character === TALLY_KEY;
-            const charLabel = isUnmapped ? 'Narrator' : character;
+            // Marie 2026-06-06: "Unsure" reads clearer than "Narrator"
+            // for the unattributed-words bucket (real narrators have
+            // names). Applied across all breakdowns.
+            const charLabel = isUnmapped ? 'Unsure' : character;
             const mapped = isUnmapped
               ? defaultNarratorRow
               : (book.narratorColors || []).find(nc => nameMatches(nc.characterName, character));
-            const narrator = String(mapped?.narratorName || mapped?.characterName || 'Narrator').trim() || 'Narrator';
+            const narrator = String(mapped?.narratorName || mapped?.characterName || 'Unsure').trim() || 'Unsure';
             rows.push({
               id: `${sec.id}::${charLabel}`,
               chapterId: ch.id,

@@ -1168,10 +1168,15 @@ function BookDetailView({
               // Pills for the characters whose names appear as headings
               // inside this chapter (in document order). Pulls colour
               // from each character's saved hex — so Vandle yellow,
-              // Crescent green, exactly as Marie spec'd.
+              // Crescent green, exactly as Marie spec'd. Per-character
+              // word count comes from the same analysis pass.
+              const chTallies = chapterAnalyses[i]?.analysis?.wordTallies || {};
               const chapterCharNames = chapterAnalyses[i]?.analysis?.headingCharacters || [];
               const chapterCharPills = chapterCharNames
-                .map((name) => (project.characters || []).find((cc) => cc.name === name))
+                .map((name) => {
+                  const cp = (project.characters || []).find((cc) => cc.name === name);
+                  return cp ? { ...cp, words: chTallies[name] || 0 } : null;
+                })
                 .filter(Boolean);
               const inner = (
                 <>

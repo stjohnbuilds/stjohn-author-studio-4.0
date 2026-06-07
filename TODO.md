@@ -12,6 +12,26 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-06 — Audiobook Breakdown: plain-paragraph POV-name detection
+
+- [x] **Walker now recognises `<p>Vex</p>` as a scene boundary.** Marie's
+      Vellum-exported manuscripts mark each scene's POV character with
+      a standalone paragraph (`<p>Vex</p>`) above the prose, not an
+      `<h2>`. The Breakdown popup used to attribute 100% of those books
+      to "Unsure" because the DOM walker only checked `h1`–`h6`. Now
+      both Proof's `tallyCharacterWordCountsDom` (SessionsView.js) and
+      Prep's `analyzePrepChapterByCharacter` (PrepManuscriptMode.js)
+      use a shared `classifyCharacterMarker` helper at
+      `app/lib/characterMarker.js`. Plain `<p>` / `<div>` blocks are
+      treated as scene boundaries when their entire trimmed text is
+      EXACTLY a mapped character's name (strict equality after
+      normalisation — body prose mentioning the name does NOT trigger).
+      Headings keep their fuzzy substring match so "Phantom — Day One"
+      still resolves to Phantom. 13 new regression tests
+      (`tests/character-marker.test.mjs`); 140/140 total pass. Marie
+      needs to open the Anarchy / Vex book in Proof and confirm the
+      Breakdown rows now show Vex's words. — completed 2026-06-06
+
 ### 🆕 2026-06-04 — Make markers from CSV + position-based CSV parser
 
 - [x] **CSV parser rewritten position-based.** Column names ignored

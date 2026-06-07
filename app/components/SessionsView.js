@@ -566,17 +566,8 @@ function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
   const headingEntries = [];
   for (const el of blocks) {
     const text = (el.textContent || '').trim();
-    if (!text) continue;
-    const isHeading = /^H[1-6]$/.test(el.tagName);
-    if (isHeading) {
-      const m = allMapping.find((mm) => nameMatches(text, mm.name));
-      headingEntries.push({ el, char: m ? m.name : null });
-    } else {
-      const nt = normText(text);
-      if (!nt) continue;
-      const m = allMapping.find((mm) => normText(mm.name) === nt);
-      if (m) headingEntries.push({ el, char: m.name });
-    }
+    const classified = classifyCharacterMarker(el.tagName, text, allMapping);
+    if (classified) headingEntries.push({ el, char: classified.char });
   }
   function nearestHeadingChar(el) {
     let result = null;

@@ -286,17 +286,8 @@ function analyzePrepChapterByCharacter(html, characters) {
     const headingEntries = [];
     for (const el of blocks) {
       const text = (el.textContent || '').trim();
-      if (!text) continue;
-      const isHeading = /^H[1-6]$/.test(el.tagName);
-      if (isHeading) {
-        const matched = mapping.find((c) => _prepNameMatches(text, c.name));
-        headingEntries.push({ el, char: matched ? matched.name : null });
-      } else {
-        const nt = _prepNormName(text);
-        if (!nt) continue;
-        const matched = mapping.find((c) => _prepNormName(c.name) === nt);
-        if (matched) headingEntries.push({ el, char: matched.name });
-      }
+      const classified = classifyCharacterMarker(el.tagName, text, mapping);
+      if (classified) headingEntries.push({ el, char: classified.char });
     }
     function activeCharFor(el) {
       let last = null;

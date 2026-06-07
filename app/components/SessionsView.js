@@ -821,11 +821,30 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         let tally = tallyCharacterWordCountsDom(sec.html || '', book.narratorColors);
         if (!tally) tally = tallyCharacterWordCounts(sec.html || '', book.narratorColors);
         const TALLY_KEY = tally?.narratorKey || TALLY_NARRATOR_KEY;
+        // Metadata fallback for the bulk-Unsure case.
+        // Marie 2026-06-06: "Sometimes the character name is in heading
+        // one, sometimes heading two." When her .docx puts the character
+        // name in an H1/H2, our DOM walker catches it. When the heading
+        // is generic ("Chapter 9") but the parser already stamped the
+        // section with its POV character via `sec.characterName` /
+        // `sec.title` / `ch.characterName` / `ch.title`, the unattributed
+        // ("Unsure") portion of this section gets routed to that
+        // character — same priority order the FALLBACK path uses.
+        if (tally && tally.tallies?.[TALLY_KEY] > 0) {
+          const metaCandidate = [
+            sec.characterName, sec.title, ch.characterName, ch.title,
+          ].map((s) => (book.narratorColors || []).find((nc) => nameMatches(s, nc?.characterName))).find(Boolean);
+          if (metaCandidate) {
+            const target = metaCandidate.characterName;
+            tally.tallies[target] = (tally.tallies[target] || 0) + tally.tallies[TALLY_KEY];
+            delete tally.tallies[TALLY_KEY];
+          }
+        }
         const totalSecWords = tally
           ? Object.values(tally.tallies).reduce((s, n) => s + n, 0)
           : 0;
         if (tally && totalSecWords > 0) {
-          // Default narrator label for the unmapped portion ("Narrator").
+          // Default narrator label for the unmapped portion ("Unsure").
           // If the book happens to have a narrator-row whose characterName
           // is literally "Narrator", honour its narratorName.
           const defaultNarratorRow = (book.narratorColors || []).find(nc => (

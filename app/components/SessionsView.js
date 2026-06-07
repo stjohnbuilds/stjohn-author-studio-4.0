@@ -16,6 +16,7 @@ import { buildWordSpans, htmlToPlainText } from '../../packages/quill-engine';
 // outside the popup itself.
 import { tallyCharacterWordCounts, NARRATOR_KEY as TALLY_NARRATOR_KEY } from '../../packages/manuscript-engine';
 import { classifyCharacterMarker } from '../lib/characterMarker';
+import { nextPaletteColor } from '../lib/characterPalette';
 
 const PLAYBACK_SPEED_MIN = 0.5;
 const PLAYBACK_SPEED_MAX = 4;

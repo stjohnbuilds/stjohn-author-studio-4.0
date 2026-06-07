@@ -2633,7 +2633,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             {(() => {
               const characterCount = (durationSummary.characterRows || []).length;
               const mappedCount = (book.narratorColors || []).filter(nc => (nc.characterName || '').trim()).length;
-              const onlyNarrator = characterCount <= 1 && (durationSummary.characterRows?.[0]?.name === 'Narrator' || durationSummary.characterRows?.[0]?.name === 'Unassigned character');
+              const onlyNarrator = characterCount <= 1 && (durationSummary.characterRows?.[0]?.name === 'Unsure' || durationSummary.characterRows?.[0]?.name === 'Narrator' || durationSummary.characterRows?.[0]?.name === 'Unassigned character');
               if (onlyNarrator && mappedCount > 0) {
                 return (
                   <div style={{ background:'#fff8e6',border:'1px solid #ead9a2',borderRadius:12,padding:'10px 12px',marginBottom:12,fontSize:'0.8rem',color:'#6b5212',lineHeight:1.5 }}>

@@ -998,8 +998,10 @@ function BookDetailView({
         const character = isNarrator ? null : (project.characters || []).find((c) => c.name === key);
         return {
           key,
-          label: isNarrator ? 'Narrator' : key,
-          narrator: character?.narratorName || (isNarrator ? 'Narrator' : key),
+          // Marie 2026-06-06: "Unsure" reads clearer than "Narrator"
+          // for the unattributed-words bucket. Real narrators have names.
+          label: isNarrator ? 'Unsure' : key,
+          narrator: character?.narratorName || (isNarrator ? 'Unsure' : key),
           color: character?.colorHex || null,
           words,
         };

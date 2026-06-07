@@ -963,9 +963,49 @@ function BookDetailView({
   progress,
 }) {
   const [editingChapters, setEditingChapters] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const counts = projectCounts(project);
   const pct = counts.total === 0 ? 0 : Math.round((counts.assigned / counts.total) * 100);
   const scanning = progress && progress.total > 0 && progress.current < progress.total;
+
+  // Per-chapter character analysis + project-wide word totals.
+  // Recomputes when chapters or characters change. Skipped on the server
+  // (typeof document === 'undefined') and inside analyzePrepChapter when
+  // there are no characters mapped yet.
+  const chapterAnalyses = useMemo(() => {
+    return (project.chapters || []).map((ch) => {
+      const html = (ch.sections || []).map((s) => s.html || '').join('\n');
+      return {
+        chapter: ch,
+        analysis: analyzePrepChapterByCharacter(html, project.characters || []),
+      };
+    });
+  }, [project.chapters, project.characters]);
+
+  const breakdownSummary = useMemo(() => {
+    const byCharacter = {};
+    let grandTotal = 0;
+    chapterAnalyses.forEach(({ analysis }) => {
+      grandTotal += analysis.totalWords;
+      for (const [k, v] of Object.entries(analysis.wordTallies)) {
+        byCharacter[k] = (byCharacter[k] || 0) + v;
+      }
+    });
+    const rows = Object.entries(byCharacter)
+      .map(([key, words]) => {
+        const isNarrator = key === PREP_NARRATOR_KEY;
+        const character = isNarrator ? null : (project.characters || []).find((c) => c.name === key);
+        return {
+          key,
+          label: isNarrator ? 'Narrator' : key,
+          narrator: character?.narratorName || (isNarrator ? 'Narrator' : key),
+          color: character?.colorHex || null,
+          words,
+        };
+      })
+      .sort((a, b) => b.words - a.words);
+    return { rows, grandTotal };
+  }, [chapterAnalyses, project.characters]);
 
   return (
     <>

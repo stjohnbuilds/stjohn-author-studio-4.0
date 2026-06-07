@@ -52,6 +52,7 @@ import {
 import ImportFlow from './ImportFlow.js';
 import AppDialog from './AppDialog';
 import { buildSlimPageMap, extractManuscriptWordsFromHtml } from '../lib/pdfPaging.js';
+import { classifyCharacterMarker } from '../lib/characterMarker.js';
 
 const TONE = 'prep';
 const PASTEL_PREP = MODE_TOKENS.prep.pastel;

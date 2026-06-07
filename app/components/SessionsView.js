@@ -1191,7 +1191,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   }
 
   function addEditNarrator() {
-    setEditNarrators(rows => [...rows, { hex:'#d9d9d9', characterName:'', narratorName:'' }]);
+    setEditNarrators(rows => {
+      const hex = nextPaletteColor(rows.map(r => r.hex));
+      return [...rows, { hex, characterName:'', narratorName:'' }];
+    });
   }
 
   function removeEditNarrator(i) {

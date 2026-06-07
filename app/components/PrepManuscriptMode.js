@@ -74,22 +74,9 @@ const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 // side voices get progressively darker shades of the chosen base via
 // darkenHex() so a character + side voice still visually relate.
 // Marie can override any chip's base via the colour picker.
-// Marie 2026-05-26: "got this pink, this red, but it's not pink. I like
-// pink. Pink pink is default." Re-ordered so the first two characters
-// added are both pink-family before stepping out to peach / yellow.
-// Marie 2026-06-06: matched to ManuscriptSetup.js DEFAULT_MANUAL_COLORS
-// so adding a new character in Prep cycles through the SAME swatches
-// the rest of the app uses (Proof's narrator setup, etc.). Pink first
-// so it looks identical when Marie clicks "+ Add character" anywhere.
-const CHARACTER_PALETTE = [
-  '#f8bbd0', // pink
-  '#c8e6c9', // mint
-  '#bbdefb', // blue
-  '#e1bee7', // lavender
-  '#ffcdd2', // rose
-  '#ffe0b2', // peach
-  '#fff9c4', // yellow
-];
+// Palette + nextPaletteColor now live in app/lib/characterPalette.js so
+// Proof + Prep + the Setup wizard share ONE source of truth. Import is
+// above; the constants are re-used by name throughout this file.
 
 // ===========================================================================
 // Helpers
@@ -99,11 +86,6 @@ function uid(prefix = 'id') {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36).slice(-3)}`;
 }
 function stripTags(s = '') { return String(s).replace(/<[^>]*>/g, ''); }
-
-function nextPaletteColor(usedHexes = []) {
-  const used = new Set(usedHexes);
-  return CHARACTER_PALETTE.find((c) => !used.has(c)) || CHARACTER_PALETTE[usedHexes.length % CHARACTER_PALETTE.length];
-}
 
 // Darken a pastel by `amount` (0-1). Used for side-voice tint so a
 // side voice of "Crescent (light pink)" reads as a deeper pink than

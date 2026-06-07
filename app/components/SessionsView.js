@@ -553,12 +553,30 @@ function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
   // One" still matches via substring). Headings that don't match any
   // character get null and are ignored (so a generic "Chapter 9" h1
   // doesn't wipe out the previously-active character).
-  const headings = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'));
-  const headingEntries = headings.map((h) => {
-    const text = (h.textContent || '').trim();
-    const m = allMapping.find((mm) => nameMatches(text, mm.name));
-    return { el: h, char: m ? m.name : null };
-  });
+  //
+  // ALSO include plain block-level elements (P / DIV) whose ENTIRE
+  // trimmed text is EXACTLY a character name. Vellum-style manuscripts
+  // mark each scene's POV by dropping the character's name as a
+  // standalone paragraph (`<p>Vex</p>`) above the prose rather than
+  // wrapping it in an <h2>. Strict equality (not substring) is the
+  // safety net — otherwise a body paragraph like "Vex looked at me"
+  // would be treated as a scene break.
+  const blocks = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div'));
+  const headingEntries = [];
+  for (const el of blocks) {
+    const text = (el.textContent || '').trim();
+    if (!text) continue;
+    const isHeading = /^H[1-6]$/.test(el.tagName);
+    if (isHeading) {
+      const m = allMapping.find((mm) => nameMatches(text, mm.name));
+      headingEntries.push({ el, char: m ? m.name : null });
+    } else {
+      const nt = normText(text);
+      if (!nt) continue;
+      const m = allMapping.find((mm) => normText(mm.name) === nt);
+      if (m) headingEntries.push({ el, char: m.name });
+    }
+  }
   function nearestHeadingChar(el) {
     let result = null;
     for (const h of headingEntries) {

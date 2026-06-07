@@ -926,14 +926,25 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     });
 
     // Merge character + narrator keys from BOTH the time totals AND the
-    // word totals so characters with words-only or audio-only still appear.
+    // word totals AND the book's narrator mapping so EVERY mapped
+    // character / narrator shows up — even when manuscript detection
+    // found zero words for them (so Marie sees her whole cast in the
+    // breakdown, not just the ones the parser happened to detect).
+    const mappedCharacterNames = (book.narratorColors || [])
+      .map((nc) => (nc?.characterName || '').trim())
+      .filter(Boolean);
+    const mappedNarratorNames = (book.narratorColors || [])
+      .map((nc) => (nc?.narratorName || nc?.characterName || '').trim())
+      .filter(Boolean);
     const allCharacterNames = new Set([
       ...Object.keys(characterTotals),
       ...Object.keys(characterWords),
+      ...mappedCharacterNames,
     ]);
     const allNarratorNames = new Set([
       ...Object.keys(narratorTotals),
       ...Object.keys(narratorWords),
+      ...mappedNarratorNames,
     ]);
 
     const characterRows = Array.from(allCharacterNames)

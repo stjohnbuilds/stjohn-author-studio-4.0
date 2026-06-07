@@ -4,8 +4,7 @@ import InfoTip from './InfoTip';
 import ImportFlow from './ImportFlow';
 import { annotateManuscriptPositions, extractRenderedPageMapFromDocxXml } from '../lib/manuscriptPaging';
 import { extractPdfPagingFromFile } from '../lib/pdfPaging';
-
-const DEFAULT_MANUAL_COLORS = ['#f8bbd0', '#c8e6c9', '#bbdefb', '#e1bee7', '#ffcdd2', '#ffe0b2', '#fff9c4'];
+import { CHARACTER_PALETTE as DEFAULT_MANUAL_COLORS } from '../lib/characterPalette';
 
 export const STYLE_MAP = [
   "highlight[color='yellow'] => span.hl-yellow:fresh","highlight[color='green'] => span.hl-green:fresh",

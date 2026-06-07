@@ -15,6 +15,7 @@ import { buildWordSpans, htmlToPlainText } from '../../packages/quill-engine';
 // spans + book.narratorColors mapping. No new metadata, no UI change
 // outside the popup itself.
 import { tallyCharacterWordCounts, NARRATOR_KEY as TALLY_NARRATOR_KEY } from '../../packages/manuscript-engine';
+import { classifyCharacterMarker } from '../lib/characterMarker';
 
 const PLAYBACK_SPEED_MIN = 0.5;
 const PLAYBACK_SPEED_MAX = 4;

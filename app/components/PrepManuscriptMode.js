@@ -274,12 +274,29 @@ function analyzePrepChapterByCharacter(html, characters) {
 
   const seenChars = new Set();
   try {
-    const headings = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'));
-    const headingEntries = headings.map((h) => {
-      const text = (h.textContent || '').trim();
-      const matched = mapping.find((c) => _prepNameMatches(text, c.name));
-      return { el: h, char: matched ? matched.name : null };
-    });
+    // Headings + plain block-level paragraphs whose entire trimmed
+    // text is EXACTLY a character name. Mirrors Proof's
+    // tallyCharacterWordCountsDom — Vellum-style manuscripts drop
+    // the POV character name as a standalone `<p>Vex</p>` above
+    // the scene's prose, not as a heading. Strict equality avoids
+    // body paragraphs that mention the name being mistaken for a
+    // scene boundary.
+    const blocks = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div'));
+    const headingEntries = [];
+    for (const el of blocks) {
+      const text = (el.textContent || '').trim();
+      if (!text) continue;
+      const isHeading = /^H[1-6]$/.test(el.tagName);
+      if (isHeading) {
+        const matched = mapping.find((c) => _prepNameMatches(text, c.name));
+        headingEntries.push({ el, char: matched ? matched.name : null });
+      } else {
+        const nt = _prepNormName(text);
+        if (!nt) continue;
+        const matched = mapping.find((c) => _prepNormName(c.name) === nt);
+        if (matched) headingEntries.push({ el, char: matched.name });
+      }
+    }
     function activeCharFor(el) {
       let last = null;
       for (const h of headingEntries) {

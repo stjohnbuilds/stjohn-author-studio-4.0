@@ -1164,12 +1164,27 @@ function BookDetailView({
               const sourceTitle = ch.title || '';
               const showSource = sourceTitle && sourceTitle.toLowerCase() !== `chapter ${navPos}`.toLowerCase();
               const rowStyle = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border-light)', borderRadius: 10, textAlign: 'left' };
+              // Pills for the characters whose names appear as headings
+              // inside this chapter (in document order). Pulls colour
+              // from each character's saved hex — so Vandle yellow,
+              // Crescent green, exactly as Marie spec'd.
+              const chapterCharNames = chapterAnalyses[i]?.analysis?.headingCharacters || [];
+              const chapterCharPills = chapterCharNames
+                .map((name) => (project.characters || []).find((cc) => cc.name === name))
+                .filter(Boolean);
               const inner = (
                 <>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       Chapter {navPos}{showSource ? <span style={{ color: 'var(--text-light)', fontWeight: 400, marginLeft: 8 }}>· {sourceTitle}</span> : null}
                     </div>
+                    {chapterCharPills.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
+                        {chapterCharPills.map((cp) => (
+                          <span key={cp.id} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'1px 7px', background: cp.colorHex || 'transparent', border: '1px solid rgba(0,0,0,0.08)', borderRadius:999, fontSize:'0.66rem', fontWeight:600, color:'rgba(0,0,0,0.78)' }}>{cp.name}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {c.issues > 0 && (
                     <span title={`${c.issues} missing-quote warning${c.issues === 1 ? '' : 's'} to fix`} style={{ padding: '2px 8px', background: '#FDF3E3', color: '#9A6A1F', border: '1px solid #E3CBA1', borderRadius: 999, fontSize: '0.66rem', fontWeight: 700, whiteSpace: 'nowrap' }}>

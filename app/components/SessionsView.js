@@ -993,7 +993,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
       cachedKeys,
       totalKeys: grouped.size,
     };
-  }, [sectionTimingRows, durationCache]);
+    // book.narratorColors is read for the mapped-character merge below.
+    // Including it in the deps is correct even though sectionTimingRows
+    // also depends on it — keeps the closure honest for future refactors.
+  }, [sectionTimingRows, durationCache, book.narratorColors]);
 
   const chapterSummaries = useMemo(() => {
     return (book.chapters || []).map((chapter, index) => {

@@ -1187,7 +1187,10 @@ function BookDetailView({
                     {chapterCharPills.length > 0 && (
                       <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
                         {chapterCharPills.map((cp) => (
-                          <span key={cp.id} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'1px 7px', background: cp.colorHex || 'transparent', border: '1px solid rgba(0,0,0,0.08)', borderRadius:999, fontSize:'0.66rem', fontWeight:600, color:'rgba(0,0,0,0.78)' }}>{cp.name}</span>
+                          <span key={cp.id} style={{ display:'inline-flex', alignItems:'baseline', gap:5, padding:'1px 7px', background: cp.colorHex || 'transparent', border: '1px solid rgba(0,0,0,0.08)', borderRadius:999, fontSize:'0.66rem', fontWeight:600, color:'rgba(0,0,0,0.78)' }}>
+                            <span>{cp.name}</span>
+                            {cp.words > 0 && <span style={{ fontWeight:500, color:'rgba(0,0,0,0.55)', fontVariantNumeric:'tabular-nums' }}>· {Number(cp.words).toLocaleString()}</span>}
+                          </span>
                         ))}
                       </div>
                     )}

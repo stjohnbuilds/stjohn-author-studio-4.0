@@ -233,6 +233,88 @@ function projectCounts(project) {
 }
 
 // ===========================================================================
+// Character / word-count analysis for the breakdown popup and per-chapter
+// character pills. Same approach as Proof's tallyCharacterWordCountsDom:
+// walk H1/H2/H3 headings in DOM order; whenever a heading's text matches
+// a character name (fuzzy), that character becomes the "active" attribution
+// for all text following it — until the next character-named heading.
+//
+// Marie's spec: "let's say vandal and crescent, and it detects vandal in
+// a head of one, then it will go until it finds crescent in a head of one,
+// and that's the amount of words it would count. But if there's nothing
+// in the header ones for the names, then you look for head of twos. And
+// maybe even just to cover any funny formats, maybe it looks at both."
+// Walking ALL heading levels at once does exactly that — H1 character
+// headings win if present; H2/H3 headings cover the case where chapters
+// are H1 and scenes are H2.
+// ===========================================================================
+function _prepNormName(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function _prepNameMatches(a, b) {
+  const na = _prepNormName(a);
+  const nb = _prepNormName(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+const PREP_NARRATOR_KEY = '__narrator__';
+
+function analyzePrepChapterByCharacter(html, characters) {
+  const result = { headingCharacters: [], wordTallies: {}, totalWords: 0 };
+  if (typeof document === 'undefined' || !html) return result;
+  const mapping = (characters || []).filter((c) => (c?.name || '').trim());
+  if (!mapping.length) return result;
+
+  const host = document.createElement('div');
+  host.setAttribute('aria-hidden', 'true');
+  host.style.cssText = 'position:absolute;left:-99999px;top:-99999px;visibility:hidden;pointer-events:none;width:600px;';
+  host.innerHTML = String(html);
+  document.body.appendChild(host);
+
+  const seenChars = new Set();
+  try {
+    const headings = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+    const headingEntries = headings.map((h) => {
+      const text = (h.textContent || '').trim();
+      const matched = mapping.find((c) => _prepNameMatches(text, c.name));
+      return { el: h, char: matched ? matched.name : null };
+    });
+    function activeCharFor(el) {
+      let last = null;
+      for (const h of headingEntries) {
+        const rel = h.el.compareDocumentPosition(el);
+        if ((rel & Node.DOCUMENT_POSITION_FOLLOWING) || h.el === el) {
+          if (h.char) {
+            last = h.char;
+            if (!seenChars.has(h.char)) {
+              seenChars.add(h.char);
+              result.headingCharacters.push(h.char);
+            }
+          }
+        } else if (rel & Node.DOCUMENT_POSITION_PRECEDING) {
+          break;
+        }
+      }
+      return last;
+    }
+    const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const text = node.nodeValue || '';
+      const wordCount = (text.match(/\S+/g) || []).length;
+      if (!wordCount) continue;
+      result.totalWords += wordCount;
+      const char = activeCharFor(node.parentElement);
+      const key = char || PREP_NARRATOR_KEY;
+      result.wordTallies[key] = (result.wordTallies[key] || 0) + wordCount;
+    }
+  } finally {
+    document.body.removeChild(host);
+  }
+  return result;
+}
+
+// ===========================================================================
 // Root component
 // ===========================================================================
 

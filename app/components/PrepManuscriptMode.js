@@ -1225,6 +1225,51 @@ function BookDetailView({
           </div>
         </section>
       </div>
+      {showBreakdown && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(28,18,44,0.18)', backdropFilter:'blur(4px)', zIndex:1300, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }} onClick={() => setShowBreakdown(false)}>
+          <div style={{ width:'min(640px, 100%)', maxHeight:'min(78vh, 720px)', overflow:'auto', background:'white', border:'1px solid var(--accent-border)', borderRadius:24, boxShadow:'0 24px 60px var(--accent-shadow-strong)', padding:'18px 18px 16px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 }}>
+              <div>
+                <div style={{ fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:PREP_INK, marginBottom:4 }}>Manuscript breakdown</div>
+                <div style={{ fontSize:'0.82rem', color:'var(--text-muted)' }}>Word counts per character, attributed by H1/H2/H3 heading. Everything before the first character heading counts as Narrator.</div>
+              </div>
+              <button onClick={() => setShowBreakdown(false)} style={{ padding:'6px 12px', fontSize:'0.78rem', color:PREP_INK, border:'1px solid var(--accent-border)', background:'white', borderRadius:8, fontWeight:700, cursor:'pointer' }}>Close</button>
+            </div>
+            {breakdownSummary.rows.length === 0 ? (
+              <div style={{ padding:'24px 8px', textAlign:'center', color:'var(--text-muted)', fontSize:'0.86rem' }}>
+                {(project.characters || []).length === 0
+                  ? 'Add characters to the project first — the breakdown counts words by character heading.'
+                  : 'No character headings found yet in the manuscript. Make sure each character\'s name appears as an H1, H2 or H3 heading where their dialogue starts.'}
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {breakdownSummary.rows.map((row) => {
+                  const pct = breakdownSummary.grandTotal > 0 ? (row.words / breakdownSummary.grandTotal) * 100 : 0;
+                  const pctText = pct >= 9.5 ? Math.round(pct) + '%' : pct.toFixed(1) + '%';
+                  return (
+                    <div key={row.key} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 12px', background:'white', border:'1px solid var(--border-light)', borderRadius:999, fontSize:'0.84rem' }}>
+                      <span style={{ width:10, height:10, borderRadius:3, background: row.color || 'transparent', border: row.color ? 'none' : '1px dashed var(--border)', flexShrink:0 }} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.label}</div>
+                        {row.narrator && row.narrator !== row.label && (
+                          <div style={{ fontSize:'0.68rem', color:'var(--text-light)', marginTop:2 }}>{row.narrator}</div>
+                        )}
+                      </div>
+                      <span style={{ color:'var(--text-muted)', fontSize:'0.72rem', fontVariantNumeric:'tabular-nums', minWidth:60, textAlign:'right' }}>{Number(row.words).toLocaleString()}w</span>
+                      <span style={{ color:'var(--text)', fontWeight:600, fontSize:'0.78rem', fontVariantNumeric:'tabular-nums', minWidth:44, textAlign:'right' }}>{pctText}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {breakdownSummary.grandTotal > 0 && (
+              <div style={{ marginTop:10, fontSize:'0.7rem', color:'var(--text-light)', textAlign:'right' }}>
+                Total manuscript: {Number(breakdownSummary.grandTotal).toLocaleString()} words
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

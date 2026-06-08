@@ -46,6 +46,15 @@ nsis:
   artifactName: StJohn Author Studio Setup.exe
   oneClick: false
   perMachine: false
+  # Force per-user-only install. With allowElevation:false the installer
+  # can never ask for admin rights and the per-user/per-machine choice
+  # page is suppressed — the install always lands in
+  # %LOCALAPPDATA%\Programs\StJohn Author Studio. That's the folder the
+  # auto-updater can overwrite without UAC, so future releases install
+  # themselves silently. Trade-off: install is one-user-at-a-time; on a
+  # shared PC each Windows account installs its own copy. Acceptable for
+  # Marie's "give it to friends on their own laptops" use case.
+  allowElevation: false
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
 

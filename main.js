@@ -1235,7 +1235,7 @@ function startStaticServer() {
 
 async function createWindow() {
   const windowIconPath = getWindowsIconPath();
-  const win = new BrowserWindow({
+  const win = mainWindow = new BrowserWindow({
     width: 1280, height: 860,
     minWidth: 900, minHeight: 600,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',

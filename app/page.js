@@ -1634,6 +1634,7 @@ export default function Home() {
           onManualBackup={handleManualBackup}
         />
         <PrebuildMode modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />} />
+        <AppFooter />
       </div>
     );
   }

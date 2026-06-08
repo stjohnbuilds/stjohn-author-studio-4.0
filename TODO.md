@@ -12,6 +12,43 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-07 — Auto-update from GitHub Releases (electron-updater)
+
+- [ ] **Add `electron-updater` so the installed app pulls future updates
+      automatically from GitHub Releases.** Marie's pain point: every
+      session that produces a new build means manually downloading
+      `.app.zip` / `.exe` and re-installing on every laptop. With
+      electron-updater wired up: on each launch the app pings the
+      latest GitHub release; if newer than itself, surfaces a quiet
+      "Update available" toast in the title chrome. Click → downloads
+      in background → "Restart to install" appears → click restarts
+      with the new version. Setup outline:
+        • `npm i electron-updater`
+        • In `main.js`, on `app.ready`: `autoUpdater.checkForUpdatesAndNotify()`
+        • In `electron-builder.yml`: add `publish:` block pointing at
+          GitHub `stjohnbuilds/stjohn-author-studio-4.0`
+        • Wire IPC: `'update-available'` / `'update-downloaded'` → a
+          tiny banner in `ReaderChrome` (one shared place, NOT per-mode).
+      Caveats to call out in Marie's voice once done:
+        • Mac without Developer ID: works, but macOS may show a one-time
+          allow-update prompt every few months. Real Apple Dev ID ($99/yr)
+          makes it silent. Windows works fine without signing — SmartScreen
+          shows "unrecognised publisher" once per update.
+      Effort: small-medium code change (~50 lines). Test by publishing
+      a no-op v4.0.2 release and watching it auto-update.
+
+### 🆕 2026-06-07 — Suppress NSIS "cannot be closed" popup on Windows install
+
+- [ ] **Stop the "StJohn Author Studio cannot be closed" prompt during
+      Windows install** when the app is clearly NOT running. Marie hit
+      this even with the app definitely closed — NSIS's running-process
+      check false-triggers on stale Windows process records. Fix is
+      a small NSIS include script under `build/installer.nsh` that
+      overrides the `customInit` macro to skip the close-app prompt
+      (or kill matching processes silently). Add `nsis.include:
+      build/installer.nsh` to `electron-builder.yml`. Rebuild + verify
+      a fresh install on a clean Windows machine shows no popup.
+
 ### 🆕 2026-06-06 — Character palette consolidated into ONE file
 
 - [x] **Shared `app/lib/characterPalette.js` is now the single source of

@@ -52,4 +52,32 @@ contextBridge.exposeInMainWorld('electron', {
   makeBackupSnapshot:(args)  => ipcRenderer.invoke('backup-make-snapshot', args),
   getBackupInfo:    ()       => ipcRenderer.invoke('backup-get-info'),
   pruneBackups:     (args)   => ipcRenderer.invoke('backup-prune', args),
+  // Auto-update from GitHub Releases. The renderer subscribes to the
+  // four lifecycle events (available / progress / downloaded / error)
+  // and calls startUpdateDownload + installUpdateNow when the user
+  // clicks. getVersionInfo populates the "v4.0.2 · built YYYY-MM-DD"
+  // stamp at the bottom of the app.
+  getVersionInfo:        ()  => ipcRenderer.invoke('app:get-version-info'),
+  startUpdateDownload:   ()  => ipcRenderer.invoke('update:start-download'),
+  installUpdateNow:      ()  => ipcRenderer.invoke('update:install-now'),
+  onUpdateAvailable: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('update:available', handler);
+    return () => ipcRenderer.removeListener('update:available', handler);
+  },
+  onUpdateProgress: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('update:progress', handler);
+    return () => ipcRenderer.removeListener('update:progress', handler);
+  },
+  onUpdateDownloaded: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('update:downloaded', handler);
+    return () => ipcRenderer.removeListener('update:downloaded', handler);
+  },
+  onUpdateError: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('update:error', handler);
+    return () => ipcRenderer.removeListener('update:error', handler);
+  },
 });

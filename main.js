@@ -5,7 +5,14 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { pathToFileURL } = require('url');
+const { autoUpdater } = require('electron-updater');
 const { parseWhisperJsonWords } = require('./packages/audio-engine/whisper-json.cjs');
+
+// Module-level reference to the main window so the auto-updater's
+// async events (update-available / download-progress / update-
+// downloaded) can post messages to the renderer without threading the
+// window through every callback.
+let mainWindow = null;
 const isDev = process.env.NODE_ENV === 'development';
 // 4.0 rebrand: Save Data folder is now under "StJohn Author Studio". If
 // you want to migrate books from a Script and Sync 3.0 install, open

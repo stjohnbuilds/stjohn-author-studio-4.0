@@ -32,6 +32,8 @@ mac:
   target:
     - target: dir
       arch: [arm64]
+    - target: zip
+      arch: [arm64]
 
 win:
   icon: build/icon.ico
@@ -47,4 +49,13 @@ nsis:
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
 
-publish: null
+# Auto-update via GitHub Releases. electron-updater inside the running
+# app reads `latest.yml` (Windows) / `latest-mac.yml` (Mac) attached to
+# the latest non-draft release at this repo to decide whether a newer
+# version exists. When `electron-builder` runs locally it generates
+# those metadata files alongside the artifacts; the release-publish
+# step uploads them all together.
+publish:
+  provider: github
+  owner: stjohnbuilds
+  repo: stjohn-author-studio-4.0

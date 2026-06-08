@@ -1595,16 +1595,20 @@ export default function Home() {
           <div style={{ position:'fixed', top:0, left:0, right:0, height:38, WebkitAppRegion:'drag', zIndex:1100 }} />
         )}
         <div style={{ fontSize:'0.86rem', color:'var(--text-muted)' }}>Checking your account…</div>
+        <AppFooter />
       </div>
     );
   }
 
   if (hasSupabaseConfig && !authSession) {
     return (
-      <LoginScreen
-        onSignedIn={handleSignedIn}
-        usesCustomDragRegion={usesCustomDragRegion}
-      />
+      <>
+        <LoginScreen
+          onSignedIn={handleSignedIn}
+          usesCustomDragRegion={usesCustomDragRegion}
+        />
+        <AppFooter />
+      </>
     );
   }
 

@@ -1780,6 +1780,7 @@ export default function Home() {
           onClose={() => setTutorialWrapUpOpen(false)}
         />
       )}
+      <AppFooter />
     </div>
   );
 }

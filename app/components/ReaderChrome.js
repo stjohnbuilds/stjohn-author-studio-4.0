@@ -557,3 +557,140 @@ export function useDismissable(open, onClose, ignoreRef) {
     };
   }, [open, onClose, ignoreRef]);
 }
+
+// ---------------------------------------------------------------------------
+// App-wide footer pill — ALWAYS shows the running version ("v4.0.2 · 2026-06-07")
+// in the bottom-right corner so Marie can see at a glance whether the
+// latest build has actually reached this machine. When the auto-updater
+// (electron-updater, wired in main.js) detects a newer GitHub release
+// the pill expands upward with an "Update available · Download" button
+// → download progress → "Restart to install". Rendered once at the
+// top of app/page.js so it appears in every mode (Proof / Prep / Duet
+// / Quill) and the phone shell. No-op outside Electron.
+// ---------------------------------------------------------------------------
+export function AppFooter() {
+  const [versionInfo, setVersionInfo] = useState(null);
+  const [updateState, setUpdateState] = useState(null);
+  // null | { stage: 'available' | 'downloading' | 'ready' | 'error', version?, percent?, message? }
+
+  useEffect(() => {
+    const el = typeof window !== 'undefined' ? window.electron : null;
+    if (!el?.isElectron) return;
+    if (typeof el.getVersionInfo === 'function') {
+      el.getVersionInfo().then((info) => { if (info) setVersionInfo(info); }).catch(() => {});
+    }
+    const offs = [];
+    if (typeof el.onUpdateAvailable === 'function') {
+      offs.push(el.onUpdateAvailable((info) => {
+        setUpdateState({ stage: 'available', version: info?.version || null });
+      }));
+    }
+    if (typeof el.onUpdateProgress === 'function') {
+      offs.push(el.onUpdateProgress((info) => {
+        setUpdateState((prev) => ({ stage: 'downloading', version: prev?.version || null, percent: info?.percent || 0 }));
+      }));
+    }
+    if (typeof el.onUpdateDownloaded === 'function') {
+      offs.push(el.onUpdateDownloaded((info) => {
+        setUpdateState({ stage: 'ready', version: info?.version || null });
+      }));
+    }
+    if (typeof el.onUpdateError === 'function') {
+      offs.push(el.onUpdateError((info) => {
+        // Silent unless we were mid-download — Marie doesn't need a
+        // popup for "couldn't reach GitHub" on every launch.
+        setUpdateState((prev) => prev ? { stage: 'error', message: info?.message || 'Update check failed.' } : null);
+      }));
+    }
+    return () => { offs.forEach((off) => { try { off?.(); } catch {} }); };
+  }, []);
+
+  async function startDownload() {
+    const el = typeof window !== 'undefined' ? window.electron : null;
+    if (!el?.startUpdateDownload) return;
+    setUpdateState((prev) => ({ ...(prev || {}), stage: 'downloading', percent: 0 }));
+    const r = await el.startUpdateDownload();
+    if (!r?.ok) setUpdateState({ stage: 'error', message: r?.error || 'Download failed.' });
+  }
+  async function installNow() {
+    const el = typeof window !== 'undefined' ? window.electron : null;
+    if (!el?.installUpdateNow) return;
+    await el.installUpdateNow();
+  }
+
+  if (!versionInfo && !updateState) return null;
+
+  const pillBase = {
+    fontSize: '0.7rem',
+    fontWeight: 600,
+    padding: '5px 10px',
+    borderRadius: 999,
+    border: '1px solid rgba(0,0,0,0.12)',
+    background: 'rgba(255,255,255,0.92)',
+    backdropFilter: 'blur(6px)',
+    color: 'rgba(0,0,0,0.7)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    whiteSpace: 'nowrap',
+  };
+  const btnStyle = {
+    border: 'none',
+    background: 'rgba(0,0,0,0.78)',
+    color: 'white',
+    padding: '3px 8px',
+    fontSize: '0.66rem',
+    fontWeight: 700,
+    borderRadius: 999,
+    cursor: 'pointer',
+  };
+
+  return (
+    <div
+      aria-live="polite"
+      style={{
+        position: 'fixed',
+        right: 14,
+        bottom: 12,
+        zIndex: 9000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 6,
+        pointerEvents: 'none', // children re-enable
+      }}
+    >
+      {updateState?.stage === 'available' && (
+        <div style={{ ...pillBase, pointerEvents: 'auto' }}>
+          <span>Update available{updateState.version ? ` · v${updateState.version}` : ''}</span>
+          <button type="button" onClick={startDownload} style={btnStyle}>Download</button>
+        </div>
+      )}
+      {updateState?.stage === 'downloading' && (
+        <div style={{ ...pillBase, pointerEvents: 'auto' }}>
+          <span>Downloading update… {Math.round(updateState.percent || 0)}%</span>
+        </div>
+      )}
+      {updateState?.stage === 'ready' && (
+        <div style={{ ...pillBase, pointerEvents: 'auto', borderColor: 'rgba(50,140,80,0.4)' }}>
+          <span>Update ready{updateState.version ? ` · v${updateState.version}` : ''}</span>
+          <button type="button" onClick={installNow} style={btnStyle}>Restart to install</button>
+        </div>
+      )}
+      {updateState?.stage === 'error' && (
+        <div style={{ ...pillBase, pointerEvents: 'auto', borderColor: 'rgba(180,60,60,0.35)', color: 'rgba(140,40,40,0.9)' }}>
+          <span>Update issue — {String(updateState.message || '').slice(0, 80)}</span>
+        </div>
+      )}
+      {versionInfo && (
+        <div style={{ ...pillBase, fontSize: '0.62rem', padding: '3px 8px', opacity: 0.7, pointerEvents: 'auto' }}>
+          <span>
+            v{versionInfo.version}
+            {versionInfo.buildDate ? ` · ${versionInfo.buildDate}` : ''}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

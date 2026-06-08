@@ -12,6 +12,23 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-06 — Character palette consolidated into ONE file
+
+- [x] **Shared `app/lib/characterPalette.js` is now the single source of
+      truth for the 7 character-row colours.** Previously the same hex
+      list was copy-pasted in two places (`PrepManuscriptMode.js`'s
+      `CHARACTER_PALETTE` and `ManuscriptSetup.js`'s
+      `DEFAULT_MANUAL_COLORS`) and Proof's "+ Add character" button in
+      `SessionsView.js` hardcoded `#d9d9d9` (gray), ignoring both. This
+      is why new characters added to Sweetheart in Proof (Love / Ebony /
+      Rook / Drake) all came out gray instead of cycling through the
+      palette like Prep + Setup do. Now all three places import from
+      one file. Adding a new character in Proof gives the next unused
+      palette colour, same as Prep. Existing gray entries in books.json
+      stay gray until Marie clicks the colour swatch to change them
+      (data stored in book.narratorColors, not regenerated). 140/140
+      tests pass. — completed 2026-06-06
+
 ### 🆕 2026-06-06 — Audiobook Breakdown: plain-paragraph POV-name detection
 
 - [x] **Walker now recognises `<p>Vex</p>` as a scene boundary.** Marie's

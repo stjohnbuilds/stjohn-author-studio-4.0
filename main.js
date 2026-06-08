@@ -1279,6 +1279,82 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
 }
 
+// ── Auto-update via GitHub Releases ─────────────────────────────────────────
+// The app pings its repo's latest Release on launch. If a newer version
+// exists, an event fires → forwarded to the renderer → ReaderChrome
+// surfaces a small "Update available · Download" pill. Click downloads
+// in the background; when it finishes the pill switches to "Restart to
+// install". Marie clicks → quitAndInstall() restarts with the new build.
+//
+// autoDownload is OFF so Marie sees the pill BEFORE bandwidth is spent.
+// No-op in dev mode (no .yml on disk, would just spam errors).
+function setupAutoUpdater() {
+  if (isDev) return;
+  try {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+    const send = (channel, payload) => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(channel, payload);
+        }
+      } catch {}
+    };
+    autoUpdater.on('update-available', (info) => {
+      send('update:available', { version: info?.version || null });
+    });
+    autoUpdater.on('update-not-available', () => {
+      send('update:none', null);
+    });
+    autoUpdater.on('download-progress', (p) => {
+      send('update:progress', { percent: Math.round(p?.percent || 0) });
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+      send('update:downloaded', { version: info?.version || null });
+    });
+    autoUpdater.on('error', (err) => {
+      send('update:error', { message: String(err?.message || err) });
+    });
+    // Wait a few seconds after launch so the renderer is mounted and
+    // ready to receive events before we fire the network check.
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch(() => {});
+    }, 4000);
+  } catch {}
+}
+
+// Renderer-initiated updater actions.
+ipcMain.handle('update:start-download', async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+ipcMain.handle('update:install-now', () => {
+  try {
+    autoUpdater.quitAndInstall(false, true);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+// Lets the renderer ask "what version am I running?" so the bottom-of-
+// app version stamp ("v4.0.2 · built 2026-06-07") doesn't have to
+// guess. Build date comes from package.json's mtime at packaging time.
+ipcMain.handle('app:get-version-info', () => {
+  let buildDate = null;
+  try {
+    const pkgPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'app.asar', 'package.json')
+      : path.join(__dirname, 'package.json');
+    const stat = fs.statSync(pkgPath);
+    buildDate = stat.mtime.toISOString().slice(0, 10);
+  } catch {}
+  return { version: app.getVersion(), buildDate };
+});
+
 app.whenReady().then(async () => {
   // Register file protocol so audio files load correctly
   protocol.registerFileProtocol('localfile', (request, callback) => {
@@ -1286,6 +1362,7 @@ app.whenReady().then(async () => {
     callback({ path: filePath });
   });
   await createWindow();
+  setupAutoUpdater();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 

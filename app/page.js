@@ -9,7 +9,7 @@ import PrebuildMode from './components/PrebuildMode';
 import PrepManuscriptMode from './components/PrepManuscriptMode';
 import QuillAndInkMode from './components/QuillAndInkMode';
 import LoginScreen from './components/LoginScreen';
-import { modeAccentVars, ProfilePill } from './components/ReaderChrome';
+import { modeAccentVars, ProfilePill, AppFooter } from './components/ReaderChrome';
 import { countWordsInHtml, normalizeBookPaging } from './lib/manuscriptPaging';
 import { buildSlimPageMap } from './lib/pdfPaging';
 import {

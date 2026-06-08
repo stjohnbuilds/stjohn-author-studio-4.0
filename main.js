@@ -1343,6 +1343,11 @@ ipcMain.handle('update:install-now', () => {
 // Lets the renderer ask "what version am I running?" so the bottom-of-
 // app version stamp ("v4.0.2 · built 2026-06-07") doesn't have to
 // guess. Build date comes from package.json's mtime at packaging time.
+// Per-build emoji marker — baked into each release so Marie can
+// visually confirm an auto-update landed. v4.0.2 ships without one
+// (older build); v4.0.3 ships with 🌟. Future builds rotate this so
+// every successful update changes the badge in the corner.
+const BUILD_EMOJI = '🌟';
 ipcMain.handle('app:get-version-info', () => {
   let buildDate = null;
   try {
@@ -1352,7 +1357,7 @@ ipcMain.handle('app:get-version-info', () => {
     const stat = fs.statSync(pkgPath);
     buildDate = stat.mtime.toISOString().slice(0, 10);
   } catch {}
-  return { version: app.getVersion(), buildDate };
+  return { version: app.getVersion(), buildDate, emoji: BUILD_EMOJI };
 });
 
 app.whenReady().then(async () => {

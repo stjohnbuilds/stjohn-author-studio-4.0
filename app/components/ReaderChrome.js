@@ -12,7 +12,7 @@
 // separate refactor (tracked in TODO under "shared-reader extraction").
 // Migrating Proof to import from here is the next architectural step.
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Paper / reader page

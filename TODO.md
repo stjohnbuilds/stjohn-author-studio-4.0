@@ -37,6 +37,21 @@ Always read `HANDOFF.md` first, then this file.
       Effort: small-medium code change (~50 lines). Test by publishing
       a no-op v4.0.2 release and watching it auto-update.
 
+### 🆕 2026-06-07 — Windows uninstaller leaves files behind
+
+- [ ] **The NSIS uninstaller exits cleanly but leaves files in
+      `C:\Program Files\StJohn Author Studio\` that Marie can't delete
+      via normal File Explorer.** Probable causes: (a) NSIS uninstaller
+      registry isn't tracking every file the installer wrote, (b) some
+      files are held open by zombie electron-helper processes the
+      installer didn't kill, (c) per-machine vs per-user folder mix-up
+      means the uninstaller is removing from the wrong root. Investigate
+      via `build/uninstaller.nsh` custom script that force-removes the
+      install dir on uninstall (`RMDir /r "$INSTDIR"`). Combine with
+      the close-app NSIS fix so both run cleanly together. Verify on
+      a fresh Windows VM: install → run app → close app → uninstall →
+      install folder should be GONE.
+
 ### 🆕 2026-06-07 — Suppress NSIS "cannot be closed" popup on Windows install
 
 - [ ] **Stop the "StJohn Author Studio cannot be closed" prompt during

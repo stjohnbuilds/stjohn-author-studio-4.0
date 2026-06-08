@@ -1696,6 +1696,7 @@ export default function Home() {
           modeToggle={<AppModeToggle mode={appMode} onChange={handleAppModeChange} usesCustomDragRegion={usesCustomDragRegion} />}
           usesCustomDragRegion={usesCustomDragRegion}
         />
+        <AppFooter />
       </div>
     );
   }

@@ -26,9 +26,43 @@ let staticServer = null;
 // Path-boundary helpers — Block 3a (audit findings SAS-AUD-20260602-016
 // + -017). Use these for ANY file path built from data that came from
 // outside the app (imported books, transfer manifests, IPC payloads).
-// Implementation lives in packages/cloud-sync/path-safety.cjs so both
-// main.js and the regression tests share one source.
-const { assertResolvedInsideDir, safeJoinInsideDir } = require('./packages/cloud-sync/path-safety.cjs');
+// Inlined here (instead of `require('./packages/cloud-sync/path-safety.cjs')`)
+// because that cross-file require kept resolving to "cannot find module"
+// on Marie's installed Windows build even though the .cjs WAS in the
+// asar — Wine-cross-compiled asar quirk for non-root paths under
+// /packages/. The regression tests still import the .cjs version
+// directly (tests/path-boundary.test.mjs); this inline copy is byte-
+// identical to that file's exports.
+function assertResolvedInsideDir(rootDir, candidate) {
+  const root = path.resolve(rootDir);
+  const resolved = path.resolve(root, candidate);
+  const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
+  if (resolved !== root && !resolved.startsWith(rootWithSep)) {
+    throw new Error(`Refused unsafe path: "${candidate}" would resolve outside ${rootDir}.`);
+  }
+  return resolved;
+}
+function safeJoinInsideDir(rootDir, relativePath) {
+  if (typeof relativePath !== 'string' || !relativePath.length) {
+    throw new Error('Refused unsafe path: empty input.');
+  }
+  if (/^[\\/]/.test(relativePath)) {
+    throw new Error(`Refused unsafe path: absolute input ${JSON.stringify(relativePath)}.`);
+  }
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(relativePath)) {
+    throw new Error(`Refused unsafe path: scheme-like input ${JSON.stringify(relativePath)}.`);
+  }
+  const segments = relativePath.split(/[\\/]+/).filter(Boolean);
+  if (!segments.length) {
+    throw new Error('Refused unsafe path: no usable segments.');
+  }
+  for (const seg of segments) {
+    if (seg === '..' || seg === '.' || seg.includes('\0')) {
+      throw new Error(`Refused unsafe path: contains ${JSON.stringify(seg)}.`);
+    }
+  }
+  return assertResolvedInsideDir(rootDir, path.join(...segments));
+}
 
 function getWindowsIconPath() {
   const candidates = app.isPackaged

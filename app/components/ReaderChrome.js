@@ -687,6 +687,7 @@ export function AppFooter() {
         <div style={{ ...pillBase, fontSize: '0.62rem', padding: '3px 8px', opacity: 0.7, pointerEvents: 'auto' }}>
           <span>
             v{versionInfo.version}
+            {versionInfo.emoji ? ` ${versionInfo.emoji}` : ''}
             {versionInfo.buildDate ? ` · ${versionInfo.buildDate}` : ''}
           </span>
         </div>

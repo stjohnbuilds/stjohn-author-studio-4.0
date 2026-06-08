@@ -43,7 +43,13 @@ win:
       arch: [x64]
 
 nsis:
-  artifactName: StJohn Author Studio Setup.exe
+  # Hyphens, not spaces. GitHub silently rewrites filenames with spaces
+  # to use dots when you upload via gh CLI ("a b c.exe" -> "a.b.c.exe"),
+  # but electron-builder writes the URL into latest.yml using hyphens
+  # ("a-b-c.exe"). That mismatch makes electron-updater 404 on the
+  # download. Naming the artifact with hyphens from the start keeps
+  # GitHub from renaming it.
+  artifactName: StJohn-Author-Studio-Setup.exe
   oneClick: false
   perMachine: false
   # Force per-user-only install. With allowElevation:false the installer

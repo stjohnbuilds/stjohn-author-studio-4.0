@@ -12,7 +12,6 @@ files:
   - main.js
   - preload.js
   - packages/audio-engine/whisper-json.cjs
-  - packages/cloud-sync/path-safety.cjs
   - node_modules/**/*
   - package.json
 

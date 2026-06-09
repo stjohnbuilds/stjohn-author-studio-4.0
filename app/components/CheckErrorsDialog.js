@@ -272,7 +272,15 @@ function extractContextParagraphs(sectionHtml, quote) {
 // amber. The dialog hoists the audio subscription so this component is
 // pure props — `currentLocalIdx` is just "which word inside this
 // paragraph is being spoken right now, or -1 if none / no transcription".
-function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChapterMsIdx, audioPlaying }) {
+// `tone` controls which colour the moving word uses:
+//   'target'  — amber (default; for the paragraph containing the
+//               flagged quote — also paints the quote band yellow).
+//   'context' — pastel lilac (for the before / after paragraphs so the
+//               moving word stays visible without yelling "this is the
+//               issue").
+// `quote` is only consulted when tone='target'; context paragraphs
+// never paint a static highlight band.
+function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChapterMsIdx, audioPlaying, tone = 'target' }) {
   const currentLocalIdx = (Number.isFinite(currentChapterMsIdx) && currentChapterMsIdx >= 0 && paragraphStartWordIdx != null)
     ? currentChapterMsIdx - paragraphStartWordIdx
     : -1;

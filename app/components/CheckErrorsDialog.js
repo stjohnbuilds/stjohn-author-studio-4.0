@@ -307,6 +307,11 @@ function extractContextParagraphs(sectionHtml, quote) {
     beforeStartWordIdx: idx > 0 ? (startIdxs[idx - 1] || 0) : 0,
     targetStartWordIdx: startIdxs[idx] || 0,
     afterStartWordIdx: idx + 1 < startIdxs.length ? (startIdxs[idx + 1] || 0) : 0,
+    // Marie 2026-06-09 v4.0.17: this was the bug — confidence was
+    // computed but I forgot to return it. Every flag's chip
+    // displayed "not found" regardless of how good the match
+    // actually was.
+    confidence,
   };
 }
 

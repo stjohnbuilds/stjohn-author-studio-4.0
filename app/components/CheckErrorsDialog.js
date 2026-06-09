@@ -315,13 +315,27 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
   if (q) {
     quoteHeadInNorm = normText2.indexOf(q);
     if (quoteHeadInNorm < 0) {
-      // Soft fallback: match just the first 5 words. The highlight length
-      // must shrink to the head length too, otherwise words past the
-      // actual match get painted yellow (the bug Marie nearly hit).
-      const head = q.split(' ').slice(0, 5).join(' ');
-      if (head) {
-        quoteHeadInNorm = normText2.indexOf(head);
-        if (quoteHeadInNorm >= 0) matchLength = head.length;
+      // Marie 2026-06-09 v4.0.13: progressive head shrink and n-gram
+      // sliding window. Try longer head substrings first (so a clean
+      // 5-word lead wins over a stray 3-word match elsewhere); if
+      // nothing hits, fall back to ANY 3-word window of the quote
+      // that lives inside this paragraph. Without this the static
+      // yellow band disappeared on CSV-imported flags whose quotes
+      // didn't substring the manuscript exactly.
+      const words = q.split(' ').filter(Boolean);
+      for (const len of [7, 6, 5, 4, 3]) {
+        if (words.length < len) continue;
+        const head = words.slice(0, len).join(' ');
+        const hit = normText2.indexOf(head);
+        if (hit >= 0) { quoteHeadInNorm = hit; matchLength = head.length; break; }
+      }
+      if (quoteHeadInNorm < 0 && words.length >= 3) {
+        const NG = 3;
+        for (let i = 0; i + NG <= words.length; i += 1) {
+          const ng = words.slice(i, i + NG).join(' ');
+          const hit = normText2.indexOf(ng);
+          if (hit >= 0) { quoteHeadInNorm = hit; matchLength = ng.length; break; }
+        }
       }
     }
   }

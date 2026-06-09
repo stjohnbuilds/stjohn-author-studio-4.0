@@ -598,20 +598,29 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     // sound; when ON the next flag plays from the right spot
     // immediately.
     function doSeek() {
-      // Marie 2026-06-09 v4.0.15: rolled back to v4.0.12-style
-      // one-shot seek. v4.0.13's removal of the didSeek lock + the
-      // tolerance band in v4.0.14 still produced rapid play/pause
-      // toggling once Marie advanced past two flags on a CSV
-      // upload. Going back to the well-known single-seek-per-effect
-      // pattern. Trade-off: the "first-flag-opens-at-0:00" bug may
-      // resurface for slow-loading audio; we'll revisit with a less
-      // invasive fix (e.g. retry only if currentTime is still 0
-      // after a delay) in a follow-up.
       if (cancelled || didSeek) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
       didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
       try { a.currentTime = clamped; } catch {}
+      // Marie 2026-06-09 v4.0.18: safe one-shot re-seek. On first
+      // open of the dialog the audio element fires loadedmetadata
+      // AFTER our seek and resets currentTime to 0, leaving the
+      // playhead at 0:00 instead of the flag's timestamp. A single
+      // 600ms-delayed check rescues this: if currentTime is still
+      // near 0 and we meant to seek somewhere meaningfully past it,
+      // try once more. No event listeners, no loop — just one
+      // setTimeout that fires at most once per effect run, which
+      // is exactly what makes this different from the v4.0.13
+      // rapid-seek bug that caused the buzzing noise.
+      if (clamped > 1) {
+        setTimeout(() => {
+          if (cancelled) return;
+          if (a.currentTime < 0.5) {
+            try { a.currentTime = clamped; } catch {}
+          }
+        }, 600);
+      }
       if (autoPlayOnNext) {
         const onSeeked = () => {
           a.removeEventListener('seeked', onSeeked);

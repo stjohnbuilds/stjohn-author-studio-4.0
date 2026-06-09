@@ -155,15 +155,14 @@ function buildImportedFlagList(book, csvRows) {
       ts: Number(r.ts) || 0,
       narrator: String(r.narrator || ''),
       type: String(r.type || ''),
-      // Position-based: col 7 + col 8 of the source CSV. Whichever is
-      // longer is treated as the manuscript quote, the other as the
-      // engineer note. Same rule the marker writer uses.
-      quote: (String(r.colEight || '').length >= String(r.colSeven || '').length)
-        ? String(r.colEight || '')
-        : String(r.colSeven || ''),
-      should: (String(r.colEight || '').length >= String(r.colSeven || '').length)
-        ? String(r.colSeven || '')
-        : String(r.colEight || ''),
+      // Position-based: col 7 = "Misread Quote" (the manuscript text),
+      // col 8 = "Should Say" (the engineer's note). Matches the
+      // exact column order Export-for-Engineer writes
+      // (SessionsView.js lines 316 + 443). Earlier this used a
+      // longer/shorter heuristic which flipped the two when Marie's
+      // engineer wrote a note longer than the quote.
+      quote:  String(r.colSeven || ''),
+      should: String(r.colEight || ''),
       idx: null,
       unmatched: !matchedChapter,
       audioFileHint: r.audioFileHint || '',

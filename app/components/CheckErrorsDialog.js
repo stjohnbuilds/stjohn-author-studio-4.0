@@ -198,7 +198,7 @@ function extractContextParagraphs(sectionHtml, quote) {
       .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
       .replace(/\s+/g, ' ').trim())
     .filter(Boolean);
-  if (!paragraphs.length) return { before: '', target: '', after: '', targetStartWordIdx: 0 };
+  if (!paragraphs.length) return { before: '', target: '', after: '', targetStartWordIdx: 0, confidence: 'none' };
 
   // Cumulative chapter word-index BEFORE each paragraph — so the live
   // highlight can convert "current chapter word" → "word inside this

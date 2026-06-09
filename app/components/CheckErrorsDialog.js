@@ -550,6 +550,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
             <div style={{ fontSize: '1.02rem', fontWeight: 700, marginBottom: 4 }}>{current.chapterTitle}</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14 }}>
               <span><strong style={{ color: 'var(--text)' }}>At</strong> {fmtTime(current.ts)}</span>
+              {current.page && <span><strong style={{ color: 'var(--text)' }}>Page</strong> {current.page}</span>}
               {current.narrator && <span><strong style={{ color: 'var(--text)' }}>Narrator</strong> {current.narrator}</span>}
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
             </div>

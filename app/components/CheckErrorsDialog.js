@@ -270,7 +270,7 @@ function extractContextParagraphs(sectionHtml, quote) {
 // amber. The dialog hoists the audio subscription so this component is
 // pure props — `currentLocalIdx` is just "which word inside this
 // paragraph is being spoken right now, or -1 if none / no transcription".
-function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChapterMsIdx }) {
+function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChapterMsIdx, audioPlaying }) {
   const currentLocalIdx = (Number.isFinite(currentChapterMsIdx) && currentChapterMsIdx >= 0 && paragraphStartWordIdx != null)
     ? currentChapterMsIdx - paragraphStartWordIdx
     : -1;

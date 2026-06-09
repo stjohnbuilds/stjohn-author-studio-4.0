@@ -524,8 +524,14 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     // sound; when ON the next flag plays from the right spot
     // immediately.
     function doSeek() {
-      if (cancelled || didSeek) return;
+      if (cancelled) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
+      // Marie 2026-06-09 v4.0.13: removed the `didSeek` early-return
+      // lock. The lock prevented the seek from running again after
+      // the audio's internal `loadedmetadata` event reset
+      // currentTime to 0 — which was the "first flag opens at 0:00"
+      // bug. Setting currentTime to the same target value on every
+      // listener fire is harmless (browser deduplicates).
       didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
       try { a.currentTime = clamped; } catch {}

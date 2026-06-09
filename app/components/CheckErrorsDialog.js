@@ -547,28 +547,21 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     // sound; when ON the next flag plays from the right spot
     // immediately.
     function doSeek() {
-      if (cancelled) return;
+      // Marie 2026-06-09 v4.0.15: rolled back to v4.0.12-style
+      // one-shot seek. v4.0.13's removal of the didSeek lock + the
+      // tolerance band in v4.0.14 still produced rapid play/pause
+      // toggling once Marie advanced past two flags on a CSV
+      // upload. Going back to the well-known single-seek-per-effect
+      // pattern. Trade-off: the "first-flag-opens-at-0:00" bug may
+      // resurface for slow-loading audio; we'll revisit with a less
+      // invasive fix (e.g. retry only if currentTime is still 0
+      // after a delay) in a follow-up.
+      if (cancelled || didSeek) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
+      didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
-      // Marie 2026-06-09 v4.0.14: tolerance check replaces the
-      // earlier didSeek lock. The lock prevented re-seek after
-      // loadedmetadata reset to 0 (the "first flag opens at 0:00"
-      // bug). Removing it entirely caused doSeek to fire on every
-      // loadedmetadata / durationchange / canplay event — which on
-      // some audio paths produced a rapid seek loop that pulsed
-      // play/pause and made an audible buzzing noise.
-      // Now: only set currentTime when we're genuinely far from
-      // target (>100ms off). Same logic still triggers after the
-      // loadedmetadata reset (since 0 is far from 4:37 etc.) but
-      // skips redundant micro-seeks once the audio is parked.
-      if (Math.abs(a.currentTime - clamped) > 0.1) {
-        try { a.currentTime = clamped; } catch {}
-      }
-      // Autoplay still fires ONCE per (flag, audio) tuple via
-      // didSeek. Keeps the play() call from stacking up over the
-      // multiple seek events the audio element fires during load.
-      if (autoPlayOnNext && !didSeek) {
-        didSeek = true;
+      try { a.currentTime = clamped; } catch {}
+      if (autoPlayOnNext) {
         const onSeeked = () => {
           a.removeEventListener('seeked', onSeeked);
           if (!cancelled) a.play?.().catch(() => {});

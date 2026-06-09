@@ -418,6 +418,11 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   // before the audio element existed.
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  // Marie 2026-06-09 v4.0.12: opt-in autoplay. Off by default so
+  // Next/Previous lands on the timestamp without strobing audio at
+  // her; flip on when she actually wants the next flag to play
+  // automatically as she walks the list.
+  const [autoPlayOnNext, setAutoPlayOnNext] = useState(false);
   const syncTblRef = useRef(null);
   useEffect(() => {
     const a = audioRef.current;

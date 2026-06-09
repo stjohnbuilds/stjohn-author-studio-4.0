@@ -620,7 +620,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                   audioPlaying={audioPlaying}
                 />
               </p>
-              {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
+              {context.after && <p style={{ margin: '0', padding: '6px 10px', borderRadius: 8, background: '#f1ebfa', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
             </div>
           </>
         ) : null}

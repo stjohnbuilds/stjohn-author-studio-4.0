@@ -727,11 +727,30 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               )}
             </div>
             <div style={{ fontSize: '1.02rem', fontWeight: 700, marginBottom: 4 }}>{current.chapterTitle}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 14 }}>
               <span><strong style={{ color: 'var(--text)' }}>At</strong> {fmtTime(current.ts)}</span>
               {current.page && <span><strong style={{ color: 'var(--text)' }}>Page</strong> {current.page}</span>}
               {current.narrator && <span><strong style={{ color: 'var(--text)' }}>Narrator</strong> {current.narrator}</span>}
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
+              {/* Match-confidence chip. Marie 2026-06-09 v4.0.16 — so
+                  she can tell at a glance which flags landed on the
+                  right paragraph vs which were the fuzzy-match's best
+                  guess. */}
+              {(() => {
+                const c = context?.confidence;
+                const map = {
+                  exact:  { label: 'Match: exact',     bg: '#e6f3ea', fg: '#2d6f3f', bd: '#b9deba' },
+                  strong: { label: 'Match: strong',    bg: '#eef3f9', fg: '#365c8a', bd: '#bcd0e4' },
+                  guess:  { label: 'Match: best guess', bg: '#fdf2e0', fg: '#94640c', bd: '#e9c98c' },
+                  none:   { label: 'Match: not found',  bg: '#fdecec', fg: '#9a2b2b', bd: '#f0bcbc' },
+                };
+                const m = map[c] || map.none;
+                return (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 999, background: m.bg, color: m.fg, border: `1px solid ${m.bd}`, fontWeight: 700, fontSize: '0.7rem' }}>
+                    {m.label}
+                  </span>
+                );
+              })()}
             </div>
             <div style={{ marginBottom: 14 }}>
               {/* Two paragraphs of context before the target so the

@@ -714,6 +714,32 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
             </div>
           )}
           <div style={{ padding: '0 18px 8px' }}>
+            {/* Tiny strip above the audio dock: autoplay toggle on
+                the right, and a "no transcription" red chip on the
+                left when this chapter doesn't have whisper data
+                (the moving word highlight won't run without it).
+                Marie 2026-06-09 v4.0.12. */}
+            {audioUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 0 6px', fontSize: '0.72rem' }}>
+                <div>
+                  {(!Array.isArray(sectionInfo.section?.whisperAlignment) || sectionInfo.section.whisperAlignment.length < 4) && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 999, background: '#fdecec', border: '1px solid #f0bcbc', color: '#9a2b2b', fontWeight: 700 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, background: '#c8392b', display: 'inline-block' }} />
+                      No transcription
+                    </span>
+                  )}
+                </div>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--text-muted)' }}>
+                  <input
+                    type="checkbox"
+                    checked={autoPlayOnNext}
+                    onChange={(e) => setAutoPlayOnNext(e.target.checked)}
+                    style={{ width: 14, height: 14, cursor: 'pointer' }}
+                  />
+                  <span>Auto-play on Next</span>
+                </label>
+              </div>
+            )}
             {audioUrl ? (
               <AudioDock
                 audioRef={audioRef}

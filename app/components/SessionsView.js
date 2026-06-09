@@ -873,6 +873,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             const narrator = String(mapped?.narratorName || mapped?.characterName || 'Unsure').trim() || 'Unsure';
             rows.push({
               id: `${sec.id}::${charLabel}`,
+              sectionId: sec.id,
               chapterId: ch.id,
               completed: !!sec.completed,
               narrator,

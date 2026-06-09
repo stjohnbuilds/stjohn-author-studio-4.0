@@ -349,12 +349,10 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
       style.borderRadius = 3;
     }
     if (isCurrent) {
-      // Marie 2026-06-09: no outline / boxShadow on the moving
-      // current-word — the ring was distracting. Plain background
-      // tint only. Playing = full amber, paused = faded amber so
-      // the word-position stays visible without strobing during
-      // Next/Previous scanning.
-      style.background = audioPlaying ? '#ffd166' : '#ffeec2';
+      // No outline; just a background tint pulled from the per-tone
+      // palette. Faded variant when paused so the word-position is
+      // still visible without strobing while scanning Next/Previous.
+      style.background = audioPlaying ? palette.play : palette.pause;
       style.padding = '0 2px';
       style.borderRadius = 3;
       style.transition = 'background 0.18s ease';

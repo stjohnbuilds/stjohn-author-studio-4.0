@@ -517,18 +517,31 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     let pollTimer = null;
     let pollsLeft = 100; // ~6s of polling at 60ms
 
-    // Marie 2026-06-09: removed the auto-play. The dialog still
-    // seeks the player to the flag's timestamp so the play button
-    // starts in the right place, but doesn't kick off playback
-    // automatically — Marie was finding the auto-play disruptive
-    // when scanning Next/Previous to inspect the manuscript context
-    // without listening every time. Press the play button to listen.
+    // Marie 2026-06-09: autoplay is an opt-in toggle (defaults OFF).
+    // The dialog always seeks to the flag's timestamp; play() is
+    // only fired if autoPlayOnNext is true. When OFF Marie can
+    // walk Next/Previous quietly to scan paragraphs without
+    // sound; when ON the next flag plays from the right spot
+    // immediately.
     function doSeek() {
       if (cancelled || didSeek) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
       didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
       try { a.currentTime = clamped; } catch {}
+      if (autoPlayOnNext) {
+        // Mirrors the seeked-then-play pattern from earlier so the
+        // play doesn't accidentally start from the OLD position.
+        const onSeeked = () => {
+          a.removeEventListener('seeked', onSeeked);
+          if (!cancelled) a.play?.().catch(() => {});
+        };
+        a.addEventListener('seeked', onSeeked);
+        setTimeout(() => {
+          a.removeEventListener('seeked', onSeeked);
+          if (!cancelled) a.play?.().catch(() => {});
+        }, 800);
+      }
     }
 
     function poll() {

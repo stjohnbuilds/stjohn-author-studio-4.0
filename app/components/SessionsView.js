@@ -1071,8 +1071,15 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         if (canceled) break;
         durationProbeRef.current[key] = true;
         try {
-          const section = allSections.find(s => s.id === row.id);
-          let url = audioUrls[row.id] || null;
+          // row.sectionId is the actual section id. row.id may be a
+          // compound key when the row was emitted by the character-
+          // tally path ("${sec.id}::${charLabel}") — using that for
+          // the section / audioUrls lookup silently fails for books
+          // with mapped characters and leaves the duration cache
+          // empty (Total = 0:00 in the Audiobook timing pill).
+          const lookupId = row.sectionId || row.id;
+          const section = allSections.find(s => s.id === lookupId);
+          let url = audioUrls[lookupId] || null;
           const storedAudioPath = getSectionStoredAudioPath(section);
           if (!url && storedAudioPath && typeof window !== 'undefined' && window.electron?.getAudioUrl) {
             url = await window.electron.getAudioUrl(storedAudioPath);

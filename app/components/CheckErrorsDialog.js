@@ -604,8 +604,14 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
             </div>
             <div style={{ marginBottom: 14 }}>
-              {context.before && <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
-              <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
+              {/* Marie 2026-06-09: the before / after context
+                  paragraphs get a soft pastel-lilac tint so they
+                  read as "context, not the issue". The target
+                  paragraph keeps the white background — its yellow
+                  quote highlight + amber moving word stand out
+                  against the surrounding tint. */}
+              {context.before && <p style={{ margin: '0 0 6px', padding: '6px 10px', borderRadius: 8, background: '#f1ebfa', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
+              <p style={{ margin: '0 0 6px', padding: '6px 10px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
                 <LiveTargetParagraph
                   target={context.target}
                   quote={current?.quote}

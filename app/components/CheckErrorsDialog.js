@@ -624,23 +624,45 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
             </div>
             <div style={{ marginBottom: 14 }}>
-              {/* Marie 2026-06-09: the before / after context
-                  paragraphs get a soft pastel-lilac tint so they
-                  read as "context, not the issue". The target
-                  paragraph keeps the white background — its yellow
-                  quote highlight + amber moving word stand out
-                  against the surrounding tint. */}
-              {context.before && <p style={{ margin: '0 0 6px', padding: '6px 10px', borderRadius: 8, background: '#f1ebfa', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.before}</p>}
-              <p style={{ margin: '0 0 6px', padding: '6px 10px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
+              {/* Marie 2026-06-09 v4.0.11: word-following highlight
+                  runs through every visible paragraph, not just the
+                  target. Target word = amber (matches the yellow
+                  quote band underneath). Before / after words = pastel
+                  lilac so context paragraphs look "lighter than the
+                  issue". No paragraph-level background blob — the
+                  moving word IS the visual cue. */}
+              {context.before && (
+                <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                  <LiveTargetParagraph
+                    target={context.before}
+                    paragraphStartWordIdx={context.beforeStartWordIdx}
+                    currentChapterMsIdx={currentMsIdx}
+                    audioPlaying={audioPlaying}
+                    tone="context"
+                  />
+                </p>
+              )}
+              <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
                 <LiveTargetParagraph
                   target={context.target}
                   quote={current?.quote}
                   paragraphStartWordIdx={context.targetStartWordIdx}
                   currentChapterMsIdx={currentMsIdx}
                   audioPlaying={audioPlaying}
+                  tone="target"
                 />
               </p>
-              {context.after && <p style={{ margin: '0', padding: '6px 10px', borderRadius: 8, background: '#f1ebfa', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}
+              {context.after && (
+                <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                  <LiveTargetParagraph
+                    target={context.after}
+                    paragraphStartWordIdx={context.afterStartWordIdx}
+                    currentChapterMsIdx={currentMsIdx}
+                    audioPlaying={audioPlaying}
+                    tone="context"
+                  />
+                </p>
+              )}
             </div>
           </>
         ) : null}

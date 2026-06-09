@@ -549,18 +549,26 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     function doSeek() {
       if (cancelled) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
-      // Marie 2026-06-09 v4.0.13: removed the `didSeek` early-return
-      // lock. The lock prevented the seek from running again after
-      // the audio's internal `loadedmetadata` event reset
-      // currentTime to 0 — which was the "first flag opens at 0:00"
-      // bug. Setting currentTime to the same target value on every
-      // listener fire is harmless (browser deduplicates).
-      didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
-      try { a.currentTime = clamped; } catch {}
-      if (autoPlayOnNext) {
-        // Mirrors the seeked-then-play pattern from earlier so the
-        // play doesn't accidentally start from the OLD position.
+      // Marie 2026-06-09 v4.0.14: tolerance check replaces the
+      // earlier didSeek lock. The lock prevented re-seek after
+      // loadedmetadata reset to 0 (the "first flag opens at 0:00"
+      // bug). Removing it entirely caused doSeek to fire on every
+      // loadedmetadata / durationchange / canplay event — which on
+      // some audio paths produced a rapid seek loop that pulsed
+      // play/pause and made an audible buzzing noise.
+      // Now: only set currentTime when we're genuinely far from
+      // target (>100ms off). Same logic still triggers after the
+      // loadedmetadata reset (since 0 is far from 4:37 etc.) but
+      // skips redundant micro-seeks once the audio is parked.
+      if (Math.abs(a.currentTime - clamped) > 0.1) {
+        try { a.currentTime = clamped; } catch {}
+      }
+      // Autoplay still fires ONCE per (flag, audio) tuple via
+      // didSeek. Keeps the play() call from stacking up over the
+      // multiple seek events the audio element fires during load.
+      if (autoPlayOnNext && !didSeek) {
+        didSeek = true;
         const onSeeked = () => {
           a.removeEventListener('seeked', onSeeked);
           if (!cancelled) a.play?.().catch(() => {});

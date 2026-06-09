@@ -607,6 +607,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                   quote={current?.quote}
                   paragraphStartWordIdx={context.targetStartWordIdx}
                   currentChapterMsIdx={currentMsIdx}
+                  audioPlaying={audioPlaying}
                 />
               </p>
               {context.after && <p style={{ margin: '0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>{context.after}</p>}

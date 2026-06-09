@@ -261,7 +261,9 @@ function extractContextParagraphs(sectionHtml, quote) {
     before: paragraphs[idx - 1] || '',
     target: paragraphs[idx] || '',
     after: paragraphs[idx + 1] || '',
+    beforeStartWordIdx: idx > 0 ? (startIdxs[idx - 1] || 0) : 0,
     targetStartWordIdx: startIdxs[idx] || 0,
+    afterStartWordIdx: idx + 1 < startIdxs.length ? (startIdxs[idx + 1] || 0) : 0,
   };
 }
 

@@ -288,8 +288,11 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
   if (!text) return '(paragraph not found in chapter HTML)';
 
   // Find the flagged quote's char range in the paragraph (for static
-  // yellow highlight).
-  const q = String(quote || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  // yellow highlight). Only runs for the target paragraph — context
+  // paragraphs skip this entirely so we don't paint phantom highlights
+  // when an unrelated section of prose happens to contain a few of
+  // the quote's words.
+  const q = tone === 'target' ? String(quote || '').trim().toLowerCase().replace(/\s+/g, ' ') : '';
   const normText2 = text.toLowerCase().replace(/\s+/g, ' ');
   let quoteHeadInNorm = -1;
   let matchLength = q.length;
@@ -307,6 +310,15 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
     }
   }
   const quoteTailInNorm = quoteHeadInNorm >= 0 ? quoteHeadInNorm + matchLength : -1;
+
+  // Per-tone colour palette for the moving current-word highlight.
+  // Marie 2026-06-09: amber for target (matches the static yellow
+  // quote band visually), pastel lilac for context so the eye can
+  // tell apart "this is the issue paragraph" vs "this is just before
+  // / after for context".
+  const palette = tone === 'target'
+    ? { play: '#ffd166', pause: '#ffeec2' }
+    : { play: '#d4b8f0', pause: '#ece1f8' };
 
   // Walk tokens. Word tokens get a wordIdx counter (matched against
   // currentLocalIdx for the moving highlight). Whitespace tokens just

@@ -225,21 +225,17 @@ function extractContextParagraphs(sectionHtml, quote) {
   // real flagged one.
   const q = normText(quote);
   let idx = -1;
+  let confidence = 'none';
   if (q) {
-    // 1) Exact normalised substring.
+    // 1) Exact normalised substring → 'exact'.
     idx = paragraphs.findIndex((p) => normText(p).includes(q));
+    if (idx >= 0) confidence = 'exact';
     if (idx < 0) {
       const words = q.split(' ').filter(Boolean);
-      // 2) N-gram overlap score. Marie 2026-06-09 v4.0.12: dropped
-      //    the window size from 4 → 3 words and the min-score from
-      //    2 → 1. Real engineer-CSV quotes often share only a
-      //    handful of contiguous words with the manuscript (re-
-      //    typed, paraphrased, or chopped by line breaks). Single
-      //    3-word overlap is still selective enough to beat the
-      //    "paragraph 0 fallback" symptom Marie saw on every flag
-      //    after the first.
+      // 2) 3-word n-gram overlap. Strongest of these (≥3-word) →
+      //    'strong'. Falls through to 2-word if nothing.
       if (words.length >= 3) {
-        const NG = Math.min(3, words.length);
+        const NG = 3;
         const ngrams = [];
         for (let i = 0; i + NG <= words.length; i += 1) {
           ngrams.push(words.slice(i, i + NG).join(' '));
@@ -254,30 +250,46 @@ function extractContextParagraphs(sectionHtml, quote) {
           }
           if (s > bestScore) { bestScore = s; bestIdx = pi; }
         });
-        if (bestIdx >= 0 && bestScore >= 1) idx = bestIdx;
+        if (bestIdx >= 0 && bestScore >= 1) {
+          idx = bestIdx;
+          confidence = bestScore >= 2 ? 'strong' : 'guess';
+        }
       }
-      // 3) Head / tail / 2-word fallbacks.
+      // 3) Head 7→5 (strong) → head 4→3 (guess) progressive.
       if (idx < 0) {
-        for (const len of [5, 4, 3, 2]) {
+        for (const [len, c] of [[7, 'strong'], [6, 'strong'], [5, 'strong'], [4, 'guess'], [3, 'guess']]) {
           const head = q.split(' ').slice(0, len).join(' ');
           if (head && head.length >= 5) {
-            idx = paragraphs.findIndex((p) => normText(p).includes(head));
-            if (idx >= 0) break;
+            const hit = paragraphs.findIndex((p) => normText(p).includes(head));
+            if (hit >= 0) { idx = hit; confidence = c; break; }
           }
         }
       }
+      // 4) Tail fallback → 'guess'.
       if (idx < 0) {
-        for (const len of [5, 4, 3, 2]) {
+        for (const len of [5, 4, 3]) {
           const tail = q.split(' ').slice(-len).join(' ');
           if (tail && tail.length >= 5) {
-            idx = paragraphs.findIndex((p) => normText(p).includes(tail));
-            if (idx >= 0) break;
+            const hit = paragraphs.findIndex((p) => normText(p).includes(tail));
+            if (hit >= 0) { idx = hit; confidence = 'guess'; break; }
+          }
+        }
+      }
+      // 5) 2-word window as the very last fallback → 'guess'.
+      //    Marie 2026-06-09 v4.0.16: catches engineer notes that
+      //    share only a handful of words with the manuscript text.
+      if (idx < 0 && words.length >= 2) {
+        for (let i = 0; i + 2 <= words.length; i += 1) {
+          const w2 = words.slice(i, i + 2).join(' ');
+          if (w2.length >= 5) {
+            const hit = paragraphs.findIndex((p) => normText(p).includes(w2));
+            if (hit >= 0) { idx = hit; confidence = 'guess'; break; }
           }
         }
       }
     }
   }
-  if (idx < 0) idx = 0;
+  if (idx < 0) { idx = 0; confidence = 'none'; }
 
   // Marie 2026-06-09 v4.0.13: also return the paragraph two slots
   // before the target. If the immediately-preceding paragraph is

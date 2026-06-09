@@ -203,16 +203,56 @@ function extractContextParagraphs(sectionHtml, quote) {
   let acc = 0;
   for (const n of wordCounts) { startIdxs.push(acc); acc += n; }
 
-  // Locate the paragraph containing the quote. Try the full quote
-  // first, then the first 5 words as a soft fallback (handles minor
-  // punctuation drift between the saved quote and the manuscript).
+  // Locate the paragraph containing the quote. Strategy:
+  //   1. Exact normalised substring match.
+  //   2. N-gram overlap score — slide a 4-word window across the
+  //      normalised quote, count how many windows each paragraph
+  //      contains, pick the paragraph with the highest score.
+  //   3. Head fallback — first 5 words of the quote as substring.
+  //   4. Tail fallback — last 5 words.
+  //   5. Final fallback — paragraph 0 (so the dialog still renders).
+  //
+  // Marie 2026-06-09: previously only #1 + #3 ran, which failed for
+  // CSV-imported flags whose engineer notes had carriage returns,
+  // mangled quote starts, or punctuation drift — the dialog
+  // silently rendered the chapter's first paragraph instead of the
+  // real flagged one.
   const q = normText(quote);
   let idx = -1;
   if (q) {
     idx = paragraphs.findIndex((p) => normText(p).includes(q));
     if (idx < 0) {
-      const head = q.split(' ').slice(0, 5).join(' ');
-      if (head) idx = paragraphs.findIndex((p) => normText(p).includes(head));
+      const words = q.split(' ').filter(Boolean);
+      if (words.length >= 3) {
+        const NG = Math.min(4, words.length);
+        const ngrams = [];
+        for (let i = 0; i + NG <= words.length; i += 1) {
+          ngrams.push(words.slice(i, i + NG).join(' '));
+        }
+        let bestScore = 0;
+        let bestIdx = -1;
+        paragraphs.forEach((p, pi) => {
+          const np = normText(p);
+          let s = 0;
+          for (const ng of ngrams) {
+            if (np.includes(ng)) s += 1;
+          }
+          if (s > bestScore) { bestScore = s; bestIdx = pi; }
+        });
+        // Require at least 2 overlapping windows (or 1 if the quote
+        // itself only fits one window) so unrelated paragraphs don't
+        // claim a stray match by accident.
+        const minScore = ngrams.length === 1 ? 1 : 2;
+        if (bestIdx >= 0 && bestScore >= minScore) idx = bestIdx;
+      }
+      if (idx < 0) {
+        const head = q.split(' ').slice(0, 5).join(' ');
+        if (head) idx = paragraphs.findIndex((p) => normText(p).includes(head));
+      }
+      if (idx < 0) {
+        const tail = q.split(' ').slice(-5).join(' ');
+        if (tail) idx = paragraphs.findIndex((p) => normText(p).includes(tail));
+      }
     }
   }
   if (idx < 0) idx = 0;

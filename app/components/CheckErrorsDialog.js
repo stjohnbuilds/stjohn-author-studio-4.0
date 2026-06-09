@@ -220,11 +220,20 @@ function extractContextParagraphs(sectionHtml, quote) {
   const q = normText(quote);
   let idx = -1;
   if (q) {
+    // 1) Exact normalised substring.
     idx = paragraphs.findIndex((p) => normText(p).includes(q));
     if (idx < 0) {
       const words = q.split(' ').filter(Boolean);
+      // 2) N-gram overlap score. Marie 2026-06-09 v4.0.12: dropped
+      //    the window size from 4 → 3 words and the min-score from
+      //    2 → 1. Real engineer-CSV quotes often share only a
+      //    handful of contiguous words with the manuscript (re-
+      //    typed, paraphrased, or chopped by line breaks). Single
+      //    3-word overlap is still selective enough to beat the
+      //    "paragraph 0 fallback" symptom Marie saw on every flag
+      //    after the first.
       if (words.length >= 3) {
-        const NG = Math.min(4, words.length);
+        const NG = Math.min(3, words.length);
         const ngrams = [];
         for (let i = 0; i + NG <= words.length; i += 1) {
           ngrams.push(words.slice(i, i + NG).join(' '));
@@ -239,19 +248,26 @@ function extractContextParagraphs(sectionHtml, quote) {
           }
           if (s > bestScore) { bestScore = s; bestIdx = pi; }
         });
-        // Require at least 2 overlapping windows (or 1 if the quote
-        // itself only fits one window) so unrelated paragraphs don't
-        // claim a stray match by accident.
-        const minScore = ngrams.length === 1 ? 1 : 2;
-        if (bestIdx >= 0 && bestScore >= minScore) idx = bestIdx;
+        if (bestIdx >= 0 && bestScore >= 1) idx = bestIdx;
+      }
+      // 3) Head / tail / 2-word fallbacks.
+      if (idx < 0) {
+        for (const len of [5, 4, 3, 2]) {
+          const head = q.split(' ').slice(0, len).join(' ');
+          if (head && head.length >= 5) {
+            idx = paragraphs.findIndex((p) => normText(p).includes(head));
+            if (idx >= 0) break;
+          }
+        }
       }
       if (idx < 0) {
-        const head = q.split(' ').slice(0, 5).join(' ');
-        if (head) idx = paragraphs.findIndex((p) => normText(p).includes(head));
-      }
-      if (idx < 0) {
-        const tail = q.split(' ').slice(-5).join(' ');
-        if (tail) idx = paragraphs.findIndex((p) => normText(p).includes(tail));
+        for (const len of [5, 4, 3, 2]) {
+          const tail = q.split(' ').slice(-len).join(' ');
+          if (tail && tail.length >= 5) {
+            idx = paragraphs.findIndex((p) => normText(p).includes(tail));
+            if (idx >= 0) break;
+          }
+        }
       }
     }
   }

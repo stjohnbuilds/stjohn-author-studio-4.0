@@ -897,6 +897,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         ));
         rows.push({
           id: sec.id,
+          sectionId: sec.id,
           chapterId: ch.id,
           completed: !!sec.completed,
           narrator: String(mappedNarrator?.narratorName || getSectionNarratorName(sec)).trim() || 'Unassigned narrator',

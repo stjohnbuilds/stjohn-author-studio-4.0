@@ -440,13 +440,41 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   const current = total > 0 ? flagList[Math.min(cursor, total - 1)] : null;
 
   // Find the section + audio + paragraph context for the current flag.
+  //
+  // For SAVED flags (Marie's in-house ones) we already know the exact
+  // section the flag was created in — use it directly.
+  //
+  // For IMPORTED flags (CSV uploads) the section is just the chapter's
+  // first one (we don't actually know which scene the engineer was
+  // pointing at). Walk every section of the matched chapter, run the
+  // fuzzy-paragraph match against each, and pick the section that
+  // gave the highest-confidence match. Marie 2026-06-09 v4.0.16 — was
+  // the "first one works, rest fall back to paragraph 0" bug.
   const sectionInfo = useMemo(() => {
     if (!current || !current.chapterId) return { chapter: null, section: null };
-    return findSectionInChapter(book, current.chapterId, current.sectionId);
+    const baseline = findSectionInChapter(book, current.chapterId, current.sectionId);
+    if (current.source === 'saved' || !baseline.chapter) return baseline;
+    const sections = baseline.chapter.sections || [];
+    if (sections.length <= 1) return baseline;
+    const rankOf = { exact: 4, strong: 3, guess: 2, none: 1 };
+    let bestSection = sections[0];
+    let bestRank = 0;
+    for (const sec of sections) {
+      const ctx = extractContextParagraphs(sec.html || '', current?.quote);
+      const rank = rankOf[ctx.confidence] || 1;
+      if (rank > bestRank) {
+        bestRank = rank;
+        bestSection = sec;
+        if (rank === rankOf.exact) break;
+      }
+    }
+    return { chapter: baseline.chapter, section: bestSection };
   }, [book, current]);
   const audioUrl = sectionInfo.section ? (audioUrls?.[sectionInfo.section.id] || null) : null;
   const context = useMemo(() => (
-    sectionInfo.section ? extractContextParagraphs(sectionInfo.section.html, current?.quote) : { before: '', target: '', after: '' }
+    sectionInfo.section
+      ? extractContextParagraphs(sectionInfo.section.html, current?.quote)
+      : { before: '', target: '', after: '', confidence: 'none' }
   ), [sectionInfo.section, current?.quote]);
 
   // Live word-following highlight — same mechanism Proof's reader uses:

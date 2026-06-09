@@ -417,27 +417,17 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     let pollTimer = null;
     let pollsLeft = 100; // ~6s of polling at 60ms
 
-    function startPlayWhenSeeked() {
-      let playTimer = null;
-      const onSeeked = () => {
-        a.removeEventListener('seeked', onSeeked);
-        if (playTimer) clearTimeout(playTimer);
-        if (!cancelled) a.play?.().catch(() => { /* autoplay blocked — silent */ });
-      };
-      a.addEventListener('seeked', onSeeked);
-      // Some seeks land instantly and never fire `seeked`. Fall back.
-      playTimer = setTimeout(() => {
-        a.removeEventListener('seeked', onSeeked);
-        if (!cancelled) a.play?.().catch(() => {});
-      }, 800);
-    }
-
+    // Marie 2026-06-09: removed the auto-play. The dialog still
+    // seeks the player to the flag's timestamp so the play button
+    // starts in the right place, but doesn't kick off playback
+    // automatically — Marie was finding the auto-play disruptive
+    // when scanning Next/Previous to inspect the manuscript context
+    // without listening every time. Press the play button to listen.
     function doSeek() {
       if (cancelled || didSeek) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
       didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
-      startPlayWhenSeeked();
       try { a.currentTime = clamped; } catch {}
     }
 

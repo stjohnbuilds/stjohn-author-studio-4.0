@@ -273,10 +273,19 @@ function extractContextParagraphs(sectionHtml, quote) {
   }
   if (idx < 0) idx = 0;
 
+  // Marie 2026-06-09 v4.0.13: also return the paragraph two slots
+  // before the target. If the immediately-preceding paragraph is
+  // tiny (e.g. a single-word transitional paragraph), the visible
+  // context shrinks down to almost nothing and the audio's seek-
+  // back-10-seconds can land BEFORE any visible word. Including a
+  // second earlier paragraph gives the moving-word highlight
+  // somewhere to live during that pre-roll.
   return {
+    before2: idx >= 2 ? (paragraphs[idx - 2] || '') : '',
     before: paragraphs[idx - 1] || '',
     target: paragraphs[idx] || '',
     after: paragraphs[idx + 1] || '',
+    before2StartWordIdx: idx >= 2 ? (startIdxs[idx - 2] || 0) : 0,
     beforeStartWordIdx: idx > 0 ? (startIdxs[idx - 1] || 0) : 0,
     targetStartWordIdx: startIdxs[idx] || 0,
     afterStartWordIdx: idx + 1 < startIdxs.length ? (startIdxs[idx + 1] || 0) : 0,

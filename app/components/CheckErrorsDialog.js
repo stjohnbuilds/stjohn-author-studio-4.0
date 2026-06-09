@@ -182,9 +182,15 @@ function findSectionInChapter(book, chapterId, sectionId) {
 // Pull the paragraph that contains the flagged audio time + the
 // paragraph before + after, for context. We use the section HTML
 // (already in memory) — no DOM walk, no new data.
+// Returns `confidence` ∈ {'exact', 'strong', 'guess', 'none'} so the
+// dialog UI can show Marie how much to trust this paragraph match:
+//   'exact'  — full quote substring is in the paragraph (best).
+//   'strong' — n-gram (≥3-word window) or head-7/6/5 matched.
+//   'guess'  — only head-4/3, tail-2, or single 2-word window matched.
+//   'none'   — nothing matched; idx fell back to 0 (paragraph 0).
 function extractContextParagraphs(sectionHtml, quote) {
   const html = String(sectionHtml || '');
-  if (!html) return { before: '', target: '', after: '', targetStartWordIdx: 0 };
+  if (!html) return { before: '', target: '', after: '', targetStartWordIdx: 0, confidence: 'none' };
   // Split on every block-level closing tag (not just </p> — mammoth
   // wraps headings and quoted blocks too). Strip remaining inline tags.
   const paragraphs = html.split(/<\/(?:p|div|h[1-6]|blockquote|li)>/i)

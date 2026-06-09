@@ -687,13 +687,23 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
             </div>
             <div style={{ marginBottom: 14 }}>
-              {/* Marie 2026-06-09 v4.0.11: word-following highlight
-                  runs through every visible paragraph, not just the
-                  target. Target word = amber (matches the yellow
-                  quote band underneath). Before / after words = pastel
-                  lilac so context paragraphs look "lighter than the
-                  issue". No paragraph-level background blob — the
-                  moving word IS the visual cue. */}
+              {/* Two paragraphs of context before the target so the
+                  word-follow always has somewhere to land during the
+                  10-second pre-roll seek (handles the "one-word
+                  paragraph just before the flag" case). Target gets
+                  bold for clearer visual hierarchy.
+                  Marie 2026-06-09 v4.0.13. */}
+              {context.before2 && (
+                <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
+                  <LiveTargetParagraph
+                    target={context.before2}
+                    paragraphStartWordIdx={context.before2StartWordIdx}
+                    currentChapterMsIdx={currentMsIdx}
+                    audioPlaying={audioPlaying}
+                    tone="context"
+                  />
+                </p>
+              )}
               {context.before && (
                 <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
                   <LiveTargetParagraph
@@ -705,7 +715,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                   />
                 </p>
               )}
-              <p style={{ margin: '0 0 6px', fontSize: '0.92rem', color: 'var(--text)', lineHeight: 1.55 }}>
+              <p style={{ margin: '0 0 6px', fontSize: '0.96rem', fontWeight: 600, color: 'var(--text)', lineHeight: 1.55 }}>
                 <LiveTargetParagraph
                   target={context.target}
                   quote={current?.quote}

@@ -377,7 +377,22 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   // caused the highlight to never start: the listener was attached
   // before the audio element existed.
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
+  const [audioPlaying, setAudioPlaying] = useState(false);
   const syncTblRef = useRef(null);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return undefined;
+    const sync = () => setAudioPlaying(!a.paused);
+    a.addEventListener('play', sync);
+    a.addEventListener('pause', sync);
+    a.addEventListener('ended', sync);
+    sync();
+    return () => {
+      a.removeEventListener('play', sync);
+      a.removeEventListener('pause', sync);
+      a.removeEventListener('ended', sync);
+    };
+  }, [audioUrl]);
   useEffect(() => {
     const alignment = sectionInfo.section?.whisperAlignment;
     if (!Array.isArray(alignment) || alignment.length < 4) { syncTblRef.current = null; return; }

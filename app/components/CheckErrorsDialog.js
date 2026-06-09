@@ -327,11 +327,19 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
       style.borderRadius = 3;
     }
     if (isCurrent) {
-      style.background = '#ffd166';
-      style.boxShadow = '0 0 0 1px #c98a00';
+      // Marie 2026-06-09: paused state uses a faded amber so the
+      // word-position is still visible without strobing while she's
+      // scanning Next/Previous. Playing keeps the strong colour.
+      if (audioPlaying) {
+        style.background = '#ffd166';
+        style.boxShadow = '0 0 0 1px #c98a00';
+      } else {
+        style.background = '#ffeec2';
+        style.boxShadow = '0 0 0 1px #e8c688';
+      }
       style.padding = '0 2px';
       style.borderRadius = 3;
-      style.transition = 'background 0.08s ease';
+      style.transition = 'background 0.18s ease';
     }
     out.push(<span key={`w${i}`} style={style}>{tok}</span>);
   });

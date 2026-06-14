@@ -22,6 +22,12 @@ Script and Sync Releases/
 bin/ggml-base.en.bin
 bin/ggml-base.en.bin.download
 
+# ffmpeg (ACX file checker) is downloaded on demand — too big for git
+bin/ffmpeg-x64
+bin/ffmpeg-arm64
+bin/ffmpeg-x64.exe
+bin/ffmpeg.exe
+
 # Local user library (keep out of git)
 Save Data/
 

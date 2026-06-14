@@ -1743,6 +1743,7 @@ export default function Home() {
         onTutorialEnabledChange={handleTutorialEnabledChange}
         onRestartTutorial={restartTutorial}
         showTutorialHint={!tutorialActive && !settingsOpen && view !== 'reading'}
+        onOpenAcxScan={() => { setSettingsOpen(false); setAcxScanOpen(true); }}
         backupEnabled={backupEnabled}
         backupInfo={backupInfo}
         backupBusy={backupBusy}

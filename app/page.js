@@ -522,6 +522,7 @@ export default function Home() {
   const [isElectron, setIsElectron] = useState(false);
   const [dataLocation, setDataLocation] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [acxScanOpen, setAcxScanOpen] = useState(false);
   const [audioUploadMode, setAudioUploadMode] = useState('chapter');
   const [readerIncludeChapterPreroll, setReaderIncludeChapterPreroll] = useState(true);
   const [readerDefaultListeningSpeed, setReaderDefaultListeningSpeed] = useState(1.5);

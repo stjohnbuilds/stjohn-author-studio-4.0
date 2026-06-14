@@ -1584,6 +1584,148 @@ ipcMain.handle('read-audio-file', (_, filePath) => {
   return fs.readFileSync(resolvedPath); // returns Buffer, transferred as Uint8Array
 });
 
+// ── ACX file scanner ──────────────────────────────────────────────────
+// Bundled ffmpeg measures each file the same way Steven Jay Cohen's
+// "Second Opinion" tool does (volumedetect + silencedetect). The bin/
+// folder is the same place whisper-cli lives, resolved identically.
+function getFfmpegBinary() {
+  const binDir = getWhisperBinDir(); // bin/ next to app.asar when packaged
+  let names;
+  if (process.platform === 'win32') {
+    names = ['ffmpeg-x64.exe', 'ffmpeg.exe', 'ffmpeg-x64', 'ffmpeg'];
+  } else if (process.platform === 'darwin') {
+    names = os.arch() === 'arm64'
+      ? ['ffmpeg-arm64', 'ffmpeg-x64', 'ffmpeg']
+      : ['ffmpeg-x64', 'ffmpeg-arm64', 'ffmpeg'];
+  } else {
+    names = ['ffmpeg-x64', 'ffmpeg'];
+  }
+  const candidates = names.map((n) => path.join(binDir, n));
+  return candidates.find(fileExists) || candidates[0];
+}
+
+// Run ffmpeg once and hand back its stderr (where volumedetect/
+// silencedetect/stream-info all print). Resolves regardless of exit code —
+// the engine decides "unreadable" by whether the markers are present.
+function runFfmpegStderr(inputPath, filterArgs, timeoutMs = 10 * 60 * 1000) {
+  return new Promise((resolve, reject) => {
+    const binary = getFfmpegBinary();
+    if (!fileExists(binary)) { reject(new Error('ACX_NO_FFMPEG')); return; }
+    const args = ['-nostdin', '-hide_banner', '-i', inputPath, ...filterArgs];
+    const child = spawn(binary, args);
+    let stderr = '';
+    child.stdout.on('data', () => {});
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+      if (stderr.length > 1_000_000) stderr = stderr.slice(-500_000);
+    });
+    const timer = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch {}
+      reject(new Error('ffmpeg timed out'));
+    }, timeoutMs);
+    child.on('error', (err) => { clearTimeout(timer); reject(err); });
+    child.on('close', () => { clearTimeout(timer); resolve(stderr); });
+  });
+}
+
+// Is the scanner usable on this machine? (Windows build needs its own
+// ffmpeg shipped before this returns true there.)
+ipcMain.handle('acx-get-info', () => {
+  const binary = getFfmpegBinary();
+  return {
+    available: fileExists(binary),
+    binaryPath: binary,
+    platform: process.platform,
+    arch: os.arch(),
+  };
+});
+
+// Pick a folder, list the audio files inside it (top level only).
+ipcMain.handle('acx-pick-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose a folder of audio files to check',
+    properties: ['openDirectory'],
+    buttonLabel: 'Check this folder',
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  const folderPath = result.filePaths[0];
+  let files = [];
+  try {
+    files = fs.readdirSync(folderPath)
+      .filter((name) => {
+        if (name.startsWith('.')) return false;
+        const ext = path.extname(name).slice(1).toLowerCase();
+        return acxEngine.AUDIO_EXTENSIONS.includes(ext);
+      })
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  } catch (err) {
+    throw new Error(`Could not read that folder: ${err.message}`);
+  }
+  return { folderPath, files };
+});
+
+// Analyse ONE file. The renderer loops over the folder so it can show
+// per-file progress and stay responsive.
+ipcMain.handle('acx-analyze-file', async (_, { folderPath, fileName }) => {
+  const fullPath = path.join(folderPath, fileName);
+  if (!fileExists(fullPath)) return { fileName, error: 'File not found.' };
+  const A = acxEngine.ACX;
+  const floor = `${A.maxFloor}dB`;
+  const d = A.detectDuration;
+  try {
+    // 1. Duration / stream info + mean(RMS) + max(peak) loudness.
+    const volOut = await runFfmpegStderr(fullPath, ['-vn', '-sn', '-dn', '-af', 'volumedetect', '-f', 'null', '-']);
+    const info = acxEngine.parseMediaInfo(volOut);
+    const { meanVolume, maxVolume } = acxEngine.parseVolumeDetect(volOut);
+
+    if (info.durationSec === null && info.sampleRate === null) {
+      return { fileName, error: 'ffmpeg could not read this file (it may be corrupted — try re-exporting it).' };
+    }
+
+    let headSec = 0;
+    let tailSec = 0;
+    if (!acxEngine.isSampleFile(fileName)) {
+      // 2. Leading room tone.
+      const headOut = await runFfmpegStderr(fullPath, ['-vn', '-af', `silencedetect=n=${floor}:d=${d}`, '-f', 'null', '-']);
+      headSec = acxEngine.parseLeadingSilence(headOut);
+      // 3. Trailing room tone (reverse, detect leading silence, reverse back).
+      const tailOut = await runFfmpegStderr(fullPath, ['-vn', '-af', `areverse,silencedetect=n=${floor}:d=${d},areverse`, '-f', 'null', '-']);
+      tailSec = acxEngine.parseLeadingSilence(tailOut);
+    }
+
+    return acxEngine.evaluateFile({
+      fileName,
+      durationSec: info.durationSec,
+      sampleRate: info.sampleRate,
+      channels: info.channels,
+      codec: info.codec,
+      bitrateKbps: info.bitrateKbps,
+      meanVolume,
+      maxVolume,
+      headSec,
+      tailSec,
+    });
+  } catch (err) {
+    if (err.message === 'ACX_NO_FFMPEG') {
+      return { fileName, error: 'The audio tool is not installed in this version of the app.' };
+    }
+    return { fileName, error: `Could not check this file: ${err.message}` };
+  }
+});
+
+// Save the report as a CSV (never overwrites — appends (1), (2), …).
+ipcMain.handle('acx-save-report', async (_, { results, defaultName }) => {
+  const csv = acxEngine.buildCsv(Array.isArray(results) ? results : []);
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Save ACX report',
+    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), defaultName || 'ACX-check.csv')),
+    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  });
+  if (result.canceled || !result.filePath) return false;
+  fs.writeFileSync(result.filePath, csv, 'utf8');
+  return result.filePath;
+});
+
 // Export CSV
 ipcMain.handle('export-csv', async (_, { content, defaultName }) => {
   const result = await dialog.showSaveDialog({

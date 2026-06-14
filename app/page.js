@@ -1787,6 +1787,7 @@ export default function Home() {
           onClose={() => setTutorialWrapUpOpen(false)}
         />
       )}
+      <AcxScanDialog open={acxScanOpen} onClose={() => setAcxScanOpen(false)} isElectron={isElectron} />
       <AppFooter />
     </div>
   );

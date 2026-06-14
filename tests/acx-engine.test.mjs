@@ -215,9 +215,10 @@ test('LIVE ffmpeg: real measurements parse + judge correctly', { skip: !fs.exist
   const sr48 = gen('sr48.wav', ['-f', 'lavfi', '-t', '2', '-i', 'sine=r=48000:frequency=200', '-ar', '48000', '-ac', '1']);
   assert.equal(analyzeReal(sr48).checks.find((c) => c.key === 'sampleRate').ok, false);
 
-  // full-scale sine -> peak must fail (>-3 dB)
-  const loud = gen('loud.wav', ['-f', 'lavfi', '-t', '2', '-i', 'sine=r=44100:frequency=200', '-ac', '1', '-ar', '44100']);
-  assert.equal(analyzeReal(loud).checks.find((c) => c.key === 'peak').ok, false, `peak=${analyzeReal(loud).measured.maxVolume}`);
+  // boosted-to-clipping sine -> peak must fail (>-3 dB)
+  const loud = gen('loud.wav', ['-f', 'lavfi', '-t', '2', '-i', 'sine=r=44100:frequency=200', '-af', 'volume=25dB', '-ac', '1', '-ar', '44100']);
+  const rLoud = analyzeReal(loud);
+  assert.equal(rLoud.checks.find((c) => c.key === 'peak').ok, false, `peak=${rLoud.measured.maxVolume}`);
 
   // no leading/trailing silence -> head & tail must fail
   const noTone = gen('notone.wav', ['-f', 'lavfi', '-t', '4', '-i', 'sine=frequency=200:r=44100', '-ac', '1', '-ar', '44100']);

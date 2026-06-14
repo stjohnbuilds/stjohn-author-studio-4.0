@@ -7,6 +7,7 @@ const os = require('os');
 const { pathToFileURL } = require('url');
 const { autoUpdater } = require('electron-updater');
 const { parseWhisperJsonWords } = require('./packages/audio-engine/whisper-json.cjs');
+const acxEngine = require('./packages/acx-engine/index.cjs');
 
 // Module-level reference to the main window so the auto-updater's
 // async events (update-available / download-progress / update-

@@ -2071,6 +2071,25 @@ function SettingsCog({
             {/* Proof-only sections — Marie 2026-05-26: Prep/Quill/Duet
                 settings panel shows just profile + tutorial. */}
             {isProof && (<>
+            {/* ACX file check — Marie 2026-06-13. Scans a folder of finished
+                audio files against ACX's rules (same measurements as the
+                "Second Opinion" tool). Desktop only — needs bundled ffmpeg. */}
+            {isElectron && (
+              <div style={{ border:'1px solid var(--accent-border)', background:'linear-gradient(180deg, var(--accent-soft) 0%, #ffffff 100%)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div style={{ fontSize:'0.72rem', color:'var(--accent-dark)', textTransform:'uppercase', letterSpacing:'0.04em', fontWeight:700 }}>ACX file check</div>
+                  <InfoTip tip={'Pick a folder of finished audio files. Checks each one against ACX’s rules — peak, loudness, room tone at the start and end, 44.1kHz, mono/stereo, length — and tells you what’s wrong in plain words.'} />
+                </div>
+                <div style={{ fontSize:'0.84rem', color:'var(--text)', marginBottom:8 }}>Check finished audio against ACX&apos;s submission rules.</div>
+                <button
+                  type="button"
+                  onClick={onOpenAcxScan}
+                  style={{ fontSize:'0.8rem', fontWeight:700, color:'white', cursor:'pointer', padding:'8px 12px', border:'1px solid var(--accent-dark)', borderRadius:8, background:'var(--accent-dark)' }}
+                >
+                  Check files for ACX
+                </button>
+              </div>
+            )}
             <div data-tutorial="save-location-card" style={{ border:'1px solid var(--border)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
               <div style={{ fontSize:'0.8rem', color:'var(--text)', fontWeight:600, marginBottom:6 }}>Save location</div>
               {isElectron ? (

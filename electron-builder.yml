@@ -21,6 +21,9 @@ extraResources:
     filter:
       - "ggml-base.en.bin"
       - "whisper-cli-*"
+      - "ffmpeg-arm64"
+      - "ffmpeg-x64"
+      - "ffmpeg-x64.exe"
       - "*.dll"
       - "!ggml-large-v3-turbo.bin"
   - from: build/icon.ico

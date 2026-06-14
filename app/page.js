@@ -5,6 +5,7 @@ import ProofingReader from './components/ProofingReader';
 import BookDetail from './components/SessionsView';
 import InfoTip from './components/InfoTip';
 import AppDialog from './components/AppDialog';
+import AcxScanDialog from './components/AcxScanDialog';
 import PrebuildMode from './components/PrebuildMode';
 import PrepManuscriptMode from './components/PrepManuscriptMode';
 import QuillAndInkMode from './components/QuillAndInkMode';

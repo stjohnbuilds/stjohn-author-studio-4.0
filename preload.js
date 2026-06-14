@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electron', {
   exportTransferBundle:(book) => ipcRenderer.invoke('export-transfer-bundle', book),
   importTransferBundle:()    => ipcRenderer.invoke('import-transfer-bundle'),
   readAudioFile:  (filePath) => ipcRenderer.invoke('read-audio-file', filePath),
+  // ACX file scanner (bundled ffmpeg) — see packages/acx-engine
+  acxGetInfo:     ()         => ipcRenderer.invoke('acx-get-info'),
+  acxPickFolder:  ()         => ipcRenderer.invoke('acx-pick-folder'),
+  acxAnalyzeFile: (args)     => ipcRenderer.invoke('acx-analyze-file', args),
+  acxSaveReport:  (args)     => ipcRenderer.invoke('acx-save-report', args),
   convertDocxToPdf:(args)    => ipcRenderer.invoke('convert-docx-to-pdf', args),
   convertDocxToPageMap:(args)=> ipcRenderer.invoke('convert-docx-to-page-map', args),
   extractPdfPaging:(args)    => ipcRenderer.invoke('extract-pdf-paging', args),

@@ -12,6 +12,32 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-06-13 — ACX file checker (Second Opinion–style)
+
+- [x] **Built an "ACX file check" tool in the proofer ⚙ Settings.** Pick a
+      folder of finished audio files; it measures each one against ACX's
+      submission rules and reports pass/fail in plain English with a CSV
+      download. Mirrors Steven Jay Cohen's "Second Opinion" exactly
+      (bundled ffmpeg → `volumedetect` for RMS/peak, `silencedetect` for
+      head/tail room tone). Checks: peak ≤ -3dB, RMS -23..-18, room tone
+      0.5–0.75s head / 2.5–5s tail (silence threshold -60dB), 44.1kHz,
+      mono/stereo, ≤120 min, `_sample` ≤5 min, batch consistency, plus a
+      bonus MP3-bitrate (≥192kbps) check Second Opinion doesn't do.
+      Files: `packages/acx-engine/index.cjs` (pure rules+parsers),
+      `main.js` (ffmpeg spawn + IPC), `preload.js`, `app/components/
+      AcxScanDialog.js`, settings card + wiring in `app/page.js`,
+      `scripts/ensure-ffmpeg.js` (build-time binary fetch),
+      `electron-builder.yml`, `tests/acx-engine.test.mjs` (21 tests incl.
+      live-ffmpeg). Verified: 161/161 tests pass; real ffmpeg 7.1 output
+      parses correctly; renderer compiles clean. — built 2026-06-13
+- [ ] **Marie hands-test:** run `npm start`, open ⚙ → "Check files for
+      ACX", point it at a real finished-audio folder, confirm the numbers
+      match Second Opinion on the same files.
+- [ ] **Windows build:** `bin/ffmpeg-x64.exe` is fetched automatically by
+      `npm run ffmpeg:win` (wired into `release:win`); confirm it bundles
+      and runs on the next Windows release. (Mac already works — uses the
+      x86_64 ffmpeg under Rosetta, same as Second Opinion.)
+
 ### 🆕 2026-06-07 — Auto-update from GitHub Releases (electron-updater)
 
 - [ ] **Add `electron-updater` so the installed app pulls future updates

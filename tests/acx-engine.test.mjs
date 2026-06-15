@@ -111,10 +111,24 @@ test('evaluateFile: clean file passes', () => {
   assert.equal(r.pass, true, JSON.stringify(r.checks.filter((c) => !c.ok)));
 });
 
-test('evaluateFile: peak too loud fails', () => {
-  const r = acx.evaluateFile({ ...passing, maxVolume: -1.0 });
-  assert.equal(r.pass, false);
-  assert.equal(r.checks.find((c) => c.key === 'peak').ok, false);
+test('evaluateFile: peak above -3 is a heads-up, not a fail', () => {
+  const r = acx.evaluateFile({ ...passing, maxVolume: -1.5 });
+  const peak = r.checks.find((c) => c.key === 'peak');
+  assert.equal(peak.ok, false);          // above the -3 guideline
+  assert.equal(peak.severity, 'warn');   // but only a warning
+  assert.equal(r.pass, true);            // so the file still passes
+  assert.equal(r.hasWarnings, true);
+});
+
+test("evaluateFile: Marie's real ACX-accepted file passes (peak -1.5, head 0.96, tail 1.65)", () => {
+  const r = acx.evaluateFile({
+    fileName: '03_Pack of lies_Chapter 2.mp3', durationSec: 21 * 60 + 16, sampleRate: 44100,
+    channels: 1, codec: 'mp3', bitrateKbps: 192, meanVolume: -22.4, maxVolume: -1.5,
+    headSec: 0.96, tailSec: 1.65,
+  });
+  assert.equal(r.pass, true, JSON.stringify(r.checks.filter((c) => !c.ok && c.severity !== 'warn')));
+  assert.equal(r.checks.find((c) => c.key === 'head').ok, true);
+  assert.equal(r.checks.find((c) => c.key === 'tail').ok, true);
 });
 
 test('evaluateFile: RMS too quiet and too loud', () => {

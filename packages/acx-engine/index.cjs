@@ -22,10 +22,10 @@ const ACX = {
   minRMS: -23,            // dB — average loudness floor
   maxRMS: -18,            // dB — average loudness ceiling
   maxFloor: -60,          // dB — the "this counts as silence" threshold
-  minHead: 0.5,           // sec — room tone at the start (min)
-  maxHead: 0.75,          // sec — room tone at the start (max)
-  minTail: 2.5,           // sec — room tone at the end (min)
-  maxTail: 5.0,           // sec — room tone at the end (max)
+  minHead: 0.5,           // sec — room tone at the start (min) — ACX: 0.5–1
+  maxHead: 1.0,           // sec — room tone at the start (max) — ACX: 0.5–1
+  minTail: 1.0,           // sec — room tone at the end (min) — ACX: 1–5
+  maxTail: 5.0,           // sec — room tone at the end (max) — ACX: 1–5
   detectDuration: 0.05,   // sec — silencedetect d= (detection granularity)
   sampleRate: 44100,      // Hz — ACX requires 44.1kHz
   minBitrateKbps: 192,    // kbps — bonus, MP3 only

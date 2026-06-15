@@ -2848,6 +2848,26 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           <>
             {actionButtonsOverride !== null ? actionButtonsOverride : (
               <>
+                {isElectron && onScanAcx && (
+                  <button
+                    style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border-strong)',background:'var(--accent-light)',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})}
+                    title="Check this audiobook's finished audio files against ACX's submission rules"
+                    onClick={() => {
+                      const files = (book.chapters || []).flatMap((ch) =>
+                        (ch.sections || []).map((s) => {
+                          const storedPath = getSectionStoredAudioPath(s);
+                          if (!storedPath) return null;
+                          return {
+                            fileName: s.audioFileName || s.title || ch.title || 'audio',
+                            storedPath,
+                            label: [ch.title, s.title].filter(Boolean).join(' · '),
+                          };
+                        }).filter(Boolean),
+                      );
+                      onScanAcx({ title: book.title, files });
+                    }}
+                  >Scan for ACX</button>
+                )}
                 <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border-strong)',background:'var(--accent-light)',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>setShowCheckErrors(true)} title="Walk through saved flags or upload a CSV and re-listen against the current audio"><IconEye size={14} />See errors</button>
                 <button data-tutorial="export-flags-csv" style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>exportAllCSV(book)} title="Download the full flags spreadsheet (CSV)"><IconDownload size={14} />Flags</button>
                 <button style={btn({color:'var(--accent-dark)',borderColor:'var(--accent-border)',background:'white',fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px',fontSize:'0.78rem'})} onClick={()=>{ void exportAuditionMarkers(book); }} title="Download Audition marker files (one per chapter) from your saved flags — for the engineer"><IconDownload size={14} />Engineer</button>

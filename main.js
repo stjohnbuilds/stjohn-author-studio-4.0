@@ -1666,9 +1666,10 @@ ipcMain.handle('acx-pick-folder', async () => {
 
 // Analyse ONE file. The renderer loops over the folder so it can show
 // per-file progress and stay responsive.
-ipcMain.handle('acx-analyze-file', async (_, { folderPath, fileName }) => {
-  const fullPath = path.join(folderPath, fileName);
-  if (!fileExists(fullPath)) return { fileName, error: 'File not found.' };
+ipcMain.handle('acx-analyze-file', async (_, { folderPath, fileName, storedPath }) => {
+  // storedPath = a book's saved audio path (encoded); folderPath+fileName = a chosen folder.
+  const fullPath = storedPath ? decodeStoredFilePath(storedPath) : path.join(folderPath, fileName);
+  if (!fullPath || !fileExists(fullPath)) return { fileName, error: 'Audio file not found (it may have moved).' };
   const A = acxEngine.ACX;
   const floor = `${A.maxFloor}dB`;
   const d = A.detectDuration;

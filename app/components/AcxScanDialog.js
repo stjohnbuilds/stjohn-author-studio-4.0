@@ -160,7 +160,9 @@ export default function AcxScanDialog({ open, onClose, isElectron }) {
       onClose={onClose}
       ariaLabel="Check files for ACX"
       panelStyle={{
-        width: 'min(640px, 94vw)', maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+        // Fixed height so the window never grows/jumps as results stream in —
+        // the results list scrolls inside instead.
+        width: 'min(640px, 94vw)', height: 'min(680px, 88vh)', display: 'flex', flexDirection: 'column',
         background: 'white', border: '1px solid var(--border)', borderRadius: 18,
         boxShadow: '0 24px 60px rgba(0,0,0,0.22)', overflow: 'hidden',
       }}

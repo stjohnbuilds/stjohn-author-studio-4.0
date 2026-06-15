@@ -1714,16 +1714,27 @@ ipcMain.handle('acx-analyze-file', async (_, { folderPath, fileName, storedPath 
   }
 });
 
-// Save the report as a CSV (never overwrites — appends (1), (2), …).
-ipcMain.handle('acx-save-report', async (_, { results, defaultName }) => {
-  const csv = acxEngine.buildCsv(Array.isArray(results) ? results : []);
+// Build the report text in the renderer's requested format (for "Copy").
+ipcMain.handle('acx-build-report', (_, { results, format = 'txt', title, source }) => {
+  const list = Array.isArray(results) ? results : [];
+  return format === 'csv'
+    ? acxEngine.buildCsv(list)
+    : acxEngine.buildTextReport(list, { title, source });
+});
+
+// Save the report as text or CSV (never overwrites — appends (1), (2), …).
+ipcMain.handle('acx-save-report', async (_, { results, defaultName, format = 'csv', title, source }) => {
+  const list = Array.isArray(results) ? results : [];
+  const isTxt = format === 'txt';
+  const content = isTxt ? acxEngine.buildTextReport(list, { title, source }) : acxEngine.buildCsv(list);
+  const ext = isTxt ? 'txt' : 'csv';
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Save ACX report',
-    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), defaultName || 'ACX-check.csv')),
-    filters: [{ name: 'CSV', extensions: ['csv'] }],
+    defaultPath: uniqueExportPath(path.join(app.getPath('downloads'), defaultName || `ACX-check.${ext}`)),
+    filters: [{ name: isTxt ? 'Text' : 'CSV', extensions: [ext] }],
   });
   if (result.canceled || !result.filePath) return false;
-  fs.writeFileSync(result.filePath, csv, 'utf8');
+  fs.writeFileSync(result.filePath, content, 'utf8');
   return result.filePath;
 });
 

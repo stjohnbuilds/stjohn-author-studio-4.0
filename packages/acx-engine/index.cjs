@@ -238,10 +238,13 @@ function evaluateFile(measured, acx = ACX) {
     }
   }
 
-  const pass = checks.every((c) => c.ok);
+  // A 'warn' check (e.g. peak above the -3 guideline) does NOT block the file.
+  const pass = checks.every((c) => c.ok || c.severity === 'warn');
+  const hasWarnings = checks.some((c) => !c.ok && c.severity === 'warn');
   return {
     fileName,
     pass,
+    hasWarnings,
     sample,
     checks,
     measured: { durationSec, sampleRate, channels, codec, bitrateKbps, meanVolume, maxVolume, headSec, tailSec },

@@ -274,16 +274,17 @@ function csvCell(v) {
 }
 
 function buildCsv(results) {
-  const header = ['File', 'Result', 'Length', 'Channels', 'Sample rate', 'Avg loudness', 'Peak', 'Start tone', 'End tone', 'MP3 bitrate', 'Issues'];
+  const header = ['File', 'Result', 'Length', 'Channels', 'Sample rate', 'Avg loudness', 'Peak', 'Start tone', 'End tone', 'MP3 bitrate', 'Issues', 'Notes'];
   const rows = [header.map(csvCell).join(',')];
   for (const r of results) {
     if (!r) continue;
     if (r.error) {
-      rows.push([r.fileName, 'Could not read', '', '', '', '', '', '', '', '', r.error].map(csvCell).join(','));
+      rows.push([r.fileName, 'Could not read', '', '', '', '', '', '', '', '', r.error, ''].map(csvCell).join(','));
       continue;
     }
     const get = (k) => r.checks.find((c) => c.key === k);
-    const issues = r.checks.filter((c) => !c.ok).map((c) => c.message).join(' ');
+    const issues = r.checks.filter((c) => !c.ok && c.severity !== 'warn').map((c) => c.message).join(' ');
+    const notes = r.checks.filter((c) => !c.ok && c.severity === 'warn').map((c) => c.message).join(' ');
     rows.push([
       r.fileName,
       r.pass ? 'PASS' : 'CHECK',
@@ -296,6 +297,7 @@ function buildCsv(results) {
       get('tail')?.value || '',
       get('bitrate')?.value || 'n/a',
       issues,
+      notes,
     ].map(csvCell).join(','));
   }
   return rows.join('\n') + '\n';

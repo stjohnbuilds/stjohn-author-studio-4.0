@@ -1788,7 +1788,7 @@ export default function Home() {
           onClose={() => setTutorialWrapUpOpen(false)}
         />
       )}
-      <AcxScanDialog open={acxScanOpen} onClose={() => setAcxScanOpen(false)} isElectron={isElectron} />
+      <AcxScanDialog open={acxScanOpen} onClose={() => setAcxScanOpen(false)} isElectron={isElectron} audiobook={acxAudiobook} />
       <AppFooter />
     </div>
   );

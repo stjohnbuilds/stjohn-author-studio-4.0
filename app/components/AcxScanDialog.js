@@ -249,6 +249,7 @@ export default function AcxScanDialog({ open, onClose, isElectron }) {
                 {passCount === files.length
                   ? `All ${files.length} file${files.length === 1 ? '' : 's'} passed 🎉`
                   : `${passCount} of ${files.length} passed — ${files.length - passCount} need${files.length - passCount === 1 ? 's' : ''} a look`}
+                {headsUpCount > 0 && <span style={{ fontWeight: 500, color: C.warn }}> ({headsUpCount} with a heads-up)</span>}
                 {errorCount > 0 && <span style={{ fontWeight: 500 }}> ({errorCount} couldn&apos;t be read)</span>}
               </div>
             )}

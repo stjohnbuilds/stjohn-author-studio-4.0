@@ -137,6 +137,7 @@ export default function AcxScanDialog({ open, onClose, isElectron }) {
 
   const done = results.filter((r) => r && !r.error);
   const passCount = done.filter((r) => r.pass).length;
+  const headsUpCount = done.filter((r) => r.pass && r.hasWarnings).length;
   const errorCount = results.filter((r) => r && r.error).length;
   const allChecked = !scanning && results.length === files.length && files.length > 0;
 

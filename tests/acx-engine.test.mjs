@@ -142,10 +142,16 @@ test('evaluateFile: wrong sample rate fails', () => {
   assert.equal(acx.evaluateFile({ ...passing, sampleRate: 48000 }).checks.find((c) => c.key === 'sampleRate').ok, false);
 });
 
-test('evaluateFile: head/tail bounds', () => {
+test('evaluateFile: head/tail bounds (ACX: head 0.5-1, tail 1-5)', () => {
+  // head
   assert.equal(acx.evaluateFile({ ...passing, headSec: 0.3 }).checks.find((c) => c.key === 'head').ok, false);
-  assert.equal(acx.evaluateFile({ ...passing, headSec: 0.9 }).checks.find((c) => c.key === 'head').ok, false);
-  assert.equal(acx.evaluateFile({ ...passing, tailSec: 1.0 }).checks.find((c) => c.key === 'tail').ok, false);
+  assert.equal(acx.evaluateFile({ ...passing, headSec: 0.9 }).checks.find((c) => c.key === 'head').ok, true);
+  assert.equal(acx.evaluateFile({ ...passing, headSec: 1.0 }).checks.find((c) => c.key === 'head').ok, true);
+  assert.equal(acx.evaluateFile({ ...passing, headSec: 1.1 }).checks.find((c) => c.key === 'head').ok, false);
+  // tail
+  assert.equal(acx.evaluateFile({ ...passing, tailSec: 0.5 }).checks.find((c) => c.key === 'tail').ok, false);
+  assert.equal(acx.evaluateFile({ ...passing, tailSec: 1.0 }).checks.find((c) => c.key === 'tail').ok, true);
+  assert.equal(acx.evaluateFile({ ...passing, tailSec: 1.65 }).checks.find((c) => c.key === 'tail').ok, true);
   assert.equal(acx.evaluateFile({ ...passing, tailSec: 6.0 }).checks.find((c) => c.key === 'tail').ok, false);
 });
 

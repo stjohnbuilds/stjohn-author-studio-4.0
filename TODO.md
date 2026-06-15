@@ -19,10 +19,15 @@ Always read `HANDOFF.md` first, then this file.
       submission rules and reports pass/fail in plain English with a CSV
       download. Mirrors Steven Jay Cohen's "Second Opinion" exactly
       (bundled ffmpeg → `volumedetect` for RMS/peak, `silencedetect` for
-      head/tail room tone). Checks: peak ≤ -3dB, RMS -23..-18, room tone
-      0.5–0.75s head / 2.5–5s tail (silence threshold -60dB), 44.1kHz,
+      head/tail room tone). Checks RMS -23..-18, room tone 0.5–1s head /
+      1–5s tail (ACX's REAL limits — silence threshold -60dB), 44.1kHz,
       mono/stereo, ≤120 min, `_sample` ≤5 min, batch consistency, plus a
-      bonus MP3-bitrate (≥192kbps) check Second Opinion doesn't do.
+      bonus MP3-bitrate (≥192kbps) check Second Opinion doesn't do. Peak
+      (-3dB) is a soft heads-up, NOT a reject — ACX accepts louder peaks
+      in practice (confirmed: Marie's -1.5dB files passed ACX). Fixed
+      2026-06-13: had used Second Opinion's stricter targets (0.5–0.75 /
+      2.5–5) which false-failed ACX-accepted files; window is now a fixed
+      size so it doesn't grow while scanning.
       Files: `packages/acx-engine/index.cjs` (pure rules+parsers),
       `main.js` (ffmpeg spawn + IPC), `preload.js`, `app/components/
       AcxScanDialog.js`, settings card + wiring in `app/page.js`,

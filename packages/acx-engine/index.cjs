@@ -303,6 +303,45 @@ function buildCsv(results) {
   return rows.join('\n') + '\n';
 }
 
+// ── Plain-text report (download .txt / copy) ──────────────────────────
+// Ordered the way Marie asked: the ones that DON'T pass at the top, then
+// everything that passed below (with its heads-up notes).
+function statsText(r) {
+  const g = (k) => r.checks?.find((c) => c.key === k)?.value;
+  return [g('length'), g('channels'), g('sampleRate'),
+    g('rms') ? `${g('rms')} avg` : null, g('peak') ? `${g('peak')} peak` : null, g('bitrate'),
+  ].filter(Boolean).join(' · ');
+}
+
+function fileBlock(r) {
+  const lines = [`${r.pass ? '[PASS]' : '[CHECK]'} ${r.fileName}`, `    ${statsText(r)}`];
+  for (const c of r.checks.filter((c) => !c.ok && c.severity !== 'warn')) lines.push(`    - ${c.message}`);
+  for (const c of r.checks.filter((c) => !c.ok && c.severity === 'warn')) lines.push(`    - Heads up: ${c.message}`);
+  return lines;
+}
+
+function buildTextReport(results, opts = {}) {
+  const ok = results.filter((r) => r && !r.error);
+  const fails = ok.filter((r) => !r.pass);
+  const passes = ok.filter((r) => r.pass);
+  const errs = results.filter((r) => r && r.error);
+  const out = [opts.title || 'ACX file check'];
+  if (opts.source) out.push(opts.source);
+  out.push(`${passes.length} passed · ${fails.length} need a look${errs.length ? ` · ${errs.length} could not be read` : ''}`, '');
+  if (fails.length) {
+    out.push('===== NEEDS A LOOK =====', '');
+    for (const r of fails) out.push(...fileBlock(r), '');
+  }
+  if (errs.length) {
+    out.push('===== COULD NOT READ =====', '');
+    for (const r of errs) out.push(`[ERROR] ${r.fileName}`, `    ${r.error}`, '');
+  }
+  out.push('===== PASSED =====', '');
+  if (!passes.length) out.push('(none)', '');
+  for (const r of passes) out.push(...fileBlock(r), '');
+  return out.join('\n');
+}
+
 module.exports = {
   ACX,
   AUDIO_EXTENSIONS,
@@ -313,6 +352,7 @@ module.exports = {
   evaluateFile,
   batchWarnings,
   buildCsv,
+  buildTextReport,
   formatDuration,
   fmtDb,
 };

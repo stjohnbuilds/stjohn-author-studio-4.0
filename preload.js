@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electron', {
   acxGetInfo:     ()         => ipcRenderer.invoke('acx-get-info'),
   acxPickFolder:  ()         => ipcRenderer.invoke('acx-pick-folder'),
   acxAnalyzeFile: (args)     => ipcRenderer.invoke('acx-analyze-file', args),
+  acxBuildReport: (args)     => ipcRenderer.invoke('acx-build-report', args),
   acxSaveReport:  (args)     => ipcRenderer.invoke('acx-save-report', args),
   convertDocxToPdf:(args)    => ipcRenderer.invoke('convert-docx-to-pdf', args),
   convertDocxToPageMap:(args)=> ipcRenderer.invoke('convert-docx-to-page-map', args),

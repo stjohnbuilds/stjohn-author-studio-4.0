@@ -142,17 +142,25 @@ test('evaluateFile: wrong sample rate fails', () => {
   assert.equal(acx.evaluateFile({ ...passing, sampleRate: 48000 }).checks.find((c) => c.key === 'sampleRate').ok, false);
 });
 
-test('evaluateFile: head/tail bounds (ACX: head 0.5-1, tail 1-5)', () => {
-  // head
-  assert.equal(acx.evaluateFile({ ...passing, headSec: 0.3 }).checks.find((c) => c.key === 'head').ok, false);
-  assert.equal(acx.evaluateFile({ ...passing, headSec: 0.9 }).checks.find((c) => c.key === 'head').ok, true);
-  assert.equal(acx.evaluateFile({ ...passing, headSec: 1.0 }).checks.find((c) => c.key === 'head').ok, true);
-  assert.equal(acx.evaluateFile({ ...passing, headSec: 1.1 }).checks.find((c) => c.key === 'head').ok, false);
-  // tail
-  assert.equal(acx.evaluateFile({ ...passing, tailSec: 0.5 }).checks.find((c) => c.key === 'tail').ok, false);
-  assert.equal(acx.evaluateFile({ ...passing, tailSec: 1.0 }).checks.find((c) => c.key === 'tail').ok, true);
-  assert.equal(acx.evaluateFile({ ...passing, tailSec: 1.65 }).checks.find((c) => c.key === 'tail').ok, true);
-  assert.equal(acx.evaluateFile({ ...passing, tailSec: 6.0 }).checks.find((c) => c.key === 'tail').ok, false);
+test('evaluateFile: head is a non-blocking heads-up; tail is a hard fail', () => {
+  // head: ok reflects the 0.5-1 target, but it's a 'warn' that never blocks
+  const headCheck = (h) => acx.evaluateFile({ ...passing, headSec: h }).checks.find((c) => c.key === 'head');
+  assert.equal(headCheck(0.3).ok, false);
+  assert.equal(headCheck(0.3).severity, 'warn');
+  assert.equal(headCheck(0.9).ok, true);
+  assert.equal(headCheck(2.0).ok, false);
+  // a bad head alone does NOT fail the file
+  assert.equal(acx.evaluateFile({ ...passing, headSec: 0.2 }).pass, true);
+  assert.equal(acx.evaluateFile({ ...passing, headSec: 4.0 }).pass, true);
+
+  // tail: still a hard requirement (1-5 sec)
+  const tail = (t) => acx.evaluateFile({ ...passing, tailSec: t }).checks.find((c) => c.key === 'tail');
+  assert.equal(tail(0.5).ok, false);
+  assert.equal(tail(0.5).severity, 'fail');
+  assert.equal(acx.evaluateFile({ ...passing, tailSec: 0.5 }).pass, false);
+  assert.equal(tail(1.0).ok, true);
+  assert.equal(tail(1.65).ok, true);
+  assert.equal(tail(6.0).ok, false);
 });
 
 test('evaluateFile: over 120 minutes fails length', () => {

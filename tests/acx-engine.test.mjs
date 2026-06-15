@@ -211,6 +211,19 @@ test('buildCsv emits a header + one row per file, splitting issues vs notes', ()
   assert.match(lines[2], /PASS.*guideline/);
 });
 
+test('buildTextReport: fails first, then PASSED with notes', () => {
+  const txt = acx.buildTextReport([
+    acx.evaluateFile(passing),                                                  // pass, clean
+    acx.evaluateFile({ ...passing, fileName: 'Wrong.wav', sampleRate: 48000 }),  // hard fail
+    acx.evaluateFile({ ...passing, fileName: 'Loud.wav', maxVolume: -1 }),       // pass w/ peak note
+  ], { title: 'My report', source: '/x' });
+  const needIdx = txt.indexOf('NEEDS A LOOK');
+  const passIdx = txt.indexOf('PASSED');
+  assert.ok(needIdx > -1 && passIdx > needIdx, 'NEEDS A LOOK section comes before PASSED');
+  assert.ok(txt.indexOf('Wrong.wav') < passIdx, 'failing file is listed above the PASSED section');
+  assert.ok(txt.indexOf('Heads up') > passIdx, 'the peak note sits in the PASSED section');
+});
+
 // ── Live ffmpeg integration ───────────────────────────────────────────
 function ffStderr(args) {
   const r = spawnSync(FFMPEG, ['-nostdin', '-hide_banner', ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });

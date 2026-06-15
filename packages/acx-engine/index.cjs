@@ -150,16 +150,22 @@ function evaluateFile(measured, acx = ACX) {
 
   const sample = isSampleFile(fileName);
   const checks = [];
-  const add = (key, label, ok, value, message) =>
-    checks.push({ key, label, ok, value, message: ok ? '' : message });
+  // severity 'fail' blocks the file; 'warn' is a heads-up that does NOT block
+  // (ACX publishes these as guidelines but accepts files that miss them).
+  const add = (key, label, ok, value, message, severity = 'fail') =>
+    checks.push({ key, label, ok, severity, value, message: ok ? '' : message });
 
-  // Peak — loudest point must be <= -3 dB
+  // Peak — ACX's guideline is -3 dB, but in practice ACX accepts louder peaks
+  // (Marie's real files passed at -1.5 dB). So this is a heads-up, not a fail.
   if (typeof maxVolume === 'number') {
     const ok = maxVolume <= acx.maxPeak;
     add('peak', 'Peak loudness', ok, fmtDb(maxVolume),
-      `Too loud at its peak (${fmtDb(maxVolume)}). The loudest point needs to be ${acx.maxPeak} dB or quieter.`);
+      maxVolume >= 0
+        ? `Peak hits ${fmtDb(maxVolume)} — right at the ceiling, which can clip. ACX's guideline is ${acx.maxPeak} dB.`
+        : `Peak is ${fmtDb(maxVolume)} — a little louder than ACX's ${acx.maxPeak} dB guideline. Files at this level usually still pass; -3 dB is just safest.`,
+      'warn');
   } else {
-    add('peak', 'Peak loudness', false, 'N/A', `Could not measure the peak loudness.`);
+    add('peak', 'Peak loudness', false, 'N/A', `Could not measure the peak loudness.`, 'warn');
   }
 
   // Average loudness (RMS) — between -23 and -18 dB

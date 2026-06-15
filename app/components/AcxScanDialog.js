@@ -270,7 +270,8 @@ export default function AcxScanDialog({ open, onClose, isElectron }) {
                     </div>
                   );
                 }
-                const fails = (r.checks || []).filter((c) => !c.ok);
+                const hardFails = (r.checks || []).filter((c) => !c.ok && c.severity !== 'warn');
+                const warns = (r.checks || []).filter((c) => !c.ok && c.severity === 'warn');
                 return (
                   <div key={i} style={{
                     border: `1px solid ${r.pass ? C.passBorder : C.failBorder}`,
@@ -282,10 +283,13 @@ export default function AcxScanDialog({ open, onClose, isElectron }) {
                       <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text)', wordBreak: 'break-all', flex: 1 }}>{r.fileName}</span>
                     </div>
                     <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: 4, marginLeft: 24 }}>{statsLine(r)}</div>
-                    {fails.length > 0 && (
+                    {(hardFails.length > 0 || warns.length > 0) && (
                       <ul style={{ margin: '8px 0 0 24px', padding: 0, listStyle: 'disc', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {fails.map((c, j) => (
-                          <li key={j} style={{ fontSize: '0.82rem', color: C.fail, lineHeight: 1.4 }}>{c.message}</li>
+                        {hardFails.map((c, j) => (
+                          <li key={`f${j}`} style={{ fontSize: '0.82rem', color: C.fail, lineHeight: 1.4 }}>{c.message}</li>
+                        ))}
+                        {warns.map((c, j) => (
+                          <li key={`w${j}`} style={{ fontSize: '0.82rem', color: C.warn, lineHeight: 1.4 }}>Heads up: {c.message}</li>
                         ))}
                       </ul>
                     )}

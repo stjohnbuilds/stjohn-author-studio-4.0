@@ -200,13 +200,18 @@ function evaluateFile(measured, acx = ACX) {
     add('head', 'Start room tone', true, 'sample — not needed', '');
     add('tail', 'End room tone', true, 'sample — not needed', '');
   } else {
+    // Start room tone is a heads-up, not a reject: ACX's own pages are
+    // inconsistent on the head window (0.5–1s vs up to 5s) and real
+    // ACX-accepted files sit right around 1s, so a hard fail here would
+    // falsely reject good files. Tail (below) stays a hard requirement.
     const headH = Math.round((Number(headSec) || 0) * 100);
     const headOk = headH >= acx.minHead * 100 && headH <= acx.maxHead * 100;
     const headVal = `${((headH) / 100).toFixed(2)} sec`;
     add('head', 'Start room tone', headOk, headVal,
       headH < acx.minHead * 100
-        ? `Only ${headVal} of quiet at the start — needs ${acx.minHead}–${acx.maxHead} sec of room tone.`
-        : `${headVal} of quiet at the start — too much, needs ${acx.minHead}–${acx.maxHead} sec.`);
+        ? `Start room tone is ${headVal} — ACX likes about ${acx.minHead}–${acx.maxHead} sec at the start.`
+        : `Start room tone is ${headVal} — a bit more than ACX's ${acx.minHead}–${acx.maxHead} sec start guideline. Usually still fine.`,
+      'warn');
 
     const tailH = Math.round((Number(tailSec) || 0) * 100);
     const tailOk = tailH >= acx.minTail * 100 && tailH <= acx.maxTail * 100;

@@ -20,6 +20,7 @@ const C = {
   fail: '#b4232a',
   failBg: '#fbecec',
   failBorder: '#f0c4c4',
+  warn: '#8a6a0a',
   warnBg: '#fdf6e3',
   warnBorder: '#ecdca6',
 };

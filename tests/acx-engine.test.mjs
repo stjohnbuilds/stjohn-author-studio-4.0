@@ -185,18 +185,22 @@ test('batchWarnings flags mixed sample rate / channels', () => {
   assert.equal(w.length, 2);
 });
 
-test('buildCsv emits a header + one row per file with issues', () => {
+test('buildCsv emits a header + one row per file, splitting issues vs notes', () => {
   const csv = acx.buildCsv([
-    acx.evaluateFile(passing),
-    acx.evaluateFile({ ...passing, fileName: 'Loud.wav', maxVolume: -1 }),
+    acx.evaluateFile(passing),                                                  // PASS, clean
+    acx.evaluateFile({ ...passing, fileName: 'Loud.wav', maxVolume: -1 }),       // PASS, peak heads-up (Notes)
+    acx.evaluateFile({ ...passing, fileName: 'Wrong.wav', sampleRate: 48000 }),  // CHECK, hard fail (Issues)
     { fileName: 'broken.wav', error: 'could not read' },
   ]);
   const lines = csv.trim().split('\n');
   assert.equal(lines[0].startsWith('File,Result'), true);
-  assert.equal(lines.length, 4);
+  assert.match(lines[0], /Issues,Notes$/);
+  assert.equal(lines.length, 5);
   assert.match(csv, /PASS/);
   assert.match(csv, /CHECK/);
   assert.match(csv, /could not read/);
+  // the loud file passes but carries a peak note in the Notes column
+  assert.match(lines[2], /PASS.*guideline/);
 });
 
 // ── Live ffmpeg integration ───────────────────────────────────────────

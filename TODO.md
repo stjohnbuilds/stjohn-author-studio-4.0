@@ -14,30 +14,37 @@ Always read `HANDOFF.md` first, then this file.
 
 ### 🆕 2026-06-13 — ACX file checker (Second Opinion–style)
 
-- [x] **Built an "ACX file check" tool in the proofer ⚙ Settings.** Pick a
-      folder of finished audio files; it measures each one against ACX's
-      submission rules and reports pass/fail in plain English with a CSV
-      download. Mirrors Steven Jay Cohen's "Second Opinion" exactly
-      (bundled ffmpeg → `volumedetect` for RMS/peak, `silencedetect` for
-      head/tail room tone). Checks RMS -23..-18, room tone 0.5–1s head /
-      1–5s tail (ACX's REAL limits — silence threshold -60dB), 44.1kHz,
-      mono/stereo, ≤120 min, `_sample` ≤5 min, batch consistency, plus a
-      bonus MP3-bitrate (≥192kbps) check Second Opinion doesn't do. Peak
-      (-3dB) is a soft heads-up, NOT a reject — ACX accepts louder peaks
-      in practice (confirmed: Marie's -1.5dB files passed ACX). Fixed
-      2026-06-13: had used Second Opinion's stricter targets (0.5–0.75 /
-      2.5–5) which false-failed ACX-accepted files; window is now a fixed
-      size so it doesn't grow while scanning.
-      Files: `packages/acx-engine/index.cjs` (pure rules+parsers),
-      `main.js` (ffmpeg spawn + IPC), `preload.js`, `app/components/
-      AcxScanDialog.js`, settings card + wiring in `app/page.js`,
-      `scripts/ensure-ffmpeg.js` (build-time binary fetch),
-      `electron-builder.yml`, `tests/acx-engine.test.mjs` (21 tests incl.
-      live-ffmpeg). Verified: 161/161 tests pass; real ffmpeg 7.1 output
-      parses correctly; renderer compiles clean. — built 2026-06-13
-- [ ] **Marie hands-test:** run `npm start`, open ⚙ → "Check files for
-      ACX", point it at a real finished-audio folder, confirm the numbers
-      match Second Opinion on the same files.
+- [x] **"Scan for ACX" tool on the proofer book screen** (top action bar,
+      next to See errors — moved OUT of Settings per Marie). Measures each
+      finished audio file against ACX's rules with bundled ffmpeg
+      (`volumedetect` for RMS/peak, `silencedetect` for room tone) — same
+      numbers as Steven Jay Cohen's "Second Opinion". Plain-English
+      pass/fail. Mirrors the tool Marie trusts.
+- [x] **Folder / This-audiobook toggle.** From a book it defaults to
+      scanning that book's attached audio (by saved path, nothing
+      uploaded — `acx-analyze-file` decodes the stored path); toggle to
+      "A folder" to scan any folder.
+- [x] **Export after scan:** Copy (clipboard), Save text, Save CSV — text
+      report lists the ones that DON'T pass at the top, then PASSED with
+      heads-up notes below. On-screen list also sorts fails-first when done.
+- [x] **Fixed-size window** so it no longer grows/jumps while scanning.
+- [x] **ACX limits (triple-checked via a verification workflow):** RMS
+      -23..-18 (fail), 44.1kHz (fail), mono/stereo + batch consistency
+      (fail), tail room tone 1–5s (fail), ≤120 min / `_sample` ≤5 min
+      (fail), bonus MP3 ≥192kbps. Soft HEADS-UPS (don't block): peak >-3dB
+      and START room tone 0.5–1s — both are guidelines ACX accepts past in
+      practice (Marie's -1.5dB / 0.96s files passed ACX). Noise floor
+      enforced as the -60dB silence threshold. Verdict: logic sound; the
+      head room-tone hard-fail was the one real bug, now a heads-up.
+      Files: `packages/acx-engine/index.cjs`, `main.js`, `preload.js`,
+      `app/components/AcxScanDialog.js`, `app/components/SessionsView.js`
+      (button), `app/page.js` (wiring), `scripts/ensure-ffmpeg.js`,
+      `electron-builder.yml`, `tests/acx-engine.test.mjs`. Verified:
+      163/163 tests pass (incl. live-ffmpeg + Marie's real file); renderer
+      compiles clean. — 2026-06-13
+- [ ] **Marie hands-test:** run `npm start`, open a book, click "Scan for
+      ACX" (top bar). Confirm "This audiobook" scans the book's files and
+      the numbers match Second Opinion; try the folder toggle + export.
 - [ ] **Windows build:** `bin/ffmpeg-x64.exe` is fetched automatically by
       `npm run ffmpeg:win` (wired into `release:win`); confirm it bundles
       and runs on the next Windows release. (Mac already works — uses the

@@ -42,10 +42,12 @@ Always read `HANDOFF.md` first, then this file.
       `electron-builder.yml`, `tests/acx-engine.test.mjs`. Verified:
       163/163 tests pass (incl. live-ffmpeg + Marie's real file); renderer
       compiles clean. — 2026-06-13
-- [x] **Released as v4.0.19 (Mac)** — 2026-06-15. Built `release:mac`,
-      published GitHub release `v4.0.19 — ACX file checker 🎧` with the
-      hyphenated mac zip + blockmap + latest-mac.yml (sha512 verified to
-      match so the auto-updater accepts it). Windows NOT in this release.
+- [x] **Released v4.0.20 (Mac)** — 2026-06-15. NOTE: v4.0.19 shipped
+      BROKEN — `main.js` requires `packages/acx-engine/index.cjs` but it
+      wasn't in `electron-builder.yml` `files:`, so the packaged app
+      crashed on launch ("Cannot find module"). Fixed by adding it to the
+      whitelist; v4.0.20 verified to actually LAUNCH (renderer process came
+      up) before publishing. Lesson saved to memory. Windows NOT included.
 - [ ] **Marie hands-test (installed v4.0.19):** open a book, click "Scan for
       ACX" (top bar). Confirm "This audiobook" + folder toggle + export.
 - [ ] **Windows release** of v4.0.19 when needed (`npm run release:win`,

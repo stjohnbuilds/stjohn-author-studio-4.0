@@ -1932,7 +1932,6 @@ function SettingsCog({
   backupToast = '',
   onBackupEnabledChange,
   onManualBackup,
-  onOpenAcxScan,
 }) {
   const isProof = mode === 'proof';
   const [whisperInfo, setWhisperInfo] = useState(null);

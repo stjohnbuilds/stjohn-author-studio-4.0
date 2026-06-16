@@ -42,9 +42,14 @@ Always read `HANDOFF.md` first, then this file.
       `electron-builder.yml`, `tests/acx-engine.test.mjs`. Verified:
       163/163 tests pass (incl. live-ffmpeg + Marie's real file); renderer
       compiles clean. — 2026-06-13
-- [ ] **Marie hands-test:** run `npm start`, open a book, click "Scan for
-      ACX" (top bar). Confirm "This audiobook" scans the book's files and
-      the numbers match Second Opinion; try the folder toggle + export.
+- [x] **Released as v4.0.19 (Mac)** — 2026-06-15. Built `release:mac`,
+      published GitHub release `v4.0.19 — ACX file checker 🎧` with the
+      hyphenated mac zip + blockmap + latest-mac.yml (sha512 verified to
+      match so the auto-updater accepts it). Windows NOT in this release.
+- [ ] **Marie hands-test (installed v4.0.19):** open a book, click "Scan for
+      ACX" (top bar). Confirm "This audiobook" + folder toggle + export.
+- [ ] **Windows release** of v4.0.19 when needed (`npm run release:win`,
+      then publish the win artifacts to the same/newer release).
 - [ ] **Windows build:** `bin/ffmpeg-x64.exe` is fetched automatically by
       `npm run ffmpeg:win` (wired into `release:win`); confirm it bundles
       and runs on the next Windows release. (Mac already works — uses the

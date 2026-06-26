@@ -135,7 +135,12 @@ function parseLeadingSilence(stderr) {
     }
   }
   if (!regions.length) return 0;
-  if (!(regions[0].start <= 0.1)) return 0; // first silence isn't at the very start
+  // The quiet must begin at the edge — but tolerate a short blip sitting
+  // right on the boundary (a click at the very end of the file shows up,
+  // once reversed, as a brief non-silence before the room tone). Anything
+  // past BLIP_BRIDGE_SEC means real audio runs up to the edge, so there's
+  // no room tone there.
+  if (!(regions[0].start <= BLIP_BRIDGE_SEC)) return 0;
 
   // Walk forward, bridging short blips between consecutive quiet regions.
   let end = regions[0].end;

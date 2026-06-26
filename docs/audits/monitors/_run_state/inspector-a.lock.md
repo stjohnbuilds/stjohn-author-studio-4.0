@@ -1,13 +1,42 @@
 # Inspector A Lock
 
-- Date: 2026-06-03 16:56:01 PDT
+- Date: 2026-06-25 23:07:48 PDT
 - Role: Inspector A
 - Audit zone: none - every declared zone in the current campaign already has an Inspector A report
 - Status: complete
 - Campaign: `2026-06-02-manual-start`
 - Intended output: none
-- Current file/flow: re-read `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` including Team Shape, Read-Only Wall, Thirty-Minute Run Lock Rule, Report Ownership, Zone Assignment Rule, Evidence Rule, the active priority order, and Audit Zones; re-read `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md` including the Subscription Window Single-Lane Rule; re-read `READ ME FIRST - OPEN THIS.txt`, `HANDOFF.md`, `CLAUDE.md`, `TODO.md`, `docs/BUILD_PLAN_V4.md`, `docs/APP_STRUCTURE.md`, `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`, and `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`; checked `find docs/audits/monitors/2026-06-02-manual-start -maxdepth 2 -type f -name 'inspector-a.md' | sort` (exit 0 = Inspector A reports exist in all 14 declared zone folders); checked `find docs/audits/monitors -mindepth 1 -maxdepth 2 -type d | sort` (exit 0 = one declared campaign plus `_run_state` only); checked `git status --short` (exit 0 = repo already dirty in audit docs outside this role)
-- Next safe resume step: wait for a newly declared campaign or a newly declared source-of-truth zone before opening another Inspector A report; otherwise leave checker and lead follow-up to their own roles
-- Previous completed output: `docs/audits/monitors/2026-06-02-manual-start/zone-user-experience-quality/inspector-a.md`
-- Tiny skipped note: 2026-06-03 16:56 PDT - re-anchored to the source-of-truth, automation rules, build plan, app structure, master monitor report, and bug log; verified that the only declared campaign still has Inspector A coverage in all 14 declared zones; stopped without creating a duplicate zone report
-- Prior lock note: the previous Inspector A lock was already `complete`, so this wake-up did not hit the active-run skip rule and instead re-confirmed that no new Inspector A assignment is available
+- Prior lock check: previous Inspector A lock was dated 2026-06-25 22:37:54 PDT and marked `complete`, so it did not appear active even though it was less than 2 hours old.
+- Current file/flow: re-read `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`, including Team Shape, Thirty-Minute Run Lock Rule, Report Ownership, Zone Assignment Rule, Audit Zones, Drift Reset Rule, Evidence Rule, Read-Only Wall, and the active priority order; re-read `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`, including the Subscription Window Single-Lane Rule; re-read `READ ME FIRST - OPEN THIS.txt`, `HANDOFF.md`, `CLAUDE.md`, `TODO.md`, `docs/BUILD_PLAN_V4.md`, and `docs/APP_STRUCTURE.md`; re-anchored with `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`, `docs/APP_STRUCTURE.md`, and `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`; checked the declared monitor campaign folders and confirmed the only declared campaign still has 14 declared zone folders, 14 Inspector A reports, and 14 checker reports, so no eligible Inspector A zone exists for this run.
+- Commands run:
+  - `sed -n '1,260p' docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` - exit 0
+  - `sed -n '1,260p' docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md` - exit 0
+  - `sed -n '261,520p' docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md` - exit 0
+  - `sed -n '1,220p' docs/audits/monitors/_run_state/inspector-a.lock.md` - exit 0
+  - `sed -n '1,220p' 'READ ME FIRST - OPEN THIS.txt'` - exit 0
+  - `sed -n '1,220p' HANDOFF.md` - exit 0
+  - `sed -n '1,220p' CLAUDE.md` - exit 0
+  - `sed -n '1,220p' TODO.md` - exit 0
+  - `date '+%Y-%m-%d %H:%M:%S %Z'` - exit 0
+  - `sed -n '1,260p' docs/BUILD_PLAN_V4.md` - exit 0
+  - `sed -n '1,260p' docs/APP_STRUCTURE.md` - exit 0
+  - `sed -n '1,220p' docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md` - exit 0
+  - `find docs/audits/monitors -mindepth 1 -maxdepth 1 -type d | sort` - exit 0
+  - `find docs/audits/monitors/2026-06-02-manual-start -mindepth 1 -maxdepth 1 -type d | sort` - exit 0
+  - `for z in docs/audits/monitors/2026-06-02-manual-start/zone-*; do [ -d "$z" ] || continue; if [ ! -f "$z/inspector-a.md" ]; then basename "$z"; fi; done` - exit 0
+  - `printf 'zones=%s\ninspector_a=%s\nchecker=%s\n' "$(find docs/audits/monitors/2026-06-02-manual-start -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" "$(find docs/audits/monitors/2026-06-02-manual-start -maxdepth 2 -type f -name 'inspector-a.md' | wc -l | tr -d ' ')" "$(find docs/audits/monitors/2026-06-02-manual-start -maxdepth 2 -type f -name 'checker.md' | wc -l | tr -d ' ')"` - exit 0
+  - `git status --short` - exit 0
+- Evidence paths:
+  - `docs/audits/monitors/2026-06-02-manual-start/`
+  - `docs/audits/STJOHN_MONITOR_SOURCE_OF_TRUTH.md`
+  - `docs/audits/STJOHN_PROJECT_MONITOR_AUTOMATION.md`
+  - `docs/BUILD_PLAN_V4.md`
+  - `docs/APP_STRUCTURE.md`
+  - `docs/audits/SCRIPT_AND_SYNC_BUG_LOG.md`
+  - `READ ME FIRST - OPEN THIS.txt`
+  - `HANDOFF.md`
+  - `CLAUDE.md`
+  - `TODO.md`
+- Dirty files observed before this lock update: `TODO.md`, `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`, `docs/audits/monitors/_run_state/inspector-a.lock.md`, `docs/audits/monitors/_run_state/inspector-b.lock.md`, `docs/audits/monitors/_run_state/inspector-c.lock.md`, `docs/audits/monitors/_run_state/lead-organizer.lock.md`, `docs/audits/monitors/_run_state/zone-checker.lock.md`
+- Tiny skipped note: 2026-06-25 23:07 PDT - no current Inspector A report was written because the only declared campaign, `2026-06-02-manual-start`, already has Inspector A reports in all 14 declared zones.
+- Next safe resume step: wait for a newly declared campaign or a newly declared source-of-truth zone before opening another Inspector A report; otherwise leave checker, lead organizer, and fix-roadmap work to their own roles.

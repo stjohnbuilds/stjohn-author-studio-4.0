@@ -42,12 +42,16 @@ Always read `HANDOFF.md` first, then this file.
       `electron-builder.yml`, `tests/acx-engine.test.mjs`. Verified:
       163/163 tests pass (incl. live-ffmpeg + Marie's real file); renderer
       compiles clean. — 2026-06-13
-- [x] **Released v4.0.20 (Mac)** — 2026-06-15. NOTE: v4.0.19 shipped
-      BROKEN — `main.js` requires `packages/acx-engine/index.cjs` but it
-      wasn't in `electron-builder.yml` `files:`, so the packaged app
-      crashed on launch ("Cannot find module"). Fixed by adding it to the
-      whitelist; v4.0.20 verified to actually LAUNCH (renderer process came
-      up) before publishing. Lesson saved to memory. Windows NOT included.
+- [x] **Released v4.0.21 (Mac), published + verified** — 2026-06-15.
+      History: v4.0.19 shipped BROKEN (`main.js` requires
+      `packages/acx-engine/index.cjs` but it was missing from
+      `electron-builder.yml` `files:` → "Cannot find module" crash on
+      launch). Fixed by whitelisting it. v4.0.20 was a half-uploaded draft
+      + still had the old `BUILD_EMOJI='⏱'`. v4.0.21 = clean: acx-engine
+      bundled (verified in asar), `BUILD_EMOJI='🎧'` (verified in built
+      asar), app LAUNCHES (renderer came up), release published non-draft
+      with hyphenated zip+blockmap+latest-mac.yml (sha512 matches). Broken
+      4.0.19 + draft 4.0.20 deleted. Lesson in memory. Windows NOT included.
 - [ ] **Marie hands-test (installed v4.0.19):** open a book, click "Scan for
       ACX" (top bar). Confirm "This audiobook" + folder toggle + export.
 - [ ] **Windows release** of v4.0.19 when needed (`npm run release:win`,

@@ -5804,3 +5804,377 @@ Audit completion: 100% checked/usable; about 100% raw inspector coverage.
 ETA: lead custody remains complete as of 4:31 PM PDT; next remaining monitor
 work is fix-roadmap planning or targeted live-proof follow-up, roughly 0.5-2
 more hours from that timestamp.
+
+## Run 2026-06-25 13:21 PDT - Lead Organizer - Stale-Lock Custody Reconciliation
+
+### Summary
+
+- Result: no new checked zone needed merging. This pass took custody from a
+  stale lead lock, re-read the required lead docs, re-counted the active
+  checker bundle set, and re-confirmed that the master report and bug log still
+  match checker custody.
+- Audit docs changed: yes; refreshed the lead-organizer lock and appended this
+  custody reconciliation. Product code and Save Data were not touched.
+- Commands run: read-only doc rereads, checker inventory scan, report coverage
+  check, bug-log coverage check, conflict-file inventory scan, `git status
+  --short`, and local time check.
+
+### Results
+
+- Git status before: dirty worktree already present. This pass did not edit or
+  revert product code. Visible paths were `TODO.md`,
+  `docs/audits/monitors/_run_state/inspector-a.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-b.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-c.lock.md`,
+  `docs/audits/monitors/_run_state/lead-organizer.lock.md`, and
+  `docs/audits/monitors/_run_state/zone-checker.lock.md`.
+- Lead lock rule: the prior lead-organizer lock was still marked `running` from
+  2026-06-24 23:19 PDT, so this pass treated it as stale because the new run
+  started at 2026-06-25 09:38 PDT, more than 2 hours later.
+- Checker reports merged this pass: none newly merged because all 14 active
+  checked zones under `docs/audits/monitors/2026-06-02-manual-start/` are
+  already under lead custody in this report.
+- Report coverage check: all 14 active `checker.md` paths still appear in this
+  master report; no checked zone is waiting for a lead merge.
+- Bug-log coverage check: no overlapping bug entry needed an update. The
+  checker-backed bug and watchlist set remains represented through
+  `SAS-AUD-20260602-023`.
+- Latest checker bundle still present:
+  - `docs/audits/monitors/2026-06-02-manual-start/zone-user-experience-quality/checker.md`
+    at 2026-06-02 21:44 PDT.
+- Conflict preservation check: the same unresolved `likely` and `audit
+  unclear` items remain visible across the current checker conflict files. No
+  checker-owned uncertain item was promoted or collapsed in this pass.
+
+### Pause Or Next Step
+
+- Checker reports merged this pass: none.
+- Conflicts still remaining:
+  - Zone 1 Conflict 2 stays `likely`: old branding and release-handoff wording
+    in `READ ME FIRST - OPEN THIS.txt` still needs release/package follow-up.
+  - Zone 1 Conflict 4 stays `likely`: `docs/APP_STRUCTURE.md` may still omit
+    `quill-project-list.json`.
+  - Zone 2 Conflict 1 stays `likely`: save-folder and broader shell settings
+    still need a safe live Electron check.
+  - Zone 2 Conflict 2 stays `audit unclear`: the global login gate may still
+    conflict with the local-only Prep/Duet plan.
+  - Zone 2 Conflict 3 stays `audit unclear`: daily backup gating still mixes a
+    UTC ref tag with local-day logic and needs controlled repro.
+  - Zone 4 Conflict 3 stays `audit unclear`: the Prep page-map handoff still
+    lacks proven current user-facing failure.
+  - Zone 02 Conflict 5 stays `likely`: phone pending-state concerns remain
+    watchlist-only and still need safe live proof.
+  - Zone 7 Phone Script Conflict 1 stays `likely`: empty successful refreshes
+    can preserve stale cached books.
+  - Zone 7 Phone Script Conflict 4 stays `audit unclear`: the current phone
+    edit-path expectation for existing flags still needs safe live navigation
+    proof.
+  - Zone 8 Phone Quill Conflict 4 stays `likely`: empty successful refreshes
+    can preserve stale cached projects.
+  - Zone 10 Conflict 4 stays `likely`: release-copy and transfer flows still
+    lack targeted automated coverage.
+  - Zone 11 Conflict 3 stays `likely`: Duet manuscript re-upload still carries
+    old audio and scan data by chapter position only.
+  - Zone 11 tests/scripts Conflict 4 stays `likely`: repeated
+    `MODULE_TYPELESS_PACKAGE_JSON` warnings still add tooling noise without a
+    proven functional failure.
+  - Zone 12 Conflict 3 stays `likely`: auth/session orchestration is still
+    duplicated across desktop, phone, and Quill surfaces.
+  - Zone 12 Conflict 4 stays `likely`: reader and book-detail seams still lack
+    targeted automated coverage.
+  - Zone 13 Conflict 5 stays `likely`: touch-dismiss and narrow-width/perf
+    signals still need safe live UX proof.
+  - Zone 14 Conflict 4 stays `audit unclear`: the current shell hardening issue
+    is confirmed, but a separate imported-HTML execution bug still needs a safe
+    temp-only hostile-markup repro before promotion.
+- Next safest zone: Zone 02 Cloud, Auth, Audio Privacy, Save Data, and
+  Backups, because it remains the highest-priority checked zone with unresolved
+  follow-up work under the source order.
+- Next safest role action: lead custody is current; the next safe move is
+  either fix-roadmap planning for confirmed bugs or a controlled live-proof
+  follow-up starting with Zone 02.
+
+Audit completion: 100% checked/usable; about 100% raw inspector coverage.
+ETA: lead custody remains complete as of 1:21 PM PDT; next remaining monitor
+work is fix-roadmap planning or targeted live-proof follow-up, roughly 0.5-2
+more hours from that timestamp.
+
+## Run 2026-06-25 13:22 PDT - Lead Organizer - Immediate Checker Recheck
+
+### Summary
+
+- Result: no new checked zone needed merging. This run started just after the
+  2026-06-25 13:21 PDT stale-lock custody reconciliation already present in
+  this report, re-checked the same checker set, and confirmed nothing newer
+  changed in checker custody.
+- Audit docs changed: yes; appended this narrow no-change custody note and
+  refreshed the lead-organizer lock. Product code, Save Data, and the bug log
+  were not touched.
+- Commands run: lock reread, local time check, `git status --short`, checker
+  timestamp inventory, report tail review, and bug-log coverage spot check.
+
+### Results
+
+- Git status before: dirty worktree already present. This pass did not edit or
+  revert product code. Visible paths were `TODO.md`,
+  `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`,
+  `docs/audits/monitors/_run_state/inspector-a.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-b.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-c.lock.md`,
+  `docs/audits/monitors/_run_state/lead-organizer.lock.md`, and
+  `docs/audits/monitors/_run_state/zone-checker.lock.md`.
+- Lead lock rule: the prior lead-organizer lock was already `complete`, so
+  there was no active-run stop condition.
+- Checker reports merged this pass: none. All 14 active checker bundles under
+  `docs/audits/monitors/2026-06-02-manual-start/` were already under lead
+  custody in this report before this recheck started.
+- Report coverage check: the latest checker timestamp is still
+  `2026-06-02 21:44 PDT` on
+  `docs/audits/monitors/2026-06-02-manual-start/zone-user-experience-quality/checker.md`;
+  no newer `checker.md` exists and no checked zone is waiting for lead merge.
+- Bug-log coverage check: checker-backed bug and watchlist items still remain
+  represented through `SAS-AUD-20260602-023`, so no overlapping bug entry
+  needed updating.
+
+### Pause Or Next Step
+
+- Checker reports merged: none this pass.
+- Conflicts still remaining:
+  - Zone 1 Conflict 2 stays `likely`: old branding and release-handoff wording
+    in `READ ME FIRST - OPEN THIS.txt` still needs release/package follow-up.
+  - Zone 1 Conflict 4 stays `likely`: `docs/APP_STRUCTURE.md` may still omit
+    `quill-project-list.json`.
+  - Zone 2 Conflict 1 stays `likely`: save-folder and broader shell settings
+    still need a safe live Electron check.
+  - Zone 2 Conflict 2 stays `audit unclear`: the global login gate may still
+    conflict with the local-only Prep/Duet plan.
+  - Zone 2 Conflict 3 stays `audit unclear`: daily backup gating still mixes a
+    UTC ref tag with local-day logic and needs controlled repro.
+  - Zone 4 Conflict 3 stays `audit unclear`: the Prep page-map handoff still
+    lacks proven current user-facing failure.
+  - Zone 02 Conflict 5 stays `likely`: phone pending-state concerns remain
+    watchlist-only and still need safe live proof.
+  - Zone 7 Phone Script Conflict 1 stays `likely`: empty successful refreshes
+    can preserve stale cached books.
+  - Zone 7 Phone Script Conflict 4 stays `audit unclear`: the current phone
+    edit-path expectation for existing flags still needs safe live navigation
+    proof.
+  - Zone 8 Phone Quill Conflict 4 stays `likely`: empty successful refreshes
+    can preserve stale cached projects.
+  - Zone 10 Conflict 4 stays `likely`: release-copy and transfer flows still
+    lack targeted automated coverage.
+  - Zone 11 Conflict 3 stays `likely`: Duet manuscript re-upload still carries
+    old audio and scan data by chapter position only.
+  - Zone 11 tests/scripts Conflict 4 stays `likely`: repeated
+    `MODULE_TYPELESS_PACKAGE_JSON` warnings still add tooling noise without a
+    proven functional failure.
+  - Zone 12 Conflict 3 stays `likely`: auth/session orchestration is still
+    duplicated across desktop, phone, and Quill surfaces.
+  - Zone 12 Conflict 4 stays `likely`: reader and book-detail seams still lack
+    targeted automated coverage.
+  - Zone 13 Conflict 5 stays `likely`: touch-dismiss and narrow-width/perf
+    signals still need safe live UX proof.
+  - Zone 14 Conflict 4 stays `audit unclear`: the current shell hardening issue
+    is confirmed, but a separate imported-HTML execution bug still needs a safe
+    temp-only hostile-markup repro before promotion.
+- Next safest zone: Zone 02 Cloud, Auth, Audio Privacy, Save Data, and
+  Backups, because it remains the highest-priority checked zone with unresolved
+  follow-up work under the source order.
+- Next safest role action: lead custody stays current; the next safe move is
+  either fix-roadmap planning for confirmed bugs or a controlled live-proof
+  follow-up starting with Zone 02.
+
+Audit completion: 100% checked/usable; about 100% raw inspector coverage.
+ETA: lead custody remains complete as of 1:22 PM PDT; next remaining monitor
+work is fix-roadmap planning or targeted live-proof follow-up, roughly 0.5-2
+more hours from that timestamp.
+
+## Run 2026-06-25 22:37 PDT - Lead Organizer - Checker Custody Reconciliation
+
+### Summary
+
+- Result: no new checked zone needed merging. This pass re-read the required
+  lead source docs, re-inventoried the active checker set, and confirmed the
+  same checker custody already represented in this report is still current.
+- Audit docs changed: yes; appended this narrow custody note and refreshed the
+  lead-organizer lock. Product code, Save Data, and the bug log were not
+  touched.
+- Commands run: lead-lock reread/update, required-doc rereads, `git status
+  --short`, checker inventory and timestamp scans, report coverage check,
+  conflict-ledger scan, and automation-memory check.
+
+### Results
+
+- Git status observed during this pass: dirty worktree already present. This
+  pass did not edit or revert product code. Visible paths during the status
+  check were `TODO.md`, `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`,
+  `docs/audits/monitors/_run_state/inspector-a.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-b.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-c.lock.md`,
+  `docs/audits/monitors/_run_state/lead-organizer.lock.md`, and
+  `docs/audits/monitors/_run_state/zone-checker.lock.md`.
+- Lead lock rule: the prior lead-organizer lock was already `complete`, so
+  there was no active-run stop condition and this run correctly took fresh
+  lead custody.
+- Checker reports merged this pass: none. All 14 active checker bundles under
+  `docs/audits/monitors/2026-06-02-manual-start/` were already under lead
+  custody in this report before this recheck started.
+- Report coverage check: all 14 active `checker.md` paths still appear in this
+  master report; no checked zone is waiting for lead merge.
+- Latest checker bundle still present:
+  - `docs/audits/monitors/2026-06-02-manual-start/zone-user-experience-quality/checker.md`
+    at `2026-06-02 21:45 PDT`.
+- Conflict preservation: re-read every current zone `conflicts.md` file and
+  confirmed the same 17 checker-owned `likely` or `audit unclear` items remain
+  visible. No uncertain checker result was promoted, collapsed, or rewritten in
+  this pass.
+- Bug-log overlap check: no overlapping checker-backed bug or watchlist entry
+  needed updating, so the bug log stayed unchanged.
+
+### Pause Or Next Step
+
+- Checker reports merged: none this pass.
+- Conflicts still remaining:
+  - Zone 1 Conflict 2 stays `likely`: old branding and release-handoff wording
+    in `READ ME FIRST - OPEN THIS.txt` still needs release/package follow-up.
+  - Zone 1 Conflict 4 stays `likely`: `docs/APP_STRUCTURE.md` may still omit
+    `quill-project-list.json`.
+  - Zone 2 Conflict 1 stays `likely`: save-folder and broader shell settings
+    still need a safe live Electron check.
+  - Zone 2 Conflict 2 stays `audit unclear`: the global login gate may still
+    conflict with the local-only Prep/Duet plan.
+  - Zone 2 Conflict 3 stays `audit unclear`: daily backup gating still mixes a
+    UTC ref tag with local-day logic and needs controlled repro.
+  - Zone 4 Conflict 3 stays `audit unclear`: the Prep page-map handoff still
+    lacks proven current user-facing failure.
+  - Zone 02 Conflict 5 stays `likely`: phone pending-state concerns remain
+    watchlist-only and still need safe live proof.
+  - Zone 7 Phone Script Conflict 1 stays `likely`: empty successful refreshes
+    can preserve stale cached books.
+  - Zone 7 Phone Script Conflict 4 stays `audit unclear`: the current phone
+    edit-path expectation for existing flags still needs safe live navigation
+    proof.
+  - Zone 8 Phone Quill Conflict 4 stays `likely`: empty successful refreshes
+    can preserve stale cached projects.
+  - Zone 10 Conflict 4 stays `likely`: release-copy and transfer flows still
+    lack targeted automated coverage.
+  - Zone 11 Conflict 3 stays `likely`: Duet manuscript re-upload still carries
+    old audio and scan data by chapter position only.
+  - Zone 11 tests/scripts Conflict 4 stays `likely`: repeated
+    `MODULE_TYPELESS_PACKAGE_JSON` warnings still add tooling noise without a
+    proven functional failure.
+  - Zone 12 Conflict 3 stays `likely`: auth/session orchestration is still
+    duplicated across desktop, phone, and Quill surfaces.
+  - Zone 12 Conflict 4 stays `likely`: reader and book-detail seams still lack
+    targeted automated coverage.
+  - Zone 13 Conflict 5 stays `likely`: touch-dismiss and narrow-width/perf
+    signals still need safe live UX proof.
+  - Zone 14 Conflict 4 stays `audit unclear`: the current shell hardening issue
+    is confirmed, but a separate imported-HTML execution bug still needs a safe
+    temp-only hostile-markup repro before promotion.
+- Next safest zone: Zone 02 Cloud, Auth, Audio Privacy, Save Data, and
+  Backups, because it remains the highest-priority checked zone with unresolved
+  follow-up work under the source order.
+- Next safest role action: lead custody stays current; the next safe move is
+  either fix-roadmap planning for confirmed bugs or a controlled live-proof
+  follow-up starting with Zone 02.
+
+Audit completion: 100% checked/usable; about 100% raw inspector coverage.
+ETA: lead custody remains complete as of 10:38 PM PDT; next remaining monitor
+work is fix-roadmap planning or targeted live-proof follow-up, roughly 0.5-2
+more hours from that timestamp.
+
+## Run 2026-06-25 23:07 PDT - Lead Organizer - No-New-Checker Custody Recheck
+
+### Summary
+
+- Result: no new checked zone needed merging. This pass re-read the required
+  lead docs, rechecked the active checker inventory, and confirmed lead custody
+  is still current for the same 14 checker bundles already represented here.
+- Audit docs changed: yes; appended this no-change custody note and refreshed
+  the lead-organizer lock. Product code, Save Data, and the bug log were not
+  touched.
+- Commands run: lead-lock reread/update, required-doc rereads, `git status
+  --short`, checker coverage scan, conflict-status recount, and bug-log overlap
+  spot check.
+
+### Results
+
+- Git status observed during this pass: dirty worktree already present. This
+  pass did not edit or revert product code. Visible paths during the status
+  check were `TODO.md`, `docs/audits/STJOHN_PROJECT_MONITOR_REPORT.md`,
+  `docs/audits/monitors/_run_state/inspector-a.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-b.lock.md`,
+  `docs/audits/monitors/_run_state/inspector-c.lock.md`,
+  `docs/audits/monitors/_run_state/lead-organizer.lock.md`, and
+  `docs/audits/monitors/_run_state/zone-checker.lock.md`.
+- Lead lock rule: the prior lead-organizer lock was already `complete`, so
+  there was no active-run stop condition and this run correctly took fresh
+  lead custody.
+- Checker reports merged this pass: none. All 14 active checker bundles under
+  `docs/audits/monitors/2026-06-02-manual-start/` were already under lead
+  custody in this report before this recheck started.
+- Report coverage check: all 14 active `checker.md` paths still appear in this
+  master report; no checked zone is waiting for lead merge.
+- Latest checker bundle still present:
+  - `docs/audits/monitors/2026-06-02-manual-start/zone-user-experience-quality/checker.md`
+- Conflict preservation: re-counted the checker-owned conflict ledger state and
+  confirmed the same 17 unresolved items remain visible across 12 `likely` and
+  5 `audit unclear` statuses. No uncertain checker result was promoted,
+  collapsed, or rewritten in this pass.
+- Bug-log overlap check: checker-backed bug and watchlist entries still remain
+  represented through `SAS-AUD-20260602-023`, so no overlapping bug entry
+  needed updating and the bug log stayed unchanged.
+
+### Pause Or Next Step
+
+- Checker reports merged: none this pass.
+- Conflicts still remaining:
+  - Zone 1 Conflict 2 stays `likely`: old branding and release-handoff wording
+    in `READ ME FIRST - OPEN THIS.txt` still needs release/package follow-up.
+  - Zone 1 Conflict 4 stays `likely`: `docs/APP_STRUCTURE.md` may still omit
+    `quill-project-list.json`.
+  - Zone 2 Conflict 1 stays `likely`: save-folder and broader shell settings
+    still need a safe live Electron check.
+  - Zone 2 Conflict 2 stays `audit unclear`: the global login gate may still
+    conflict with the local-only Prep/Duet plan.
+  - Zone 2 Conflict 3 stays `audit unclear`: daily backup gating still mixes a
+    UTC ref tag with local-day logic and needs controlled repro.
+  - Zone 4 Conflict 3 stays `audit unclear`: the Prep page-map handoff still
+    lacks proven current user-facing failure.
+  - Zone 02 Conflict 5 stays `likely`: phone pending-state concerns remain
+    watchlist-only and still need safe live proof.
+  - Zone 7 Phone Script Conflict 1 stays `likely`: empty successful refreshes
+    can preserve stale cached books.
+  - Zone 7 Phone Script Conflict 4 stays `audit unclear`: the current phone
+    edit-path expectation for existing flags still needs safe live navigation
+    proof.
+  - Zone 8 Phone Quill Conflict 4 stays `likely`: empty successful refreshes
+    can preserve stale cached projects.
+  - Zone 10 Conflict 4 stays `likely`: release-copy and transfer flows still
+    lack targeted automated coverage.
+  - Zone 11 Conflict 3 stays `likely`: Duet manuscript re-upload still carries
+    old audio and scan data by chapter position only.
+  - Zone 11 tests/scripts Conflict 4 stays `likely`: repeated
+    `MODULE_TYPELESS_PACKAGE_JSON` warnings still add tooling noise without a
+    proven functional failure.
+  - Zone 12 Conflict 3 stays `likely`: auth/session orchestration is still
+    duplicated across desktop, phone, and Quill surfaces.
+  - Zone 12 Conflict 4 stays `likely`: reader and book-detail seams still lack
+    targeted automated coverage.
+  - Zone 13 Conflict 5 stays `likely`: touch-dismiss and narrow-width/perf
+    signals still need safe live UX proof.
+  - Zone 14 Conflict 4 stays `audit unclear`: the current shell hardening issue
+    is confirmed, but a separate imported-HTML execution bug still needs a safe
+    temp-only hostile-markup repro before promotion.
+- Next safest zone: Zone 02 Cloud, Auth, Audio Privacy, Save Data, and
+  Backups, because it remains the highest-priority checked zone with unresolved
+  follow-up work under the source order.
+- Next safest role action: lead custody stays current; the next safe move is
+  either fix-roadmap planning for confirmed bugs or a controlled live-proof
+  follow-up starting with Zone 02.
+
+Audit completion: 100% checked/usable; about 100% raw inspector coverage.
+ETA: lead custody remains complete as of 11:07 PM PDT; next remaining monitor
+work is fix-roadmap planning or targeted live-proof follow-up, roughly 0.5-2
+more hours from that timestamp.

@@ -3332,7 +3332,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     }
                   });
                   if (curPart) parts.push(curPart);
-                  if (parts.length >= 2) {
+                  // Show the subheader even when the chapter has just ONE.
+                  // Marie wants a single subheader (e.g. "Sin") visible under
+                  // its chapter when Split is on, same as multi-subheader
+                  // chapters — so >= 1, not >= 2.
+                  if (parts.length >= 1) {
                     const baseSection = displaySections[0];
                     displaySections = parts.map((p, i) => ({
                       ...baseSection,

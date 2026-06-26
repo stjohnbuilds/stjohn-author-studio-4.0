@@ -233,8 +233,9 @@ function analyzeReal(file) {
   const vol = ffStderr(['-i', file, '-vn', '-sn', '-dn', '-af', 'volumedetect', '-f', 'null', '-']);
   const info = acx.parseMediaInfo(vol);
   const { meanVolume, maxVolume } = acx.parseVolumeDetect(vol);
-  const head = acx.isSampleFile(file) ? 0 : acx.parseLeadingSilence(ffStderr(['-i', file, '-vn', '-af', 'silencedetect=n=-60dB:d=0.05', '-f', 'null', '-']));
-  const tail = acx.isSampleFile(file) ? 0 : acx.parseLeadingSilence(ffStderr(['-i', file, '-vn', '-af', 'areverse,silencedetect=n=-60dB:d=0.05,areverse', '-f', 'null', '-']));
+  const floor = `${acx.ACX.maxFloor}dB`;
+  const head = acx.isSampleFile(file) ? 0 : acx.parseLeadingSilence(ffStderr(['-i', file, '-vn', '-af', `silencedetect=n=${floor}:d=0.05`, '-f', 'null', '-']));
+  const tail = acx.isSampleFile(file) ? 0 : acx.parseLeadingSilence(ffStderr(['-i', file, '-vn', '-af', `areverse,silencedetect=n=${floor}:d=0.05,areverse`, '-f', 'null', '-']));
   return acx.evaluateFile({ fileName: file.split('/').pop(), ...info, meanVolume, maxVolume, headSec: head, tailSec: tail });
 }
 

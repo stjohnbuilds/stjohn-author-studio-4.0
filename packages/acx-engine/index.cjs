@@ -98,20 +98,53 @@ function parseMediaInfo(stderr) {
   return { durationSec, sampleRate, channels, codec, bitrateKbps };
 }
 
+// A tiny click/pop/breath in the middle of otherwise-quiet room tone
+// splits silencedetect's output into two regions. ACX ignores such
+// transient blips — what matters is the overall quiet stretch. So we
+// bridge across gaps this short (sec) and keep counting room tone.
+const BLIP_BRIDGE_SEC = 0.3;
+
 // silencedetect prints pairs of "silence_start: X" / "silence_end: Y".
 // We only want silence that LEADS the stream (start at ~0). For the tail
 // check the audio is reversed first, so leading silence in the reversed
 // stream == trailing silence in the real file. Returns seconds (0 if the
 // file does not open with silence — e.g. audio starts immediately).
+//
+// A short blip (a click/breath under BLIP_BRIDGE_SEC) used to cut the
+// measured room tone short — e.g. reporting 0.83 sec when several quiet
+// seconds actually follow the blip. We now read ALL silence regions in
+// order and bridge across any blip that short, so the reported figure
+// matches what ACX hears.
 function parseLeadingSilence(stderr) {
   const text = String(stderr || '');
-  const startMatch = text.match(/silence_start:\s*(-?[\d.]+)/);
-  if (!startMatch) return 0;
-  const start = parseFloat(startMatch[1]);
-  if (!(start <= 0.1)) return 0; // first silence isn't at the very start
-  const endMatch = text.match(/silence_end:\s*([\d.]+)/);
-  if (!endMatch) return 0;
-  return parseFloat(endMatch[1]);
+  // Collect every silence_start / silence_end value in the order printed.
+  const events = [];
+  const re = /silence_(start|end):\s*(-?[\d.]+)/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    events.push({ kind: m[1], value: parseFloat(m[2]) });
+  }
+  // Pair them up into [start, end] regions.
+  const regions = [];
+  let openStart = null;
+  for (const ev of events) {
+    if (ev.kind === 'start') openStart = ev.value;
+    else if (ev.kind === 'end' && openStart !== null) {
+      regions.push({ start: openStart, end: ev.value });
+      openStart = null;
+    }
+  }
+  if (!regions.length) return 0;
+  if (!(regions[0].start <= 0.1)) return 0; // first silence isn't at the very start
+
+  // Walk forward, bridging short blips between consecutive quiet regions.
+  let end = regions[0].end;
+  for (let i = 1; i < regions.length; i++) {
+    const gap = regions[i].start - end; // length of the non-silent blip
+    if (gap <= BLIP_BRIDGE_SEC) end = regions[i].end;
+    else break; // a real stretch of audio — room tone has ended
+  }
+  return end;
 }
 
 // ── Formatting helpers ────────────────────────────────────────────────

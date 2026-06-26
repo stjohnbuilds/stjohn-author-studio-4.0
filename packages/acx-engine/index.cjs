@@ -21,7 +21,13 @@ const ACX = {
   maxPeak: -3,            // dB — loudest point must be at or below this
   minRMS: -23,            // dB — average loudness floor
   maxRMS: -18,            // dB — average loudness ceiling
-  maxFloor: -60,          // dB — the "this counts as silence" threshold
+  maxFloor: -55,          // dB — room-tone detection threshold. ACX accepts
+                          // faint room tone (~ -55 to -58 dB), so a strict
+                          // -60 dB cut wrongly reported 0.00 sec of quiet on
+                          // files ACX passes (real example: chapters 1–25 of
+                          // Anarchy all passed ACX but failed here at -60).
+                          // -55 matches ACX; real speech sits at -20 to -30 dB,
+                          // far above this, so bad files are still caught.
   minHead: 0.5,           // sec — room tone at the start (min) — ACX: 0.5–1
   maxHead: 1.0,           // sec — room tone at the start (max) — ACX: 0.5–1
   minTail: 1.0,           // sec — room tone at the end (min) — ACX: 1–5

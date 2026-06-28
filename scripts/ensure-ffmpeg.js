@@ -27,6 +27,16 @@ const TARGETS = {
     member: /(^|\/)ffmpeg$/,      // evermeet zip holds a single "ffmpeg"
     chmod: true,
   },
+  // Apple-silicon ffmpeg. Without this the app falls back to the Intel
+  // ffmpeg-x64 and runs it under Rosetta, which macOS flags (and which
+  // breaks on macOS 28+). eugeneware/ffmpeg-static ships a raw arm64
+  // binary (not zipped), so this target downloads it directly.
+  'mac-arm64': {
+    out: 'ffmpeg-arm64',
+    url: 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-darwin-arm64',
+    raw: true,
+    chmod: true,
+  },
   win: {
     out: 'ffmpeg-x64.exe',
     url: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',

@@ -88,6 +88,16 @@ async function ensure(targetKey) {
     return;
   }
   fs.mkdirSync(binDir, { recursive: true });
+
+  // Raw targets are a bare binary, not a zip — download straight to bin/.
+  if (target.raw) {
+    console.log(`ffmpeg: downloading ${target.out} …`);
+    await download(target.url, outPath);
+    if (target.chmod) fs.chmodSync(outPath, 0o755);
+    console.log(`\nffmpeg: wrote ${path.relative(rootDir, outPath)} (${Math.round(fs.statSync(outPath).size / 1024 / 1024)} MB).`);
+    return;
+  }
+
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ffmpeg-dl-'));
   const zipPath = path.join(tmpDir, 'ffmpeg.zip');
   console.log(`ffmpeg: downloading ${target.out} …`);

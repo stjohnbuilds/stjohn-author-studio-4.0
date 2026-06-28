@@ -126,7 +126,10 @@ async function ensure(targetKey) {
 }
 
 const arg = (process.argv[2] || '').toLowerCase();
-const keys = arg ? [arg] : (process.platform === 'win32' ? ['win'] : ['mac']);
+// "mac" fetches BOTH the Intel and Apple-silicon ffmpeg so the packaged
+// app is native on Apple silicon and still runs on Intel Macs.
+const expand = (k) => (k === 'mac' ? ['mac', 'mac-arm64'] : [k]);
+const keys = arg ? expand(arg) : (process.platform === 'win32' ? ['win'] : ['mac', 'mac-arm64']);
 
 (async () => {
   for (const key of keys) {

@@ -1859,39 +1859,6 @@ function AppModeToggle({ mode, onChange, usesCustomDragRegion }) {
   );
 }
 
-// Pastel "coming in phase X" panel shown when Prep or Quill is selected.
-function ComingSoonScreen({ mode }) {
-  const found = APP_MODES.find((m) => m.id === mode);
-  if (!found) return null;
-  return (
-    <div style={{ maxWidth:640, margin:'0 auto', padding:'5.2rem 1.25rem 4rem' }}>
-      <section
-        style={{
-          padding: '24px 22px',
-          background: found.pastel,
-          border: '1px solid ' + found.ink,
-          borderRadius: 22,
-          color: 'var(--text)',
-        }}
-      >
-        <div style={{ fontSize:'0.74rem', fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:found.ink, marginBottom:6 }}>
-          Coming in Phase {found.phase}
-        </div>
-        <div style={{ fontSize:'1.1rem', fontWeight:700, color:'var(--text)', marginBottom:10 }}>
-          {found.label}
-        </div>
-        <div style={{ fontSize:'0.86rem', lineHeight:1.55, color:'var(--text-muted)' }}>
-          {found.id === 'prep-manuscript' && 'Assign dialogue to characters/narrators. Export a highlighted Word doc + narrator chapter list.'}
-          {found.id === 'quill' && 'Add annotations to a manuscript for special-edition print design. Export to InDesign.'}
-        </div>
-        <div style={{ marginTop:14, fontSize:'0.74rem', color:'var(--text-light)' }}>
-          Not built yet. Use Proof Listen or Duet Prep for now.
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function SettingsCog({
   isOpen,
   onToggle,

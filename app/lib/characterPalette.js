@@ -27,3 +27,17 @@ export function nextPaletteColor(usedHexes = []) {
   if (fresh) return fresh;
   return CHARACTER_PALETTE[(usedHexes.length || 0) % CHARACTER_PALETTE.length];
 }
+
+// Darken a #rrggbb hex by `amount` (0-1) toward black. Used for side-voice
+// tints so a side voice reads as a deeper shade of its character's colour.
+// Shared by Prep's on-screen chips (PrepManuscriptMode) and the highlighted
+// DOCX export (prepExport) so both tint identically.
+export function darkenHex(hex, amount = 0.15) {
+  const h = String(hex || '').replace('#', '');
+  if (h.length !== 6) return hex;
+  const r = Math.max(0, parseInt(h.slice(0, 2), 16) - Math.round(255 * amount));
+  const g = Math.max(0, parseInt(h.slice(2, 4), 16) - Math.round(255 * amount));
+  const b = Math.max(0, parseInt(h.slice(4, 6), 16) - Math.round(255 * amount));
+  const px = (n) => n.toString(16).padStart(2, '0');
+  return '#' + px(r) + px(g) + px(b);
+}

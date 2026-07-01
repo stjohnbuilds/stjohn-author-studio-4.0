@@ -18,7 +18,6 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ImportFlow from './ImportFlow';
-import BookDetail, { ChapterRow } from './BookDetail';
 import ProofBookDetail from './SessionsView';
 import AppDialog from './AppDialog';
 import ChapterReader, {

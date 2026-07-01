@@ -17,6 +17,7 @@
 
 import { stripAudioPaths } from './audio-guard.js';
 import { slimBookForCloud } from './cloud-slim.js';
+import { hashString } from './hash.js';
 
 // In-memory cache of the last-pushed hash per project. Lets us skip
 // no-op upserts when the user is just clicking around (e.g. expanding

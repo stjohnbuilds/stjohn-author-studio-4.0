@@ -15,7 +15,8 @@ export function htmlToPlainText(html = '') {
     .trim();
 }
 
-export function tokenizeWords(text = '') {
+// Internal helper for countWords; not part of the public engine API.
+function tokenizeWords(text = '') {
   const matches = String(text).match(/[A-Za-z0-9']+/g);
   return matches || [];
 }

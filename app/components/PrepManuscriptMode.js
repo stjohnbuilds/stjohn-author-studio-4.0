@@ -87,19 +87,6 @@ function uid(prefix = 'id') {
 }
 function stripTags(s = '') { return String(s).replace(/<[^>]*>/g, ''); }
 
-// Darken a pastel by `amount` (0-1). Used for side-voice tint so a
-// side voice of "Crescent (light pink)" reads as a deeper pink than
-// Crescent herself.
-function darkenHex(hex, amount = 0.15) {
-  const h = String(hex || '').replace('#', '');
-  if (h.length !== 6) return hex;
-  const r = Math.max(0, parseInt(h.slice(0, 2), 16) - Math.round(255 * amount));
-  const g = Math.max(0, parseInt(h.slice(2, 4), 16) - Math.round(255 * amount));
-  const b = Math.max(0, parseInt(h.slice(4, 6), 16) - Math.round(255 * amount));
-  const px = (n) => n.toString(16).padStart(2, '0');
-  return '#' + px(r) + px(g) + px(b);
-}
-
 // Pick the right tint for a dialogue/chip given a character + optional
 // side voice. Each side voice gets progressively darker so multiple
 // side voices on one character are visually distinguishable.

@@ -120,7 +120,7 @@ function exportColorFor(char, sv) {
   if (!sv) return char.colorHex;
   const idx = (char.sideVoices || []).findIndex((s) => s.id === sv.id);
   const step = Math.max(1, idx + 1);
-  return darkenHexExport(char.colorHex, Math.min(0.45, 0.12 * step));
+  return darkenHex(char.colorHex, Math.min(0.45, 0.12 * step));
 }
 
 function escapeCsv(value = '') {

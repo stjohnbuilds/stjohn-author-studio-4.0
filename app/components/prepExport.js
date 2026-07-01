@@ -115,16 +115,6 @@ function ooxmlStyleForTag(tag) {
   }
 }
 
-function darkenHexExport(hex, amount = 0.15) {
-  const h = String(hex || '').replace('#', '');
-  if (h.length !== 6) return hex;
-  const r = Math.max(0, parseInt(h.slice(0, 2), 16) - Math.round(255 * amount));
-  const g = Math.max(0, parseInt(h.slice(2, 4), 16) - Math.round(255 * amount));
-  const b = Math.max(0, parseInt(h.slice(4, 6), 16) - Math.round(255 * amount));
-  const px = (n) => n.toString(16).padStart(2, '0');
-  return '#' + px(r) + px(g) + px(b);
-}
-
 function exportColorFor(char, sv) {
   if (!char) return '';
   if (!sv) return char.colorHex;

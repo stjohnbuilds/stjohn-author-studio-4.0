@@ -357,15 +357,3 @@ function collectSections(book) {
   });
   return out;
 }
-
-// Tiny stable hash for *_hash columns. Not cryptographic — just enough
-// to short-circuit no-op writes if we add that optimization later.
-function hashString(input) {
-  const str = String(input || '');
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i += 1) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}

@@ -5,6 +5,8 @@
 // Electron IPC needed. JSZip is already a project dependency for the
 // docx import path.
 
+import { darkenHex } from '../lib/characterPalette.js';
+
 function xml(value = '') {
   return String(value ?? '')
     .replace(/&/g, '&amp;')

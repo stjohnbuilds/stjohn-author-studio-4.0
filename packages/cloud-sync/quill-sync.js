@@ -15,6 +15,7 @@
 
 import { stripAudioPaths } from './audio-guard.js';
 import { slimProjectForCloud } from './cloud-slim.js';
+import { hashString } from './hash.js';
 
 // Same hash-gate pattern as proof-sync: skip no-op pushes when nothing
 // meaningful has changed since the last upload.

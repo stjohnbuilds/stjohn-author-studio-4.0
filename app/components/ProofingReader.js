@@ -1543,6 +1543,30 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
           >
             {wordAction.status === 'working' ? 'Cutting…' : wordAction.status === 'done' ? 'Saved to Downloads ✓' : 'Download clip'}
           </button>
+          {wordAction.words > 1 && wordAction.startSec != null && (
+            <div className="clip-preview-row" style={{ display:'flex',alignItems:'center',gap:8,marginTop:6,padding:'6px 8px',border:'1px solid var(--border-light)',borderRadius:10,background:'var(--cream)' }}>
+              <button
+                onClick={toggleClipPreview}
+                title={clipPreview.playing ? 'Pause the preview' : 'Play just this clip (normal speed)'}
+                style={{ width:30,height:30,flexShrink:0,borderRadius:999,border:'1px solid var(--accent-border-strong)',background:'var(--accent-light)',color:'var(--accent-dark)',fontSize:'0.72rem',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}
+              >
+                {clipPreview.playing ? '❚❚' : '▶'}
+              </button>
+              <input
+                type="range"
+                min={wordAction.startSec}
+                max={wordAction.endSec}
+                step={0.05}
+                value={clipPreview.t ?? wordAction.startSec}
+                onChange={e=>seekClipPreview(e.target.value)}
+                title="Drag to hear any spot inside the clip"
+                style={{ flex:1,accentColor:'var(--accent-dark)' }}
+              />
+              <span style={{ fontSize:'0.66rem',color:'var(--text-muted)',flexShrink:0,fontVariantNumeric:'tabular-nums' }}>
+                {fmtTime(Math.max(0, (clipPreview.t ?? wordAction.startSec) - wordAction.startSec))} / {fmtTime(wordAction.endSec - wordAction.startSec)}
+              </span>
+            </div>
+          )}
           {wordAction.message && (
             <div style={{ marginTop:6,fontSize:'0.72rem',color:wordAction.status==='error'?'var(--danger)':'var(--text-muted)',maxWidth:280 }}>
               {wordAction.message}

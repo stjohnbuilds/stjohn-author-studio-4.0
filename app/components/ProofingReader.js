@@ -1787,8 +1787,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
            highlight colours the same as the import doc"). Dark ones get
            white text so words stay readable, like light-on-dark in Word. */
         .reader-text .hl-yellow{background:#FFFF00}.reader-text .hl-green{background:#00FF00}
-        .reader-text .hl-cyan{background:#00FFFF}.reader-text .hl-magenta,.reader-text .hl-pink{background:#FF9CC7}
-        .reader-text .hl-blue{background:#4F81FF;color:#fff}.reader-text .hl-red{background:#FF4040;color:#fff}
+        .reader-text .hl-cyan{background:#00FFFF}.reader-text .hl-magenta,.reader-text .hl-pink{background:#FF00FF}
+        .reader-text .hl-blue{background:#0000FF;color:#fff}.reader-text .hl-red{background:#FF0000;color:#fff}
         .reader-text .hl-darkblue{background:#00008B;color:#fff}.reader-text .hl-darkcyan{background:#008B8B;color:#fff}
         .reader-text .hl-darkgreen{background:#006400;color:#fff}.reader-text .hl-darkmagenta{background:#8B008B;color:#fff}
         .reader-text .hl-darkred{background:#8B0000;color:#fff}.reader-text .hl-darkyellow{background:#808000;color:#fff}

@@ -1054,27 +1054,55 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     setFlagPanel(null);
   }
 
+  // Clip start/end seconds for a word range, from the transcript sync
+  // table. End = start of the word AFTER the range (natural gap), with
+  // ~0.35s breathing room each side. Null when there's no transcription.
+  function clipTimesForRange(startIdx, endIdx){
+    const sync = syncTableRef.current;
+    if(!Array.isArray(sync) || sync.length < 4) return { startSec: null, endSec: null };
+    const s = getAudioTimeForMsIdx(sync, startIdx);
+    let en = getAudioTimeForMsIdx(sync, endIdx + 1);
+    if(en == null || !Number.isFinite(en)){
+      const lastT = getAudioTimeForMsIdx(sync, endIdx);
+      en = (lastT != null && Number.isFinite(lastT)) ? lastT + 2 : null;
+    }
+    if(s == null || !Number.isFinite(s) || en == null || !Number.isFinite(en) || en <= s) return { startSec: null, endSec: null };
+    let startSec = Math.max(0, s - 0.35);
+    let endSec = en + 0.35;
+    const dur = Number(audioRef.current?.duration);
+    if(Number.isFinite(dur) && dur > 0) endSec = Math.min(endSec, dur);
+    return { startSec, endSec };
+  }
+
+  function openActionMenu(startIdx, endIdx, anchorX, anchorY, anchorBottom){
+    if(!Number.isFinite(startIdx) || !Number.isFinite(endIdx)) return;
+    const menuWidth = 236;
+    const left = Math.max(14, Math.min(window.innerWidth - menuWidth - 14, anchorX - menuWidth / 2));
+    const placeBelow = anchorY < 158;
+    const top = placeBelow ? (anchorBottom ?? anchorY) + 10 : anchorY - 8;
+    const words = endIdx - startIdx + 1;
+    const { startSec, endSec } = clipTimesForRange(startIdx, endIdx);
+    setWordAction({
+      startIdx, endIdx, words,
+      label: words === 1
+        ? (msWordsRef.current[startIdx] || 'Selected word')
+        : `${words} words` + (startSec != null ? ` · ${fmtTime(startSec)}–${fmtTime(endSec)} (~${Math.round(endSec - startSec)}s)` : ''),
+      left, top, placeBelow,
+      startSec, endSec,
+      status: '', message: '',
+    });
+  }
+
   function openWordActionMenu(idx, wordEl){
     if(!Number.isFinite(idx) || !wordEl) return;
     const rect = wordEl.getBoundingClientRect();
-    const menuWidth = 186;
-    const centerX = rect.left + (rect.width / 2);
-    const left = Math.max(14, Math.min(window.innerWidth - menuWidth - 14, centerX - (menuWidth / 2)));
-    const placeBelow = rect.top < 138;
-    const top = placeBelow ? rect.bottom + 10 : rect.top - 8;
-    setWordAction({
-      idx,
-      left,
-      top,
-      placeBelow,
-      word: msWordsRef.current[idx] || '',
-    });
+    openActionMenu(idx, idx, rect.left + rect.width / 2, rect.top, rect.bottom);
   }
 
   function jumpToWordAction(){
     if(!wordAction) return;
     if(!hasClickableWordSync()) return;
-    seekMsWordFromClick(wordAction.idx);
+    seekMsWordFromClick(wordAction.startIdx);
     setWordAction(null);
   }
 

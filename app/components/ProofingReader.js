@@ -1397,6 +1397,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
           }}
           onWheel={()=>markManualScroll()}
           onTouchStart={()=>markManualScroll()}
+          onMouseUp={maybeOpenClipMenu}
           onDoubleClick={e=>{
             const t=e.target.closest?.('[data-cr-unit]');
             if(!t)return;

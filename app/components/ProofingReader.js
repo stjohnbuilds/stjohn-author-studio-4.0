@@ -1067,8 +1067,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       en = (lastT != null && Number.isFinite(lastT)) ? lastT + 2 : null;
     }
     if(s == null || !Number.isFinite(s) || en == null || !Number.isFinite(en) || en <= s) return { startSec: null, endSec: null };
-    let startSec = Math.max(0, s - 0.35);
-    let endSec = en + 0.35;
+    // 0.6s breathing room each side — transcript times drift, and a
+    // cut-off first word ruins a teaser. Marie crops the rest in Canva.
+    let startSec = Math.max(0, s - 0.6);
+    let endSec = en + 0.6;
     const dur = Number(audioRef.current?.duration);
     if(Number.isFinite(dur) && dur > 0) endSec = Math.min(endSec, dur);
     return { startSec, endSec };

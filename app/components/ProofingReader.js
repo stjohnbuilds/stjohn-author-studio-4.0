@@ -638,56 +638,29 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       if(e.target?.closest?.('.w')) return;
       setWordAction(null);
     }
+    function handleKeyDown(e){
+      if(e.key === 'Escape') setWordAction(null);
+    }
     document.addEventListener('pointerdown', handlePointerDown, true);
-    return ()=>document.removeEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return ()=>{
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+    };
   },[wordAction]);
 
-  // Preview guard: while previewing, follow the playhead and stop dead
-  // at the clip's end. Every stop path funnels through the audio
-  // 'pause' event, where the listening speed is restored.
-  useEffect(()=>{
-    if(!clipPreview.playing) return;
-    const audio = audioRef.current;
-    const endSec = wordAction?.endSec;
-    if(!audio || endSec == null){ setClipPreview({ playing:false, t:null }); return; }
-    function restoreRate(){
-      if(previewPrevRateRef.current != null){
-        audio.playbackRate = previewPrevRateRef.current;
-        previewPrevRateRef.current = null;
-      }
-    }
-    function onTime(){
-      const t = Number(audio.currentTime) || 0;
-      if(t >= endSec - 0.02){
-        audio.pause();
-        setClipPreview({ playing:false, t: endSec });
-      } else {
-        setClipPreview(p=>({ ...p, t }));
-      }
-    }
-    function onPause(){
-      restoreRate();
-      setClipPreview(p=>p.playing ? { ...p, playing:false } : p);
-    }
-    audio.addEventListener('timeupdate', onTime);
-    audio.addEventListener('pause', onPause);
-    return ()=>{
-      audio.removeEventListener('timeupdate', onTime);
-      audio.removeEventListener('pause', onPause);
-    };
-  },[clipPreview.playing, wordAction?.endSec]);
-
-  // Popup closed → stop any running preview and put the speed back.
+  // Popup closed (click-out, Escape, new selection) → the preview must
+  // ALWAYS stop and the listening speed must ALWAYS come back.
   useEffect(()=>{
     if(wordAction) return;
-    const audio = audioRef.current;
-    if(audio && previewPrevRateRef.current != null){
-      audio.pause();
-      audio.playbackRate = previewPrevRateRef.current;
-      previewPrevRateRef.current = null;
-    }
+    stopClipPreview();
     setClipPreview(p=>(p.playing || p.t != null) ? { playing:false, t:null } : p);
   },[wordAction]);
+
+  // Chapter changed or reader unmounting mid-preview → same guarantee.
+  useEffect(()=>{
+    return ()=>stopClipPreview({ pauseAudio:false });
+  },[section.id]);
 
 
   useEffect(()=>{

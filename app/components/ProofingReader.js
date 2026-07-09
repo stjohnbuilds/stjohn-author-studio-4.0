@@ -1113,7 +1113,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     const top = placeBelow ? (anchorBottom ?? anchorY) + 10 : anchorY - 8;
     const words = endIdx - startIdx + 1;
     const { startSec, endSec } = clipTimesForRange(startIdx, endIdx);
-    setClipPreview({ playing:false, t:null }); // fresh selection → fresh preview
+    stopClipPreview(); // fresh selection → any running preview ends first
+    setClipPreview({ playing:false, t:null });
     setWordAction({
       startIdx, endIdx, words,
       label: words === 1

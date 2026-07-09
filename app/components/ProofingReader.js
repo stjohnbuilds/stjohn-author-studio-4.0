@@ -1197,8 +1197,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
 
   function flagFromWordAction(){
     if(!wordAction) return;
-    const jumpedTime = seekMsWordFromClick(wordAction.idx);
-    openFlagAtIndex(wordAction.idx, Number.isFinite(jumpedTime) ? jumpedTime : Number(audioRef.current?.currentTime) || 0);
+    const jumpedTime = seekMsWordFromClick(wordAction.startIdx);
+    openFlagAtIndex(wordAction.startIdx, Number.isFinite(jumpedTime) ? jumpedTime : Number(audioRef.current?.currentTime) || 0);
     setWordAction(null);
   }
 

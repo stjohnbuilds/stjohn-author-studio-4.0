@@ -1058,6 +1058,31 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — Teaser clips: select a passage in Proof Listen, download that audio
+
+- [x] **Download clip from a long text selection.** — completed
+      2026-07-08 (v4.0.27 ✂️). Marie selects 2+ words (a sentence, a
+      paragraph, several paragraphs) in the proofer and a "Selection"
+      popup shows word count + the time range from the transcript sync
+      table, with a Download clip button. Cuts that span out of the
+      LOCAL audio file with the bundled ffmpeg (`-c copy`, no
+      re-encode, ±0.35s breathing room each side; end = start of the
+      word after the selection) and saves to Downloads via
+      uniqueExportPath (never overwrites). For social-media teasers.
+      Pieces: `export-audio-clip` IPC in main.js (near the ACX ffmpeg
+      helpers), `exportAudioClip` in preload.js, selection detection +
+      popup in ProofingReader.js (`readerSelectionUnitRange`,
+      `maybeOpenClipMenu`, `downloadClipFromSelection`). Double-click
+      single-word menu untouched (mouseup needs ≥2 words). Needs the
+      chapter transcribed — otherwise button disabled with a hint.
+      Verified: sandbox page drove real mouse selection → popup with
+      correct count/times → browser-fallback error path; ffmpeg cut
+      tested exact-duration on generated mp3 AND m4a. NOT yet
+      verified: full flow inside Electron on a real book (needs
+      Marie's data). Also that session: dev `.next` cache corruption
+      after deleting a test route caused blank pages — fix is
+      `rm -rf .next` + restart dev server.
+
 ### 2026-07-08 — Proof Listen now shows manuscript highlight colours
 
 - [x] **Manuscript highlight colours now display in the proofer.** —

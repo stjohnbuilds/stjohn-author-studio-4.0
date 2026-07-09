@@ -1447,6 +1447,47 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         </div>
       )}
 
+      {clipAction&&(
+        <div
+          className="reader-clip-action"
+          style={{
+            position:'fixed',
+            left:clipAction.left,
+            top:clipAction.top,
+            transform:clipAction.placeBelow ? 'translateY(0)' : 'translateY(-100%)',
+            zIndex:1250,
+            minWidth:236,
+            padding:'8px',
+            borderRadius:16,
+            border:'1px solid var(--accent-border)',
+            background:'rgba(255,255,255,0.98)',
+            boxShadow:'0 18px 42px rgba(28, 18, 44, 0.18)',
+            backdropFilter:'blur(14px)',
+          }}
+        >
+          <div style={{ fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6 }}>Selection</div>
+          <div style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text)',marginBottom:8 }}>
+            {clipAction.words} words
+            {clipAction.startSec != null && clipAction.endSec != null
+              ? ` · ${fmtTime(clipAction.startSec)}–${fmtTime(clipAction.endSec)} (~${Math.round(clipAction.endSec - clipAction.startSec)}s)`
+              : ' · needs transcription for clips'}
+          </div>
+          <button
+            onClick={downloadClipFromSelection}
+            disabled={clipAction.startSec == null || clipAction.status === 'working' || clipAction.status === 'done'}
+            title={clipAction.startSec != null ? 'Cut this part of the audio and save it to Downloads' : 'Transcribe this chapter first so words have timestamps'}
+            style={{ width:'100%',padding:'8px 10px',borderRadius:10,border:'1px solid '+(clipAction.startSec != null?'var(--accent-border-strong)':'var(--border)'),background:clipAction.startSec != null?'var(--accent-light)':'var(--cream)',color:clipAction.startSec != null?'var(--accent-dark)':'var(--text-light)',fontSize:'0.78rem',fontWeight:700,cursor:clipAction.startSec != null?'pointer':'not-allowed' }}
+          >
+            {clipAction.status === 'working' ? 'Cutting…' : clipAction.status === 'done' ? 'Saved to Downloads ✓' : 'Download clip'}
+          </button>
+          {clipAction.message && (
+            <div style={{ marginTop:6,fontSize:'0.72rem',color:clipAction.status==='error'?'var(--danger)':'var(--text-muted)',maxWidth:280 }}>
+              {clipAction.message}
+            </div>
+          )}
+        </div>
+      )}
+
       {useWhisperSync && whisperGuideText && (
         <div style={{ flexShrink:0,padding:'0 16px 10px' }}>
           <div style={{ width:readerContentWidth,margin:'0 auto',display:'flex',alignItems:'center',gap:8,padding:'7px 12px',background:'#fafaf7',border:'1px solid var(--border-light)',borderRadius:999 }}>

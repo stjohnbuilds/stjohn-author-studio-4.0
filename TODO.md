@@ -1058,6 +1058,29 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — Clip preview player + wider padding (v4.0.29 ▶️)
+
+- [x] **Mini preview player under Download clip.** — completed
+      2026-07-08. Marie's design: play button + slider bar with the
+      dot (like the bottom dock, no volume) under Download clip.
+      Plays JUST the clip range through the one shared audio element
+      (no second <audio>): forces 1× during preview (saved clips are
+      normal speed; she listens at 2×), restores her speed when the
+      preview stops/pauses/popup closes, stops dead at clip end, drag
+      the dot to hear any spot. Re-highlighting rebuilds times +
+      resets the preview automatically. Padding widened 0.35s → 0.6s
+      each side after a one-line clip came out cut off (transcript
+      times drift; she crops in Canva). All in ProofingReader.js:
+      `clipPreview` state, `toggleClipPreview`, `seekClipPreview`,
+      guard effect funnelling every stop through the audio 'pause'
+      event. Battery-tested with a generated WAV: 12/12 incl. real
+      playback, 1×-during/2×-after speed, auto-stop at end, slider
+      seek, reset on new selection, hidden for single word.
+      DEV NOTE (bit twice today): deleting/creating an app/ route
+      while `next dev` runs corrupts its cache — pages serve stale
+      HTML with 404 JS chunks and React never hydrates. Fix:
+      stop server, `rm -rf .next`, restart.
+
 ### 2026-07-08 — One popup for everything: Jump / Flag / Download clip (v4.0.28 🎯)
 
 - [x] **Merged the two conflicting proofer popups into one.** —

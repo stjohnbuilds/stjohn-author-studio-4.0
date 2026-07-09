@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electron', {
   exportTransferBundle:(book) => ipcRenderer.invoke('export-transfer-bundle', book),
   importTransferBundle:()    => ipcRenderer.invoke('import-transfer-bundle'),
   readAudioFile:  (filePath) => ipcRenderer.invoke('read-audio-file', filePath),
+  exportAudioClip:(payload)  => ipcRenderer.invoke('export-audio-clip', payload),
   // ACX file scanner (bundled ffmpeg) — see packages/acx-engine
   acxGetInfo:     ()         => ipcRenderer.invoke('acx-get-info'),
   acxPickFolder:  ()         => ipcRenderer.invoke('acx-pick-folder'),

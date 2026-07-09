@@ -1348,7 +1348,7 @@ ipcMain.handle('update:install-now', () => {
 // visually confirm an auto-update landed. v4.0.2 ships without one
 // (older build); v4.0.3 ships with 🌟. Future builds rotate this so
 // every successful update changes the badge in the corner.
-const BUILD_EMOJI = '▶️';
+const BUILD_EMOJI = '🛑';
 ipcMain.handle('app:get-version-info', () => {
   let buildDate = null;
   try {

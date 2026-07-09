@@ -634,6 +634,16 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   },[wordAction]);
 
   useEffect(()=>{
+    if(!clipAction) return;
+    function handlePointerDown(e){
+      if(e.target?.closest?.('.reader-clip-action')) return;
+      setClipAction(null);
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return ()=>document.removeEventListener('pointerdown', handlePointerDown, true);
+  },[clipAction]);
+
+  useEffect(()=>{
     const timer = window.setTimeout(()=>updateActiveSceneMetaFromViewport(), 0);
     return ()=>window.clearTimeout(timer);
   },[section.id]);

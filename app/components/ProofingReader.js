@@ -1087,6 +1087,95 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     setWordAction(null);
   }
 
+  // First/last word index the current browser text selection touches.
+  // Selection endpoints can land between words (paragraph gaps), so
+  // fall back to scanning the range when closest() finds no unit.
+  function readerSelectionUnitRange(){
+    const sel = typeof window !== 'undefined' && window.getSelection ? window.getSelection() : null;
+    if(!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    const host = textRef.current;
+    if(!host || !host.contains(range.commonAncestorContainer)) return null;
+    const toEl = (n)=>(n && n.nodeType === 3 ? n.parentElement : n);
+    let startIdx = parseInt(toEl(range.startContainer)?.closest?.('[data-cr-unit]')?.getAttribute('data-cr-unit'), 10);
+    let endIdx = parseInt(toEl(range.endContainer)?.closest?.('[data-cr-unit]')?.getAttribute('data-cr-unit'), 10);
+    if(!Number.isFinite(startIdx) || !Number.isFinite(endIdx)){
+      let first = NaN, last = NaN;
+      for(const el of host.querySelectorAll('[data-cr-unit]')){
+        if(!range.intersectsNode(el)) continue;
+        const i = parseInt(el.getAttribute('data-cr-unit'), 10);
+        if(!Number.isFinite(i)) continue;
+        if(!Number.isFinite(first)) first = i;
+        last = i;
+      }
+      if(!Number.isFinite(startIdx)) startIdx = first;
+      if(!Number.isFinite(endIdx)) endIdx = last;
+    }
+    if(!Number.isFinite(startIdx) || !Number.isFinite(endIdx)) return null;
+    if(endIdx < startIdx){ const t = startIdx; startIdx = endIdx; endIdx = t; }
+    return { startIdx, endIdx };
+  }
+
+  // Mouseup after a drag-selection of 2+ words → open the clip popup.
+  // A double-click selects one word only, so the existing word menu
+  // keeps that case.
+  function maybeOpenClipMenu(e){
+    const clickX = Number(e?.clientX) || 0;
+    const clickY = Number(e?.clientY) || 0;
+    const found = readerSelectionUnitRange();
+    if(!found || found.endIdx - found.startIdx < 1) return;
+    const sync = syncTableRef.current;
+    let startSec = null, endSec = null;
+    if(Array.isArray(sync) && sync.length >= 4){
+      const s = getAudioTimeForMsIdx(sync, found.startIdx);
+      let en = getAudioTimeForMsIdx(sync, found.endIdx + 1);
+      if(en == null || !Number.isFinite(en)){
+        const lastT = getAudioTimeForMsIdx(sync, found.endIdx);
+        en = (lastT != null && Number.isFinite(lastT)) ? lastT + 2 : null;
+      }
+      if(s != null && Number.isFinite(s) && en != null && Number.isFinite(en) && en > s){
+        startSec = Math.max(0, s - 0.35);
+        endSec = en + 0.35;
+        const dur = Number(audioRef.current?.duration);
+        if(Number.isFinite(dur) && dur > 0) endSec = Math.min(endSec, dur);
+      }
+    }
+    const menuWidth = 236;
+    const left = Math.max(14, Math.min(window.innerWidth - menuWidth - 14, clickX - menuWidth / 2));
+    const placeBelow = clickY < 158;
+    const top = placeBelow ? clickY + 18 : clickY - 14;
+    setClipAction({
+      left, top, placeBelow,
+      words: found.endIdx - found.startIdx + 1,
+      startSec, endSec,
+      status: '', message: '',
+    });
+  }
+
+  async function downloadClipFromSelection(){
+    if(!clipAction || clipAction.status === 'working') return;
+    if(clipAction.startSec == null || clipAction.endSec == null) return;
+    const bridge = typeof window !== 'undefined' ? window.electron : null;
+    if(!bridge?.exportAudioClip){
+      setClipAction(c=>c ? { ...c, status:'error', message:'Clips only work in the desktop app.' } : c);
+      return;
+    }
+    setClipAction(c=>c ? { ...c, status:'working', message:'' } : c);
+    const base = `${section.chapterTitle || section.title || 'chapter'} clip`;
+    let res = null;
+    try {
+      res = await bridge.exportAudioClip({ audioUrl, startSec: clipAction.startSec, endSec: clipAction.endSec, baseName: base });
+    } catch (err) {
+      res = { ok: false, error: String(err?.message || err) };
+    }
+    if(res?.ok){
+      setClipAction(c=>c ? { ...c, status:'done', message:res.fileName || 'Saved to Downloads' } : c);
+      window.setTimeout(()=>setClipAction(null), 2600);
+    } else {
+      setClipAction(c=>c ? { ...c, status:'error', message:res?.error || 'Could not make the clip.' } : c);
+    }
+  }
+
   function flagFromWordAction(){
     if(!wordAction) return;
     const jumpedTime = seekMsWordFromClick(wordAction.idx);

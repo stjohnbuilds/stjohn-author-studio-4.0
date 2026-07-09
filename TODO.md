@@ -1058,6 +1058,35 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — One popup for everything: Jump / Flag / Download clip (v4.0.28 🎯)
+
+- [x] **Merged the two conflicting proofer popups into one.** —
+      completed 2026-07-08. Marie's feedback on v4.0.27: the new
+      Selection popup hid Jump/Flag ("obviously, just have all
+      three"). Now double-click AND drag-selection open the SAME
+      popup with Jump here / Flag here / Download clip; each button
+      greys out with a plain-English tooltip when it doesn't apply:
+      Jump — needs transcription; Flag — greyed above 80 words
+      ("flags pin to one spot"; Jump/Flag act on the FIRST selected
+      word); Download clip — greyed for a single word or without
+      transcription. Refactor in ProofingReader.js only: clipAction
+      state removed, `openActionMenu(startIdx,endIdx,…)` +
+      `clipTimesForRange()` shared by both entry points. Verified in
+      sandbox: 13/13 checks (3 buttons both paths, correct
+      grey-outs, count+times line, browser fallback). Still not
+      driven on a real book in Electron.
+- [ ] **Split arrows do nothing when split is off.** Marie (same
+      session, in passing): "When I click split off, there's still
+      these little arrows that pop up and down when I click them,
+      but it doesn't move." Needs reproducing in the proofer —
+      likely the scene/split nudge arrows should hide or disable
+      when split mode is off. Not started.
+- [ ] **Transcriptions sometimes vanish.** Marie (same session):
+      "it seems I've lost all my transcriptions... Sometimes they
+      just get lost." No repro yet — next time it happens, check
+      whether `script_sync_section_transcriptions` still has rows
+      for the book (cloud) vs local Save Data, before re-transcribing.
+
 ### 2026-07-08 — Teaser clips: select a passage in Proof Listen, download that audio
 
 - [x] **Download clip from a long text selection.** — completed

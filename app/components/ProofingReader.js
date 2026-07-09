@@ -1135,63 +1135,38 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     return { startIdx, endIdx };
   }
 
-  // Mouseup after a drag-selection of 2+ words → open the clip popup.
-  // A double-click selects one word only, so the existing word menu
-  // keeps that case.
+  // Mouseup after a drag-selection of 2+ words → same popup as the
+  // double-click word menu, just with a range. Double-click selects one
+  // word only, so its own handler keeps that case.
   function maybeOpenClipMenu(e){
     const clickX = Number(e?.clientX) || 0;
     const clickY = Number(e?.clientY) || 0;
     const found = readerSelectionUnitRange();
     if(!found || found.endIdx - found.startIdx < 1) return;
-    const sync = syncTableRef.current;
-    let startSec = null, endSec = null;
-    if(Array.isArray(sync) && sync.length >= 4){
-      const s = getAudioTimeForMsIdx(sync, found.startIdx);
-      let en = getAudioTimeForMsIdx(sync, found.endIdx + 1);
-      if(en == null || !Number.isFinite(en)){
-        const lastT = getAudioTimeForMsIdx(sync, found.endIdx);
-        en = (lastT != null && Number.isFinite(lastT)) ? lastT + 2 : null;
-      }
-      if(s != null && Number.isFinite(s) && en != null && Number.isFinite(en) && en > s){
-        startSec = Math.max(0, s - 0.35);
-        endSec = en + 0.35;
-        const dur = Number(audioRef.current?.duration);
-        if(Number.isFinite(dur) && dur > 0) endSec = Math.min(endSec, dur);
-      }
-    }
-    const menuWidth = 236;
-    const left = Math.max(14, Math.min(window.innerWidth - menuWidth - 14, clickX - menuWidth / 2));
-    const placeBelow = clickY < 158;
-    const top = placeBelow ? clickY + 18 : clickY - 14;
-    setClipAction({
-      left, top, placeBelow,
-      words: found.endIdx - found.startIdx + 1,
-      startSec, endSec,
-      status: '', message: '',
-    });
+    openActionMenu(found.startIdx, found.endIdx, clickX, clickY, clickY + 8);
   }
 
   async function downloadClipFromSelection(){
-    if(!clipAction || clipAction.status === 'working') return;
-    if(clipAction.startSec == null || clipAction.endSec == null) return;
+    if(!wordAction || wordAction.status === 'working') return;
+    if(wordAction.startSec == null || wordAction.endSec == null) return;
     const bridge = typeof window !== 'undefined' ? window.electron : null;
     if(!bridge?.exportAudioClip){
-      setClipAction(c=>c ? { ...c, status:'error', message:'Clips only work in the desktop app.' } : c);
+      setWordAction(c=>c ? { ...c, status:'error', message:'Clips only work in the desktop app.' } : c);
       return;
     }
-    setClipAction(c=>c ? { ...c, status:'working', message:'' } : c);
+    setWordAction(c=>c ? { ...c, status:'working', message:'' } : c);
     const base = `${section.chapterTitle || section.title || 'chapter'} clip`;
     let res = null;
     try {
-      res = await bridge.exportAudioClip({ audioUrl, startSec: clipAction.startSec, endSec: clipAction.endSec, baseName: base });
+      res = await bridge.exportAudioClip({ audioUrl, startSec: wordAction.startSec, endSec: wordAction.endSec, baseName: base });
     } catch (err) {
       res = { ok: false, error: String(err?.message || err) };
     }
     if(res?.ok){
-      setClipAction(c=>c ? { ...c, status:'done', message:res.fileName || 'Saved to Downloads' } : c);
-      window.setTimeout(()=>setClipAction(null), 2600);
+      setWordAction(c=>c ? { ...c, status:'done', message:res.fileName || 'Saved to Downloads' } : c);
+      window.setTimeout(()=>setWordAction(null), 2600);
     } else {
-      setClipAction(c=>c ? { ...c, status:'error', message:res?.error || 'Could not make the clip.' } : c);
+      setWordAction(c=>c ? { ...c, status:'error', message:res?.error || 'Could not make the clip.' } : c);
     }
   }
 

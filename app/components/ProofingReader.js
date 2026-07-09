@@ -393,6 +393,13 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   // (word range): Jump here / Flag here / Download clip, each greyed
   // out when it doesn't apply. Marie: "obviously, just have all three."
   const [wordAction, setWordAction] = useState(null);
+  // Mini preview player under Download clip — plays JUST the clip
+  // range through the one shared audio element (no second <audio>).
+  // t = playhead in seconds, null until first play/drag. Preview runs
+  // at 1× (the saved clip is normal speed); the listening speed is
+  // put back when the preview stops.
+  const [clipPreview, setClipPreview] = useState({ playing:false, t:null });
+  const previewPrevRateRef = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHits, setSearchHits] = useState([]);

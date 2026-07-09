@@ -1178,20 +1178,65 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     openActionMenu(found.startIdx, found.endIdx, clickX, clickY, clickY + 8);
   }
 
+  // The ONE way a preview ends, whatever triggered it (stop button,
+  // clip end reached, click-out, Escape, dock pause, chapter change).
+  // Ref-driven so a mid-preview re-render (transcription finishing,
+  // popup status update) can never orphan the running playback.
+  function stopClipPreview({ pauseAudio = true } = {}){
+    const p = previewRef.current;
+    if(!p.active && !p.cleanup) return;
+    p.active = false;
+    if(p.cleanup){ p.cleanup(); p.cleanup = null; }
+    const audio = audioRef.current;
+    if(audio){
+      if(pauseAudio && !audio.paused){ try { audio.pause(); } catch {} }
+      if(p.prevRate != null) audio.playbackRate = p.prevRate;
+    }
+    p.prevRate = null;
+    setClipPreview(prev=>prev.playing ? { ...prev, playing:false } : prev);
+  }
+
   function toggleClipPreview(){
     const audio = audioRef.current;
     if(!audio || !wordAction || wordAction.startSec == null) return;
-    if(clipPreview.playing){
-      audio.pause(); // 'pause' listener restores the speed
+    if(previewRef.current.active){
+      stopClipPreview();
       return;
     }
     let from = Number(clipPreview.t);
     if(!Number.isFinite(from) || from < wordAction.startSec || from >= wordAction.endSec - 0.05) from = wordAction.startSec;
-    if(previewPrevRateRef.current == null) previewPrevRateRef.current = Number(audio.playbackRate) || 1;
+
+    const p = previewRef.current;
+    p.active = true;
+    p.endSec = wordAction.endSec;
+    p.prevRate = Number(audio.playbackRate) || 1;
     audio.playbackRate = 1;
     audio.currentTime = from;
-    const p = audio.play?.();
-    if(p?.catch) p.catch(()=>{});
+
+    const onTime = ()=>{
+      if(!p.active) return;
+      const t = Number(audio.currentTime) || 0;
+      if(t >= p.endSec - 0.02){
+        setClipPreview({ playing:false, t: p.endSec });
+        stopClipPreview();
+      } else {
+        setClipPreview(prev=>({ ...prev, t }));
+      }
+    };
+    const onPause = ()=>{ if(p.active) stopClipPreview({ pauseAudio:false }); };
+    // Both a timeupdate listener AND a 100ms interval watch the clock —
+    // if either survives, the preview still stops at the clip's end.
+    const iv = window.setInterval(onTime, 100);
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('pause', onPause);
+    p.cleanup = ()=>{
+      window.clearInterval(iv);
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('pause', onPause);
+    };
+
+    const playPromise = audio.play?.();
+    if(playPromise?.catch) playPromise.catch(()=>stopClipPreview({ pauseAudio:false }));
     setClipPreview({ playing:true, t: from });
   }
 

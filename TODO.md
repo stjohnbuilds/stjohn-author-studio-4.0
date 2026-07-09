@@ -1058,6 +1058,24 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — Proof Listen now shows manuscript highlight colours
+
+- [x] **Manuscript highlight colours now display in the proofer.** —
+      completed 2026-07-08. Word-doc highlights (yellow/pink/green etc.)
+      were already saved with every imported chapter as `hl-*` spans in
+      `section.html` (mammoth STYLE_MAP), and ProofingReader already had
+      the CSS for them — but the shared renderer in
+      `app/components/ChapterReader.js` (`renderNode`) flattened every
+      inline span to a bare `<span>`, dropping the class. One-spot fix:
+      preserve any `hl-*` class when rendering inline elements. Works
+      retroactively on existing projects (colours were always in the
+      saved HTML). Verified live with a temporary sandbox route
+      (deleted after): 1 yellow + 1 pink band rendered, word units
+      (`data-cr-unit`) intact inside the bands, zero console errors.
+      Also that session: Supabase 2.0 DATA project had auto-paused
+      (login "failed to fetch"); paused unused Typing & Tomes 4.0 DATA
+      (test data only) to free the free-tier slot and restored 2.0.
+
 ### 2026-06-01 — Cloud guard: hard whitelist on every Supabase write
 
 - [x] **Wrapped the shared Supabase client with a hard table whitelist.** —

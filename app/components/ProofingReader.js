@@ -1403,7 +1403,15 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         >{renderedBody}</div>
       </div>
 
-      {wordAction&&(
+      {wordAction&&(()=>{
+        const canFlag = wordAction.words <= 80;
+        const canClip = wordAction.words >= 2 && wordAction.startSec != null && wordAction.status !== 'working' && wordAction.status !== 'done';
+        const clipTitle = wordAction.words < 2
+          ? 'Highlight more words to make a clip'
+          : wordAction.startSec == null
+            ? 'Clips need transcription first'
+            : 'Cut this part of the audio and save it to Downloads';
+        return (
         <div
           className="reader-word-action"
           style={{
@@ -1412,7 +1420,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
             top:wordAction.top,
             transform:wordAction.placeBelow ? 'translateY(0)' : 'translateY(-100%)',
             zIndex:1250,
-            minWidth:186,
+            minWidth:236,
             padding:'8px',
             borderRadius:16,
             border:'1px solid var(--accent-border)',
@@ -1421,25 +1429,46 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
             backdropFilter:'blur(14px)',
           }}
         >
-          <div style={{ fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6 }}>Word action</div>
-          <div style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text)',marginBottom:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
-            {wordAction.word || 'Selected word'}
+          <div style={{ fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6 }}>
+            {wordAction.words === 1 ? 'Word action' : 'Selection'}
           </div>
-          <div style={{ display:'flex',gap:6 }}>
+          <div style={{ fontSize:'0.82rem',fontWeight:600,color:'var(--text)',marginBottom:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>
+            {wordAction.label || 'Selected word'}
+          </div>
+          <div style={{ display:'flex',gap:6,marginBottom:6 }}>
             <button
               onClick={jumpToWordAction}
               disabled={!canJumpFromWordAction}
-              title={canJumpFromWordAction ? 'Jump to this word in the audio' : 'Jump needs transcription first'}
+              title={canJumpFromWordAction ? 'Jump to this spot in the audio' : 'Jump needs transcription first'}
               style={{ flex:1,padding:'8px 10px',borderRadius:10,border:'1px solid '+(canJumpFromWordAction?'var(--accent-border-strong)':'var(--border)'),background:canJumpFromWordAction?'var(--accent-light)':'var(--cream)',color:canJumpFromWordAction?'var(--accent-dark)':'var(--text-light)',fontSize:'0.78rem',fontWeight:700,cursor:canJumpFromWordAction?'pointer':'not-allowed' }}
             >
               Jump here
             </button>
-            <button onClick={flagFromWordAction} style={{ flex:1,padding:'8px 10px',borderRadius:10,border:'1px solid #f0b8b8',background:'var(--danger-light)',color:'var(--danger)',fontSize:'0.78rem',fontWeight:700,cursor:'pointer' }}>
+            <button
+              onClick={canFlag ? flagFromWordAction : undefined}
+              disabled={!canFlag}
+              title={canFlag ? 'Flag this spot for the engineer' : 'Too long for a flag — flags pin to one spot'}
+              style={{ flex:1,padding:'8px 10px',borderRadius:10,border:'1px solid '+(canFlag?'#f0b8b8':'var(--border)'),background:canFlag?'var(--danger-light)':'var(--cream)',color:canFlag?'var(--danger)':'var(--text-light)',fontSize:'0.78rem',fontWeight:700,cursor:canFlag?'pointer':'not-allowed' }}
+            >
               Flag here
             </button>
           </div>
+          <button
+            onClick={downloadClipFromSelection}
+            disabled={!canClip}
+            title={clipTitle}
+            style={{ width:'100%',padding:'8px 10px',borderRadius:10,border:'1px solid '+(canClip?'var(--accent-border-strong)':'var(--border)'),background:canClip?'var(--accent-light)':'var(--cream)',color:canClip?'var(--accent-dark)':'var(--text-light)',fontSize:'0.78rem',fontWeight:700,cursor:canClip?'pointer':'not-allowed' }}
+          >
+            {wordAction.status === 'working' ? 'Cutting…' : wordAction.status === 'done' ? 'Saved to Downloads ✓' : 'Download clip'}
+          </button>
+          {wordAction.message && (
+            <div style={{ marginTop:6,fontSize:'0.72rem',color:wordAction.status==='error'?'var(--danger)':'var(--text-muted)',maxWidth:280 }}>
+              {wordAction.message}
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {clipAction&&(
         <div

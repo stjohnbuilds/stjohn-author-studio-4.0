@@ -640,6 +640,53 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     return ()=>document.removeEventListener('pointerdown', handlePointerDown, true);
   },[wordAction]);
 
+  // Preview guard: while previewing, follow the playhead and stop dead
+  // at the clip's end. Every stop path funnels through the audio
+  // 'pause' event, where the listening speed is restored.
+  useEffect(()=>{
+    if(!clipPreview.playing) return;
+    const audio = audioRef.current;
+    const endSec = wordAction?.endSec;
+    if(!audio || endSec == null){ setClipPreview({ playing:false, t:null }); return; }
+    function restoreRate(){
+      if(previewPrevRateRef.current != null){
+        audio.playbackRate = previewPrevRateRef.current;
+        previewPrevRateRef.current = null;
+      }
+    }
+    function onTime(){
+      const t = Number(audio.currentTime) || 0;
+      if(t >= endSec - 0.02){
+        audio.pause();
+        setClipPreview({ playing:false, t: endSec });
+      } else {
+        setClipPreview(p=>({ ...p, t }));
+      }
+    }
+    function onPause(){
+      restoreRate();
+      setClipPreview(p=>p.playing ? { ...p, playing:false } : p);
+    }
+    audio.addEventListener('timeupdate', onTime);
+    audio.addEventListener('pause', onPause);
+    return ()=>{
+      audio.removeEventListener('timeupdate', onTime);
+      audio.removeEventListener('pause', onPause);
+    };
+  },[clipPreview.playing, wordAction?.endSec]);
+
+  // Popup closed → stop any running preview and put the speed back.
+  useEffect(()=>{
+    if(wordAction) return;
+    const audio = audioRef.current;
+    if(audio && previewPrevRateRef.current != null){
+      audio.pause();
+      audio.playbackRate = previewPrevRateRef.current;
+      previewPrevRateRef.current = null;
+    }
+    setClipPreview(p=>(p.playing || p.t != null) ? { playing:false, t:null } : p);
+  },[wordAction]);
+
 
   useEffect(()=>{
     const timer = window.setTimeout(()=>updateActiveSceneMetaFromViewport(), 0);

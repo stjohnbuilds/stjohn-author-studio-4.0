@@ -1202,6 +1202,31 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     openActionMenu(found.startIdx, found.endIdx, clickX, clickY, clickY + 8);
   }
 
+  function toggleClipPreview(){
+    const audio = audioRef.current;
+    if(!audio || !wordAction || wordAction.startSec == null) return;
+    if(clipPreview.playing){
+      audio.pause(); // 'pause' listener restores the speed
+      return;
+    }
+    let from = Number(clipPreview.t);
+    if(!Number.isFinite(from) || from < wordAction.startSec || from >= wordAction.endSec - 0.05) from = wordAction.startSec;
+    if(previewPrevRateRef.current == null) previewPrevRateRef.current = Number(audio.playbackRate) || 1;
+    audio.playbackRate = 1;
+    audio.currentTime = from;
+    const p = audio.play?.();
+    if(p?.catch) p.catch(()=>{});
+    setClipPreview({ playing:true, t: from });
+  }
+
+  function seekClipPreview(value){
+    const audio = audioRef.current;
+    if(!audio || !wordAction || wordAction.startSec == null) return;
+    const t = Math.min(wordAction.endSec, Math.max(wordAction.startSec, Number(value) || 0));
+    audio.currentTime = t;
+    setClipPreview(p=>({ ...p, t }));
+  }
+
   async function downloadClipFromSelection(){
     if(!wordAction || wordAction.status === 'working') return;
     if(wordAction.startSec == null || wordAction.endSec == null) return;

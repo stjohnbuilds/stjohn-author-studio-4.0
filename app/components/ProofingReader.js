@@ -397,9 +397,11 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   // range through the one shared audio element (no second <audio>).
   // t = playhead in seconds, null until first play/drag. Preview runs
   // at 1× (the saved clip is normal speed); the listening speed is
-  // put back when the preview stops.
+  // put back when the preview stops. All CONTROL lives in previewRef
+  // (imperative, survives re-renders while transcription churns props);
+  // clipPreview state is display-only.
   const [clipPreview, setClipPreview] = useState({ playing:false, t:null });
-  const previewPrevRateRef = useRef(null);
+  const previewRef = useRef({ active:false, endSec:0, prevRate:null, cleanup:null });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHits, setSearchHits] = useState([]);

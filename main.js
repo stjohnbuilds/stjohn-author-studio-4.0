@@ -1628,6 +1628,51 @@ function runFfmpegStderr(inputPath, filterArgs, timeoutMs = 10 * 60 * 1000) {
   });
 }
 
+// ── Teaser clip export ────────────────────────────────────────────
+// Cuts [startSec, endSec] out of a LOCAL audio file with the bundled
+// ffmpeg. Stream copy (-c copy) — no re-encode, so every format the
+// app plays works and cutting is near-instant; cut points snap to the
+// nearest audio packet (~26ms), which is fine for teaser clips.
+// Saves into Downloads via uniqueExportPath (never overwrites).
+// Audio stays on this machine — nothing is uploaded.
+ipcMain.handle('export-audio-clip', async (_, payload) => {
+  try {
+    const { audioUrl, startSec, endSec, baseName } = payload || {};
+    let src = String(audioUrl || '');
+    if (src.startsWith('localfile://')) src = decodeURIComponent(src.slice('localfile://'.length));
+    src = decodeStoredFilePath(src) || src;
+    if (!src || !fs.existsSync(src)) return { ok: false, error: 'Audio file not found on this computer.' };
+    const start = Math.max(0, Number(startSec) || 0);
+    const end = Number(endSec);
+    if (!Number.isFinite(end) || end <= start) return { ok: false, error: 'Clip times look wrong — try selecting again.' };
+    const binary = getFfmpegBinary();
+    if (!fileExists(binary)) return { ok: false, error: 'The audio cutter is missing from this build.' };
+    const ext = (path.extname(src) || '.mp3').toLowerCase();
+    const safeBase = String(baseName || '').replace(/[^\w\sÀ-ɏ-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'audio clip';
+    const target = uniqueExportPath(path.join(app.getPath('downloads'), `${safeBase}${ext}`));
+    await new Promise((resolve, reject) => {
+      const args = ['-nostdin', '-hide_banner', '-y', '-i', src, '-ss', String(start), '-to', String(end), '-c', 'copy', target];
+      const child = spawn(binary, args);
+      let stderr = '';
+      child.stderr.on('data', (chunk) => { stderr = (stderr + chunk.toString()).slice(-4000); });
+      const timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch {} reject(new Error('Clip export timed out.')); }, 2 * 60 * 1000);
+      child.on('error', (err) => { clearTimeout(timer); reject(err); });
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code === 0) resolve();
+        else reject(new Error(stderr.split('\n').filter(Boolean).slice(-2).join(' ') || 'ffmpeg failed'));
+      });
+    });
+    if (!fs.existsSync(target) || fs.statSync(target).size === 0) {
+      try { fs.unlinkSync(target); } catch {}
+      return { ok: false, error: 'Clip came out empty — try a slightly longer selection.' };
+    }
+    return { ok: true, path: target, fileName: path.basename(target) };
+  } catch (err) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+});
+
 // Is the scanner usable on this machine? (Windows build needs its own
 // ffmpeg shipped before this returns true there.)
 ipcMain.handle('acx-get-info', () => {

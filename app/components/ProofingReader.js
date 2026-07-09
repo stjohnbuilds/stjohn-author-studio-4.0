@@ -390,6 +390,9 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   const [activeCharacterLabel, setActiveCharacterLabel] = useState(section.characterName || section.title || section.chapterTitle || '');
   const [activeNarratorLabel, setActiveNarratorLabel] = useState(section.narratorName || section.characterName || 'Narrator');
   const [wordAction, setWordAction] = useState(null);
+  // Long-selection popup (paragraph+): shows Download clip. The
+  // double-click single-word popup above stays untouched.
+  const [clipAction, setClipAction] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHits, setSearchHits] = useState([]);

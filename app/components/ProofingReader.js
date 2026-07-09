@@ -389,10 +389,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   const [activeSceneHeading, setActiveSceneHeading] = useState(section.title || section.characterName || section.chapterTitle || '');
   const [activeCharacterLabel, setActiveCharacterLabel] = useState(section.characterName || section.title || section.chapterTitle || '');
   const [activeNarratorLabel, setActiveNarratorLabel] = useState(section.narratorName || section.characterName || 'Narrator');
+  // ONE popup for both double-click (single word) and drag-selection
+  // (word range): Jump here / Flag here / Download clip, each greyed
+  // out when it doesn't apply. Marie: "obviously, just have all three."
   const [wordAction, setWordAction] = useState(null);
-  // Long-selection popup (paragraph+): shows Download clip. The
-  // double-click single-word popup above stays untouched.
-  const [clipAction, setClipAction] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHits, setSearchHits] = useState([]);

@@ -1783,13 +1783,16 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         .reader-text h3{font-size:0.95rem;font-weight:600;margin:0.9rem auto 0.45rem;text-align:center}
         .reader-text p{margin-bottom:0.58rem}.reader-text strong{font-weight:600}
         .fw{font-style:normal;font-weight:700;color:#c4514a}
-        .reader-text .hl-yellow{background:#FFF8DC}.reader-text .hl-green{background:#DFF2E3}
-        .reader-text .hl-cyan{background:#DFF4F7}.reader-text .hl-magenta,.reader-text .hl-pink{background:#FDDEE8}
-        .reader-text .hl-blue{background:#DDEEFF}.reader-text .hl-red{background:#FDDEDE}
-        .reader-text .hl-darkblue{background:#D4E5F9}.reader-text .hl-darkcyan{background:#D4F0F5}
-        .reader-text .hl-darkgreen{background:#D4EDD9}.reader-text .hl-darkmagenta{background:#F0D9F7}
-        .reader-text .hl-darkred{background:#F9D9D9}.reader-text .hl-darkyellow{background:#FFF0CC}
-        .reader-text .hl-lightgray{background:#F2F2F0}.reader-text .hl-darkgray{background:#E6E5E0}
+        /* True Word-highlighter colours (Marie 2026-07-08: "keep the
+           highlight colours the same as the import doc"). Dark ones get
+           white text so words stay readable, like light-on-dark in Word. */
+        .reader-text .hl-yellow{background:#FFFF00}.reader-text .hl-green{background:#00FF00}
+        .reader-text .hl-cyan{background:#00FFFF}.reader-text .hl-magenta,.reader-text .hl-pink{background:#FF9CC7}
+        .reader-text .hl-blue{background:#4F81FF;color:#fff}.reader-text .hl-red{background:#FF4040;color:#fff}
+        .reader-text .hl-darkblue{background:#00008B;color:#fff}.reader-text .hl-darkcyan{background:#008B8B;color:#fff}
+        .reader-text .hl-darkgreen{background:#006400;color:#fff}.reader-text .hl-darkmagenta{background:#8B008B;color:#fff}
+        .reader-text .hl-darkred{background:#8B0000;color:#fff}.reader-text .hl-darkyellow{background:#808000;color:#fff}
+        .reader-text .hl-lightgray{background:#C0C0C0}.reader-text .hl-darkgray{background:#808080;color:#fff}
       `}</style>
     </div>
   );

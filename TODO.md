@@ -1058,6 +1058,35 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — Clip preview: stopping is now bulletproof (v4.0.30 🛑)
+
+- [x] **Hardened the preview player after Marie's live test.** —
+      completed 2026-07-08. On a real book (while Transcribe All ran)
+      the v4.0.29 preview "kept going after the clip finished" and
+      she found "no way to click out or stop it". Root weakness: the
+      stop logic lived in a React effect chain that prop churn (47
+      transcriptions updating state) could re-order or starve.
+      Rewrite in ProofingReader.js: all preview control now lives in
+      `previewRef` (imperative, survives re-renders); ONE
+      `stopClipPreview()` used by every path — stop button,
+      click-out, NEW Escape key, dock pause, clip end, new selection,
+      chapter change, unmount; auto-stop watched by BOTH a
+      timeupdate listener AND a 100ms interval (either alone
+      suffices); speed restore happens inside stopClipPreview, not a
+      removable listener. Battery: 13/13 incl. stop button,
+      click-out-stops-audio, Escape, auto-stop, speed restore ×4.
+      Confirmed `saveNarratorSpeed` only fires from the dock slider,
+      so the preview's 1× can never overwrite her remembered speed.
+- [ ] **Transcription queue: individual transcribes error + freeze.**
+      Marie (same session): chapter 13 "Failed invoking remote
+      method" error then the app briefly froze; retry worked; also
+      an odd "reselect audio" state, and she believes she lost
+      already-done transcriptions earlier. All pre-existing —
+      today's changes touched none of the transcription path. Needs
+      its own session: reproduce individual-transcribe during a
+      running queue, check the transcribe IPC error handling in
+      main.js, and where whisperAlignment is persisted/lost.
+
 ### 2026-07-08 — Clip preview player + wider padding (v4.0.29 ▶️)
 
 - [x] **Mini preview player under Download clip.** — completed

@@ -184,7 +184,12 @@ function renderChapter({
     if (tag === 'LI') return <li key={key}>{children}</li>;
     if (tag === 'STRONG' || tag === 'B') return <strong key={key}>{children}</strong>;
     if (tag === 'EM' || tag === 'I') return <em key={key}>{children}</em>;
-    return isBlockTag(tag) ? <div key={key}>{children}</div> : <span key={key}>{children}</span>;
+    // Keep manuscript highlight classes (hl-yellow, hl-pink, …) that
+    // mammoth injected at import — Proof's .reader-text CSS tints them.
+    // Without this the class was dropped here and highlights never showed.
+    const hlMatch = ((node.getAttribute && node.getAttribute('class')) || '').match(/\bhl-[a-z0-9_-]+\b/i);
+    const hlClass = hlMatch ? hlMatch[0].toLowerCase() : undefined;
+    return isBlockTag(tag) ? <div key={key}>{children}</div> : <span key={key} className={hlClass}>{children}</span>;
   }
 
   function renderUnit(text, after, idx, key) {

@@ -1058,6 +1058,20 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-08 — True Word highlight colours in the proofer (v4.0.31 🌈)
+
+- [x] **Proofer highlights now match the imported doc's colours.** —
+      completed 2026-07-08. Marie: "keep the highlight colours the
+      same as the import doc". The reader's hl-* CSS used softened
+      pastels; swapped to Word's actual highlighter palette
+      (#FFFF00 yellow, #00FF00 green, #00FFFF cyan, #FF00FF
+      magenta/pink, etc.). Blue, red, and the six dark/grey ones get
+      white text for readability. DISPLAY-ONLY change in
+      ProofingReader.js styled-jsx — the narrator-mapping hexes in
+      ManuscriptSetup (HIGHLIGHT_MAP) and the hexDist matching are
+      untouched, so existing narrator colour mappings still work.
+      Verified all 15 colours render in a sandbox screenshot.
+
 ### 2026-07-08 — Clip preview: stopping is now bulletproof (v4.0.30 🛑)
 
 - [x] **Hardened the preview player after Marie's live test.** —

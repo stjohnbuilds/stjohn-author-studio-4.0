@@ -12,6 +12,23 @@ Always read `HANDOFF.md` first, then this file.
 
 ## Active
 
+### 🆕 2026-07-12 — Handover refresh + release gap found
+
+- [x] **Rewrote HANDOFF.md (was a month stale).** — completed
+      2026-07-12. The old handover still pointed at the Breakdown
+      "Unsure" bug fixed in June. New version reflects v4.0.31,
+      163/163 tests, the open transcription bugs (queue
+      error/freeze + vanishing transcriptions), and the release
+      gap below.
+- [ ] **Publish v4.0.31 to GitHub Releases + fresh Windows build.**
+      Found 2026-07-12: newest GitHub Release is v4.0.25 (June 28)
+      but the code is on v4.0.31 — installed apps auto-update from
+      GitHub Releases, so they CANNOT see the last six versions
+      (clip download + preview, unified Jump/Flag/Clip popup, true
+      Word colours). The Setup.exe in `Script and Sync Releases/`
+      is also stale (2026-06-09). Marie decides when; then
+      `npm run release:mac` publish + `npm run release:win`.
+
 ### 🆕 2026-06-13 — ACX file checker (Second Opinion–style)
 
 - [x] **"Scan for ACX" tool on the proofer book screen** (top action bar,

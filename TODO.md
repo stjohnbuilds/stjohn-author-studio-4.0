@@ -1075,6 +1075,14 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-22 — Supabase keep-awake robot
+
+- [x] Stop the free-tier database ("2.0 DATA") auto-pausing from inactivity —
+  added a GitHub robot job (`.github/workflows/supabase-keepalive.yml`) that
+  pings the database every Monday + Thursday. Tested live: database answered
+  HTTP 200. Triggered by Supabase's "scheduled to be paused" warning email.
+  — completed 2026-07-22
+
 ### 2026-07-08 — True Word highlight colours in the proofer (v4.0.31 🌈)
 
 - [x] **Proofer highlights now match the imported doc's colours.** —

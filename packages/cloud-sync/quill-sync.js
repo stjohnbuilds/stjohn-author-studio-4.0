@@ -73,24 +73,54 @@ export async function pushQuillProject(supabase, project, ownerId) {
   const cloudProjectId = projectRow.id;
 
   // 2) Upsert chapters (replace strategy).
-  const chapterRows = (clean.chapters || []).map((ch, idx) => ({
-    project_id: cloudProjectId,
-    owner_id: ownerId,
-    local_id: ch.id,
-    title: ch.title || `Chapter ${idx + 1}`,
-    position: idx,
-    plain_text: ch.plainText || '',
-    text_html: ch.textHtml || '',
-    word_count: (ch.plainText || '').split(/\s+/).filter(Boolean).length,
-    alignment: getChapterAlignment(ch),
-    audio_file_name: ch.audioFileName || '',
-    content_hash: hashString(JSON.stringify({
-      html: ch.textHtml || '',
-      alignment: getChapterAlignment(ch),
-      audioFileName: ch.audioFileName || '',
-    })),
-    updated_at: new Date().toISOString(),
-  }));
+  //
+  // GUARD (Marie 2026-07-24): never let a blank local alignment overwrite
+  // good timing already in the cloud. While the database was asleep the app
+  // held empty alignment in memory, and the next save wrote [] straight over
+  // the real word-timing — that is exactly how "Sweetheart" lost its timing
+  // on 40 of 48 chapters. Same lesson as the flags fix below: read first,
+  // then never downgrade good data back to empty.
+  //
+  // Reading the cloud alignments first also makes the whole push fail-safe:
+  // if the database is unreachable this SELECT throws and we abort BEFORE
+  // writing anything, so a sleeping database can no longer wipe timing.
+  const { data: existingChapterRows, error: existingChapterErr } = await supabase
+    .from('quill_chapters')
+    .select('local_id, alignment')
+    .eq('project_id', cloudProjectId);
+  if (existingChapterErr) throw existingChapterErr;
+  const cloudAlignmentByLocalId = new Map(
+    (existingChapterRows || []).map((r) => [r.local_id, r.alignment])
+  );
+  const alignmentForPush = (ch) => {
+    const local = getChapterAlignment(ch);
+    if (Array.isArray(local) && local.length) return local; // local has timing → use it
+    const cloud = cloudAlignmentByLocalId.get(ch.id);       // local blank → keep cloud's
+    if (Array.isArray(cloud) && cloud.length) return cloud;
+    return local; // both empty → [] is genuinely empty, fine to write
+  };
+
+  const chapterRows = (clean.chapters || []).map((ch, idx) => {
+    const alignment = alignmentForPush(ch);
+    return {
+      project_id: cloudProjectId,
+      owner_id: ownerId,
+      local_id: ch.id,
+      title: ch.title || `Chapter ${idx + 1}`,
+      position: idx,
+      plain_text: ch.plainText || '',
+      text_html: ch.textHtml || '',
+      word_count: (ch.plainText || '').split(/\s+/).filter(Boolean).length,
+      alignment,
+      audio_file_name: ch.audioFileName || '',
+      content_hash: hashString(JSON.stringify({
+        html: ch.textHtml || '',
+        alignment,
+        audioFileName: ch.audioFileName || '',
+      })),
+      updated_at: new Date().toISOString(),
+    };
+  });
   if (chapterRows.length) {
     const { error } = await supabase
       .from('quill_chapters')

@@ -1,10 +1,13 @@
 name: Keep Supabase awake
 
 # Supabase's free plan pauses the database after ~7 days with no activity.
-# This job runs a tiny read query twice a week so it always looks active.
+# This job runs a tiny read query every day so it always looks active.
+# (Was twice a week, but a Thursday ping still let it sleep on Friday, so
+# we tightened it to daily. The real safety net is the quill-sync guard
+# that stops a sleeping database from wiping timing data.)
 on:
   schedule:
-    - cron: "23 9 * * 1,4" # every Monday + Thursday, 09:23 UTC
+    - cron: "23 9 * * *" # every day, 09:23 UTC
   workflow_dispatch: {}
 
 permissions:

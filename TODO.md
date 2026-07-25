@@ -1075,6 +1075,22 @@ and Reader. Sweep:
 
 ## Archived
 
+### 2026-07-24 — Sweetheart timing loss + Quill save guard
+
+- [x] Woke both paused Supabase projects (restored "2.0 DATA" so the app
+  connects again). Diagnosed why "Sweetheart- Part One" (Quill) lost its
+  transcription/alignment on 40 of 48 chapters: `quill-sync.js` was pushing a
+  blank local alignment straight over the good cloud timing — which happens
+  when the database has been asleep. Manuscript, 13 annotations and audio-file
+  names were all safe; only the word-timing was wiped. — completed 2026-07-24 18:01
+- [x] Fixed the overwrite bug: `pushQuillProject` now reads existing cloud
+  alignments first and never lets a blank local alignment replace good cloud
+  timing; it also aborts the push if the database is unreachable (fail-safe).
+  5/5 sandbox tests pass. Pushed as 7529c7e. — completed 2026-07-24 18:01
+- [x] Keep-awake tightened from twice-weekly to daily (a Thursday ping still
+  let it sleep on Friday). Manual run confirmed the database answered HTTP 200.
+  — completed 2026-07-24 18:01
+
 ### 2026-07-22 — Supabase keep-awake robot
 
 - [x] Stop the free-tier database ("2.0 DATA") auto-pausing from inactivity —

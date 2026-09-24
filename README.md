@@ -48,4 +48,4 @@ All project data is saved locally, to a folder chosen on first run (`Save Data/`
 
 ## Downloads and updates
 
-First installs and manual copies come from the `Script and Sync Releases/` folder in the source tree (Mac `.app`, Windows installer and portable `.exe`). Once installed, the app checks GitHub Releases for this repository and updates itself when a newer version has been published there.
+Install: the Mac app lives in `/Applications/StJohn Author Studio.app` (a build also lands in `Script and Sync Releases/` next to the Windows installer). Once installed, the app checks the GitHub Releases of the downloads repository and updates itself when a newer version has been published there.

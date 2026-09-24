@@ -6,6 +6,7 @@ APP_NAME="StJohn Author Studio.app"
 RELEASE_DIR="$ROOT/Script and Sync Releases"
 
 APP_CANDIDATES=(
+  "/Applications/$APP_NAME"
   "$RELEASE_DIR/$APP_NAME"
   "$ROOT/$APP_NAME"
 )

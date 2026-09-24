@@ -1,6 +1,6 @@
 // Audio path guard for any cloud upload.
 //
-// RULES.md says it three times: audio files NEVER touch Supabase.
+// RULES.md is explicit: audio files NEVER touch Supabase.
 // Only the file *name* may travel up (so the phone can match a local
 // audio file by name). Anything that looks like a path, blob, or URL
 // gets stripped before the payload reaches the network.

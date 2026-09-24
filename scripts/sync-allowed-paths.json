@@ -5,7 +5,6 @@
     "scripts/**",
     "package.json",
     "package-lock.json",
-    "READ ME FIRST - OPEN THIS.txt",
-    ".github/copilot-instructions.md"
+    "READ ME FIRST - OPEN THIS.txt"
   ]
 }

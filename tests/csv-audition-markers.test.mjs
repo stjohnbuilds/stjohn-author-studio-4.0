@@ -9,7 +9,7 @@ import { buildMarkerFilesFromCsv, markerFileName } from '../app/lib/csvAuditionM
 const REUBEN_CSV = [
   ',,,,,MANUSCRIPT LINK (Please use page number from bottom right of this manuscript page),,,',
   'Project:,,Anarchy,,,,,,,,',
-  'Author:,,Example Author One and Example Author Two,,,,,,,,',
+  'Author:,,Avery North and Jordan Lee,,,,,,,,',
   ',,,,,,,,,,',
   'Chapter,File name,Page,Timestamp,Narrator/Engineer,Type,Note,Should Say:,,,',
   ',,,,,,,,,,',

@@ -1,8 +1,8 @@
 // Per-narrator playback-speed memory.
 //
-// the user's ask (2026-06-04): "If you're on Narrator A and it's set to
-// 1.45, then Narrator B at 1.5 — when it goes back to A it returns to
-// 1.45." Bake in everywhere audio plays (Proof, Quill, phone).
+// Each narrator keeps its own last-used playback speed — switching
+// from Narrator A at 1.45 to Narrator B at 1.5 and back to A returns
+// to 1.45. Baked in everywhere audio plays (Proof, Quill, phone).
 //
 // Storage: localStorage keys like `ap-narrator-speed:Mark` → "1.45".
 // One entry per narrator-name. Falls back to a global default

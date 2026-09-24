@@ -1,5 +1,5 @@
-// Prep dialogue assignment merger for Block 5 (audit fix
-// SAS-AUD-20260602-005). When the user clicks Fix on a warning, Prep
+// Prep dialogue assignment merger for Block 5. When Fix is clicked
+// on a warning, Prep
 // reruns dialogue detection. We need to carry character / side-voice
 // assignments from the old span list onto the new span list — but
 // keying by text alone collapsed every duplicate onto the first

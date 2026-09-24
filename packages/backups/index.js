@@ -1,4 +1,4 @@
-// Drive snapshot orchestrator (the user 2026-05-27).
+// Drive snapshot orchestrator.
 //
 // Opt-in per Supabase user. The renderer calls runDailySnapshotIfDue
 // once after sign-in; it skips silently unless:

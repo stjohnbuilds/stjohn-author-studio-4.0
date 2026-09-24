@@ -445,7 +445,7 @@ export default function ChapterReader({
 
       {/* Top padding clears the sticky bar (~54px + 40px drag offset).
           20px was too tight — the first lines of the chapter hid
-          under the sticky bar (bug the user screenshotted). */}
+          under the sticky bar (caught via screenshot). */}
       <div style={{ width: READER_WIDTH, margin: '0 auto', padding: `${headerExtra ? 8 : 90}px 0 ${paperPaddingBottom}px` }}>
         <div
           ref={paperRef}

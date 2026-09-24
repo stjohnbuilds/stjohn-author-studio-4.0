@@ -3,20 +3,20 @@
 // main.js runs ffmpeg and feeds the raw stderr text in here; this module
 // parses it, judges each file against the ACX limits, and formats the
 // plain-English report + CSV. Kept framework-free so tests/acx-engine.test.mjs
-// can exercise it with canned ffmpeg output (the user's "battery" method).
+// can exercise it with canned ffmpeg output (the "battery" method).
 //
 // Why ffmpeg (not Web Audio): this mirrors Steven Jay Cohen's "Second
 // Opinion" tool exactly — same volumedetect (RMS/peak) + silencedetect
-// (head/tail room tone) measurements, so the numbers agree with the tool
-// the user already trusts. Second Opinion does NOT check bitrate; we add a
-// simple MP3-only bitrate check as a clearly-labelled bonus.
+// (head/tail room tone) measurements, so the numbers agree with that
+// tool. Second Opinion does NOT check bitrate; we add a simple
+// MP3-only bitrate check as a clearly-labelled bonus.
 
 'use strict';
 
 // ── ACX limits ────────────────────────────────────────────────────────
 // These are Second Opinion's shipped defaults (Steven Jay Cohen's
-// recommended ACX targets). Tweak here if the user ever wants different
-// numbers — every check reads from this one object.
+// recommended ACX targets). Tweak here if these numbers ever need to
+// change — every check reads from this one object.
 const ACX = {
   maxPeak: -3,            // dB — loudest point must be at or below this
   minRMS: -23,            // dB — average loudness floor
@@ -200,7 +200,7 @@ function evaluateFile(measured, acx = ACX) {
     checks.push({ key, label, ok, severity, value, message: ok ? '' : message });
 
   // Peak — ACX's guideline is -3 dB, but in practice ACX accepts louder peaks
-  // (the user's real files passed at -1.5 dB). So this is a heads-up, not a fail.
+  // (real files have passed at -1.5 dB). So this is a heads-up, not a fail.
   if (typeof maxVolume === 'number') {
     const ok = maxVolume <= acx.maxPeak;
     add('peak', 'Peak loudness', ok, fmtDb(maxVolume),
@@ -353,8 +353,8 @@ function buildCsv(results) {
 }
 
 // ── Plain-text report (download .txt / copy) ──────────────────────────
-// Ordered the way the user asked: the ones that DON'T pass at the top, then
-// everything that passed below (with its heads-up notes).
+// Ordered with the ones that DON'T pass at the top, then everything
+// that passed below (with its heads-up notes).
 function statsText(r) {
   const g = (k) => r.checks?.find((c) => c.key === k)?.value;
   return [g('length'), g('channels'), g('sampleRate'),

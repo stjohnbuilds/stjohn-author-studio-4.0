@@ -1,7 +1,7 @@
 // Phone reader settings — the universal-across-services Reader Settings
 // panel. Ported from the original StJohn Author Apps phone (the v1 that
-// shipped to the user before 3.0). She specifically pulled this out as
-// "this has been thoroughly debugged — pull it in, don't re-invent it."
+// shipped before 3.0) because it was already thoroughly debugged —
+// reused as-is instead of being rebuilt from scratch.
 //
 // All choices live as enum lists so the settings panel can render them as
 // segmented controls. CSS values come back from `getX` accessors so the

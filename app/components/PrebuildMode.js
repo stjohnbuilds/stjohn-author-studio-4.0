@@ -352,7 +352,7 @@ export default function PrebuildMode({ modeToggle = null }) {
               includeHighlight: true,
             },
             chapters,
-            // the user 2026-05-26: PDF page map from auto-scan during import.
+            // PDF page map from auto-scanning during import.
             pdfPaging: payload.pdfPaging || null,
             pdfFileName: payload.pdfFileName || '',
             pdfSource: payload.pdfSource || null,
@@ -451,7 +451,7 @@ export default function PrebuildMode({ modeToggle = null }) {
 
               {projects.length > 0 ? (
                 <div style={{ display:'flex',flexDirection:'column',gap:7,maxHeight:'min(46vh, 420px)',overflowY:'auto',paddingRight:4 }}>
-                  {/* Last-touched first. the user 2026-05-26: same as Proof + Phone. */}
+                  {/* Last-touched first, same as Proof + Phone. */}
                   {[...projects].sort((a, b) => {
                     const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || 0;
                     const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
@@ -1091,7 +1091,7 @@ export default function PrebuildMode({ modeToggle = null }) {
       id: proj.id,
       title: proj.title,
       fileName: proj.fileName || '',
-      // the user 2026-05-26: when a Duet import splits on H2 sub-headings
+      // When a Duet import splits on H2 sub-headings
       // (defaultSplitScenes=true), each H2 scene becomes a separate flat
       // entry in `chapters` with the same `splitGroup` as its siblings.
       // Group them back into one parent chapter with multiple sections so
@@ -1125,13 +1125,13 @@ export default function PrebuildMode({ modeToggle = null }) {
             audioPath: ch.audioPath || null,
             audioPaths: ch.audioPaths || null,
             flags: [],
-            // Manual tick overrides auto-scanned signal — so the user can
-            // mark a chapter done even if it hasn't been scanned, or
-            // un-mark a scanned chapter she wants to revisit.
+            // Manual tick overrides auto-scanned signal — so a chapter
+            // can be marked done even if it hasn't been scanned, or a
+            // scanned chapter can be un-marked to revisit.
             // Auto fallback reads `ch.transcribed` (the field that
             // scanChapterIntoProject actually writes); `ch.scanned`
             // was never written, so the old fallback was always false
-            // and the user had to manually tick every scanned chapter.
+            // and every scanned chapter had to be manually ticked.
             // (SAS-AUD-20260602-008, Block 6.)
             completed: typeof ch.completed === 'boolean' ? ch.completed : Boolean(ch.transcribed || ch.scanned),
             characterName: null,
@@ -1168,8 +1168,8 @@ export default function PrebuildMode({ modeToggle = null }) {
             //     survive a full app restart). Paths stay local — the
             //     audio-guard strips them before any cloud push.
             //
-            // the user 2026-05-26: adaptedBook now groups sibling split scenes
-            // into one parent chapter with multiple sections, but Duet's
+            // adaptedBook now groups sibling split scenes into one
+            // parent chapter with multiple sections, but Duet's
             // underlying project keeps each scene as a flat chapter. Walk
             // sections (not chapters) when mapping back so every scene gets
             // its updates — not just the first one.

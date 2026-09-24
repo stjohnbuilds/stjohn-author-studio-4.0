@@ -106,7 +106,7 @@ function extractSubSections(chapterHtml, chapterLevel) {
   // Return sub-sections if the chapter has at least one titled sub-heading.
   // Previously this required >= 2 sub-headings, which silently hid the
   // "Show sub-headings" toggle's effect for any chapter with a single
-  // scene break — exactly the "clicking it doesn't do shit" the user hit.
+  // scene break, where the toggle would visibly do nothing when clicked.
   if (out.filter((s) => s.title).length < 1) return [];
   return out.map((s, i) => ({
     id: uid(),
@@ -244,17 +244,17 @@ export default function ImportFlow({
   defaultSplitScenes = false,
   defaultChapterLevel = 1,
   initialTitle = '',
-  // the user 2026-05-26: Quill doesn't need page numbers at all (it's a
-  // print-design mode). Caller passes false to hide the PDF upload +
-  // page-shift strip entirely. Default true for Proof / Prep / Duet.
+  // Quill doesn't need page numbers at all (it's a print-design mode).
+  // Caller passes false to hide the PDF upload + page-shift strip
+  // entirely. Default true for Proof / Prep / Duet.
   needsPageNumbers = true,
-  // the user 2026-05-26: optional extra step rendered between manuscript
-  // and chapter picker. Proof passes its narrator-mapping panel here
-  // so the user does everything on one screen.
+  // Optional extra step rendered between manuscript and chapter
+  // picker. Proof passes its narrator-mapping panel here so the user
+  // does everything on one screen.
   extraStepSlot = null,
-  // the user 2026-05-26: fires when a .docx finishes parsing. Parent uses
-  // it to scan highlight colours / kick off its own work without having
-  // to wait for confirm. Receives { fullHtml, fileName, sourceDocxBytes }.
+  // Fires when a .docx finishes parsing. Parent uses it to scan
+  // highlight colours / kick off its own work without having to wait
+  // for confirm. Receives { fullHtml, fileName, sourceDocxBytes }.
   onParsed = null,
 }) {
   const [bookTitle, setBookTitle] = useState(initialTitle);
@@ -268,18 +268,19 @@ export default function ImportFlow({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   // When true, the chapter list expands each chapter to show its
-  // sub-headings as nested checkable rows. the user can uncheck individual
-  // sub-sections (front-matter inside a chapter, alternate-POV scenes
-  // she doesn't want to tag, etc.) and the chapter's HTML is rebuilt
-  // on commit from only the included sub-sections.
+  // sub-headings as nested checkable rows. The user can uncheck
+  // individual sub-sections (front-matter inside a chapter,
+  // alternate-POV scenes not meant to be tagged, etc.) and the
+  // chapter's HTML is rebuilt on commit from only the included
+  // sub-sections.
   const [showSubs, setShowSubs] = useState(false);
-  // the user 2026-05-26: page-scan status during commit. The docx→PDF
-  // conversion takes ~10-30s for a long book and we want the user to see
-  // what's happening, not stare at a frozen "Save" button.
+  // Page-scan status during commit. The docx→PDF conversion takes
+  // ~10-30s for a long book and the user should see what's happening,
+  // not stare at a frozen "Save" button.
   const [pageScanStatus, setPageScanStatus] = useState('');
   const [scanning, setScanning] = useState(false);
-  // the user 2026-05-26: optional user-supplied PDF. When provided, the app
-  // uses THIS as the page-number source instead of LibreOffice's render
+  // Optional user-supplied PDF. When provided, the app uses THIS as
+  // the page-number source instead of LibreOffice's render
   // (LibreOffice can drift ±1-2 pages vs the user's actual reader).
   // Same docx import flow, just with a more accurate page anchor.
   const [pdfFile, setPdfFile] = useState(null);
@@ -294,7 +295,7 @@ export default function ImportFlow({
   // page (title, epigraph, etc.) that pushes printed "Chapter 1" off
   // page 1. -1 makes the common case correct out of the box; the auto-
   // detected suggestion overrides this when a PDF scan finds something
-  // specific. the user can still nudge it ±1 in the UI.
+  // specific. The value can still be nudged ±1 in the UI.
   const [currentAdjustment, setCurrentAdjustment] = useState(-1);
   const [hasScanned, setHasScanned] = useState(false);
 
@@ -317,10 +318,10 @@ export default function ImportFlow({
     setChapters(parseChaptersFromHtml(htmlNow, levelNow, splitNow));
   }
 
-  // the user 2026-05-26: optional PDF path. User downloads the PDF from
-  // the same Google Doc and uploads it here for exact page numbers.
-  // We pre-scan immediately so the suggested adjustment is visible
-  // before they click Save.
+  // Optional PDF path. User downloads the PDF from the same Google
+  // Doc and uploads it here for exact page numbers. Pre-scanned
+  // immediately so the suggested adjustment is visible before they
+  // click Save.
   async function handlePdfFile(file) {
     if (!file) {
       setPdfFile(null);
@@ -385,9 +386,9 @@ export default function ImportFlow({
       if (!bookTitle) setBookTitle(file.name.replace(/\.docx$/i, ''));
       const parsedChapters = parseChaptersFromHtml(html, chapterLevel, splitScenes);
       setChapters(parsedChapters);
-      // the user 2026-05-26: let the parent react to a freshly parsed docx
-      // (e.g. Proof scans highlight colours so the narrator mapping
-      // panel can appear right here on the import screen).
+      // Lets the parent react to a freshly parsed docx (e.g. Proof
+      // scans highlight colours so the narrator mapping panel can
+      // appear right here on the import screen).
       if (typeof onParsed === 'function') {
         try { onParsed({ fullHtml: html, fileName: file.name, sourceDocxBytes: u8, chapters: parsedChapters }); }
         catch (cbErr) { console.warn('ImportFlow.onParsed handler threw:', cbErr); }
@@ -448,7 +449,7 @@ export default function ImportFlow({
         };
       });
 
-    // the user 2026-05-26: page-number source priority —
+    // Page-number source priority —
     //   1. User-supplied PDF (exact match to their reader)
     //   2. LibreOffice auto-convert of the docx (close, ±1-2 pages)
     //   3. None (yellow warning banner on book detail)
@@ -500,11 +501,11 @@ export default function ImportFlow({
       }
     }
 
-    // the user 2026-05-26: build the SLIM word-index → printed-page map
-    // here, once, from the (heavy) pdfPaging.pages. This is what the
-    // app actually uses for page lookups; pdfPaging.pages stays on
-    // desktop for diagnostics but never goes to cloud (cloud-slim
-    // strips it). Quote-search is dead.
+    // Build the SLIM word-index → printed-page map here, once, from
+    // the (heavy) pdfPaging.pages. This is what the app actually uses
+    // for page lookups; pdfPaging.pages stays on desktop for
+    // diagnostics but never goes to cloud (cloud-slim strips it).
+    // Quote-search is dead.
     let pdfPageMap = null;
     if (needsPageNumbers && pdfPaging?.pages?.length && fullHtml) {
       try {
@@ -582,20 +583,19 @@ export default function ImportFlow({
                 }}>H{n}</button>
               ))}
             </div>
-            {/* the user 2026-05-26: a quiet hint, not a deletion. Most users
-                never need to change this — the default is right for most
-                manuscripts. Only nudge it if the chapter list below looks
-                wrong. */}
+            {/* A quiet hint, not a deletion. Most users never need to
+                change this — the default is right for most manuscripts.
+                Only nudge it if the chapter list below looks wrong. */}
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
               Leave this on H1 unless the chapter list below looks wrong — only change it if your manuscript uses a different heading style for chapter titles.
             </div>
           </div>
 
-          {/* the user 2026-05-26: the duplicate "Split chapters on sub-headings"
-              panel was removed at her explicit request — multiple times. The
-              "Show sub-headings" button on the chapter list below does what
-              the user actually needs. The structural splitScenes default is
-              still set per mode by the caller (defaultSplitScenes prop). */}
+          {/* The duplicate "Split chapters on sub-headings" panel was
+              removed — the "Show sub-headings" button on the chapter
+              list below does what the user actually needs. The
+              structural splitScenes default is still set per mode by
+              the caller (defaultSplitScenes prop). */}
 
           {!fullHtml ? (
             <label style={{
@@ -638,14 +638,14 @@ export default function ImportFlow({
           )}
           {err && (<div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--danger)' }}>{err}</div>)}
 
-          {/* the user 2026-05-26: optional PDF upload for exact page numbers.
-              The default (LibreOffice auto-convert) drifts ±1-2 pages on
-              long books because the rendering engines differ. If the user
-              has the PDF downloaded from the same Google Doc, that PDF
-              IS what their narrators read from, so it gives exact pages.
-              the user 2026-05-26 (refresh): the upload area now looks like
-              a real upload panel — big icon, "Click to choose or drop"
-              wording — instead of just an info row. */}
+          {/* Optional PDF upload for exact page numbers. The default
+              (LibreOffice auto-convert) drifts ±1-2 pages on long books
+              because the rendering engines differ. If the user has the
+              PDF downloaded from the same Google Doc, that PDF IS what
+              their narrators read from, so it gives exact pages. The
+              upload area looks like a real upload panel — big icon,
+              "Click to choose or drop" wording — instead of just an
+              info row. */}
           {fullHtml && needsPageNumbers && (
             <div style={{ marginTop: 12 }}>
               {pdfFile ? (
@@ -671,7 +671,7 @@ export default function ImportFlow({
                   border: '2px dashed var(--accent-border)', background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.85) 100%)',
                   cursor: 'pointer', gap: 8,
                 }}>
-                  {/* the user 2026-05-26: line-work upload icon, no emoji. */}
+                  {/* Line-work upload icon, no emoji. */}
                   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent-dark)' }}>
                     <path d="M12 16V4" />
                     <path d="M7 9l5-5 5 5" />
@@ -687,7 +687,7 @@ export default function ImportFlow({
                     onChange={(e) => e.target.files?.[0] && handlePdfFile(e.target.files[0])} />
                 </label>
               )}
-              {/* Page-number nudge — slim one-row strip per the user 2026-05-26.
+              {/* Page-number nudge — slim one-row strip.
                   Sits right under the PDF upload, always visible. */}
               <div style={{ marginTop: 8, padding: '6px 10px', borderRadius: 999, border: '1px solid var(--border-light)', background: 'white', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>Page shift</span>
@@ -702,9 +702,9 @@ export default function ImportFlow({
           )}
         </div>
 
-        {/* the user 2026-05-26: optional Step 3 — Proof passes its narrator
-            mapping panel as extraStepSlot so the user does everything on
-            ONE screen instead of being bounced to a second "Phase 2". */}
+        {/* Optional Step 3 — Proof passes its narrator mapping panel as
+            extraStepSlot so the user does everything on ONE screen
+            instead of being bounced to a second "Phase 2". */}
         {extraStepSlot && fullHtml && (
           <div style={card}>
             {extraStepSlot}

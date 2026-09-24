@@ -19,7 +19,7 @@ const SUPABASE_KEY =
 
 export const hasSupabaseConfig = !!(SUPABASE_URL && SUPABASE_KEY);
 
-// the user 2026-06-01: HARD WHITELIST. StJohn Author Studio 4.0 is allowed
+// HARD WHITELIST. StJohn Author Studio 4.0 is allowed
 // to touch ONLY these six tables. The Supabase project is shared with
 // Typing and Tomes (which writes to `app_data` via a `save_app_data_revisioned`
 // RPC) — if anything in this codebase EVER tries to call .from(...) on a
@@ -43,7 +43,7 @@ function installCloudGuard(client) {
   client.from = function guardedFrom(table) {
     const name = String(table || '');
     if (!ALLOWED_TABLES.has(name)) {
-      const msg = `[StJohn cloud guard] BLOCKED supabase.from("${name}"). This app is only allowed to touch: ${[...ALLOWED_TABLES].join(', ')}. If this fires, a bug is trying to write to another app's data — please screenshot and contact support.`;
+      const msg = `[StJohn cloud guard] BLOCKED supabase.from("${name}"). This app is only allowed to touch: ${[...ALLOWED_TABLES].join(', ')}. If this fires, a bug is trying to write to another app's data — please screenshot and report it.`;
       console.error(msg);
       throw new Error(msg);
     }
@@ -51,7 +51,7 @@ function installCloudGuard(client) {
   };
   if (originalRpc) {
     client.rpc = function guardedRpc(fnName, ...rest) {
-      const msg = `[StJohn cloud guard] BLOCKED supabase.rpc("${String(fnName || '')}"). StJohn 4.0 does not call any RPC. If this fires, a bug or library is trying to invoke a stored procedure — please screenshot and contact support.`;
+      const msg = `[StJohn cloud guard] BLOCKED supabase.rpc("${String(fnName || '')}"). StJohn 4.0 does not call any RPC. If this fires, a bug or library is trying to invoke a stored procedure — please screenshot and report it.`;
       console.error(msg);
       throw new Error(msg);
     };

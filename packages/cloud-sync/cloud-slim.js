@@ -8,7 +8,7 @@
 //   • Proof's desktop_book holds chapters[].sections[].whisperAlignment
 //     AND each section's alignment is a row in
 //     script_sync_section_transcriptions. ~1000+ word entries per book
-//     once the user transcribes a whole audiobook.
+//     once a whole audiobook is transcribed.
 //   • Quill's desktop_project holds chapters[].alignment AND annotations
 //     AND each is in a dedicated table. Quill keeps the small
 //     transcription metadata in desktop_project because there is no
@@ -51,13 +51,13 @@ function omit(obj, keys) {
   return out;
 }
 
-// the user 2026-06-01: KEEP the full `pdfPaging.pages` array on the cloud
-// copy. Earlier we stripped it (2026-05-26) thinking the slim
-// `pdfPageMap` had replaced quote-search, but the slim map drifts when
-// any chapter's word count is off, returning page 1 for every late
-// chapter. The quote-search code (`findPdfPageForQuote`) is back in
-// action and it needs `pages[].normalizedText`. The full text is a few
-// hundred KB per novel — Supabase handles that fine.
+// KEEP the full `pdfPaging.pages` array on the cloud copy. It was
+// stripped once, thinking the slim `pdfPageMap` had replaced
+// quote-search, but the slim map drifts when any chapter's word count
+// is off, returning page 1 for every late chapter. The quote-search
+// code (`findPdfPageForQuote`) is back in action and it needs
+// `pages[].normalizedText`. The full text is a few hundred KB per
+// novel — Supabase handles that fine.
 function slimPdfPagingForCloud(pdfPaging) {
   if (!pdfPaging || typeof pdfPaging !== 'object') return pdfPaging;
   return pdfPaging;
@@ -101,7 +101,7 @@ export function slimProjectForCloud(project) {
 }
 
 // Approximate JSON byte size — used to log "we just shaved X KB" for
-// visibility in DevTools when the user is testing.
+// visibility in DevTools during testing.
 export function approxByteSize(value) {
   try {
     return new TextEncoder().encode(JSON.stringify(value)).length;

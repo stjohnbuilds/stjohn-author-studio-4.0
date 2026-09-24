@@ -3,7 +3,7 @@
 // that switches subsequent narration to a different character in the
 // Audiobook Breakdown and Prep Breakdown popups.
 //
-// Two markers in widespread use across the user's manuscripts:
+// Two markers in widespread use across manuscripts:
 //
 //   1. Heading-style marker (older Word habit) — character name sits
 //      inside <h1>…<h6>, sometimes joined to a date or label:

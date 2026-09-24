@@ -1,6 +1,6 @@
 // Universal Reader Settings panel — same fields across Quill + Script.
 // Rendered as a full-screen overlay when the user taps the cog top-right.
-// Ported from the original Studio phone (the v1 that shipped to the user).
+// Ported from the original Studio phone (the v1 shipped previously).
 
 'use client';
 

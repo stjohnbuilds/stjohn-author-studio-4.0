@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 
 echo Developer build tool
 echo Regular users should open Script and Sync Releases\Script and Sync ^(Windows^).exe instead.
@@ -26,7 +26,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo Building Proofer for Windows. This can take several minutes...
+echo Building StJohn Author Studio for Windows. This can take several minutes...
 echo This will replace the old release copy in Script and Sync Releases with a fresh build.
 echo.
 echo To avoid Google Drive corrupting node_modules during Windows builds,
@@ -58,13 +58,13 @@ if not exist "%SOURCE_DIR%\Script and Sync Releases" mkdir "%SOURCE_DIR%\Script 
 if not exist "%SOURCE_DIR%\Script and Sync Releases\Old" mkdir "%SOURCE_DIR%\Script and Sync Releases\Old"
 for /f %%I in ('powershell -NoProfile -Command "(Get-Date).ToString(\"yyyy-MM-dd HH-mm\")"') do set "ARCHIVE_STAMP=%%I"
 
-if exist "%SOURCE_DIR%\Script and Sync Releases\Script and Sync (Windows).exe" move /Y "%SOURCE_DIR%\Script and Sync Releases\Script and Sync (Windows).exe" "%SOURCE_DIR%\Script and Sync Releases\Old\Script and Sync (Windows) old %ARCHIVE_STAMP%.exe" >nul
+if exist "%SOURCE_DIR%\Script and Sync Releases\StJohn Author Studio (Windows).exe" move /Y "%SOURCE_DIR%\Script and Sync Releases\StJohn Author Studio (Windows).exe" "%SOURCE_DIR%\Script and Sync Releases\Old\Script and Sync (Windows) old %ARCHIVE_STAMP%.exe" >nul
 if exist "%SOURCE_DIR%\Script and Sync Releases\Script and Sync (Portable).exe" move /Y "%SOURCE_DIR%\Script and Sync Releases\Script and Sync (Portable).exe" "%SOURCE_DIR%\Script and Sync Releases\Old\Script and Sync Portable old %ARCHIVE_STAMP%.exe" >nul
-if exist "%SOURCE_DIR%\Script and Sync Releases\Script and Sync Setup.exe" move /Y "%SOURCE_DIR%\Script and Sync Releases\Script and Sync Setup.exe" "%SOURCE_DIR%\Script and Sync Releases\Old\Script and Sync Setup old %ARCHIVE_STAMP%.exe" >nul
+if exist "%SOURCE_DIR%\Script and Sync Releases\StJohn-Author-Studio-Setup.exe" move /Y "%SOURCE_DIR%\Script and Sync Releases\StJohn-Author-Studio-Setup.exe" "%SOURCE_DIR%\Script and Sync Releases\Old\Script and Sync Setup old %ARCHIVE_STAMP%.exe" >nul
 
-copy /Y "%BUILD_DIR%\Script and Sync Releases\Script and Sync (Windows).exe" "%SOURCE_DIR%\Script and Sync Releases\Script and Sync (Windows).exe"
+copy /Y "%BUILD_DIR%\Script and Sync Releases\StJohn Author Studio (Windows).exe" "%SOURCE_DIR%\Script and Sync Releases\StJohn Author Studio (Windows).exe"
 if errorlevel 1 goto :fail
-copy /Y "%BUILD_DIR%\Script and Sync Releases\Script and Sync Setup.exe" "%SOURCE_DIR%\Script and Sync Releases\Script and Sync Setup.exe"
+copy /Y "%BUILD_DIR%\Script and Sync Releases\StJohn-Author-Studio-Setup.exe" "%SOURCE_DIR%\Script and Sync Releases\StJohn-Author-Studio-Setup.exe"
 if errorlevel 1 goto :fail
 
 echo.

@@ -63,18 +63,21 @@ nsis:
   # auto-updater can overwrite without UAC, so future releases install
   # themselves silently. Trade-off: install is one-user-at-a-time; on a
   # shared PC each Windows account installs its own copy. Acceptable for
-  # the user's "give it to friends on their own laptops" use case.
+  # a "give it to friends on their own laptops" use case.
   allowElevation: false
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
 
 # Auto-update via GitHub Releases. electron-updater inside the running
 # app reads `latest.yml` (Windows) / `latest-mac.yml` (Mac) attached to
-# the latest non-draft release at this repo to decide whether a newer
-# version exists. When `electron-builder` runs locally it generates
-# those metadata files alongside the artifacts; the release-publish
-# step uploads them all together.
+# the latest non-draft release in the downloads repository to decide
+# whether a newer version exists. Releases live in a separate public
+# repository that holds installers only, so this source repository can
+# stay private. When `electron-builder` runs locally it generates the
+# metadata files alongside the artifacts; publishing uploads them together.
 publish:
   provider: github
   owner: stjohnbuilds
-  repo: stjohn-author-studio-4.0
+  repo: stjohn-author-studio-downloads
+  # A published release, never a draft: the updater cannot see drafts.
+  releaseType: release

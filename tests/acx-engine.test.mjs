@@ -120,7 +120,7 @@ test('evaluateFile: peak above -3 is a heads-up, not a fail', () => {
   assert.equal(r.hasWarnings, true);
 });
 
-test("evaluateFile: A real ACX-accepted file passes (peak -1.5, head 0.96, tail 1.65)", () => {
+test("evaluateFile: Avery's real ACX-accepted file passes (peak -1.5, head 0.96, tail 1.65)", () => {
   const r = acx.evaluateFile({
     fileName: '03_Pack of lies_Chapter 2.mp3', durationSec: 21 * 60 + 16, sampleRate: 44100,
     channels: 1, codec: 'mp3', bitrateKbps: 192, meanVolume: -22.4, maxVolume: -1.5,

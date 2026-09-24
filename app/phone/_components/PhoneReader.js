@@ -2,8 +2,8 @@
 // block-highlight + scroll-vs-page-swipe surface. Used by both Quill
 // (annotations) and Script (flags) on the phone.
 //
-// Ported from the v1 Studio phone, which the user said was "thoroughly
-// debugged — pull it in, don't re-invent it." The selection model:
+// Ported from the v1 Studio phone, already thoroughly debugged and
+// reused as-is rather than re-implemented. The selection model:
 //   • single tap on a word = soft tap, stored
 //   • second tap within 420ms on same word = double-tap = open selection
 //   • drag the start/end handle (little circle pins) to extend

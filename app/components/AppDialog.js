@@ -13,8 +13,8 @@
 //
 // Style is intentionally pass-through: each overlay still picks its
 // own backdrop/panel look via containerStyle/panelStyle. This avoids
-// forcing a single visual style across modes (the user's modes have
-// distinct palettes) while making accessibility uniform.
+// forcing a single visual style across modes (each mode has its own
+// distinct palette) while making accessibility uniform.
 
 import { useEffect, useRef, useCallback } from 'react';
 

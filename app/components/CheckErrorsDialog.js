@@ -1,11 +1,11 @@
 'use client';
 
-// Check Errors popup. Walks flags one at a time so the user can listen
+// Check Errors popup. Walks flags one at a time for listening
 // against the (possibly re-recorded) audio.
 //
 // One UI, two sources — toggle top-right:
 //   "Saved flags" → walks book.chapters[].sections[].flags as-is.
-//   "Upload CSV"  → parses the existing flag-export CSV (or the user's
+//   "Upload CSV"  → parses the existing flag-export CSV (or the
 //                   engineer-template variant) into the same shape.
 //                   CSV flags are in-memory only, never saved into
 //                   the book.
@@ -16,7 +16,7 @@
 // flag schema. The dialog never writes to section.flags.
 //
 // Audio source: whatever is currently attached to the matched chapter.
-// After the user re-uploads new audio for the error chapters, this popup
+// After new audio is uploaded for the error chapters, this popup
 // naturally picks it up. Old timestamps are used as the seek point
 // (small fixes → close enough). If the chapter has a whisperAlignment
 // for the new audio and the flag has an idx, we use the whisper-aligned
@@ -159,7 +159,7 @@ function buildImportedFlagList(book, csvRows) {
       // col 8 = "Should Say" (the engineer's note). Matches the
       // exact column order Export-for-Engineer writes
       // (SessionsView.js lines 316 + 443). Earlier this used a
-      // longer/shorter heuristic which flipped the two when the user's
+      // longer/shorter heuristic which flipped the two when the
       // engineer wrote a note longer than the quote.
       quote:  String(r.colSeven || ''),
       should: String(r.colEight || ''),
@@ -183,7 +183,7 @@ function findSectionInChapter(book, chapterId, sectionId) {
 // paragraph before + after, for context. We use the section HTML
 // (already in memory) — no DOM walk, no new data.
 // Returns `confidence` ∈ {'exact', 'strong', 'guess', 'none'} so the
-// dialog UI can show the user how much to trust this paragraph match:
+// dialog UI can show how much to trust this paragraph match:
 //   'exact'  — full quote substring is in the paragraph (best).
 //   'strong' — n-gram (≥3-word window) or head-7/6/5 matched.
 //   'guess'  — only head-4/3, tail-2, or single 2-word window matched.
@@ -218,7 +218,7 @@ function extractContextParagraphs(sectionHtml, quote) {
   //   4. Tail fallback — last 5 words.
   //   5. Final fallback — paragraph 0 (so the dialog still renders).
   //
-  // the user 2026-06-09: previously only #1 + #3 ran, which failed for
+  // Previously only #1 + #3 ran, which failed for
   // CSV-imported flags whose engineer notes had carriage returns,
   // mangled quote starts, or punctuation drift — the dialog
   // silently rendered the chapter's first paragraph instead of the
@@ -276,7 +276,7 @@ function extractContextParagraphs(sectionHtml, quote) {
         }
       }
       // 5) 2-word window as the very last fallback → 'guess'.
-      //    the user 2026-06-09 v4.0.16: catches engineer notes that
+      //    Catches engineer notes that
       //    share only a handful of words with the manuscript text.
       if (idx < 0 && words.length >= 2) {
         for (let i = 0; i + 2 <= words.length; i += 1) {
@@ -291,7 +291,7 @@ function extractContextParagraphs(sectionHtml, quote) {
   }
   if (idx < 0) { idx = 0; confidence = 'none'; }
 
-  // the user 2026-06-09 v4.0.13: also return the paragraph two slots
+  // Also return the paragraph two slots
   // before the target. If the immediately-preceding paragraph is
   // tiny (e.g. a single-word transitional paragraph), the visible
   // context shrinks down to almost nothing and the audio's seek-
@@ -307,7 +307,7 @@ function extractContextParagraphs(sectionHtml, quote) {
     beforeStartWordIdx: idx > 0 ? (startIdxs[idx - 1] || 0) : 0,
     targetStartWordIdx: startIdxs[idx] || 0,
     afterStartWordIdx: idx + 1 < startIdxs.length ? (startIdxs[idx + 1] || 0) : 0,
-    // the user 2026-06-09 v4.0.17: this was the bug — confidence was
+    // This was the bug — confidence was
     // computed but I forgot to return it. Every flag's chip
     // displayed "not found" regardless of how good the match
     // actually was.
@@ -347,7 +347,7 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
   if (q) {
     quoteHeadInNorm = normText2.indexOf(q);
     if (quoteHeadInNorm < 0) {
-      // the user 2026-06-09 v4.0.13: progressive head shrink and n-gram
+      // Progressive head shrink and n-gram
       // sliding window. Try longer head substrings first (so a clean
       // 5-word lead wins over a stray 3-word match elsewhere); if
       // nothing hits, fall back to ANY 3-word window of the quote
@@ -374,7 +374,7 @@ function LiveTargetParagraph({ target, quote, paragraphStartWordIdx, currentChap
   const quoteTailInNorm = quoteHeadInNorm >= 0 ? quoteHeadInNorm + matchLength : -1;
 
   // Per-tone colour palette for the moving current-word highlight.
-  // the user 2026-06-09: amber for target (matches the static yellow
+  // Amber for target (matches the static yellow
   // quote band visually), pastel lilac for context so the eye can
   // tell apart "this is the issue paragraph" vs "this is just before
   // / after for context".
@@ -446,14 +446,14 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
 
   // Find the section + audio + paragraph context for the current flag.
   //
-  // For SAVED flags (the user's in-house ones) we already know the exact
+  // For SAVED flags (created in-app) we already know the exact
   // section the flag was created in — use it directly.
   //
   // For IMPORTED flags (CSV uploads) the section is just the chapter's
   // first one (we don't actually know which scene the engineer was
   // pointing at). Walk every section of the matched chapter, run the
   // fuzzy-paragraph match against each, and pick the section that
-  // gave the highest-confidence match. the user 2026-06-09 v4.0.16 — was
+  // gave the highest-confidence match. Fixes
   // the "first one works, rest fall back to paragraph 0" bug.
   const sectionInfo = useMemo(() => {
     if (!current || !current.chapterId) return { chapter: null, section: null };
@@ -492,10 +492,9 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   // before the audio element existed.
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [audioPlaying, setAudioPlaying] = useState(false);
-  // the user 2026-06-09 v4.0.12: opt-in autoplay. Off by default so
-  // Next/Previous lands on the timestamp without strobing audio at
-  // her; flip on when she actually wants the next flag to play
-  // automatically as she walks the list.
+  // Opt-in autoplay. Off by default so Next/Previous lands on the
+  // timestamp without strobing audio; turn it on when the next flag
+  // should play automatically while walking the list.
   const [autoPlayOnNext, setAutoPlayOnNext] = useState(false);
   const syncTblRef = useRef(null);
   useEffect(() => {
@@ -577,7 +576,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
   //  • calling `play()` immediately after setting `currentTime` can
   //    leave the audio paused at 0 OR playing from the OLD position
   //    on browsers/Electron — the seek hasn't settled. Wait for the
-  //    `seeked` event before play. (the user 2026-06-04 bug: first flag
+  //    `seeked` event before play. (Bug: first flag
   //    at 50s played from 0.)
   //  • `seeked` may never fire if we're already at the target — 800ms
   //    fallback timeout calls play() anyway
@@ -591,19 +590,18 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
     let pollTimer = null;
     let pollsLeft = 100; // ~6s of polling at 60ms
 
-    // the user 2026-06-09: autoplay is an opt-in toggle (defaults OFF).
-    // The dialog always seeks to the flag's timestamp; play() is
-    // only fired if autoPlayOnNext is true. When OFF the user can
-    // walk Next/Previous quietly to scan paragraphs without
-    // sound; when ON the next flag plays from the right spot
-    // immediately.
+    // Autoplay is an opt-in toggle (defaults OFF). The dialog always
+    // seeks to the flag's timestamp; play() only fires if
+    // autoPlayOnNext is true. When OFF, Next/Previous can be walked
+    // quietly to scan paragraphs without sound; when ON the next flag
+    // plays from the right spot immediately.
     function doSeek() {
       if (cancelled || didSeek) return;
       if (!Number.isFinite(a.duration) || a.duration <= 0) return;
       didSeek = true;
       const clamped = Math.max(0, Math.min(target, a.duration - 0.1));
       try { a.currentTime = clamped; } catch {}
-      // the user 2026-06-09 v4.0.18: safe one-shot re-seek. On first
+      // Safe one-shot re-seek. On first
       // open of the dialog the audio element fires loadedmetadata
       // AFTER our seek and resets currentTime to 0, leaving the
       // playhead at 0:00 instead of the flag's timestamp. A single
@@ -746,10 +744,9 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
               {current.page && <span><strong style={{ color: 'var(--text)' }}>Page</strong> {current.page}</span>}
               {current.narrator && <span><strong style={{ color: 'var(--text)' }}>Narrator</strong> {current.narrator}</span>}
               {current.type && <span><strong style={{ color: 'var(--text)' }}>Type</strong> {current.type}</span>}
-              {/* Match-confidence chip. the user 2026-06-09 v4.0.16 — so
-                  she can tell at a glance which flags landed on the
-                  right paragraph vs which were the fuzzy-match's best
-                  guess. */}
+              {/* Match-confidence chip — shows at a glance which flags
+                  landed on the right paragraph vs which were the
+                  fuzzy-match's best guess. */}
               {(() => {
                 const c = context?.confidence;
                 const map = {
@@ -772,7 +769,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                   10-second pre-roll seek (handles the "one-word
                   paragraph just before the flag" case). Target gets
                   bold for clearer visual hierarchy.
-                  the user 2026-06-09 v4.0.13. */}
+                  */}
               {context.before2 && (
                 <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
                   <LiveTargetParagraph
@@ -837,7 +834,7 @@ export default function CheckErrorsDialog({ open, onClose, book, audioUrls }) {
                 the right, and a "no transcription" red chip on the
                 left when this chapter doesn't have whisper data
                 (the moving word highlight won't run without it).
-                the user 2026-06-09 v4.0.12. */}
+                */}
             {audioUrl && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 0 6px', fontSize: '0.72rem' }}>
                 <div>

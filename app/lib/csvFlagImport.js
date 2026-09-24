@@ -2,13 +2,13 @@
 // "Make markers from CSV" button.
 //
 // POSITION-BASED, column names are ignored entirely.
-// the user's instruction (2026-06-04): the columns are always in the same
-// order regardless of what the header labels say — even if a column
-// were named "grgefkjuhfndjkhnf" the parser should still pull the
-// right timestamp.
+// The columns are always in the same order regardless of what the
+// header labels say — even if a column were named
+// "grgefkjuhfndjkhnf" the parser should still pull the right
+// timestamp.
 //
 // Column slots (0-indexed) — the order the app's own CSV export and
-// the user's engineer-template spreadsheet both use:
+// the engineer-template spreadsheet both use:
 //   0  Chapter title
 //   1  Audio file name (informational only)
 //   2  Page (informational only)

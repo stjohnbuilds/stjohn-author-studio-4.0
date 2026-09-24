@@ -35,8 +35,14 @@ Save Data/
 .env.local
 .env*.local
 
-# Claude Code hooks (per Marie's bible Step 2.5)
+# Local tooling logs
 .claude/hook-activity.log
 .claude/edit-log.txt
 .claude/blocked-edits.log
 .vercel
+
+# Local tooling and pointer files (never tracked)
+.claude/
+CLAUDE.md
+AGENTS.md
+Save Data/

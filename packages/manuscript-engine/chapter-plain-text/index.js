@@ -190,7 +190,7 @@ const SKIP_HEXES = new Set([
 export function tallyCharacterWordCounts(sectionHtml, narratorColors) {
   const source = String(sectionHtml || '');
   // Build BOTH a class map and a hex map. The hex map is essential for
-  // the user's case: narrator entries created from shading-extraction OR
+  // the case where narrator entries created from shading-extraction OR
   // from the manual color-picker have `cls: null` (see ManuscriptSetup.js
   // lines 158-176), so the original class-only match silently produced
   // an empty classMap → null result → fallback to the old per-section

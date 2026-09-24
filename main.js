@@ -36,7 +36,7 @@ let staticServer = null;
 // outside the app (imported books, transfer manifests, IPC payloads).
 // Inlined here (instead of `require('./packages/cloud-sync/path-safety.cjs')`)
 // because that cross-file require kept resolving to "cannot find module"
-// on the user's installed Windows build even though the .cjs WAS in the
+// on installed Windows builds even though the .cjs WAS in the
 // asar — Wine-cross-compiled asar quirk for non-root paths under
 // /packages/. The regression tests still import the .cjs version
 // directly (tests/path-boundary.test.mjs); this inline copy is byte-
@@ -129,10 +129,10 @@ function uniquePaths(paths) {
   return [...new Set(paths.filter(Boolean))];
 }
 
-// the user 2026-05-26: every export should suggest a fresh filename when one
-// already exists in the same folder — no more "Anarchy.csv already exists.
-// Replace?" prompts. Given a desired absolute path, return one that does
-// NOT collide by appending " (1)", " (2)", etc. before the extension.
+// Every export should suggest a fresh filename when one already exists
+// in the same folder — no more "Anarchy.csv already exists. Replace?"
+// prompts. Given a desired absolute path, return one that does NOT
+// collide by appending " (1)", " (2)", etc. before the extension.
 // Works for files and folders.
 function uniqueExportPath(targetPath) {
   if (!targetPath) return targetPath;
@@ -477,7 +477,7 @@ function copyDirectoryContents(sourceDir, targetDir) {
 
 function findTransferManifestPath(rootDir) {
   // Current filename first, then legacy filenames from prior brands.
-  // the user can still import old "script and sync" bundles. (Block 7.)
+  // Old "script and sync" bundles can still be imported. (Block 7.)
   const candidates = [
     'stjohn-author-studio-transfer.json',
     'script-and-sync-transfer.json',
@@ -816,16 +816,16 @@ async function extractPdfPagingFromBuffer({ fileName, data, pageOffset = -1 }) {
     loadingTask.destroy?.();
   }
 
-  // the user 2026-05-26: auto-detect a sensible default offset by walking
-  // the PDF and finding the FIRST physical page whose printed footer
-  // says "1". Whatever number of unnumbered pages came before is the
-  // adjustment. Example: PDF has an Opening Credits page (no number)
-  // then an Epigraph with "1" in the footer — that's 1 unnumbered page
-  // before "1", so adj = -1 so the printed-page-1 lines up with what
-  // the user sees in their Word doc.
+  // Auto-detect a sensible default offset by walking the PDF and
+  // finding the FIRST physical page whose printed footer says "1".
+  // Whatever number of unnumbered pages came before is the adjustment.
+  // Example: PDF has an Opening Credits page (no number) then an
+  // Epigraph with "1" in the footer — that's 1 unnumbered page before
+  // "1", so adj = -1 so the printed-page-1 lines up with what the user
+  // sees in their Word doc.
   //
-  // (Earlier I made the mistake of looking for the text "Chapter 1" —
-  // wrong. the user wants this anchored to the footer numbering itself.)
+  // (An earlier version of this looked for the text "Chapter 1" instead
+  // — wrong. This has to stay anchored to the footer numbering itself.)
   let suggestedOffset = 0;
   let firstOneAtPdfPage = null;
   let unnumberedBeforeFirstOne = 0;
@@ -1250,9 +1250,9 @@ async function createWindow() {
     },
   });
 
-  // the user 2026-05-29: ONE place that makes EVERY in-app download collision-
-  // proof. Any file the renderer hands to the browser via an <a download>
-  // link — Quill Word/CSV/InDesign, Proof CSVs, Prep, Prebuild, the home
+  // ONE place that makes EVERY in-app download collision-proof. Any
+  // file the renderer hands to the browser via an <a download> link —
+  // Quill Word/CSV/InDesign, Proof CSVs, Prep, Prebuild, the home
   // backup, config JSON, every tab in every mode — flows through this
   // session hook. If a file of that name already exists in Downloads we
   // auto-append " (1)", " (2)", " (3)", ... instead of overwriting it (or
@@ -1285,9 +1285,10 @@ if (process.platform === 'win32') {
 // exists, an event fires → forwarded to the renderer → ReaderChrome
 // surfaces a small "Update available · Download" pill. Click downloads
 // in the background; when it finishes the pill switches to "Restart to
-// install". the user clicks → quitAndInstall() restarts with the new build.
+// install" — clicking that runs quitAndInstall() and restarts with the
+// new build.
 //
-// autoDownload is OFF so the user sees the pill BEFORE bandwidth is spent.
+// autoDownload is OFF so the pill is seen BEFORE bandwidth is spent.
 // No-op in dev mode (no .yml on disk, would just spam errors).
 function setupAutoUpdater() {
   if (isDev) return;
@@ -1344,10 +1345,10 @@ ipcMain.handle('update:install-now', () => {
 // Lets the renderer ask "what version am I running?" so the bottom-of-
 // app version stamp ("v4.0.2 · built 2026-06-07") doesn't have to
 // guess. Build date comes from package.json's mtime at packaging time.
-// Per-build emoji marker — baked into each release so the user can
-// visually confirm an auto-update landed. v4.0.2 ships without one
-// (older build); v4.0.3 ships with 🌟. Future builds rotate this so
-// every successful update changes the badge in the corner.
+// Per-build emoji marker — baked into each release so an auto-update
+// landing can be visually confirmed. v4.0.2 ships without one (older
+// build); v4.0.3 ships with 🌟. Future builds rotate this so every
+// successful update changes the badge in the corner.
 const BUILD_EMOJI = '🌈';
 ipcMain.handle('app:get-version-info', () => {
   let buildDate = null;
@@ -2324,16 +2325,16 @@ ipcMain.handle('whisper-transcribe', async (event, { audioPath }) => {
 
 // ── Drive snapshot backups ───────────────────────────────────────────────────
 //
-// the user 2026-05-27: opt-in per Supabase user. When enabled, the first
-// app-open of each local day takes one zip snapshot of every local
-// JSON save + the cloud snapshot supplied by the renderer, writes it
-// into Google Drive at
+// Opt-in per Supabase user. When enabled, the first app-open of each
+// local day takes one zip snapshot of every local JSON save + the
+// cloud snapshot supplied by the renderer, writes it into Google Drive
+// at
 //   My Drive/Game Dev/GitHub/App Backups/<timestamp>.zip
 // then prunes the oldest if more than 25 zips remain.
 //
 // If Drive is not detected on this Mac, the snapshot is SKIPPED — no
 // local fallback. The renderer's Settings card surfaces this with a
-// "⚠ Drive not detected" status so the user knows.
+// "⚠ Drive not detected" status.
 
 const BACKUP_FOLDER_NAME = 'App Backups';
 
@@ -2426,7 +2427,7 @@ ipcMain.handle('backup-make-snapshot', async (_, payload = {}) => {
 
   // Honest cloud status: cloudIncluded is only true when every cloud
   // read succeeded. A partial-or-failed snapshot still writes the local
-  // backup (the user's daily safety net) but the manifest says so clearly.
+  // backup (a daily safety net) but the manifest says so clearly.
   const snapshotStatus = cloudSnapshot?.status
     || (cloudSnapshot ? 'partial-or-failed' : 'not-included');
   zip.file('manifest.json', JSON.stringify({

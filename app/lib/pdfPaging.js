@@ -1,5 +1,5 @@
 function normalizeSearchText(text) {
-  // the user 2026-06-01: trailing whitespace collapse fixes a pre-existing
+  // Trailing whitespace collapse fixes a pre-existing
   // bug where the punctuation\u2192space replace introduced internal double
   // spaces (e.g. PDF "no \u2014 go" \u2192 "no   go" vs manuscript "no\u2014go" \u2192
   // "no go"). Without the final collapse, quote-search misses on every
@@ -302,7 +302,7 @@ export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
       };
     }
 
-    // the user 2026-06-01: 3.0 returned null here. We do better — when the
+    // 3.0 returned null here. We do better — when the
     // sentence appears on multiple pages (e.g. a duplicated line of
     // dialogue), pick the page closest to the word-count hint. Only
     // applies when we have a hint; otherwise fall through to the next
@@ -333,7 +333,7 @@ export function findPdfPageForQuote(quote, pdfPaging, hintPageNumber) {
   return null;
 }
 
-// the user 2026-05-26: the slim word-index → printed-page map. Built once
+// The slim word-index → printed-page map. Built once
 // at PDF import; the ONLY thing we keep from the heavy `pdfPaging.pages`
 // array (which we strip from cloud uploads). Replaces the fragile
 // quote-search approach with a deterministic lookup.
@@ -385,7 +385,7 @@ export function buildSlimPageMap(pdfPages, manuscriptHtmlOrWords) {
     : extractManuscriptWordsFromHtml(manuscriptHtmlOrWords);
   if (!manuscriptWords.length) return [];
 
-  // the user 2026-05-26 v2: a longer anchor (10 words instead of 5) makes
+  // A longer anchor (10 words instead of 5) makes
   // each page's "first words" much more likely to be unique in the
   // manuscript — drops the off-by-one drift dramatically. Try several
   // starting offsets so a chapter title at the top of the page doesn't

@@ -1,8 +1,8 @@
 // StJohn Author Studio 4.0 — Supabase account helpers.
 //
 // Ported from the quill-and-ink alpha (packages/core/src/auth/account.js).
-// Plain-English error messages, a 20s timeout so the user never sees the app
-// hang silently if Supabase is slow, and one validation pass before any
+// Plain-English error messages, a 20s timeout so the app never hangs
+// silently if Supabase is slow, and one validation pass before any
 // network call.
 
 const MIN_PASSWORD_LENGTH = 6;

@@ -577,7 +577,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
   // .docx bytes + already-parsed chapter list. Runs Proof's own scan
   // (narrator colors, PDF page mapping) on the result and moves into
   // the 'extras' phase so the user can map narrators + confirm save.
-  // the user 2026-05-26: ImportFlow fires this AS SOON AS the .docx is
+  // ImportFlow fires this AS SOON AS the .docx is
   // parsed (not on confirm). We scan highlight colours so the narrator
   // mapping panel can render INSIDE ImportFlow as Step 3 — no more
   // Phase 2 bounce.
@@ -620,7 +620,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
     }
   }
 
-  // the user 2026-05-26: ImportFlow's confirm now does the FINAL SAVE.
+  // ImportFlow's confirm now does the FINAL SAVE.
   // No more Phase 2. We compute everything from the payload + current
   // narrator state, then call onSave directly.
   async function handleImportConfirm(payload) {
@@ -635,7 +635,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
       const localPdfFileName = payload.pdfFileName || pdfFileName || '';
       const localPdfSource = payload.pdfSource || (localPdfPaging ? 'libreoffice' : null);
       const localPageNumberAdjustment = Number(payload.pageNumberAdjustment) || 0;
-      // the user 2026-05-26: the slim word-index → page map. Source of
+      // The slim word-index → page map. Source of
       // truth for page lookups going forward. Built by ImportFlow.
       const localPdfPageMap = Array.isArray(payload.pdfPageMap) ? payload.pdfPageMap : null;
 
@@ -850,7 +850,7 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
           included: undefined,
         }))
     );
-    // the user 2026-05-26: wordsPerPage no longer accepted — PDF-rendered
+    // wordsPerPage no longer accepted — PDF-rendered
     // page map is the only source. annotateManuscriptPositions returns
     // null pages when the map is missing; the UI flags it.
     const paging = annotateManuscriptPositions(numberedChapters, {
@@ -908,10 +908,10 @@ export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron 
     a.download = `${bookTitle||'book'}-config.json`; a.click();
   }
 
-  // the user 2026-05-26: the narrator-mapping panel is the ONE Proof-only
-  // step. It used to live on a second screen ("Phase 2") that also
-  // duplicated Title, Manuscript upload, H1/H2/H3, PDF, and chapter
-  // list. the user kept asking for the second screen to disappear — done.
+  // The narrator-mapping panel is the ONE Proof-only step. It used to
+  // live on a second screen ("Phase 2") that also duplicated Title,
+  // Manuscript upload, H1/H2/H3, PDF, and chapter list — now merged
+  // into a single screen.
   // The panel is now rendered INSIDE ImportFlow as the extraStepSlot,
   // so the whole flow is one screen.
   const narratorMappingPanel = scannedColors !== null ? (

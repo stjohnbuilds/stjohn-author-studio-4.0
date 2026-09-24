@@ -2,10 +2,10 @@
 
 // StJohn Author Studio 4.0 — Login screen.
 //
-// First screen the user sees on launch. Sign in / Create account / Forgot
-// password / Check email — all modes live here. Pastel palette to match
-// the home page (var(--accent), --cream, etc.). Show/hide eye on the
-// password field (the user asked for this specifically).
+// First screen shown on launch. Sign in / Create account / Forgot
+// password / Check email — all modes live here. Pastel palette to
+// match the home page (var(--accent), --cream, etc.). Includes a
+// show/hide eye toggle on the password field.
 //
 // Submits via the shared cloud-sync package. The page.js gate listens
 // to supabase.auth.onAuthStateChange and unmounts this once the
@@ -314,9 +314,9 @@ export default function LoginScreen({ onSignedIn, usesCustomDragRegion = false }
                 <button
                   type="button"
                   onClick={() => {
-                    // Dev-only escape hatch so a maintainer can drive the
-                    // app past the auth gate without a real Supabase round
-                    // trip. The fake session has only what page.js reads
+                    // Dev-only escape hatch to drive the app past the
+                    // auth gate without a real Supabase round trip. The
+                    // fake session has only what page.js reads
                     // (user.email + user.id). Cloud sync features still
                     // need real auth — this is for visual / layout
                     // verification only.

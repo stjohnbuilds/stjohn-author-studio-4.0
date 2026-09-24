@@ -1,7 +1,7 @@
 // Regression tests for Block 3a (SAS-AUD-20260602-016 / -017).
 // The path-boundary helpers must refuse every shape of escape attempt
-// the audit and verifier found, while still accepting the user's real
-// numeric book ids and normal nested transfer audio paths.
+// the audit and verifier found, while still accepting real numeric
+// book ids and normal nested transfer audio paths.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -34,7 +34,7 @@ for (const input of ATTACKS) {
 }
 
 const LEGITIMATE_MANUSCRIPT_IDS = [
-  '1777428389536.docx',  // the user's actual id shape (Date.now())
+  '1777428389536.docx',  // Real id shape (Date.now())
   '1776379753283.docx',
   'abc-def-123.docx',     // uuid-style
   'book_42.docx',         // underscore style

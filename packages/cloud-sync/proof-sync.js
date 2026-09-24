@@ -22,11 +22,11 @@ import { hashString } from './hash.js';
 // In-memory cache of the last-pushed hash per project. Lets us skip
 // no-op upserts when the user is just clicking around (e.g. expanding
 // a chapter doesn't change any cloud-relevant field, but the debounced
-// push still fires). Per-tab; doesn't survive page reload but the user
-// doesn't reload often.
+// push still fires). Per-tab; doesn't survive page reload, but that's
+// rare enough not to matter.
 const lastPushHashByCloudId = new Map();
 
-// the user 2026-05-26: explicitly clearable from app/page.js on sign-out so
+// Explicitly clearable from app/page.js on sign-out so
 // the next user signing in doesn't inherit the previous user's
 // "nothing-changed-skip-the-push" cache and accidentally short-circuit
 // a legitimate push.
@@ -34,7 +34,7 @@ export function clearProofPushCache() {
   lastPushHashByCloudId.clear();
 }
 
-// the user 2026-05-26: a leftover book with cloudId "demo-book-1" (not a
+// A leftover book with cloudId "demo-book-1" (not a
 // UUID) was making the cloud push retry-loop forever with the Supabase
 // "invalid input syntax for type uuid" error. Guard it: if cloudId
 // doesn't look like a real UUID, treat it as missing — Postgres will
@@ -138,7 +138,7 @@ export async function pushProofProject(supabase, book, ownerId) {
 
   // 3) Sync flags for this project.
   //
-  // the user 2026-05-26: USED to be delete-then-insert. That had a race —
+  // USED to be delete-then-insert. That had a race —
   // a flag saved on Device B between the desktop's DELETE and INSERT
   // would be wiped. New shape:
   //   a. UPSERT every flag in this push by (project_id, local_id).
@@ -272,7 +272,7 @@ export async function pullProofProjects(supabase) {
           // (audio_file_name). If the slimmed desktop_book section didn't
           // carry it, fall back to the transcription's copy so the phone's
           // folder matcher can auto-attach this section's audio instead of
-          // making the user pick every file by hand. (the user 2026-06-01)
+          // requiring every file to be picked by hand.
           if (!merged.audioFileName && trans?.audio_file_name) {
             merged.audioFileName = trans.audio_file_name;
           }

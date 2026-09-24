@@ -456,7 +456,7 @@ function dl(content, filename, type) { const a=document.createElement('a');a.hre
 // to narratorColors with the SAME 85 threshold.
 //
 // Why DOM and not string parsing: the reader's detectNarrator works on
-// the user's data because it uses the computed style — which picks up the
+// manuscript data because it uses the computed style — which picks up the
 // background regardless of whether it came from an inline `style="..."`
 // attribute, a class with a stylesheet rule, or a parent element. The
 // string parser only sees inline styles, which is why "all five
@@ -503,7 +503,7 @@ function hexDist_breakdown(a, b) {
 function tallyCharacterWordCountsDom(sectionHtml, narratorColors) {
   if (typeof document === 'undefined') return null;
   // EVERY narrator entry counts — even those without a hex — because
-  // we ALSO match by H2 scene heading (the main driver for the user's
+  // we ALSO match by H2 scene heading (the main driver for most
   // books, where each scene's text is attributed to the H2 character
   // even when most of the prose isn't color-highlighted).
   const allMapping = (narratorColors || []).map((nc) => {
@@ -742,16 +742,16 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   const [editingMeta, setEditingMeta] = useState(false);
   const [reuploadPreview, setReuploadPreview] = useState(null); // { fullHtml, chapters: [{title, sections, included}] }
   const [editTitle, setEditTitle] = useState(book.title || '');
-  // the user 2026-05-26: per-book page nudge (±N). Lets her shift every
-  // displayed page number to match her Word doc when LibreOffice
-  // rendering drifts by a hair on long books.
+  // Per-book page nudge (±N). Shifts every displayed page number to
+  // match the Word doc when LibreOffice rendering drifts by a hair on
+  // long books.
   const [editPageNudge, setEditPageNudge] = useState(Number(book.pageNumberAdjustment) || 0);
   const [editNarrators, setEditNarrators] = useState((book.narratorColors || []).map(nc => ({
     hex: nc.hex || '#d9d9d9',
     characterName: nc.characterName || '',
     narratorName: nc.narratorName || '',
   })));
-  // Chapter inclusion edit state — the user can uncheck chapters here to
+  // Chapter inclusion edit state — lets the user uncheck chapters here to
   // remove them from the book (e.g. a copyright page that snuck through
   // import). Initialized fresh each time the editor opens so the list
   // matches the current chapters.
@@ -833,14 +833,14 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         if (!tally) tally = tallyCharacterWordCounts(sec.html || '', book.narratorColors);
         const TALLY_KEY = tally?.narratorKey || TALLY_NARRATOR_KEY;
         // Metadata fallback for the bulk-Unsure case.
-        // the user 2026-06-06: "Sometimes the character name is in heading
-        // one, sometimes heading two." When her .docx puts the character
-        // name in an H1/H2, our DOM walker catches it. When the heading
-        // is generic ("Chapter 9") but the parser already stamped the
-        // section with its POV character via `sec.characterName` /
-        // `sec.title` / `ch.characterName` / `ch.title`, the unattributed
-        // ("Unsure") portion of this section gets routed to that
-        // character — same priority order the FALLBACK path uses.
+        // The character name can appear in either an H1 or an H2
+        // heading. When the .docx puts the character name in an H1/H2,
+        // the DOM walker catches it. When the heading is generic
+        // ("Chapter 9") but the parser already stamped the section with
+        // its POV character via `sec.characterName` / `sec.title` /
+        // `ch.characterName` / `ch.title`, the unattributed ("Unsure")
+        // portion of this section gets routed to that character — same
+        // priority order the FALLBACK path uses.
         if (tally && tally.tallies?.[TALLY_KEY] > 0) {
           const metaCandidate = [
             sec.characterName, sec.title, ch.characterName, ch.title,
@@ -863,9 +863,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           ));
           Object.entries(tally.tallies).forEach(([character, wordCount]) => {
             const isUnmapped = character === TALLY_KEY;
-            // the user 2026-06-06: "Unsure" reads clearer than "Narrator"
-            // for the unattributed-words bucket (real narrators have
-            // names). Applied across all breakdowns.
+            // "Unsure" reads clearer than "Narrator" for the
+            // unattributed-words bucket (real narrators have names).
+            // Applied across all breakdowns.
             const charLabel = isUnmapped ? 'Unsure' : character;
             const mapped = isUnmapped
               ? defaultNarratorRow
@@ -917,7 +917,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     // on rows whose audioKey has a cached duration. Characters that
     // exist in the manuscript but don't have audio yet still appear
     // in the breakdown — with a real word count and a "—" for time —
-    // so the user can see her whole book's distribution before any audio
+    // so the full cast distribution is visible before any audio
     // is recorded.
     const narratorTotals = {};
     const narratorCharacters = {};
@@ -963,7 +963,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     // Merge character + narrator keys from BOTH the time totals AND the
     // word totals AND the book's narrator mapping so EVERY mapped
     // character / narrator shows up — even when manuscript detection
-    // found zero words for them (so the user sees her whole cast in the
+    // found zero words for them (so the whole cast shows in the
     // breakdown, not just the ones the parser happened to detect).
     const mappedCharacterNames = (book.narratorColors || [])
       .map((nc) => (nc?.characterName || '').trim())
@@ -1186,8 +1186,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
   function chapterDisplayNumber(chapter, index) {
     // Always use position in current chapter list so deleting chapters
     // post-import renumbers the remaining ones starting at 1.
-    // the user's complaint: "you uncheck the first few, but it still starts
-    // naming them from 3 or 4."
+    // Otherwise, unchecking the first few chapters would leave the
+    // remaining ones starting at 3 or 4 instead of restarting at 1.
     return index + 1;
   }
 
@@ -1273,7 +1273,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
 
     // Build an "included" lookup from the editor's checkboxes. Any
     // chapter id that's unchecked gets dropped from the saved book —
-    // the user's "uncheck the copyright page I missed at import" flow.
+    // e.g. to remove a copyright page missed during import.
     // Defensive guard: if the editor list is empty/missing (state didn't
     // load), treat that as "keep everything" rather than wiping the book.
     const editList = Array.isArray(editChapters) && editChapters.length
@@ -1282,7 +1282,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     const includedIds = new Set(editList.filter(c => c.included).map(c => c.id));
     const removedCount = (book.chapters || []).filter(ch => !includedIds.has(ch.id)).length;
 
-    // Double-confirm destructive removals — the user's rule for any action
+    // Double-confirm destructive removals — required for any action
     // that drops user data.
     if (removedCount > 0 && typeof window !== 'undefined') {
       const ok = window.confirm(
@@ -1865,11 +1865,11 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
     transcriptionQueuePumpPromise = (async () => {
       try {
         while (true) {
-          // the user 2026-05-26: auto-resume any 'waiting' tasks. If Whisper
-          // is now free (no 'running' task), flip every waiting task back
-          // to 'queued' so the dispatcher picks them up. Wait a beat first
-          // so the child process has time to fully exit and clear
-          // activeWhisperChild in the main process.
+          // Auto-resume any 'waiting' tasks. If Whisper is now free (no
+          // 'running' task), flip every waiting task back to 'queued' so
+          // the dispatcher picks them up. Wait a beat first so the child
+          // process has time to fully exit and clear activeWhisperChild
+          // in the main process.
           const snapshot = getTranscriptionQueueState();
           const hasRunning = (snapshot.tasks || []).some(t => t.status === 'running');
           const stuck = (snapshot.tasks || []).filter(t => t.status === 'waiting');
@@ -1933,10 +1933,10 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
             console.error('Transcription failed:', error);
             const latestTask = getTranscriptionTask(nextTask.taskId);
             const cancelled = latestTask?.cancelRequested;
-            // the user 2026-05-26: when Whisper is already running another
-            // chapter, the IPC throws "Whisper is already transcribing…".
-            // That's not an error to scare the user with — it just means
-            // wait. Show a friendly "Waiting…" state, no red toast.
+            // When Whisper is already running another chapter, the IPC
+            // throws "Whisper is already transcribing…". That's not an
+            // error to scare the user with — it just means wait. Show a
+            // friendly "Waiting…" state, no red toast.
             const rawMsg = String(error?.message || '');
             const isQueueClash = /whisper is already transcribing/i.test(rawMsg);
             if (isQueueClash && !cancelled) {
@@ -2325,9 +2325,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
           </div>
         ) : (
           <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-            {/* Stop All — the user 2026-05-26: clicking 45 individual × buttons
-                was the friction point. One Stop All cancels everything
-                running + queued + waiting in this book. */}
+            {/* Stop All — replaces clicking each × button individually.
+                One Stop All cancels everything running + queued +
+                waiting in this book. */}
             {bookQueueItems.some(t => t.status === 'running' || t.status === 'queued' || t.status === 'waiting') && (
               <button
                 type="button"
@@ -2414,9 +2414,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
               // Centered vertically — was top:88 spanning full height,
               // which felt like a sticky banner. Capped at 60vh so it
               // floats neatly to one side instead of dominating the page.
-              // the user 2026-05-26: bumped width 224→252 and right 12→24
-              // because the Nav/Flags/Queue tab pill (minWidth 220) was
-              // clipping inside the old 224 width.
+              // Width bumped 224→252 and right 12→24 because the
+              // Nav/Flags/Queue tab pill (minWidth 220) was clipping
+              // inside the old 224 width.
               position:'fixed',
               right:24,
               top:'50%',
@@ -2834,8 +2834,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         tone={mode === 'quill' ? 'quill' : 'proof'}
         title={book.title}
         subtitle={(() => {
-          // the user 2026-05-26: dropped the .docx filename tail — eats a
-          // second subtitle line on long names and adds nothing useful.
+          // The .docx filename tail is dropped — it eats a second
+          // subtitle line on long names and adds nothing useful.
           return mode === 'quill'
             ? `${(book.chapters || []).length} chapters · ${totalFlags} annotations`
             : `${allSections.length} sections · ${completedCount} completed · ${totalFlags} flags`;
@@ -2929,8 +2929,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Book title</div>
                   <input value={editTitle} onChange={e=>setEditTitle(e.target.value)} style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'8px 10px',fontSize:'0.86rem',background:'white',color:'var(--text)' }} />
                 </div>
-                {/* the user 2026-05-26: Page-number nudge — hidden for Quill
-                    (print-design mode, doesn't need page numbers). */}
+                {/* Page-number nudge — hidden for Quill (print-design
+                    mode, doesn't need page numbers). */}
                 {mode !== 'quill' && (
                 <div style={{ marginBottom:10 }}>
                   <div style={{ fontSize:'0.68rem',color:'var(--text-muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.04em' }}>Page-number nudge</div>
@@ -3135,8 +3135,8 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                     <span style={{ fontSize:'0.84rem',fontWeight:700,color:'var(--text)' }}>{fmtDuration(durationSummary.totalTimeLeftSeconds)}</span>
                   </div>
                   {/* Breakdown is always available — it shows word counts
-                      even when no audio has been attached yet, so the user
-                      can see her whole book's distribution before any
+                      even when no audio has been attached yet, so the
+                      whole book's distribution is visible before any
                       recording exists. */}
                   <button onClick={()=>setShowTimingDetails(true)} style={btn({ background:'white',borderColor:'var(--accent-border)',color:'var(--accent-dark)',fontSize:'0.68rem',fontWeight:700,padding:'3px 8px' })}>
                     Breakdown
@@ -3257,9 +3257,9 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
         </div>
 
         {/* Chapter/section list — scrolls inside its own container so the
-            user can't scroll the page past the top panels. the user
-            2026-05-26: tightened to calc(100vh - 360px) so the whole book
-            detail fits one desktop viewport without page-level scroll. */}
+            user can't scroll the page past the top panels. Tightened to
+            calc(100vh - 360px) so the whole book detail fits one desktop
+            viewport without page-level scroll. */}
         <div style={{ background:'white',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden auto',maxHeight:'calc(100vh - 360px)',minHeight:240 }}>
           {(book.chapters||[]).map((ch, chIndex)=>{
             const chDone=(ch.sections||[]).filter(s=>s.completed).length;
@@ -3312,11 +3312,12 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   host.innerHTML = onlyHtml;
                   const parts = [];
                   let curPart = null;
-                  // Buffer any nodes that come BEFORE the first H2. the user
-                  // never wrote a scene called "Beginning" — the old code
-                  // invented that label for the pre-H2 prefix. Instead,
-                  // fold those nodes into the FIRST H2 scene so the text
-                  // stays readable but no synthetic row shows up.
+                  // Buffer any nodes that come BEFORE the first H2. A
+                  // scene titled "Beginning" was never part of the
+                  // manuscript — the old code invented that label for the
+                  // pre-H2 prefix. Instead, fold those nodes into the
+                  // FIRST H2 scene so the text stays readable but no
+                  // synthetic row shows up.
                   const prefixNodes = [];
                   Array.from(host.childNodes).forEach(node => {
                     const tag = node.nodeName ? node.nodeName.toLowerCase() : '';
@@ -3333,7 +3334,7 @@ export default function BookDetail({ book, isElectron, audioUploadMode = 'chapte
                   });
                   if (curPart) parts.push(curPart);
                   // Show the subheader even when the chapter has just ONE.
-                  // the user wants a single subheader (e.g. "Sin") visible under
+                  // A single subheader (e.g. "Sin") should still show under
                   // its chapter when Split is on, same as multi-subheader
                   // chapters — so >= 1, not >= 2.
                   if (parts.length >= 1) {

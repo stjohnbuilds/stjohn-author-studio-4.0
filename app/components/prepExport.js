@@ -364,9 +364,9 @@ const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"
 
 // A book-style styles.xml so the exported .docx opens in Word looking
 // like a novel manuscript instead of generic Calibri body. Defaults to
-// Garamond 12pt body with proper Heading 1/2/3 + Title styles. the user
-// can still re-format in Word — but at least the starting point is
-// readable.
+// Garamond 12pt body with proper Heading 1/2/3 + Title styles. The
+// user can still re-format in Word — but at least the starting point
+// is readable.
 const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:docDefaults>
@@ -503,7 +503,7 @@ async function buildOriginalPlusHighlights(project) {
   //    followed (somewhere shortly after) by our page break.
   documentXml = stripPreviousNarratorBreakdown(documentXml);
 
-  // 2) Replay any in-app paragraph edits the user made via the Fix button
+  // 2) Replay any in-app paragraph edits made via the Fix button
   //    (e.g. inserting a missing close quote). Without this the export
   //    still has the original missing quote. Done BEFORE the breakdown
   //    is injected and BEFORE highlights, so the paragraph text matches
@@ -613,8 +613,7 @@ async function attachCommentsPart(zip, comments) {
   const date = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   const items = comments.map((c) => {
     // One <w:p> per line so Word lays each field on its own line in
-    // the comment pane — the user said the comma-joined single-line
-    // version was hard to read.
+    // the comment pane — a single comma-joined line was hard to read.
     const paras = (c.lines || []).map((line) => (
       `<w:p><w:r><w:t xml:space="preserve">${xml(line)}</w:t></w:r></w:p>`
     )).join('');
@@ -671,10 +670,10 @@ async function attachCommentsPart(zip, comments) {
   }
 }
 
-// If the source .docx already contains a "Narrator breakdown" block we
-// previously injected (the user ran an earlier export, then re-imported
-// the result), remove it before adding a new one. Otherwise breakdowns
-// pile up on top of each other every time she re-exports.
+// If the source .docx already contains a "Narrator breakdown" block
+// previously injected (an earlier export was re-imported), remove it
+// before adding a new one. Otherwise breakdowns pile up on top of
+// each other every time the file is re-exported.
 function stripPreviousNarratorBreakdown(documentXml) {
   const marker = 'Narrator breakdown';
   // Only scan the head of the document so we don't accidentally match
@@ -704,7 +703,7 @@ function stripPreviousNarratorBreakdown(documentXml) {
   return documentXml.slice(0, pStart) + documentXml.slice(removeEnd);
 }
 
-// Replay the user's in-app paragraph edits into the original docx body.
+// Replay the in-app paragraph edits into the original docx body.
 // For each (oldText, newText) edit on each section, find the <w:p>
 // whose concatenated <w:t> text equals oldText and replace its inner
 // content with a single <w:r><w:t>newText</w:t></w:r>. The paragraph
@@ -912,8 +911,9 @@ function chooseContextCandidate(candidates, assignment) {
 // (and across the narrator-breakdown we just injected at the top of the
 // body) until it found a `</w:rPr>` deep in the document. The fallout
 // was matched spans that swallowed the whole breakdown and pasted
-// fragments of it back into the export wherever the regex landed — the user
-// saw the narrator-breakdown heading copied 6 times into chapter 1.
+// fragments of it back into the export wherever the regex landed —
+// duplicating the narrator-breakdown heading multiple times into
+// chapter 1.
 function applyHighlightsInPlace(docXml, assignments) {
   // Matches rPr content but not characters that would cross a run
   // boundary. `(?!</?w:r[\s>])` blocks `<w:r `, `<w:r>`, `</w:r>` —

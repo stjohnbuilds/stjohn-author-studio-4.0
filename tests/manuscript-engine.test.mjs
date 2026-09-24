@@ -10,7 +10,7 @@ import {
 } from '../packages/manuscript-engine/index.js';
 
 test('detectDialogueSpansInText finds straight-quoted dialogue', () => {
-  const result = detectDialogueSpansInText('She walked in. "Hello," she said quietly. Then she left.');
+  const result = detectDialogueSpansInText('He walked in. "Hello," he said quietly. Then he left.');
   assert.ok(Array.isArray(result.dialogueSpans), 'returns spans array');
   assert.ok(result.dialogueSpans.length >= 1, 'finds at least one span');
   assert.ok(result.dialogueSpans[0].text.includes('Hello'), 'span captures the dialogue text');

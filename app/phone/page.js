@@ -7,7 +7,7 @@
 //   • Proof Listen — tap-to-flag while listening
 //
 // Both services use the SAME reader + selection model from the v1 Studio
-// phone (the one the user said was "thoroughly debugged"):
+// phone (the proven, well-tested implementation):
 //   - HTML-preserving word render (keeps italics, paragraphs, headings)
 //   - Double-tap to start a selection (not single-tap)
 //   - Drag handles at each end to extend the selection
@@ -398,7 +398,7 @@ function proofChapterTranscriptionStatus(chapter) {
 
 // Map "character → narrator" using book.narratorColors. The narrator is
 // the person doing the recording (Illisa); the character is the POV
-// (Crescent). the user cares about who's responsible — narrator wins.
+// (Crescent). Responsibility tracks the narrator, so narrator wins.
 function narratorChoicesFor(book) {
   const out = new Set();
   out.add('Narrator');
@@ -419,7 +419,7 @@ function autoNarratorFor(book, section) {
   const byCharacter = (book?.narratorColors || []).find((nc) => (nc.characterName || '').trim() === ch);
   const mappedNarrator = (byCharacter?.narratorName || '').trim();
   // Priority: mapped narrator (Illisa) > directly-set narrator > character > fallback.
-  // the user's note: when section.characterName === 'Crescent' and the
+  // Example: when section.characterName === 'Crescent' and the
   // narratorColors map says Crescent → Illisa, "Illisa" wins.
   return mappedNarrator || directSectionNarrator || ch || 'Narrator';
 }
@@ -427,7 +427,7 @@ function autoNarratorFor(book, section) {
 // ---------------------------------------------------------------------------
 // Per-word flag helpers — ported to match the desktop ProofingReader so a
 // flag made on the phone carries the SAME sentence quote + narrator the
-// desktop would have filled in. (the user 2026-06-01: phone flags were only
+// desktop would have filled in. (Previously, phone flags were only
 // grabbing the single tapped word, and the narrator wasn't the one for that
 // spot in the chapter.)
 // ---------------------------------------------------------------------------
@@ -639,9 +639,9 @@ function PhoneApp({ session, onSignOut }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Phone audio state lives HERE (the long-lived shell) so going to
   // Choose-a-service and back doesn't drop the audio connection.
-  // the user complained: "When I go back home, it disconnects all the audio
-  // on the phone app." Fix: parent owns it, ScriptPhoneService just
-  // reads + writes via props.
+  // Symptom: navigating back to Choose-a-service and returning used to
+  // disconnect all phone audio. Fix: parent owns it, ScriptPhoneService
+  // just reads + writes via props.
   const [audioFilesByBook, setAudioFilesByBook] = useState({});
   const [audioSectionOverride, setAudioSectionOverride] = useState({});
 
@@ -1496,7 +1496,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
   const [pendingCount, setPendingCount] = useState(0);
   const [audioPickStatus, setAudioPickStatus] = useState('');
   // Refresh robustness: single-flight + 10s timeout + 30s focus debounce.
-  // the user hit "stuck on Loading…" because the Supabase call could hang
+  // The UI could get stuck on "Loading…" because the Supabase call could hang
   // and never resolved the loading state. These refs make refresh
   // self-healing.
   const refreshInflightRef = useRef(false);
@@ -1526,7 +1526,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
       setBooks((current) => {
         if (list?.length) {
           // Fold any queued offline saves / deletes into the freshly
-          // pulled cloud books so we never overwrite the user's pending
+          // pulled cloud books so we never overwrite pending
           // local work with the (stale) cloud version. Also preserve a
           // local updatedAt that's newer than the cloud's so the
           // last-touched-first sort doesn't snap back when a single-row
@@ -1634,7 +1634,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
     return sections.find((s) => s.id === activeSectionId) || sections[0];
   }, [activeChapter, activeSectionId]);
 
-  // Last-touched-first ordering: sort by updatedAt desc so the book the user
+  // Last-touched-first ordering: sort by updatedAt desc so a book
   // just flagged on the phone shows up at the top of the list. Must sit
   // up here with the other hooks — if it's below the early returns for
   // activeChapter / activeBook, React's hook count flips between
@@ -1831,7 +1831,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
           onDownloadBackup={() => downloadText(`${safeFileName(activeBook.title)}-flags-backup.csv`, buildFlagsCsv(activeBook), 'text/csv')}
         />
         <section style={{ padding: '1rem', maxWidth: 480, margin: '0 auto' }}>
-          {/* Per-book audio folder picker. the user picks the folder once
+          {/* Per-book audio folder picker. Pick the folder once
               for the whole book; each chapter's audio is auto-matched
               by exact filename. Files stay on the phone — only the
               filename ever crossed Supabase. */}
@@ -1859,7 +1859,7 @@ function ScriptPhoneService({ session, onSignOut, onBackToServices, readerSettin
               setAudioPickStatus('');
             }}
           />
-          {/* Chapters / Flags tab strip. Lets the user see every flag in
+          {/* Chapters / Flags tab strip. Surfaces every flag in
               the book without having to dig into each chapter — the same
               affordance the desktop has in its side nav. */}
           <BookTabStrip
@@ -2010,7 +2010,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   // mapping (Crescent → Illisa), page from book.manuscriptPaging.pageMap
   // at the selected word's GLOBAL index, timestamp from whisper alignment
   // for that word. All three derived per-word so the flag panel pre-fills
-  // accurately even if the user hasn't played the audio yet.
+  // accurately even if the audio hasn't been played yet.
   const autoNarrator = useMemo(() => autoNarratorFor(book, section), [book, section]);
   const narratorOptions = useMemo(() => {
     const list = narratorChoicesFor(book);
@@ -2037,7 +2037,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   const currentAudioTimeRef = useRef(0);
   // Which selection (start:end) we last auto-filled the draft for, so
   // re-renders don't clobber edits but extending/moving the selection does
-  // refresh. Once the user hand-edits the quote or narrator, stop overwriting it.
+  // refresh. Once the quote or narrator is hand-edited, stop overwriting it.
   const filledForRef = useRef(null);
   const quoteDirtyRef = useRef(false);
   const narratorDirtyRef = useRef(false);
@@ -2068,7 +2068,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   // Derived metadata for the SELECTED WORD. This is the heart of the
   // fix — timestamp + page + quote come from the WORD, not from the
   // audio playback state. So tapping a word at sentence 38 always
-  // produces ts=38, even if the user hasn't pressed play yet.
+  // produces ts=38, even if playback hasn't started yet.
   const selectionMeta = useMemo(() => {
     if (!selectedRange) return null;
     const start = Math.min(selectedRange.start, selectedRange.end);
@@ -2100,7 +2100,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
 
   // Pre-fill the draft (quote = whole sentence, page, narrator = detected)
   // once per selection. Tracking the filled-for start index means a re-render
-  // won't clobber the user's edits, but tapping a NEW word refreshes the fields.
+  // won't clobber hand edits, but tapping a NEW word refreshes the fields.
   useEffect(() => {
     if (!panelOpen || !selectionMeta) {
       if (!panelOpen) {
@@ -2135,7 +2135,7 @@ function ScriptChapterView({ book, chapter, section, readerSettings, onBack, onS
   }, [panelOpen, selectionMeta, autoNarrator]);
 
   // Toast helper — small auto-dismiss notice for things like "page
-  // number missing" that the user wants surfaced.
+  // number missing" that needs to be surfaced.
   useEffect(() => {
     if (!toast) return undefined;
     const t = setTimeout(() => setToast(''), 3200);
@@ -2566,7 +2566,7 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
 
   // When the user navigates to a different section, reset all transient
   // playback state. If the parent has already matched a file from the
-  // folder the user picked at the book level, adopt it as the new default.
+  // folder picked at the book level, adopt it as the new default.
   useEffect(() => {
     setFile(presetAudioFile || null);
     adoptedPresetRef.current = presetAudioFile || null;
@@ -2581,7 +2581,7 @@ function PhoneAudioDock({ tone = { ink: PROOF_INK, accent: PROOF_ACCENT, pastel:
 
   // If a matched file arrives AFTER this section opened (e.g. a folder
   // restore finished, or the book-level match resolved late), adopt it —
-  // but never override audio the user already loaded or manually picked.
+  // but never override audio that's already loaded or manually picked.
   useEffect(() => {
     if (!presetAudioFile || file) return;
     if (adoptedPresetRef.current === presetAudioFile) return;
@@ -2905,7 +2905,7 @@ function AccountChip({ email, onSignOut }) {
 
 // PendingFlagBanner — "X flag(s) waiting to sync to the cloud" notice
 // that surfaces whenever the local flag queue isn't empty. Click to
-// trigger a retry refresh. Matters because the user had no way of knowing
+// trigger a retry refresh. Surfaces this because there was otherwise no way of knowing
 // when a push silently failed.
 
 function PendingFlagBanner({ count, onRetry, loading, onDownloadBackup }) {
@@ -3126,9 +3126,9 @@ function BookFlagsList({ book, onOpenFlag, onDeleteFlag }) {
 
 // ---------------------------------------------------------------------------
 // BookAudioFolderPicker — top-of-book "pick the whole audio folder once"
-// strip. After the user picks a folder, each chapter's audio is matched by
-// `audioFileName` automatically when she opens that chapter. The audio
-// files NEVER leave her phone — only the filename ever crossed Supabase
+// strip. After a folder is picked, each chapter's audio is matched by
+// `audioFileName` automatically when that chapter opens. The audio
+// files NEVER leave the phone — only the filename ever crossed Supabase
 // (set on the desktop at import time).
 // ---------------------------------------------------------------------------
 
@@ -3166,7 +3166,7 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
   }, [userId, audioKey]);
 
   // One silent restore attempt per book: if we kept a folder handle AND the
-  // browser still has permission, re-read the files without bugging the user.
+  // browser still has permission, re-read the files without prompting.
   // (If permission needs a tap, we leave the visible "Reload" button.)
   useEffect(() => {
     if (hasFolder || !memory || !memory.dirHandle || triedSilentRef.current === audioKey) return undefined;
@@ -3213,13 +3213,13 @@ function BookAudioFolderPicker({ book, audioFiles, matchedCount, totalSections, 
         const files = await readAudioFilesFromDirHandle(handle);
         setReloadState('idle');
         if (files.length) { handlePicked(files, { dirHandle: handle, folderName: handle.name || 'Audio folder' }); return; }
-        // Folder opened fine but had no audio — tell the user instead of
+        // Folder opened fine but had no audio — show a note instead of
         // silently popping a second picker.
         setPickerNote('No audio files in that folder — try another, or use “Pick files”.');
         return;
       } catch (err) {
         setReloadState('idle');
-        if (err && err.name === 'AbortError') return; // the user cancelled
+        if (err && err.name === 'AbortError') return; // user cancelled
         // Any other error: fall through to the manual file input below.
       }
     }

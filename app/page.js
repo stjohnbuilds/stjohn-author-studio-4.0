@@ -422,7 +422,7 @@ function mergeLocalSectionTranscription(localSection, cloudSection) {
 // keeps audio off Supabase). So the cloud copy NEVER has audioPath /
 // audioPaths. When the cloud version wins on time (e.g. after a flag
 // saved on the phone), we splice the local audioPath / audioPaths back
-// in by matching section.id — otherwise the user's audio attachments get
+// in by matching section.id — otherwise local audio attachments get
 // wiped on every cloud-newer pull.
 
 // True for ids that are safe to use as a filename in main.js (e.g. as
@@ -542,7 +542,7 @@ export default function Home() {
   const [tutorialCompletedIds, setTutorialCompletedIds] = useState([]);
   const [authReady, setAuthReady] = useState(!hasSupabaseConfig);
   const [authSession, setAuthSession] = useState(null);
-  // Drive snapshot backups — the user 2026-05-27. Opt-in per signed-in
+  // Drive snapshot backups — opt-in per signed-in
   // user. backupEnabled mirrors the per-user localStorage flag for the
   // currently signed-in user so the Settings toggle stays in sync.
   const [backupEnabled, setBackupEnabled] = useState(false);
@@ -558,7 +558,7 @@ export default function Home() {
   // True once loadBooks() resolved at least once. Cross-device delete
   // pruning waits for this so a slow cloud pull that lands during the
   // brief pre-hydrate window cannot misread "local is still loading"
-  // as "local has nothing" and wipe the user's library.
+  // as "local has nothing" and wipe the library.
   const booksHydratedRef = useRef(false);
   const clientPlatform = typeof navigator === 'undefined'
     ? 'unknown'
@@ -677,7 +677,7 @@ export default function Home() {
   // Cloud pull state — last-success timestamp + the imperative resync
   // handler used by the Resync button on HomePage. The button matters
   // because focus-pull doesn't fire when the window has been continuously
-  // focused (the user's case: phone saved, desktop already open).
+  // focused (e.g. phone saved, desktop already open).
   const [lastProofPullAt, setLastProofPullAt] = useState(0);
   const [proofPullError, setProofPullError] = useState('');
   const [proofPullInflight, setProofPullInflight] = useState(false);
@@ -956,7 +956,7 @@ export default function Home() {
   }
 
   function saveBook(book) {
-    // the user 2026-05-26: stamp updatedAt so the most-recently-touched
+    // Stamp updatedAt so the most-recently-touched
     // book sorts to the top of the home list. Without this, sort by
     // updatedAt is meaningless because new books have no timestamp.
     const stamped = { ...book, updatedAt: Date.now() };
@@ -964,7 +964,7 @@ export default function Home() {
     persist(updated);
     setActiveBook(stamped);
     setView('bookDetail');
-    // the user 2026-05-26 — TOMBSTONE-GHOST FIX: if this book id was
+    // TOMBSTONE-GHOST FIX: if this book id was
     // previously deleted (so a tombstone exists), saving a fresh book
     // with the same id has to un-tombstone it. Without this clear, the
     // tombstone would silently hide it on the next pull AND the retry-
@@ -1797,7 +1797,7 @@ export default function Home() {
 // 3.0 base ('default' = Proof Listen, 'prebuild' = Duet Prep) so existing
 // localStorage values keep working. Two new IDs (prep-manuscript, quill)
 // are added for the future modes.
-// Pastel palette per the user's preference: pink / purple / blue / green only.
+// Pastel palette: pink / purple / blue / green only.
 // Quill = pink (Quill & Ink ❤️ stationery), Duet = blue.
 export const APP_MODES = [
   { id: 'default',         label: 'Proof Listen',    short: 'Proof', pastel: '#E5DCEF', ink: '#5C4A78', enabled: true,  phase: null }, // pastel purple
@@ -1886,12 +1886,12 @@ function SettingsCog({
   onTutorialEnabledChange,
   onRestartTutorial,
   showTutorialHint,
-  // the user 2026-05-26: cog now lives on every mode. Profile goes at the
+  // The settings cog now lives on every mode. Profile goes at the
   // top of the panel; Proof-only sections sit below.
   mode = 'proof',
   authEmail = '',
   onSignOut,
-  // the user 2026-05-27: Drive snapshot backups card. Universal — covers
+  // Drive snapshot backups card. Universal — covers
   // every mode's local + cloud data, so it shows outside the isProof gate.
   backupEnabled = false,
   backupInfo = null,
@@ -1980,7 +1980,7 @@ function SettingsCog({
               <button type="button" onClick={onClose} aria-label="Close settings" title="Close settings" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', fontSize:'1.1rem' }}><span aria-hidden="true">✕</span></button>
             </div>
 
-            {/* Profile card at top — the user 2026-05-26: replaces the
+            {/* Profile card at top — replaces the
                 floating M ProfilePill that overlapped the home pill. */}
             <div style={{ border:'1px solid var(--accent-border)', background:'rgba(255,255,255,0.78)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
               <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700, marginBottom:6 }}>Signed in as</div>
@@ -2022,7 +2022,7 @@ function SettingsCog({
               </button>
             </div>
 
-            {/* Drive snapshots card — the user 2026-05-27. Universal across
+            {/* Drive snapshots card — universal across
                 all modes because the snapshot covers every mode's data. */}
             {isElectron && authEmail && (
               <DriveSnapshotsCard
@@ -2034,7 +2034,7 @@ function SettingsCog({
               />
             )}
 
-            {/* Proof-only sections — the user 2026-05-26: Prep/Quill/Duet
+            {/* Proof-only sections — Prep/Quill/Duet
                 settings panel shows just profile + tutorial. */}
             {isProof && (<>
             <div data-tutorial="save-location-card" style={{ border:'1px solid var(--border)', borderRadius:12, padding:'12px 12px', marginBottom:10 }}>
@@ -2257,7 +2257,7 @@ function BackupStatusPill({ info, onClick }) {
   const lastAt = Number(info?.lastSnapshotAt) || 0;
   const count = Number(info?.snapshotCount) || 0;
   // Three quiet states. Background colours kept very pale so the pill
-  // never shouts — the user wants a "small thingie" not a banner.
+  // never shouts — it's meant to be a quiet indicator, not a banner.
   let label;
   let color;
   let background;
@@ -2384,17 +2384,16 @@ function DriveSnapshotsCard({ enabled, info, busy, onEnabledChange, onManualBack
 function HomePage({ books, isElectron, dataLocation, onChangeDataLocation, onNew, onOpen, onImport, onExport, onElectronImport, authEmail, onSignOut, onResync, resyncing, resyncError, lastResyncedAt }) {
   const saveLocationText = formatSaveLocation(dataLocation);
   // Sort by updatedAt desc so the most recently-touched book is on top.
-  // the user's note: "your audiobooks doesn't do last-touched first, which
-  // is very annoying. I would like the last thing we worked on to be
-  // first." Fallback to book.id (which is Date.now() at import time)
-  // for old books that pre-date the updatedAt stamping fix — keeps
-  // them in import-order at the bottom instead of all collapsing to 0.
+  // Requirement: the last book worked on should sort first, not just
+  // alphabetically or by import order. Fallback to book.id (which is
+  // Date.now() at import time) for old books that pre-date the
+  // updatedAt stamping fix — keeps them in import-order at the bottom
+  // instead of all collapsing to 0.
   const sortedBooks = [...(books || [])].sort((a, b) => {
     return bookSortTime(b) - bookSortTime(a);
   });
   const lastResyncedLabel = lastResyncedAt ? formatRelativeFromNow(lastResyncedAt) : '';
   // ? info modal + image header — mirrors Duet's pattern at PrebuildMode.js.
-  // the user 2026-05-26: "copy DUET which already has one, that exactly."
   const [showHomeInfo, setShowHomeInfo] = useState(false);
   return (
     <div style={{ maxWidth:640,margin:'0 auto',padding:'4.7rem 1.25rem 4.25rem' }}>

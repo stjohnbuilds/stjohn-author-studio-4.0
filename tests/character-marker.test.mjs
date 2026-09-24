@@ -1,4 +1,4 @@
-// Regression: the user's manuscripts (exported from Vellum) mark each
+// Regression: manuscripts exported from Vellum mark each
 // scene's POV character with a STANDALONE PARAGRAPH containing only
 // the character name, not a heading element. Before the 2026-06-06
 // fix, the Audiobook Breakdown popup walker only checked H1-H6, so
@@ -45,7 +45,7 @@ test('body paragraph mentioning the character name is NOT a scene marker', () =>
 });
 
 test('body paragraph that contains the name mid-sentence is NOT a scene marker', () => {
-  const out = classifyCharacterMarker('P', 'I broke a dozen laws because Vex told me to.', MAPPING);
+  const out = classifyCharacterMarker('P', 'I broke a dozen laws because Vex said so.', MAPPING);
   assert.equal(out, null);
 });
 

@@ -30,10 +30,9 @@ function cleanMarkerField(s) {
 // (see the in-app "Export for Engineer" path) so Audition treats the
 // two outputs the same way. CRITICAL: extension must be .csv, not
 // .txt — Audition refuses to import .txt marker files even when the
-// content is tab-separated. (the user 2026-06-04 bug: "the ones from
-// PREP work in audition but now these ones aren't working for
-// engineer" — Prep + the in-app exporter both use .csv; this one
-// was the odd one out using .txt.)
+// content is tab-separated. (Bug: Prep and the in-app exporter both
+// used .csv and imported fine; this one was the odd one out using
+// .txt, so files built the same way here failed to import.)
 export function markerFileName(label) {
   const safeLabel = String(label || 'Chapter')
     .replace(/[/\\?%*:|"<>]/g, '_')
@@ -50,8 +49,7 @@ export function markerFileName(label) {
 // book object. When the book object is passed, this MERGES the CSV
 // markers with the in-app saved flag markers — one file per chapter
 // containing both, sorted by Start time. Duplicates at the same
-// timestamp are LEFT IN (the user 2026-06-04: "if there are duplicates
-// in timestamp just leave them"), so the engineer sees both
+// timestamp are LEFT IN on purpose, so the engineer sees both
 // perspectives at the same moment.
 export function buildMarkerFilesFromCsv(text, bookOrTitle) {
   const isBook = bookOrTitle && typeof bookOrTitle === 'object';
@@ -119,7 +117,7 @@ export function buildMarkerFilesFromCsv(text, bookOrTitle) {
   }
 
   // 3) Write per-chapter files. Sort by Start time. Duplicates at the
-  //    same timestamp stay in (per the user's instruction).
+  //    same timestamp stay in, by design.
   const files = [];
   let csvMarkers = 0;
   let savedMarkers = 0;

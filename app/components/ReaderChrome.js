@@ -2,10 +2,10 @@
 
 // StJohn Author Studio 4.0 — shared reader / chrome primitives.
 //
-// Single source of truth for the visual language the user wants
-// reused across every mode (Proof Listen, Prep Manuscript, Duet
-// Prep, Quill & Ink, phone). When she says "use the same chapter
-// header in every mode" — this is the file.
+// Single source of truth for the visual language used across every
+// mode (Proof Listen, Prep Manuscript, Duet Prep, Quill & Ink,
+// phone) — the same chapter header design applies in every mode via
+// this file.
 //
 // Today: Prep uses these. Proof Listen still has its own copies
 // inside ProofingReader.js because that 2600-line component is a
@@ -19,8 +19,8 @@ import React, { useEffect, useState } from 'react';
 // ---------------------------------------------------------------------------
 
 export const READER_WIDTH = 'min(740px, calc(100vw - 40px))';
-// Flat paper, no gradient. the user called the previous cream-to-white
-// gradient "weird" and prefers the flat Quill book-detail look applied
+// Flat paper, no gradient. The previous cream-to-white gradient read
+// as dated; the flat Quill book-detail look is now applied
 // everywhere. Subtle cream rather than pure white keeps it reading as
 // "page" instead of "browser window."
 export const READER_PAGE_BG = '#fbfaf7';
@@ -31,13 +31,13 @@ export const HOME_CONTAINER = 640;
 // Per-mode color tokens. Three colors each:
 //   pastel — very light fill (chips, active tab background)
 //   accent — mid-tone button fill (replaces the old "ink" on solid
-//            buttons; ink itself was too wine-y for the user's taste)
+//            buttons; ink itself read too wine-y as a solid fill)
 //   ink    — dark text + border accent
 // Pastel palette per mode. The `accent` is the mid-tone used as the
 // primary-button fill — it MUST stay light/desaturated enough that
 // "pastel" still reads when you see a wall of buttons in that color.
 //
-// History of palette pain the user has flagged:
+// History of palette iterations:
 //   • Prep was a deep mustard (#D9BE4E) — "horrible mustard yellow."
 //   • Then a lighter cream-mustard (#E8D27A) — still yellow, still bad.
 //   • Now: sage green, no yellow anywhere.
@@ -57,8 +57,8 @@ export const MODE_TOKENS = {
 // app/globals.css. Spread the result into the style prop of a wrapper div
 // at the top of each mode's render — every descendant that reads
 // var(--accent) / var(--accent-soft) / etc. inherits the mode's pastel
-// palette instead of the global purple. Fixes the user's "purple leak"
-// (HANDOFF.md Job 1).
+// palette instead of the global purple. Fixes the "purple leak" where
+// child components fell back to the global accent color.
 export function modeAccentVars(tone) {
   const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
   const ink = token.ink;
@@ -208,7 +208,7 @@ export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', usesCusto
   // 4-mode pill sits at, so the eye sees one continuous nav row.
   // top:40 leaves room for the macOS traffic-light buttons + the
   // custom drag region; without that the back button hid under the
-  // window's red/yellow/green dots (the user's complaint).
+  // window's red/yellow/green dots.
   // Left padding leaves room for the HomeBackPill that floats at
   // left:16 — they share the same row so the pill looks built-in.
   const topOffset = usesCustomDragRegion ? 40 : 16;
@@ -248,8 +248,8 @@ export function StickyTopBar({ onBack, title, subtitle, tone = 'prep', usesCusto
 // HomeBackPill — the single nav pill on the top-left that morphs based
 // on where you are. On home view we don't render it (the 4-mode toggle
 // occupies the same spot). Inside a project it shows ⌂ and goes home.
-// Inside the reader it shows ← and goes back to the book detail. the user
-// wanted the *same container* — same position, same shape — between
+// Inside the reader it shows ← and goes back to the book detail. It
+// uses the *same container* — same position, same shape — between
 // these states so the UI doesn't appear to jump when you navigate.
 export function HomeBackPill({ icon = '⌂', onClick, usesCustomDragRegion = false, tone = 'prep' }) {
   const token = MODE_TOKENS[tone] || MODE_TOKENS.prep;
@@ -433,10 +433,9 @@ export function ProfilePill({ email = '', onSignOut, usesCustomDragRegion = fals
 // tabs, because the container is a fixed-min-height flex column with the
 // header pinned at the top and the body taking flex:1 underneath.
 //
-// the user kept hitting "the Nav/Queue strip jumps when I click Queue"
-// before this pattern was applied to SessionsView. Bake it in here so
-// every mode that needs tab + content gets the stable behaviour for
-// free.
+// The Nav/Queue strip used to jump when switching tabs before this
+// pattern was applied to SessionsView. Bake it in here so every mode
+// that needs tab + content gets the stable behaviour for free.
 //
 // tabs    — [{ id, label, badge? }] — `badge` is an optional dot/number
 //           rendered on the right of the pill.
@@ -560,7 +559,7 @@ export function useDismissable(open, onClose, ignoreRef) {
 
 // ---------------------------------------------------------------------------
 // App-wide footer pill — ALWAYS shows the running version ("v4.0.2 · 2026-06-07")
-// in the bottom-right corner so the user can see at a glance whether the
+// in the bottom-right corner so it's clear at a glance whether the
 // latest build has actually reached this machine. When the auto-updater
 // (electron-updater, wired in main.js) detects a newer GitHub release
 // the pill expands upward with an "Update available · Download" button
@@ -597,8 +596,8 @@ export function AppFooter() {
     }
     if (typeof el.onUpdateError === 'function') {
       offs.push(el.onUpdateError((info) => {
-        // Silent unless we were mid-download — the user doesn't need a
-        // popup for "couldn't reach GitHub" on every launch.
+        // Silent unless mid-download — no popup needed for
+        // "couldn't reach GitHub" on every launch.
         setUpdateState((prev) => prev ? { stage: 'error', message: info?.message || 'Update check failed.' } : null);
       }));
     }

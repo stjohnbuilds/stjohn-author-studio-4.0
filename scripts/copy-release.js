@@ -8,9 +8,9 @@ const distDir = path.join(rootDir, 'dist');
 const packagedReleaseDir = path.join(rootDir, 'Script and Sync Releases');
 const archivedReleaseDir = path.join(packagedReleaseDir, 'Old');
 
-// the user 2026-05-26: filenames updated to match electron-builder.yml's
-// productName "StJohn Author Studio". Old "Script and Sync" names are
-// a leftover from the 3.0 fork — the new builds emit
+// Filenames updated to match electron-builder.yml's productName
+// "StJohn Author Studio". Old "Script and Sync" names are a leftover
+// from the 3.0 fork — the new builds emit
 // "StJohn Author Studio (Portable).exe" / ".app" and the copy step was
 // silently skipping with "not found".
 const WINDOWS_RELEASE_NAME = 'StJohn Author Studio (Windows).exe';

@@ -19,7 +19,7 @@ const APP_EXPORT_CSV = [
 const ENGINEER_TEMPLATE_CSV = [
   ',,,,,MANUSCRIPT LINK (Please use page number from bottom right of this manuscript page),,,',
   'Project:,,,,,Anarchy,,,',
-  'Author:,,,,,Example Author One and Example Author Two,,,',
+  'Author:,,,,,Jordan Lee and Avery Quinn,,,',
   ',,,,,,,,',
   'Chapter,File name,Page,Timestamp,Narrator/Engineer,Type,Note,Should Say:',
   ',,,,,,,,',
@@ -31,7 +31,7 @@ const ENGINEER_TEMPLATE_CSV = [
   'Chapter 6,06_ANCY_Chapter.wav,37,04:08,Reuben (Engineer),Edit,a description,a manuscript line',
 ].join('\n');
 
-// the user's "even if a column were named grgefkjuhfndjkhnf" test.
+// Verifies the parser still works even with garbage, unrecognized column headers.
 const GARBAGE_HEADERS_CSV = [
   'grgefkjuhfndjkhnf,xyzpdq,nan,blah,foo,bar,baz,qux',
   'Chapter 2,02_ANCY_Chapter.wav,7,01:37,Mark,Misread,observation,quote text',

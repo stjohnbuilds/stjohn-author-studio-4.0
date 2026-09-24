@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Developer launcher for the editable app.
-# Regular users should open Proofer 5.0.app instead.
+# Regular users should open StJohn Author Studio.app instead.
 
 # Go to the folder this script lives in (the project folder)
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../.."
 
 echo "──────────────────────────────────────"
-echo "  Proofer 5.0 Developer Mode"
+echo "  StJohn Author Studio developer mode"
 echo "──────────────────────────────────────"
 
 # Check Node.js is installed
@@ -36,7 +36,7 @@ else
 fi
 
 echo ""
-echo "Regular users should close this window and open Proofer 5.0.app."
+echo "Regular users should close this window and open StJohn Author Studio.app."
 echo ""
 
 # Start the editable desktop app (Next.js + Electron)

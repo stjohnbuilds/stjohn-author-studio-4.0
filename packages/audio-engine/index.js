@@ -2,8 +2,7 @@
 // manuscript word index and back. Extracted from
 // `app/components/ProofingReader.js` (lines 273-388, May 24) so the
 // same sync math is available to Quill, Duet, and the phone Script
-// mode without copy-pasting it. the user's mandate: one engine, not
-// four copies.
+// mode without copy-pasting it. Rule: one engine, not four copies.
 //
 // What lives here:
 //   buildSyncTable(alignment, minConfidence?)

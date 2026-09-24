@@ -66,11 +66,11 @@ test('cross-paragraph slice gets a sane separator', () => {
 
 test('entity decoding — curly quotes and ampersand survive', () => {
   const idx = buildChapterPlainTextIndex(
-    '<p>&ldquo;Tom &amp; Jerry,&rdquo; she said.</p>',
+    '<p>&ldquo;Tom &amp; Jerry,&rdquo; he said.</p>',
     'whitespace',
   );
   const all = sliceUnitsRange(idx, 0, idx.unitMeta.length - 1);
-  assert.equal(all, '“Tom & Jerry,” she said.');
+  assert.equal(all, '“Tom & Jerry,” he said.');
 });
 
 test('unitWordEnd returns position after just the word (no trailing space)', () => {
@@ -165,9 +165,9 @@ test('tally: returns null when no characters are mapped', () => {
 });
 
 test('tally: edge case — no H1/H2, just paragraphs and spans', () => {
-  // the user's worry: what if the .docx doesn't use H1/H2 the way the
-  // parser expects? Answer: this function doesn't care about headings
-  // at all — it only looks at hl-* spans. Robust to any structure.
+  // Edge case: what if the .docx doesn't use H1/H2 the way the parser
+  // expects? Answer: this function doesn't care about headings at all
+  // — it only looks at hl-* spans. Robust to any structure.
   const result = tallyCharacterWordCounts(
     `<div><span class="hl-pink">Karma talked.</span> Some narration.</div>`,
     NARRATORS,
@@ -193,7 +193,7 @@ test('tally: empty HTML returns empty tallies (not null)', () => {
 
 // ---------------------------------------------------------------------------
 // Hex-fallback path: when narrator entries have cls=null but hex set —
-// the user's actual case for any color picked manually or extracted from
+// the real-world case for any color picked manually or extracted from
 // Word shading. Mammoth bakes the hex into an inline style on every
 // highlight span via applyHexColors, so we can match by hex.
 // ---------------------------------------------------------------------------
@@ -233,7 +233,7 @@ test('tally: class wins over hex when both are set on the same narrator', () => 
 });
 
 test('tally: when only hexMap is populated (no cls anywhere), still works', () => {
-  // Regression test for the bug the user hit: every narrator had cls=null,
+  // Regression test for a bug where every narrator had cls=null,
   // classMap was empty, the function returned null and the breakdown
   // fell back to "Unassigned narrator".
   const result = tallyCharacterWordCounts(

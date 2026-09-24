@@ -92,7 +92,7 @@ function makeIssue({
 
 // Builds a single dialogue span between an open quote and a close quote.
 // We deliberately don't emit "tiny / long / empty" warnings any more —
-// the user only wants one warning, and that's a missing-close that has no
+// the only warning that matters is a missing-close that has no
 // follow-up quote nearby (handled at the block level in detectDialogueSpansInHtml).
 function makeDialogueSpan({
   openQuote,
@@ -138,7 +138,7 @@ export function collectDialogueQuoteMarks(text = '') {
 
 // Find the dialogue spans within a chunk of text. Spans are returned
 // every time we see an open + close pair. We deliberately do NOT emit
-// any per-paragraph issues here — the only warning the user wants
+// any per-paragraph issues here — the only warning that matters
 // ("you forgot a close quote and the next one is far away") is a
 // block-level check done in detectDialogueSpansInHtml.
 export function detectDialogueSpansInText(text = '') {
@@ -191,13 +191,13 @@ export function detectDialogueSpansInText(text = '') {
 // Default: a quote is "orphaned" only when no other quote mark shows up
 // within this many paragraphs after it. Below that we trust the writer —
 // short missing closes within the same paragraph are usually intentional
-// (apostrophes, scare-quotes inside a longer block, etc.) and the user
-// explicitly does not want them flagged.
+// (apostrophes, scare-quotes inside a longer block, etc.) and are
+// intentionally not flagged.
 const DEFAULT_MAX_PARAGRAPH_GAP = 3;
 
 // Walk every quote mark in document order and pair them up. Any open
 // quote whose pair is more than `maxParagraphGap` paragraphs away — or
-// has no pair at all — is what the user wants flagged. Everything else
+// has no pair at all — gets flagged. Everything else
 // (tiny spans, headings that contain quotes, nested dialogue) is silent.
 function findOrphanedOpens(blocks, wordOffsets, maxParagraphGap) {
   const marks = [];
@@ -259,7 +259,7 @@ function orphanIssue(openMark, wordOffsetAtBlock) {
       blocking: false
     }),
     // Block index of the orphaned open. The reader UI uses this to
-    // jump straight into the offending paragraph when the user clicks Fix,
+    // jump straight into the offending paragraph when Fix is clicked,
     // instead of dumping the entire section into the editor.
     blockIndex: openMark.blockIndex
   };

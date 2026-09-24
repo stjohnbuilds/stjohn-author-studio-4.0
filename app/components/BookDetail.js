@@ -1,7 +1,7 @@
 'use client';
 
 // Shared "book detail" page for every mode that opens a project.
-// the user's rule: when you click into a book, every mode should look the
+// Design rule: clicking into a book should look the
 // SAME. Quill's clean look is the baseline: no gradient, simple white
 // rows, mode-toned accent text. Modes that need extra panels (Proof's
 // audio queue, Duet's scan navigator) drop them into the prePanels /
@@ -60,8 +60,7 @@ export default function BookDetail({
 
   // Top padding 56px on Electron clears the custom drag region + macOS
   // traffic-light buttons; 16px on web is plenty. The big sticky banner
-  // is gone — the user's "there does not need to be a banner. There
-  // doesn't need to be a banner. There doesn't need to be a banner."
+  // is gone — it added no information the page didn't already convey.
   // The title now sits at the top of the scrolling content as plain
   // text; the home / profile / settings pills float separately.
   const topPad = usesCustomDragRegion ? 56 : 20;

@@ -6,7 +6,7 @@
 // flag, transcription toggle, follow text, manual sync; Quill: pick
 // audio file).
 //
-// the user's rule: ONE audio dock everywhere. Same look, same controls.
+// Design rule: ONE audio dock everywhere. Same look, same controls.
 // Used by: Quill (file picker + simple playback), Proof (whisper sync
 // + flag + follow text + manual sync extras via the slots).
 //
@@ -99,11 +99,11 @@ export default function AudioDock({
           </div>
         )}
         {audioUrl ? (
-          // the user 2026-05-26: `controlsList` hides the native 3-dot
-          // overflow menu (which is where the misleading "2x speed cap"
-          // lives — macOS browsers cap their built-in speed menu at 2x,
-          // and the user kept seeing that as our limit). Our own Speed
-          // slider below the bar goes to 4x.
+          // `controlsList` hides the native 3-dot overflow menu (which is
+          // where the misleading "2x speed cap" lives — macOS browsers cap
+          // their built-in speed menu at 2x, which reads as a hard limit
+          // even though it isn't). Our own Speed slider below the bar
+          // goes to 4x.
           <audio
             ref={audioRef}
             src={audioUrl}

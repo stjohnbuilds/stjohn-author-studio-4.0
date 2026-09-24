@@ -1,7 +1,7 @@
 // Local tombstones — remember which projects the user just deleted, so
 // the next cloud pull doesn't silently resurrect them.
 //
-// Symptoms before this: the user deletes an audiobook, the cloud delete is
+// Symptoms before this: a user deletes an audiobook, the cloud delete is
 // fire-and-forget, the next focus-pull fetches it back, mergeProjectLists
 // sees a cloud book that's not in local and adds it. The deleted book
 // reappears 10 seconds later. The "sometimes it works" pattern came from
@@ -24,7 +24,7 @@ function key(scope) {
   return `${STORAGE_PREFIX}:${scope}`;
 }
 
-// the user 2026-05-26: store as a list of {id, cloudId} PAIRS so
+// Store as a list of {id, cloudId} PAIRS so
 // clearTombstone({id}) also removes the linked cloudId entry. Old
 // shape was a flat Set<string> mixing both — clearing one wouldn't
 // touch the other, leaving a half-tombstone that the next pull would

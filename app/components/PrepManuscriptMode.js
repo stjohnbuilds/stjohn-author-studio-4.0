@@ -29,9 +29,8 @@ import {
   downloadText,
   exportFileNames,
 } from './prepExport.js';
-// Shared reader chrome. Universal across every mode. If the user wants to
-// change the chapter pill / save badge / sticky bar everywhere, this is
-// the one file to edit.
+// Shared reader chrome, used by every mode. To change the chapter pill,
+// save badge, or sticky bar everywhere, this is the one file to edit.
 import {
   READER_WIDTH,
   READER_PAGE_BG,
@@ -69,11 +68,11 @@ const SaveBadge = (props) => <SharedSaveBadge {...props} tone={TONE} />;
 const StickyTopBar = (props) => <SharedStickyTopBar {...props} tone={TONE} />;
 const HomeBackPill = (props) => <SharedHomeBackPill {...props} tone={TONE} />;
 
-// Ten pastels in the order the user wants — pink first, then warm tones,
-// then cool tones. These are the BASE colors for each character chip;
-// side voices get progressively darker shades of the chosen base via
-// darkenHex() so a character + side voice still visually relate.
-// the user can override any chip's base via the colour picker.
+// Ten pastels ordered pink first, then warm tones, then cool tones.
+// These are the BASE colors for each character chip; side voices get
+// progressively darker shades of the chosen base via darkenHex() so a
+// character and its side voice still visually relate. Any chip's base
+// color can be overridden via the colour picker.
 // Palette + nextPaletteColor now live in app/lib/characterPalette.js so
 // Proof + Prep + the Setup wizard share ONE source of truth. Import is
 // above; the constants are re-used by name throughout this file.
@@ -102,8 +101,8 @@ function colorForAssignment(character, sideVoice) {
 // (mostly &amp;, &lt;, &gt;, &quot;, plus &#NNNN; numeric refs for
 // smart quotes and ellipses). The dialogue engine decodes these on
 // its side, so without matching decoding here the indexOf fails and
-// affected dialogues never render — that's the bug that made Next
-// "lose connection" mid-chapter for the user.
+// affected dialogues never render — that was the root cause of the
+// reader appearing to stall partway through a chapter.
 function decodeHtmlEntities(s = '') {
   return String(s).replace(
     /&#(\d+);|&#x([0-9a-fA-F]+);|&(amp|lt|gt|quot|apos|nbsp);/g,
@@ -211,11 +210,11 @@ function projectCounts(project) {
 // a character name (fuzzy), that character becomes the "active" attribution
 // for all text following it — until the next character-named heading.
 //
-// the user's spec: "let's say vandal and crescent, and it detects vandal in
-// a head of one, then it will go until it finds crescent in a head of one,
-// and that's the amount of words it would count. But if there's nothing
-// in the header ones for the names, then you look for head of twos. And
-// maybe even just to cover any funny formats, maybe it looks at both."
+// The rule: text is attributed to whichever character's name most
+// recently appeared as a heading, until the next character-named
+// heading is reached. Character names are checked in H1 headings
+// first; if none of the H1s name a character, H2s are checked
+// instead, to cover manuscripts that format headings differently.
 // Walking ALL heading levels at once does exactly that — H1 character
 // headings win if present; H2/H3 headings cover the case where chapters
 // are H1 and scenes are H2.
@@ -367,8 +366,8 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   // ---- import: ImportFlow drives the upload + chapter picker. This
   // commit step turns its payload into a Prep project (one section per
   // chapter — Prep doesn't sub-split) and runs dialogue detection in
-  // the background so the user can already be poking around the book
-  // detail screen while it scans.
+  // the background so the book detail screen is already usable while
+  // it scans.
   async function commitImport(payload) {
     const sourceDocxBase64 = payload.sourceDocxBase64 || '';
     const chapters = (payload.chapters || []).map((ch, i) => ({
@@ -396,14 +395,14 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       fileName: payload.fileName || '',
       importedAt: replacing ? replacing.importedAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      // Preserve characters across a replace so the user doesn't lose her
-      // cast when she swaps a corrected manuscript in.
+      // Preserve characters across a replace so the cast list survives
+      // swapping in a corrected manuscript.
       characters: replacing ? (replacing.characters || []) : [],
       chapters,
       sourceDocxBase64,
-      // the user 2026-05-26: PDF page map from auto-scan during import.
-      // Preserved on replace so the user doesn't need to re-scan when
-      // swapping in a corrected .docx.
+      // PDF page map from auto-scanning during import. Preserved on
+      // replace so swapping in a corrected .docx doesn't require
+      // re-scanning.
       pdfPaging: payload.pdfPaging || (replacing ? replacing.pdfPaging : null),
       pdfFileName: payload.pdfFileName || (replacing ? replacing.pdfFileName : '') || '',
       pdfSource: payload.pdfSource || (replacing ? replacing.pdfSource : null) || null,
@@ -485,7 +484,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   function addCharacter(prefill = {}) {
     // Generate the id synchronously so the caller can immediately
     // assign the currently-selected dialogue to the new character —
-    // the user expects "add character" inside the reader to assign that
+    // "add character" inside the reader is expected to assign that
     // character to the selected line in one step.
     const newId = uid('char');
     updateActive((p) => {
@@ -520,8 +519,8 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
 
   // Remove a chapter from the active project. Re-numbers everything
   // afterwards so the remaining chapters become 1..N. Used by the
-  // "Edit chapters" cog in the book detail — the user accidentally left
-  // a chapter in on import and didn't want to re-import to fix it.
+  // "Edit chapters" cog in the book detail, so an unwanted chapter
+  // picked up on import can be dropped without a full re-import.
   function removeChapter(chapterIndex) {
     updateActive((p) => {
       const filtered = (p.chapters || []).filter((ch) => ch.chapterIndex !== chapterIndex);
@@ -572,9 +571,9 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   }
 
   // ---- in-place section edit (used by the "Fix missing quote" affordance).
-  // the user clicks Fix on a warning, edits the paragraphs to insert the
-  // missing close quote, hits Save. We update section.html, rerun
-  // dialogue detection, and ALSO log the edit on the section so the
+  // Clicking Fix on a warning and editing the paragraph to insert the
+  // missing close quote, then saving, updates section.html, reruns
+  // dialogue detection, and ALSO logs the edit on the section so the
   // export can replay it into the source .docx — without that the
   // exported file still has the original missing quote.
   function updateSectionHtml(chapterIndex, sectionIndex, newHtml, edit) {
@@ -594,8 +593,8 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
             // (SAS-AUD-20260602-005, Block 5.)
             const mergedSpans = mergeDialogueAssignmentsByOccurrence(sec.dialogueSpans, nextSpans);
             // Append the paragraph edit to a side-list so the export can
-            // replay it onto the original .docx. We dedupe by oldText to
-            // keep the list small if the user edits the same paragraph
+            // replay it onto the original .docx. Deduped by oldText to
+            // keep the list small when the same paragraph is edited
             // repeatedly.
             const existingEdits = (sec.manualEdits || []).filter((e) => e.oldText !== edit?.oldText);
             const nextEdits = edit && edit.oldText && edit.newText && edit.oldText !== edit.newText
@@ -658,10 +657,10 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         sections: (ch.sections || []).map((sec) => ({
           title: sec.title,
           html: sec.html || '',
-          // Paragraph-level edits the user made via the Fix button — these
-          // need to be replayed onto the source .docx during export so
-          // the inserted close-quotes (and any other paragraph tweaks)
-          // show up in the file she downloads.
+          // Paragraph-level edits made via the Fix button — these need
+          // to be replayed onto the source .docx during export so the
+          // inserted close-quotes (and any other paragraph tweaks) show
+          // up in the downloaded file.
           manualEdits: (sec.manualEdits || []).map((e) => ({ oldText: e.oldText, newText: e.newText })),
           dialogueSpans: (sec.dialogueSpans || []).map((sp) => ({
             text: sp.text,
@@ -705,8 +704,8 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           - home: the 4-mode tab switcher (passed in as modeToggle)
           - bookDetail/setup: ⌂ icon → go to home (project list)
           - reader: ← icon → go back to the book detail
-          the user wanted the container to stay put and only the icon to
-          change between modes; that's why the pill is rendered up here
+          The container stays in the same place across views and only
+          the icon changes; that's why the pill is rendered up here
           instead of inside each child view. */}
       {view === 'home' && modeToggle}
       {(view === 'bookDetail' || view === 'setup') && (
@@ -829,7 +828,6 @@ function currentSpanFor(project, chapterIndex, selected) {
 function HomeView({ allProjects, onOpenProject, onDelete, onStartImport, error }) {
   const sorted = [...allProjects].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   // ? info modal + image header — mirrors Duet's pattern in PrebuildMode.js.
-  // the user 2026-05-26: "copy DUET which already has one, that exactly."
   // headerImageOk: until the green PNG (script-and-sync-header-for-prep.png)
   // is dropped into public/branding/, fall back to a plain text title so no
   // broken-image icon is shown.
@@ -977,8 +975,8 @@ function BookDetailView({
         const character = isNarrator ? null : (project.characters || []).find((c) => c.name === key);
         return {
           key,
-          // the user 2026-06-06: "Unsure" reads clearer than "Narrator"
-          // for the unattributed-words bucket. Real narrators have names.
+          // "Unsure" reads clearer than "Narrator" for the
+          // unattributed-words bucket — real narrators have names.
           label: isNarrator ? 'Unsure' : key,
           narrator: character?.narratorName || (isNarrator ? 'Unsure' : key),
           color: character?.colorHex || null,
@@ -1014,9 +1012,9 @@ function BookDetailView({
           {onExportNarratorCsv && <button type="button" onClick={onExportNarratorCsv} style={pillBtn()}>Narrators CSV</button>}
         </section>
 
-        {/* the user 2026-05-26: page-numbering banner, mirroring the one in
-            SessionsView. Same three states (green / amber / yellow) with
-            an Upload PDF button so Prep matches the other modes. */}
+        {/* Page-numbering banner, mirroring the one in SessionsView.
+            Same three states (green / amber / yellow) with an Upload
+            PDF button so Prep matches the other modes. */}
         {(() => {
           const pdfPages = project.pdfPaging?.pages?.length || 0;
           const printedCount = project.pdfPaging?.printedPageCount || 0;
@@ -1040,9 +1038,9 @@ function BookDetailView({
                 const extracted = await window.electron.extractPdfPaging({ fileName: file.name, data: new Uint8Array(ab), pageOffset: 0 });
                 if (extracted?.pages?.length && onUpdatePaging) {
                   const suggested = Number(extracted.suggestedAdjustment) || 0;
-                  // the user 2026-05-26: build the slim word-index → page
-                  // map right here so the post-import PDF upload gives
-                  // the same answer the import-time path does.
+                  // Build the slim word-index → page map right here so
+                  // the post-import PDF upload gives the same answer
+                  // the import-time path does.
                   let pdfPageMap = null;
                   try {
                     const allWords = [];
@@ -1149,8 +1147,9 @@ function BookDetailView({
               // Pills for the characters whose names appear as headings
               // inside this chapter (in document order). Pulls colour
               // from each character's saved hex — so Vandle yellow,
-              // Crescent green, exactly as the user spec'd. Per-character
-              // word count comes from the same analysis pass.
+              // Crescent green, matching each character's own colour.
+              // Per-character word count comes from the same analysis
+              // pass.
               const chTallies = chapterAnalyses[i]?.analysis?.wordTallies || {};
               const chapterCharNames = chapterAnalyses[i]?.analysis?.headingCharacters || [];
               const chapterCharPills = chapterCharNames
@@ -1383,11 +1382,11 @@ function ReaderView({
   const chapterPct = chapterCount.total === 0 ? 0 : Math.round((chapterCount.assigned / chapterCount.total) * 100);
   const orderedIdx = project.chapters.map((c) => c.chapterIndex).sort((a, b) => a - b);
   const navPos = orderedIdx.indexOf(activeChapterIndex) + 1;
-  // The source heading (e.g. "Chapter 2" because she deselected the
-  // original first chapter on import) only goes in the subtitle if it
+  // The source heading (e.g. "Chapter 2" because the original first
+  // chapter was deselected on import) only goes in the subtitle if it
   // would tell us something different from the navigation number.
-  // Otherwise we'd be showing "Chapter 1 · Chapter 2", which is the
-  // exact thing she said confused her.
+  // Otherwise it would show "Chapter 1 · Chapter 2", which reads as
+  // confusing rather than informative.
   const sourceTitle = chapter?.title || '';
   const navTitle = `Chapter ${navPos} of ${orderedIdx.length}`;
   const showSourceTitle = sourceTitle && sourceTitle.toLowerCase() !== `chapter ${navPos}`.toLowerCase();
@@ -1504,7 +1503,7 @@ function SectionBody({
       )}
       {blocks.map((block, bi) => {
         // If this block is being fixed, swap it for the paragraph editor
-        // (in place — the user keeps the rest of the section as context).
+        // (in place, keeping the rest of the section visible as context).
         // We still need to walk spanCursor past any spans that live in
         // this paragraph, otherwise the next paragraph's render starts
         // searching for the wrong spans and nothing else lights up.
@@ -1571,7 +1570,7 @@ function SectionBody({
         // Use left alignment instead of justify — justify combined with
         // inline-block dialogue buttons caused huge gaps in the
         // surrounding text and made long dialogues balloon onto their
-        // own line (the screenshot the user sent in 05-25 testing).
+        // own line (caught during testing).
         const style = block.isHeading
           ? { fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-muted)', margin: '24px 0 12px 0', textAlign: 'center', fontStyle: 'italic' }
           : { margin: '0 0 0.6em 0', textIndent: '1.6em', textAlign: 'left' };
@@ -1628,8 +1627,8 @@ function SectionBody({
 }
 
 // One-paragraph editor that pops up where the warning paragraph used
-// to be. the user types the missing close quote (or any other fix) and
-// hits Save. We keep the rest of the section's text intact.
+// to be — type the missing close quote (or any other fix) and hit
+// Save. The rest of the section's text stays intact.
 function ParagraphFixer({ block, onCancel, onSave }) {
   const [text, setText] = useState(block.text);
   const ref = useRef(null);
@@ -1808,7 +1807,7 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
             const newId = onAdd(payload);
             // If we're in the reader (mode === 'assign') and there's a
             // dialogue selected, auto-assign the brand-new character to
-            // it so the user doesn't have to click again.
+            // it so an extra click isn't needed.
             if (mode === 'assign' && onAssignCharacter && newId) {
               onAssignCharacter(newId);
             }

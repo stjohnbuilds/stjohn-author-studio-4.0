@@ -74,7 +74,7 @@ export async function pushQuillProject(supabase, project, ownerId) {
 
   // 2) Upsert chapters (replace strategy).
   //
-  // GUARD (the user 2026-07-24): never let a blank local alignment overwrite
+  // GUARD: never let a blank local alignment overwrite
   // good timing already in the cloud. While the database was asleep the app
   // held empty alignment in memory, and the next save wrote [] straight over
   // the real word-timing — that is exactly how "Sweetheart" lost its timing
@@ -262,7 +262,7 @@ export async function pullQuillProjects(supabase) {
     // (slimProjectForCloud preserves it). Merge it back so the chapter
     // tick syncs phone ↔ desktop without needing a schema migration.
     const desktopBlob = (p.desktop_project && typeof p.desktop_project === 'object') ? p.desktop_project : null;
-    // the user 2026-05-26 — merge BACK the per-chapter transcription
+    // Merge BACK the per-chapter transcription
     // metadata that lives in the desktop_project blob. The dedicated
     // quill_chapters table only stores alignment + audio_file_name
     // (+ position, title, html). The other transcription metadata
@@ -271,7 +271,7 @@ export async function pullQuillProjects(supabase) {
     // Without this merge, `isChapterTranscriptionCurrent` in
     // SessionsView rejects the chapter on first render after sign-in
     // (because the keys are missing) and the ✓ Synced tick disappears.
-    // Bug the user reported: "transcription tick gone after logout/login."
+    // Bug: the transcription tick disappeared after logout/login.
     const blobChaptersById = new Map();
     const completedById = new Map();
     for (const dch of (desktopBlob?.chapters || [])) {

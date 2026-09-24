@@ -1,8 +1,8 @@
 // Phone audio matching helpers — ported from the v1 Studio phone
-// (`phone-audio-library.js`). Used when the user picks a folder of audio
-// files on her phone: each chapter's `audioFileName` is matched against
-// what's in the folder so the right audio loads when she opens that
-// chapter. Exact-filename match first; stem match second; loose
+// (`phone-audio-library.js`). Used when a folder of audio files is
+// picked on the phone: each chapter's `audioFileName` is matched
+// against what's in the folder so the right audio loads when that
+// chapter opens. Exact-filename match first; stem match second; loose
 // substring third.
 //
 // Audio files NEVER leave the phone. Only the filename travels (from

@@ -20,7 +20,7 @@ const plainText = [
   'Cassian laughed because the broken crown glittered anyway.',
   'The repeated promise waited in the dark.',
   'He paused (uncertain) before the cliff edge.',
-  "Don't go yet [she said].",
+  "Don't go yet [he said].",
 ].join(' ');
 
 const projectOptions = [
@@ -74,7 +74,7 @@ test('ExtendScript compatibility — no ES6+ tokens that the engine cannot parse
 });
 
 test('IIFE wrapper isolates state — no globals leak across reruns', () => {
-  // Script must wrap in a (function(){ ... }()) so the user can run it twice
+  // Script must wrap in a (function(){ ... }()) so it can run twice
   // without "already declared" errors.
   assert.match(jsx, /\(function \(\) \{[\s\S]*\}\(\)\);\s*$/);
 });
@@ -160,7 +160,7 @@ test('Each placed annotation is tagged with its id for later lookup', () => {
 });
 
 test('Final alert reports applied / missing / duplicate counts', () => {
-  // the user needs visible feedback when annotations did not land.
+  // Visible feedback is needed when annotations did not land.
   assert.match(jsx, /"Applied: " \+ placed/);
   assert.match(jsx, /"Missing: " \+ missing\.length/);
   assert.match(jsx, /"Duplicate text matches: " \+ ambiguous\.length/);

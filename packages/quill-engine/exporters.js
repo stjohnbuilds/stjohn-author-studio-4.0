@@ -1,7 +1,7 @@
 // CSV + InDesign exporters. Ported from the quill-and-ink alpha at
 // packages/exporters/src/csv/build-csv.js and packages/exporters/src/indesign/build-jsx.js.
 //
-// The InDesign script is what the user opens in InDesign and runs against
+// The InDesign script is opened in InDesign and run against
 // the matching layout — it walks the document with GREP search, applies
 // a character style per annotation, and inserts [INSERT IMG] / [name]
 // markers where needed.
@@ -534,7 +534,7 @@ function docTextRun(text, fillHex = '') {
   return `<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
 }
 
-// One fact per line — the user's "enters". A comment is only created when
+// One fact per line, using hard returns. A comment is only created when
 // there's a Label or Note worth reading; a bare highlight just gets its
 // colour, no marker.
 function annotationCommentLines(annotation = {}) {

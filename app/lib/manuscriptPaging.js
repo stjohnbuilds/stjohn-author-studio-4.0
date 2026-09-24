@@ -124,9 +124,9 @@ export function extractRenderedPageMapFromDocxXml(documentXml) {
 }
 
 export function annotateManuscriptPositions(chapters, options = {}) {
-  // the user 2026-05-26: PDF-rendered page map is the ONLY accepted source.
-  // No more 250-words-per-page estimates. When the rendered map is
-  // missing, exactPageStart/End come back null and the UI flags it.
+  // PDF-rendered page map is the ONLY accepted source. No more
+  // 250-words-per-page estimates. When the rendered map is missing,
+  // exactPageStart/End come back null and the UI flags it.
   const pageMap = normalizePageMap(options.pageMap, options.startPageNumber || 1);
   const hasExactPageMap = Array.isArray(options.pageMap) && options.pageMap.length > 1;
   let wordCursor = 0;
@@ -173,7 +173,7 @@ export function annotateManuscriptPositions(chapters, options = {}) {
 export function normalizeBookPaging(book) {
   if (!book || !Array.isArray(book.chapters)) return book;
 
-  // the user 2026-05-26: PDF-rendered page map is the ONLY accepted source.
+  // PDF-rendered page map is the ONLY accepted source.
   const pageMap = Array.isArray(book.manuscriptPaging?.pageMap) ? book.manuscriptPaging.pageMap : null;
   const paging = annotateManuscriptPositions(book.chapters, {
     pageMap,

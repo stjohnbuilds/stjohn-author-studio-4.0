@@ -139,8 +139,8 @@ export function hasFlagQueue(projectId) {
 }
 
 // Total count of pending writes (saves + deletes) for a project. Used by
-// the phone's persistent "X flags waiting to sync" banner so the user can
-// see when something's stuck.
+// the phone's persistent "X flags waiting to sync" banner so it's
+// visible when something's stuck.
 export function countFlagQueue(projectId) {
   const q = loadFlagQueue(projectId);
   return Object.keys(q.pending || {}).length + Object.keys(q.deleted || {}).length;

@@ -1,8 +1,7 @@
 'use client';
 
 // Line-style SVG icons. No external dep. Use these instead of emojis
-// for action buttons (the user 2026-06-04: "all icons … line, clean
-// icons, not emojis").
+// for action buttons.
 //
 // Each icon takes { size = 16, stroke = 'currentColor', ...props }.
 // Color comes from the surrounding text, so they just work inside any

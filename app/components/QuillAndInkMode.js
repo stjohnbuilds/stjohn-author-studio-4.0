@@ -407,7 +407,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   const [saveStatus, setSaveStatus] = useState('idle');
   // Per-chapter audio attachments. Lives in memory only (blob URLs don't
   // survive reload). Key = chapterId; value = { url, fileName, file }.
-  // the user's rule: audio NEVER touches Supabase. Stays on this device.
+  // Audio never leaves the device; it is not synced to Supabase.
   const [chapterAudios, setChapterAudios] = useState({});
   // Per-chapter transcription state — alignment from whisper, sync table
   // for audio↔word mapping, progress UI. { alignment, syncTable, progress, status }
@@ -436,8 +436,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       const syncTable = buildDirectSyncTable(alignment);
       setChapterTranscripts((prev) => ({ ...prev, [chapterId]: { status: 'done', progress: 100, alignment, syncTable } }));
 
-      // the user 2026-05-26 CRITICAL FIX — the "transcription tick disappears
-      // after 0.5 seconds" bug had two parts:
+      // Fix for the "transcription tick disappears after 0.5 seconds"
+      // bug, which had two parts:
       //   (1) runTranscribe only updated in-memory chapterTranscripts.
       //       Never wrote alignment into `allProjects`. So nothing
       //       persisted to disk or cloud, and any re-render that
@@ -447,7 +447,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       //       `name:<normText(fileName)>` format AND whisperTextHash =
       //       hashText(section.html). If they don't match, the tick
       //       silently flips back to "not current" within one render.
-      //       The previous version of this fix saved a raw filename
+      //       An earlier version of this fix saved a raw filename
       //       (no prefix) — the format mismatch is what wiped the tick.
       const transcribedAt = new Date().toISOString();
       const whisperTranscript = result?.transcript || whisperWords.map((w) => w?.word || w?.text || '').join(' ').trim();
@@ -504,8 +504,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   // background. Previously `setHydrated(true)` lived in a `finally`
   // that waited for the cloud pull to finish, so the user saw a blank
   // screen for as long as Supabase took to respond. With N projects
-  // and a slow connection this was the "Quill takes forever to load"
-  // bug the user reported.
+  // and a slow connection this was the cause of a "Quill takes forever
+  // to load" bug.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -514,7 +514,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       setAllProjects(local);
       // Rebuild the in-memory audio map from each chapter's persisted
       // audioPath, so a full app restart still plays attached audio
-      // without the user re-picking the file. Audio paths only persist on
+      // without needing the file re-picked. Audio paths only persist on
       // disk (audio-guard strips them before any cloud push), so we
       // only ever rebuild from local-loaded projects.
       const rebuiltRuntime = await buildRuntimeState(local);
@@ -533,8 +533,8 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         // Successful pull (even empty) clears any prior error banner.
         setCloudPullError('');
         // Drop anything the user has tombstoned, and re-issue cloud
-        // delete for ids that came back. This is what fixes the user's
-        // "delete doesn't really stick" bug.
+        // delete for ids that came back. This is what fixes a "delete
+        // doesn't really stick" bug.
         const cloudProjects = applyTombstonesToCloudList('quill', rawCloudProjects, supabase, deleteQuillProject);
         // Always merge — even an empty cloud list — so cross-device
         // remote-delete prunes local cloud-owned projects. Block 1's
@@ -666,7 +666,7 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       chapters,
       annotations: [],
       annotationOptions: [],
-      // the user 2026-05-26: PDF page map from auto-scan during import.
+      // PDF page map from auto-scanning during import.
       pdfPaging: payload.pdfPaging || null,
       pdfFileName: payload.pdfFileName || '',
       pdfSource: payload.pdfSource || null, // 'user-pdf' | 'libreoffice' | null
@@ -705,12 +705,12 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
   }
 
   // ----- export from book detail -----
-  // the user 2026-05-29: "Export all" bundles Word + CSV + InDesign into ONE
-  // .zip download. A single file is guaranteed to contain all three — no
-  // risk of back-to-back downloads dropping one (the old "CSV + InDesign"
-  // button only ever saved the CSV). CSV + InDesign always go in; the Word
-  // doc is added too, but if it ever fails to build the zip still ships
-  // with the other two rather than failing the whole export.
+  // "Export all" bundles Word + CSV + InDesign into ONE .zip download.
+  // A single file is guaranteed to contain all three — no risk of
+  // back-to-back downloads dropping one (the old "CSV + InDesign"
+  // button only ever saved the CSV). CSV + InDesign always go in; the
+  // Word doc is added too, but if it ever fails to build the zip still
+  // ships with the other two rather than failing the whole export.
   async function exportAll() {
     if (!activeProject) return;
     const safe = safeFileName(activeProject.title);
@@ -753,10 +753,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
       alert('Sorry — the Word export hit a snag. Your CSV and InDesign exports still work.');
     }
   }
-  // the user 2026-05-26: SAFETY NET — download the full project as JSON
-  // (annotations + chapter html + characters + audio file names) so a
-  // mid-session crash, sign-out bug, or rogue cloud merge can never
-  // wipe her annotation work. The dump is the literal shape Quill reads
+  // SAFETY NET — download the full project as JSON (annotations +
+  // chapter html + characters + audio file names) so a mid-session
+  // crash, sign-out bug, or rogue cloud merge can never wipe
+  // annotation work. The dump is the literal shape Quill reads
   // back — restore by placing it at:
   //   ~/Documents/StJohn Author Studio/Save Data/quill-projects.json
   // (replacing or merging into the existing array).
@@ -841,10 +841,10 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
         const persistedAudioPath = getChapterStoredAudioPath(ch) || '';
         const persistedAudioPaths = ch.audioPaths || null;
         const sectionHtml = ch.textHtml || ch.html || '';
-        // the user 2026-05-26 — match SessionsView.getSectionAudioKey
-        // format exactly (`path:<storedPath>` or `name:<normText>`),
-        // otherwise SessionsView's isChapterTranscriptionCurrent
-        // rejects the chapter and the ✓ Synced tick vanishes.
+        // Must match SessionsView.getSectionAudioKey format exactly
+        // (`path:<storedPath>` or `name:<normText>`), otherwise
+        // SessionsView's isChapterTranscriptionCurrent rejects the
+        // chapter and the ✓ Synced tick vanishes.
         const normalizedFallbackName = String(persistedAudioName || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
         const fallbackAudioKey = persistedAudioPath
           ? `path:${persistedAudioPath}`
@@ -934,9 +934,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               //    on the phone.
               // 3. audioPath / audioPaths on each chapter — LOCAL ONLY.
               //    audio-guard.js strips these before any cloud push, so
-              //    they stay on this device. Saving them means the user's
-              //    attached audio survives a full app restart without
-              //    re-picking the file.
+              //    they stay on this device. Saving them means attached
+              //    audio survives a full app restart without re-picking
+              //    the file.
               // 4. whisper alignment/transcript metadata — saved locally
               //    and pushed as small structured rows for the phone.
               // 5. chapterAudios in-memory map for the live blob URL
@@ -1052,9 +1052,9 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportDocx}>Word .docx only</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportCsv}>CSV only</button>
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportJsx}>InDesign .jsx only</button>
-              {/* the user 2026-05-26: raw JSON safety-net backup. Click any
-                  time mid-session — re-importable later if anything
-                  in the app, cloud, or local file gets corrupted. */}
+              {/* Raw JSON safety-net backup. Click any time mid-session
+                  — re-importable later if anything in the app, cloud,
+                  or local file gets corrupted. */}
               <button type="button" style={topBtnStyle('quill', 'outline')} onClick={exportProjectBackup} title="Save the full raw project (annotations, characters, chapter HTML) as a JSON backup">💾 Backup (raw JSON)</button>
             </>
           )}
@@ -1086,7 +1086,6 @@ export default function QuillAndInkMode({ modeToggle, usesCustomDragRegion }) {
 
 function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
   // ? info modal + image header — mirrors Duet's pattern in PrebuildMode.js.
-  // the user 2026-05-26: "copy DUET which already has one, that exactly."
   // headerImageOk: until the pink PNG (quill-and-ink-header.png) is dropped
   // into public/branding/, fall back to a plain text title so no broken-image
   // icon is shown.
@@ -1179,7 +1178,7 @@ function QuillHomeView({ projects, onOpen, onNew, cloudPullError }) {
 
         {projects.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 'min(46vh, 420px)', overflowY: 'auto', paddingRight: 4 }}>
-            {/* Last-touched first. the user 2026-05-26: same as Proof + Phone. */}
+            {/* Last-touched first, same as Proof + Phone. */}
             {[...projects].sort((a, b) => {
               const at = Date.parse(a?.updatedAt || '') || Number(a?.updatedAt) || 0;
               const bt = Date.parse(b?.updatedAt || '') || Number(b?.updatedAt) || 0;
@@ -1285,8 +1284,8 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   ) : null;
 
   // Audio is attached at the BOOK DETAIL level, per chapter. The parent
-  // owns the audio state; this view just consumes the prop. the user's
-  // rule: audio NEVER leaves the device.
+  // owns the audio state; this view just consumes the prop. Audio never
+  // leaves the device.
   const audioUrl = chapterAudio?.url || null;
   const audioFileName = chapterAudio?.fileName || '';
 
@@ -1296,10 +1295,10 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   const syncScrollWordRef = useRef(-1);
   const [currentMsIdx, setCurrentMsIdx] = useState(-1);
   const [followText, setFollowText] = useState(true);
-  // the user 2026-05-26: T (transcription sync) on/off toggle — parity with
-  // Proof's player. When OFF, audio scrubbing falls back to plain time
-  // (no whisper alignment lookup, no current-word highlight). Default
-  // ON since the user always wants sync if a transcription exists.
+  // T (transcription sync) on/off toggle — parity with Proof's player.
+  // When OFF, audio scrubbing falls back to plain time (no whisper
+  // alignment lookup, no current-word highlight). Default ON, since
+  // sync is wanted whenever a transcription exists.
   const [useWhisperSync, setUseWhisperSync] = useState(true);
 
   // Search inside chapter — same shape as Proof's ChapterSearchBar.
@@ -1347,9 +1346,9 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
     const el = audioRef.current;
     if (!el) return;
     if (!syncTable || syncTable.length < 4) return;
-    // the user 2026-05-26: if the user turned the T (transcription sync)
-    // toggle OFF, stop updating currentMsIdx and clear it. The audio
-    // still plays normally — just no word highlight chases it.
+    // If the T (transcription sync) toggle is OFF, stop updating
+    // currentMsIdx and clear it. The audio still plays normally — just
+    // no word highlight chases it.
     if (!useWhisperSync) {
       setCurrentMsIdx(-1);
       return;
@@ -1694,7 +1693,7 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
   // — text-decoration spans inline content INCLUDING the trailing
   // whitespace, so adjacent annotated words appear as one band, not
   // N broken stripes. Image annotations get a pastel pink wash
-  // (was red — the user hated red). Anything else with a colour gets a
+  // (changed from an earlier red). Anything else with a colour gets a
   // tinted background. useCallback so ChapterReader's render memo
   // stays stable.
   const searchHitsSet = useMemo(() => new Set(searchHits), [searchHits]);
@@ -1802,10 +1801,10 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
 	            onSpeedChange={handleSpeedChange}
 	            rightActions={syncTable && syncTable.length >= 4 ? (
 	              <>
-	                {/* the user 2026-05-26: matches Proof's "T" transcription
-	                    toggle exactly. Replaces the old passive ✓ Synced
-	                    badge. ON = current word follows audio playback;
-	                    OFF = audio scrubs by time only. */}
+	                {/* Matches Proof's "T" transcription toggle exactly.
+	                    Replaces the old passive ✓ Synced badge. ON =
+	                    current word follows audio playback; OFF = audio
+	                    scrubs by time only. */}
 	                <button
 	                  type="button"
 	                  onClick={() => setUseWhisperSync((v) => !v)}
@@ -1988,14 +1987,14 @@ function QuillReaderView({ project, chapterId, onChangeChapter, onBack, saveStat
         </div>
       )}
 
-      {/* Bottom annotation dock — the user wanted the list at the BOTTOM,
-          not in a right-hand sidebar. Chips scroll horizontally so a
-          chapter with lots of annotations still fits in a single row.
-          the user 2026-05-26: when audio is attached, stack ABOVE the
-          AudioDock (which is also fixed at bottom) — otherwise this
-          strip was hiding AudioDock's Speed slider, Jump chips, T
-          toggle, and Follow-text button. They were rendering but
-          covered. AudioDock is ~120px tall when fully rendered. */}
+      {/* Bottom annotation dock — the list sits at the BOTTOM, not in
+          a right-hand sidebar. Chips scroll horizontally so a chapter
+          with lots of annotations still fits in a single row. When
+          audio is attached, it stacks ABOVE the AudioDock (which is
+          also fixed at bottom) — otherwise this strip was hiding
+          AudioDock's Speed slider, Jump chips, T toggle, and
+          Follow-text button. They were rendering but covered.
+          AudioDock is ~120px tall when fully rendered. */}
       <div
         style={{
           position: 'fixed',

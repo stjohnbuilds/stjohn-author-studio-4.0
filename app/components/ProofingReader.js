@@ -391,7 +391,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   const [activeNarratorLabel, setActiveNarratorLabel] = useState(section.narratorName || section.characterName || 'Narrator');
   // ONE popup for both double-click (single word) and drag-selection
   // (word range): Jump here / Flag here / Download clip, each greyed
-  // out when it doesn't apply. the user: "obviously, just have all three."
+  // out when it doesn't apply. All three actions are always present.
   const [wordAction, setWordAction] = useState(null);
   // Mini preview player under Download clip — plays JUST the clip
   // range through the one shared audio element (no second <audio>).
@@ -559,10 +559,10 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       audio.currentTime = nextStart;
       offRef.current = nextOffset;
       // Per-narrator memory wins over the global default. If this
-      // narrator has been listened-to before, restore the speed the user
+      // narrator has been listened-to before, restore the speed that was
       // last set for them. Otherwise fall back to the global default
       // (which is 1.5 unless the user picked something else in
-      // Settings). [the user 2026-06-04]
+      // Settings).
       const narratorKey = deriveNarratorKey(section, narratorColors);
       narratorKeyRef.current = narratorKey;
       const remembered = getNarratorSpeed(narratorKey, defaultListeningSpeed || DEFAULT_NARRATOR_SPEED);
@@ -886,7 +886,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
   }
 
   function getAutoPageNumber(wordIdx, quoteText){
-    // the user 2026-06-01: ported back the PDF QUOTE SEARCH from Script and
+    // Ported back the PDF QUOTE SEARCH from Script and
     // Sync 3.0, with one enhancement (closest-to-hint tiebreaker when the
     // sentence appears on multiple pages). Content-based lookup survives
     // the count-drift bug in `manuscriptWordStart` that was returning
@@ -1021,7 +1021,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
       const before=inRange?words.slice(sent.start,idx).join(' '):'';
       const afterTxt=inRange?words.slice(idx+1,sent.end+1).join(' '):'';
       sentHtml=inRange?((before?before+' ':'')+'<em class="fw">'+esc(words[idx])+'</em>'+(afterTxt?' '+afterTxt:'')):'';
-      // the user 2026-05-26: collapse any double-spaces inherited from the
+      // Collapse any double-spaces inherited from the
       // source .docx so the quote pastes cleanly into Word / Sheets.
       sentPlain=inRange?words.slice(sent.start,sent.end+1).join(' ').replace(/\s+/g,' ').trim():'';
     }
@@ -1053,7 +1053,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     // we landed on — that matches what the phone already does and is
     // more accurate than audio.currentTime when manual sliding has
     // drifted from the real spoken word. Falls back to currentTime
-    // when no alignment is available. (the user 2026-06-04)
+    // when no alignment is available.
     let flagTs = a.currentTime;
     if (syncTableRef.current.length >= 4) {
       const aligned = getAudioTimeForMsIdx(syncTableRef.current, idx);
@@ -1097,7 +1097,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
     }
     if(s == null || !Number.isFinite(s) || en == null || !Number.isFinite(en) || en <= s) return { startSec: null, endSec: null };
     // 0.6s breathing room each side — transcript times drift, and a
-    // cut-off first word ruins a teaser. the user crops the rest in Canva.
+    // cut-off first word ruins a teaser. The rest is cropped in Canva.
     let startSec = Math.max(0, s - 0.6);
     let endSec = en + 0.6;
     const dur = Number(audioRef.current?.duration);
@@ -1625,7 +1625,7 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
               style={{ width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px',fontSize:'0.875rem',lineHeight:1.6,fontFamily:'inherit',background:'white',outline:'none',resize:'vertical' }}
             />
           </div>
-          {/* the user 2026-05-26: HARD warning when page lookup failed.
+          {/* HARD warning when page lookup failed.
               Fires only when BOTH the manuscript word-index map AND
               the PDF page lookup couldn't determine the page. */}
           {flagDraft?.page === '?' && (
@@ -1783,8 +1783,8 @@ export default function ProofingReader({ section, audioUrl, narratorColors, manu
         .reader-text h3{font-size:0.95rem;font-weight:600;margin:0.9rem auto 0.45rem;text-align:center}
         .reader-text p{margin-bottom:0.58rem}.reader-text strong{font-weight:600}
         .fw{font-style:normal;font-weight:700;color:#c4514a}
-        /* True Word-highlighter colours (the user 2026-07-08: "keep the
-           highlight colours the same as the import doc"). Dark ones get
+        /* True Word-highlighter colours (matches the import doc's
+           highlight colours exactly). Dark ones get
            white text so words stay readable, like light-on-dark in Word. */
         .reader-text .hl-yellow{background:#FFFF00}.reader-text .hl-green{background:#00FF00}
         .reader-text .hl-cyan{background:#00FFFF}.reader-text .hl-magenta,.reader-text .hl-pink{background:#FF00FF}

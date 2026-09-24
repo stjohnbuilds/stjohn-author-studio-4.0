@@ -1,5 +1,6 @@
-// Remembers which audio folder the user picked for each book, so the phone can
-// offer to reload it instead of forgetting every time she reopens the app.
+// Remembers which audio folder was picked for each book, so the phone
+// can offer to reload it instead of forgetting every time the app is
+// reopened.
 //
 // What we store (per user + book), and nothing more:
 //   • folderName — for display ("Last folder: X")
@@ -9,8 +10,8 @@
 //                  supports it (Chrome / Android). IndexedDB can persist
 //                  these; on return we re-check permission and re-read the
 //                  files. iOS Safari has no such API, so there's no handle
-//                  and the user re-picks (one tap) — we still show her the
-//                  remembered folder name + file count.
+//                  and the folder must be re-picked (one tap) — the
+//                  remembered folder name + file count still show.
 //
 // Audio bytes are NEVER stored — only the name + a handle/pointer. The audio
 // still lives only on the phone, exactly like before. (Matches the app rule:
@@ -108,7 +109,7 @@ export async function clearAudioFolderMemory(userId, audioKey) {
 }
 
 // Pull every audio File out of a directory handle (this folder + a few
-// nested levels, in case the user's audio sits in subfolders).
+// nested levels, in case the audio sits in subfolders).
 export async function readAudioFilesFromDirHandle(handle) {
   const files = [];
   if (!handle || typeof handle.values !== 'function') return files;

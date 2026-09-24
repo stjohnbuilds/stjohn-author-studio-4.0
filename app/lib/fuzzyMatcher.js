@@ -198,7 +198,7 @@ export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBou
   const wLen = whisperWords.length;
   if (!msLen || !wLen) return new Array(msLen).fill(null);
 
-  // the user 2026-06-01: `skipMsIndices` is an optional Set of manuscript-
+  // `skipMsIndices` is an optional Set of manuscript-
   // word positions that the matcher must NOT try to match against the
   // transcript. Used by Duet, where highlighted dialogue belongs to a
   // second narrator who hasn't recorded yet — those words exist in the
@@ -262,7 +262,7 @@ export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBou
     const jMin = Math.max(1, jCenter - BAND);
     const jMax = Math.min(wLen, jCenter + BAND);
 
-    // the user 2026-06-01: if the ms word at (i-1) is highlighted (second
+    // If the ms word at (i-1) is highlighted (second
     // narrator's line, not in the audio), force the path through this
     // row to ALWAYS skip it. The trace records "up" (skip ms word) at
     // every cell in the band, with NO cost — it's an expected absence,
@@ -354,7 +354,7 @@ export function alignTranscriptToManuscript(msWords, whisperWords, msSentenceBou
   for (let mi = 0; mi < msLen; mi++) {
     if (alignment[mi]) continue;
     if (!msNorm[mi]) continue;
-    // the user 2026-06-01: highlighted ms words have no partner in the
+    // Highlighted ms words have no partner in the
     // audio — don't try to interpolate one for them.
     if (isSkipped(mi)) continue;
 

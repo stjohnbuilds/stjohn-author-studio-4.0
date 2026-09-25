@@ -94,7 +94,7 @@ function normText(s) {
 
 // Must match SessionsView.getSectionAudioKey shape — stored whisperAudioKey
 // uses the prefixed form, so raw-form comparisons silently fail.
-// See docs/audits/STJOHN_NEXT_CHAPTER_BUG_AUDIT_REPORT.md.
+// Keep chapter navigation aligned with the shared playback position.
 function sectionAudioKey(section) {
   const storedAudioPath = getSectionStoredAudioPath(section);
   if (storedAudioPath) return `path:${storedAudioPath}`;

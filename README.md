@@ -1,6 +1,6 @@
 # StJohn Author Studio
 
-Desktop app for preparing and proofing self-published audiobooks and special-edition print manuscripts, with a phone companion for two of its modes. Built on Electron and Next.js. Current version: 4.0.31.
+Desktop app for preparing and proofing self-published audiobooks and special-edition print manuscripts, with a phone companion for two of its modes. Built on Electron and Next.js. Current version: 4.0.32.
 
 ## Modes
 
@@ -38,7 +38,7 @@ npm run release:win        # package the Windows build and copy it into the rele
 
 Packaged builds land in `Script and Sync Releases/` (the folder name is kept from an earlier product name; the files inside carry the current name, "StJohn Author Studio"). The previous release is archived into `Script and Sync Releases/Old/` first, never deleted.
 
-Packaging alone does not make a build available to already-installed copies. That needs a separate publish of a GitHub Release for this repository — the installed app's auto-updater only checks the newest published, non-draft release.
+Packaging alone does not make a build available to already-installed copies. That needs a separate publish of a GitHub Release in `stjohnbuilds/stjohn-author-studio-downloads` — the installed app's auto-updater only checks the newest published, non-draft release.
 
 The same build also produces the phone companion's static web pages; deployed to the web, the site serves the phone companion at its root address instead of the desktop shell.
 

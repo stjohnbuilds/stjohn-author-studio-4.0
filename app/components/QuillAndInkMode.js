@@ -1,7 +1,6 @@
 'use client';
 
-// Quill & Ink mode — port from the alpha at
-// /Users/.../StJohn Author Apps/apps/quill-and-ink - ARCHIVED 2026-05-23/
+// Quill & Ink mode — manuscript annotation and print-design workflow.
 //
 // Flow: Home (projects list) → Setup (ImportFlow) → Book detail
 // (chapter list, export) → Reader (word-render, drag-to-highlight,

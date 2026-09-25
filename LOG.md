@@ -76,3 +76,7 @@ A June 2026 review found backup and transfer files still carried the app's old p
 ## Code health and test coverage
 
 A June 2026 review measured the overall codebase as lean, not bloated, but flagged two files (the shared book-detail screen and the phone screen) as too large and due for a split, plus a handful of small helper functions copy-pasted in several places. Since then, 14 unused script files were archived and one duplicated helper was merged into a single shared copy; splitting the two large files and merging the rest of the duplicated helpers has not happened yet. Automated test coverage grew from 6 test files to 18 over the same stretch.
+
+## 24 September 2026 — cleanup verification
+
+Removed stale development-note pointers and personal test paths; aligned version and update-feed documentation with 4.0.32 and the downloads repository. Existing Node tests: 163 passed. Local safety hooks retain their scope guard using their actual directory and use neutral backup messages.

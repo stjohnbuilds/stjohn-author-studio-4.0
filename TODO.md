@@ -8,7 +8,7 @@ Open work only. Finished items are removed, not ticked.
 - The scene "split" nudge arrows still respond to clicks and move nothing when Split mode is off; they should hide or disable instead.
 - Double-click word-jump in the reader still doesn't reliably seek the audio once the app is packaged; needs event-targeting/seek debugging.
 - Page-number rework is intentionally paused until specifically reopened.
-- The Proof reader is still its own separate implementation (about 1,400 lines) instead of the shared reader component Quill uses, so reader fixes currently have to be made twice.
+- Proof Listen retains its own audio/flag wrapper, while manuscript word rendering already uses the shared ChapterReader renderChapterBody helper and word-element lookup. Review remaining wrapper duplication without rebuilding the shared word renderer.
 - A full hands-on pass through every mode — sign-in, all four desktop modes, both phone modes, cross-device checks — has a detailed room-by-room checklist still waiting to be walked end to end.
 
 ## Prep manuscript

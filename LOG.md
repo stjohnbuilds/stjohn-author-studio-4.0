@@ -80,3 +80,9 @@ A June 2026 review measured the overall codebase as lean, not bloated, but flagg
 ## 24 September 2026 — cleanup verification
 
 Removed stale development-note pointers and personal test paths; aligned version and update-feed documentation with 4.0.32 and the downloads repository. Existing Node tests: 163 passed. Local safety hooks retain their scope guard using their actual directory and use neutral backup messages.
+
+## 25 September 2026 — reconcile stale open-work notes
+
+Compared TODO against current shared helpers and their actual UI call sites. Repeated-dialogue assignments are merged by occurrence; both Quill annotation deletion paths remove their associated markers, removed chapters filter their annotations, and Duet chapter status and marker exports use the corrected values/shared formatter. Cloud secondary-query failures and pruning failures throw before Quill stamps success; cloud-owned project pruning preserves local-only drafts. These source fixes were already recorded earlier in this log but were incorrectly repeated as unimplemented work in TODO.
+
+All 54 existing tests for those helpers and manuscript/transfer path boundaries passed. This is isolated regression evidence, not signed-in native or two-device acceptance. TODO retains the complete mode/device pass, interrupted-upload recovery, real manuscript/export checks, audio allowlist gap and physical release checks. The installed Mac app and package both report 4.0.32; its full updater workflow remains unverified. The development sign-in shortcut is excluded from production. Absent dev/docs folders and unsupported deletion-clearance claims were removed from the active notes; no runtime, user data, releases or historical work changed.

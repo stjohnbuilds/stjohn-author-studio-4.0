@@ -1,0 +1,13 @@
+{
+  "protected": [
+    "app/components/ProofingReader.js",
+    "app/components/SessionsView.js",
+    "app/components/ManuscriptSetup.js",
+    "app/page.js",
+    "app/layout.js",
+    "app/globals.css",
+    "main.js",
+    "preload.js",
+    "tailwind.config.js"
+  ]
+}

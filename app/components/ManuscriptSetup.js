@@ -1,0 +1,981 @@
+'use client';
+import { useState } from 'react';
+import InfoTip from './InfoTip';
+import ImportFlow from './ImportFlow';
+import { annotateManuscriptPositions, extractRenderedPageMapFromDocxXml } from '../lib/manuscriptPaging';
+import { extractPdfPagingFromFile } from '../lib/pdfPaging';
+import { CHARACTER_PALETTE as DEFAULT_MANUAL_COLORS } from '../lib/characterPalette';
+
+export const STYLE_MAP = [
+  "highlight[color='yellow'] => span.hl-yellow:fresh","highlight[color='green'] => span.hl-green:fresh",
+  "highlight[color='cyan'] => span.hl-cyan:fresh","highlight[color='magenta'] => span.hl-magenta:fresh",
+  "highlight[color='pink'] => span.hl-pink:fresh","highlight[color='blue'] => span.hl-blue:fresh",
+  "highlight[color='red'] => span.hl-red:fresh","highlight[color='darkBlue'] => span.hl-darkblue:fresh",
+  "highlight[color='darkCyan'] => span.hl-darkcyan:fresh","highlight[color='darkGreen'] => span.hl-darkgreen:fresh",
+  "highlight[color='darkMagenta'] => span.hl-darkmagenta:fresh","highlight[color='darkRed'] => span.hl-darkred:fresh",
+  "highlight[color='darkYellow'] => span.hl-darkyellow:fresh","highlight[color='lightGray'] => span.hl-lightgray:fresh",
+  "highlight[color='darkGray'] => span.hl-darkgray:fresh",
+  "highlight => span.hl-yellow:fresh",
+  "p[style-name='Heading 1'] => h1.doc-h1:fresh","p[style-name='Heading 2'] => h2.doc-h2:fresh",
+  "p[style-name='Heading 3'] => h3.doc-h3:fresh","b => strong","i => em",
+];
+
+// All highlight colours mammoth can produce, with their CSS display hex
+const HIGHLIGHT_MAP = [
+  { cls:'hl-yellow',     hex:'#FFF8DC', label:'Yellow' },
+  { cls:'hl-green',      hex:'#DFF2E3', label:'Green' },
+  { cls:'hl-cyan',       hex:'#DFF4F7', label:'Cyan' },
+  { cls:'hl-pink',       hex:'#FDDEE8', label:'Pink' },
+  { cls:'hl-magenta',    hex:'#FDDEE8', label:'Magenta' },
+  { cls:'hl-blue',       hex:'#DDEEFF', label:'Blue' },
+  { cls:'hl-red',        hex:'#FDDEDE', label:'Red' },
+  { cls:'hl-darkblue',   hex:'#D4E5F9', label:'Dark blue' },
+  { cls:'hl-darkcyan',   hex:'#D4F0F5', label:'Dark cyan' },
+  { cls:'hl-darkgreen',  hex:'#D4EDD9', label:'Dark green' },
+  { cls:'hl-darkmagenta',hex:'#F0D9F7', label:'Dark magenta' },
+  { cls:'hl-darkred',    hex:'#F9D9D9', label:'Dark red' },
+  { cls:'hl-darkyellow', hex:'#FFF0CC', label:'Dark yellow' },
+  { cls:'hl-lightgray',  hex:'#F2F2F0', label:'Light grey' },
+  { cls:'hl-darkgray',   hex:'#E6E5E0', label:'Dark grey' },
+];
+
+const WORD_HIGHLIGHT_HEX = {
+  yellow: '#fff8dc',
+  green: '#dff2e3',
+  cyan: '#dff4f7',
+  magenta: '#fddee8',
+  pink: '#fddee8',
+  blue: '#ddeeff',
+  red: '#fddede',
+  darkBlue: '#d4e5f9',
+  darkCyan: '#d4f0f5',
+  darkGreen: '#d4edd9',
+  darkMagenta: '#f0d9f7',
+  darkRed: '#f9d9d9',
+  darkYellow: '#fff0cc',
+  lightGray: '#f2f2f0',
+  darkGray: '#e6e5e0',
+};
+
+const BG_SKIP_HEX = new Set(['#ffffff', '#fff']);
+
+function normText(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function nameMatches(a, b) {
+  const na = normText(a);
+  const nb = normText(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+function normalizeHex(hex) {
+  if (!hex) return null;
+  const h = String(hex).trim().toLowerCase();
+  if (!h.startsWith('#')) return null;
+  if (h.length === 4) return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`;
+  if (h.length === 7) return h;
+  return null;
+}
+
+function cssColorToHex(value) {
+  if (!value) return null;
+  const v = String(value).trim().toLowerCase();
+  const fromHex = normalizeHex(v);
+  if (fromHex) return fromHex;
+  const m = v.match(/rgba?\(([^)]+)\)/i);
+  if (!m) return null;
+  const parts = m[1].split(',').map(p => p.trim());
+  if (parts.length < 3) return null;
+  const rgb = parts.slice(0, 3).map(n => Math.max(0, Math.min(255, parseInt(n, 10) || 0)));
+  return '#' + rgb.map(n => n.toString(16).padStart(2, '0')).join('');
+}
+
+function collectStyleHexes(styleText) {
+  if (!styleText) return [];
+  const out = [];
+  const rx = /background(?:-color)?\s*:\s*([^;]+)/gi;
+  let match;
+  while ((match = rx.exec(styleText)) !== null) {
+    const hex = cssColorToHex(match[1]);
+    if (hex) out.push(hex);
+  }
+  return out;
+}
+
+function collectComputedHexesFromHtml(html) {
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '0';
+  host.style.width = '1px';
+  host.style.height = '1px';
+  host.style.overflow = 'hidden';
+  host.style.opacity = '0';
+  host.setAttribute('aria-hidden', 'true');
+  host.innerHTML = html;
+  document.body.appendChild(host);
+  const out = [];
+  try {
+    const all = host.querySelectorAll('*');
+    all.forEach(el => {
+      const bg = window.getComputedStyle(el).backgroundColor;
+      const hex = cssColorToHex(bg);
+      if (hex) out.push(hex);
+    });
+  } finally {
+    document.body.removeChild(host);
+  }
+  return out;
+}
+
+function scanHighlights(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  // Deduplicate by hex (pink + magenta are same colour)
+  const seen = new Set();
+  const found = [];
+  function pushFound(h) {
+    const hex = normalizeHex(h.hex);
+    if (!hex || BG_SKIP_HEX.has(hex) || seen.has(hex)) return;
+    seen.add(hex);
+    found.push({ ...h, hex });
+  }
+
+  HIGHLIGHT_MAP.forEach(h => {
+    if (div.getElementsByClassName(h.cls).length > 0) {
+      pushFound(h);
+    }
+  });
+
+  // Also detect custom inline pastel background colours (not in Word's named highlight palette).
+  const styled = div.querySelectorAll('[style*="background"], [style*="background-color"]');
+  styled.forEach(el => {
+    const hexes = collectStyleHexes(el.getAttribute('style') || '');
+    hexes.forEach(hex => pushFound({ cls:null, hex, label:'Custom' }));
+  });
+
+  // Catch highlight colours defined via CSS classes by checking computed styles.
+  collectComputedHexesFromHtml(html).forEach(hex => {
+    pushFound({ cls:null, hex, label:'Custom' });
+  });
+
+  return found;
+}
+
+function mergeHighlightSets(primary, secondary) {
+  const seen = new Set();
+  const out = [];
+  [...(primary || []), ...(secondary || [])].forEach(h => {
+    const hex = normalizeHex(h?.hex);
+    if (!hex || BG_SKIP_HEX.has(hex) || seen.has(hex)) return;
+    seen.add(hex);
+    out.push({ cls: h?.cls || null, hex, label: h?.label || 'Custom' });
+  });
+  return out;
+}
+
+function fillToHighlightName(hex) {
+  const h = (hex || '').toUpperCase().replace('#', '');
+  if (h.length !== 6) return 'yellow';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if (r > 230 && g > 230 && b > 230) return null;
+  if (r < 30 && g < 30 && b < 30) return null;
+  if (r > 200 && g > 200 && b < 120) return 'yellow';
+  if (r > 180 && g > 180 && b < 80) return 'darkYellow';
+  if (g > 150 && r < 150 && b < 150) return 'green';
+  if (g > 100 && r < 100 && b < 100) return 'darkGreen';
+  if (b > 150 && g > 150 && r < 150) return 'cyan';
+  if (b > 100 && g > 100 && r < 100) return 'darkCyan';
+  if (r > 200 && g < 100 && b < 100) return 'red';
+  if (r > 120 && g < 80 && b < 80) return 'darkRed';
+  if (b > 180 && r < 120 && g < 150) return 'blue';
+  if (b > 120 && r < 80 && g < 80) return 'darkBlue';
+  if (r > 150 && b > 150 && g < 120) return 'magenta';
+  if (r > 200 && b > 150 && g > 100) return 'pink';
+  if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30 && r > 150) return 'lightGray';
+  if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30) return 'darkGray';
+  return 'yellow';
+}
+
+const SLOT_NAMES = ['yellow','green','cyan','magenta','pink','blue','red','darkBlue','darkCyan','darkGreen','darkMagenta','darkRed','darkYellow','lightGray','darkGray'];
+
+export async function convertShadingToHighlight(arrayBuffer) {
+  try {
+    const jszipMod = await import('jszip');
+    const JSZip = jszipMod.default || jszipMod;
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const docXmlFile = zip.file('word/document.xml');
+    if (!docXmlFile) return { buffer: arrayBuffer, shdCount: 0, hexMap: {} };
+    let docXml = await docXmlFile.async('string');
+    let shdCount = 0;
+
+    // Collect all unique fill hex colors from w:shd elements
+    const allShd = docXml.match(/<w:shd\b[^>]*>/g) || [];
+    const fillSet = new Set();
+    allShd.forEach(s => { const m = s.match(/w:fill\s*=\s*"([^"]+)"/); if (m) fillSet.add(m[1].toUpperCase()); });
+
+    // Find existing w:highlight color names (reserve those slots)
+    const existingHlVals = new Set();
+    (docXml.match(/<w:highlight\s+w:val="([^"]+)"/g) || []).forEach(m => {
+      const v = m.match(/w:val="([^"]+)"/); if (v) existingHlVals.add(v[1]);
+    });
+
+    // Build unique hex → named-color slot mapping
+    const hexToSlot = new Map();
+    const usedSlots = new Set(existingHlVals);
+    const validFills = [...fillSet].filter(h => {
+      if (h === 'AUTO' || h === 'FFFFFF') return false;
+      return fillToHighlightName(h) !== null;
+    });
+    for (const hex of validFills) {
+      const natural = fillToHighlightName(hex);
+      if (natural && !usedSlots.has(natural)) {
+        hexToSlot.set(hex, natural);
+        usedSlots.add(natural);
+      }
+    }
+    const freeSlots = SLOT_NAMES.filter(s => !usedSlots.has(s));
+    let freeIdx = 0;
+    for (const hex of validFills) {
+      if (!hexToSlot.has(hex)) {
+        if (freeIdx < freeSlots.length) {
+          hexToSlot.set(hex, freeSlots[freeIdx++]);
+        } else {
+          hexToSlot.set(hex, 'yellow');
+        }
+      }
+    }
+
+    const hexMap = {};
+    for (const [hex, slot] of hexToSlot) hexMap[slot] = hex;
+
+    function getSlot(fill) {
+      const h = (fill || '').toUpperCase().replace('#', '');
+      return hexToSlot.get(h) || fillToHighlightName(fill) || 'yellow';
+    }
+
+    // Strategy 1: Run-level (w:rPr) shading → w:highlight
+    const rPrRegex = /<(?:w:)?rPr\b[^>]*>([\s\S]*?)<\/(?:w:)?rPr>/g;
+    docXml = docXml.replace(rPrRegex, (match, inner) => {
+      if (/<(?:w:)?highlight\b/.test(inner)) return match;
+      const shdMatch = inner.match(/<(?:w:)?shd\b[^>]*(?:w:)?fill\s*=\s*"([^"]+)"[^>]*\/?>/i);
+      if (!shdMatch) return match;
+      const fill = shdMatch[1];
+      if (!fill || fill.toLowerCase() === 'auto') return match;
+      const hlName = getSlot(fill);
+      if (!hlName) return match;
+      shdCount++;
+      const closeTag = match.match(/<\/(?:w:)?rPr>/)[0];
+      return match.replace(closeTag, `<w:highlight w:val="${hlName}"/>${closeTag}`);
+    });
+
+    // Paragraph-level shading often means a Word/Docs line background, not a
+    // word highlight. Leave it alone so we do not color a whole line by mistake.
+
+    if (shdCount === 0) return { buffer: arrayBuffer, shdCount: 0, hexMap };
+    zip.file('word/document.xml', docXml);
+    const newBuffer = await zip.generateAsync({ type: 'arraybuffer' });
+    return { buffer: newBuffer, shdCount, hexMap };
+  } catch (err) {
+    console.warn('Shading-to-highlight conversion failed, using original:', err);
+    return { buffer: arrayBuffer, shdCount: 0, hexMap: {} };
+  }
+}
+
+// Post-process mammoth HTML: inject original hex colors as inline styles
+export function applyHexColors(html, hexMap) {
+  if (!hexMap || Object.keys(hexMap).length === 0) return html;
+  let result = html;
+  for (const [slot, hex] of Object.entries(hexMap)) {
+    const cls = `hl-${slot.toLowerCase()}`;
+    result = result.replaceAll(`class="${cls}"`, `class="${cls}" style="background:#${hex}"`);
+  }
+  return result;
+}
+
+async function extractDocxHighlightColors(arrayBuffer) {
+  try {
+    const jszipMod = await import('jszip');
+    const JSZip = jszipMod.default || jszipMod;
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const xmlPaths = Object.keys(zip.files).filter(p => /^word\/.*\.xml$/i.test(p));
+    const xmlDocs = await Promise.all(xmlPaths.map(p => zip.files[p].async('string')));
+    const found = [];
+
+    xmlDocs.forEach(xml => {
+      const highlightRx = /<w:highlight\b[^>]*\bw:val="([^"]+)"[^>]*\/?/gi;
+      let hm;
+      while ((hm = highlightRx.exec(xml)) !== null) {
+        const key = hm[1];
+        const hex = WORD_HIGHLIGHT_HEX[key];
+        if (hex) found.push({ cls: null, hex, label: 'Word highlight' });
+      }
+
+      const shdRx = /<w:shd\b[^>]*\bw:fill="([^"]+)"[^>]*\/?/gi;
+      let sm;
+      while ((sm = shdRx.exec(xml)) !== null) {
+        const raw = (sm[1] || '').trim();
+        if (!raw || /^auto$/i.test(raw)) continue;
+        const hex = normalizeHex(raw.startsWith('#') ? raw : `#${raw}`);
+        if (hex) found.push({ cls: null, hex, label: 'Word shading' });
+      }
+    });
+
+    return mergeHighlightSets([], found);
+  } catch (e) {
+    // Best-effort extraction only: never block setup if a DOCX has unusual XML.
+    console.warn('DOCX highlight extraction fallback:', e);
+    return [];
+  }
+}
+
+export function parseStructure(html, chapterTag, narratorColors, options = {}) {
+  const splitScenes = options.splitScenes !== false;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const charNames = narratorColors.map(nc => ({ name:(nc.characterName||''), nc })).filter(c=>normText(c.name));
+  const rawChapters = [];
+  let curCh = null;
+  Array.from(div.childNodes).forEach(node => {
+    const tag = node.nodeName?.toLowerCase();
+    if (tag === chapterTag) {
+      if (curCh) rawChapters.push(curCh);
+      curCh = { title: node.textContent.trim(), nodes: [] };
+    } else {
+      if (!curCh) curCh = { title: '(Before first chapter)', nodes: [] };
+      curCh.nodes.push(node.cloneNode(true));
+    }
+  });
+  if (curCh) rawChapters.push(curCh);
+  const subTag = chapterTag === 'h1' ? 'h2' : chapterTag === 'h2' ? 'h3' : null;
+  return rawChapters.map(ch => ({ id: uid(), title: ch.title, sections: buildSections(ch.nodes, subTag, charNames, ch.title, splitScenes) }));
+}
+
+function buildSections(nodes, subTag, charNames, chapterTitle, splitScenes = true) {
+  if (!subTag || !splitScenes) return [{ id:uid(), title:chapterTitle, html:nodes.map(n=>n.outerHTML||n.textContent||'').join(''), audioFileName:null, flags:[], completed:false, characterName:null, narratorName:null, isCharPOV:false }];
+  const segments = []; let cur = { title:null, nodes:[] };
+  nodes.forEach(node => {
+    if (node.nodeName?.toLowerCase() === subTag) { if (cur.nodes.length||cur.title) segments.push(cur); cur = { title:node.textContent.trim(), nodes:[] }; }
+    else cur.nodes.push(node);
+  });
+  if (cur.nodes.length||cur.title) segments.push(cur);
+  if (!segments.length) return [{ id:uid(), title:chapterTitle, html:'', audioFileName:null, flags:[], completed:false, characterName:null, narratorName:null, isCharPOV:false }];
+  const tagged = segments.map(seg => {
+    if (!seg.title) return { ...seg, isChar:false, nc:null, inferredCharacterName:null, inferredNarratorName:null };
+    const match = charNames.find(c => nameMatches(seg.title, c.name));
+    const inferredCharacterName = match?.nc?.characterName || seg.title.trim();
+    const inferredNarratorName = match?.nc?.narratorName || match?.nc?.characterName || seg.title.trim();
+    return { ...seg, isChar:true, nc:match?.nc||null, inferredCharacterName, inferredNarratorName };
+  });
+  let pending = ''; const merged = [];
+  for (const seg of tagged) {
+    const segHtml = (seg.title ? `<h2 class="doc-h2">${esc(seg.title)}</h2>` : '') + seg.nodes.map(n=>n.outerHTML||n.textContent||'').join('');
+    if (!seg.isChar) { pending += segHtml; }
+    else {
+      merged.push({
+        title: seg.title,
+        html: pending + segHtml,
+        nc: seg.nc,
+        characterName: seg.inferredCharacterName,
+        narratorName: seg.inferredNarratorName,
+      });
+      pending='';
+    }
+  }
+  if (pending) { if (merged.length) merged[merged.length-1].html += pending; else merged.push({ title:chapterTitle, html:pending, nc:null }); }
+  if (!merged.length) return [{ id:uid(), title:chapterTitle, html:tagged.map(s=>(s.title?`<h2 class="doc-h2">${esc(s.title)}</h2>`:'')+s.nodes.map(n=>n.outerHTML||n.textContent||'').join('')).join(''), audioFileName:null, flags:[], completed:false, characterName:null, narratorName:null, isCharPOV:false }];
+  return merged.map(m => {
+    const hasCharacterHeading = !!(m.characterName || m.title);
+    return {
+      id:uid(),
+      title:m.title||chapterTitle,
+      html:m.html,
+      audioFileName:null,
+      flags:[],
+      completed:false,
+      characterName:m.characterName||null,
+      narratorName:m.narratorName||m.characterName||null,
+      isCharPOV:hasCharacterHeading,
+    };
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function uid() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+function withReviewState(parsed, previous = []) {
+  return parsed.map((chapter, chapterIndex) => {
+    const prevChapter = previous[chapterIndex];
+    return {
+      ...chapter,
+      included: prevChapter?.included ?? true,
+      firstChapter: prevChapter?.firstChapter ?? chapterIndex === 0,
+      sections: (chapter.sections || []).map((section, sectionIndex) => ({
+        ...section,
+        included: prevChapter?.sections?.[sectionIndex]?.included ?? true,
+      })),
+    };
+  });
+}
+
+function applyChapterNumbers(chapters) {
+  let chapterNumber = 0;
+  return (chapters || []).map((chapter, index) => {
+    if (index === 0 || chapter.firstChapter) chapterNumber = 1;
+    else chapterNumber += 1;
+    return {
+      ...chapter,
+      chapterNumber,
+    };
+  });
+}
+
+function nextManualColor(existing) {
+  const manualCount = (existing || []).filter(nc => !nc.cls).length;
+  return DEFAULT_MANUAL_COLORS[manualCount % DEFAULT_MANUAL_COLORS.length];
+}
+
+const inp = { width:'100%',border:'1px solid var(--border)',borderRadius:10,padding:'8px 12px',fontSize:'0.875rem',fontFamily:'inherit',background:'white',color:'var(--text)',outline:'none' };
+const lbl = { display:'block',fontSize:'0.68rem',fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:5 };
+const card = { background:'white',borderRadius:16,border:'1px solid var(--border)',padding:'1.15rem',marginBottom:'0.75rem' };
+function Badge({ n }) { return <div style={{ width:22,height:22,borderRadius:'50%',background:'var(--accent)',color:'white',fontSize:'0.68rem',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>{n}</div>; }
+
+export default function BookSetup({ onSave, onBack, pageOffset = -1, isElectron = false, onImportTransfer }) {
+  // Phase machine: 'import' = same ImportFlow that Prep/Duet/Quill use
+  //                'extras' = Proof-only post-upload screens (narrator
+  //                           mapping + PDF + final save)
+  const [phase, setPhase] = useState('import');
+  const [bookTitle, setBookTitle] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [fullHtml, setFullHtml] = useState('');
+  const [chapterLevel, setChapterLevel] = useState(1);
+  const [splitScenes, setSplitScenes] = useState(false);
+  const [chapters, setChapters] = useState([]);
+  const [docxSource, setDocxSource] = useState(null);
+  // Narrator colours — either scanned from doc or manually added
+  const [narratorColors, setNarratorColors] = useState([]);
+  // Colours found in the doc waiting to be assigned
+  const [scannedColors, setScannedColors] = useState(null); // null = not scanned yet
+  const [loading, setLoading] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState('');
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manuscriptPaging, setManuscriptPaging] = useState(null);
+  const [pdfPaging, setPdfPaging] = useState(null);
+  const [pdfFileName, setPdfFileName] = useState('');
+
+  const chapterTag = `h${chapterLevel}`;
+  const normalizedPageOffset = Number.isFinite(Number(pageOffset)) ? Number(pageOffset) : -1;
+
+  function formatPdfError(errors, fallbackMessage) {
+    const messages = [...new Set((errors || []).map(error => String(error?.message || '').trim()).filter(Boolean))];
+    return messages[0] || fallbackMessage;
+  }
+
+  function toPdfFile(fileNameHint, data) {
+    const pdfName = fileNameHint || 'document.pdf';
+    const pdfBytes = data instanceof Uint8Array ? data : new Uint8Array(data || []);
+    return {
+      name: pdfName,
+      async arrayBuffer() {
+        return pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+      },
+    };
+  }
+
+  async function extractPdfPagingInRenderer(file, fileNameHint = '') {
+    const extracted = await extractPdfPagingFromFile(file, { pageOffset: normalizedPageOffset });
+    return {
+      ...extracted,
+      fileName: fileNameHint || extracted.fileName || file?.name || 'document.pdf',
+      pageOffset: Number.isFinite(Number(extracted?.pageOffset)) ? Number(extracted.pageOffset) : normalizedPageOffset,
+    };
+  }
+
+  async function extractPdfPagingWithFallback(file) {
+    const failures = [];
+
+    if (window.electron?.extractPdfPaging) {
+      try {
+        return await window.electron.extractPdfPaging({
+          fileName: file.name,
+          data: new Uint8Array(await file.arrayBuffer()),
+          pageOffset: normalizedPageOffset,
+        });
+      } catch (error) {
+        console.warn('Electron PDF extraction failed, trying renderer fallback:', error);
+        failures.push(error);
+      }
+    }
+
+    try {
+      return await extractPdfPagingInRenderer(file, file.name);
+    } catch (error) {
+      failures.push(error);
+    }
+
+    throw new Error(formatPdfError(failures, 'Could not scan page numbers from that PDF.'));
+  }
+
+  async function extractDocxPdfPaging(docxBytes, originalFileName) {
+    const fallbackPdfName = originalFileName.replace(/\.docx$/i, '.pdf');
+    const failures = [];
+
+    if (window.electron?.convertDocxToPageMap) {
+      try {
+        const converted = await window.electron.convertDocxToPageMap({
+          name: originalFileName,
+          data: docxBytes,
+          pageOffset: normalizedPageOffset,
+        });
+        if (converted?.pdfPaging) {
+          return {
+            pdfPaging: converted.pdfPaging,
+            fileName: converted.fileName || fallbackPdfName,
+          };
+        }
+        failures.push(new Error('The app converted the manuscript but did not return a page map.'));
+      } catch (error) {
+        console.warn('Main-process DOCX page scan failed, trying renderer fallback:', error);
+        failures.push(error);
+      }
+    }
+
+    if (!window.electron?.convertDocxToPdf) {
+      throw new Error(formatPdfError(failures, 'Automatic DOCX page scanning is unavailable in this runtime.'));
+    }
+
+    try {
+      const convertedPdf = await window.electron.convertDocxToPdf({
+        name: originalFileName,
+        data: docxBytes,
+      });
+      if (!convertedPdf?.pdfData) {
+        throw new Error('The app created a PDF, but the PDF file was empty.');
+      }
+      const resolvedFileName = convertedPdf.fileName || fallbackPdfName;
+      const rendererPaging = await extractPdfPagingInRenderer(
+        toPdfFile(resolvedFileName, convertedPdf.pdfData),
+        resolvedFileName
+      );
+      return {
+        pdfPaging: rendererPaging,
+        fileName: resolvedFileName,
+      };
+    } catch (error) {
+      failures.push(error);
+    }
+
+    throw new Error(formatPdfError(failures, 'Could not scan page numbers automatically from this DOCX.'));
+  }
+
+  // Called when the shared ImportFlow finishes Phase 1. Payload is the
+  // .docx bytes + already-parsed chapter list. Runs Proof's own scan
+  // (narrator colors, PDF page mapping) on the result and moves into
+  // the 'extras' phase so the user can map narrators + confirm save.
+  // ImportFlow fires this AS SOON AS the .docx is
+  // parsed (not on confirm). We scan highlight colours so the narrator
+  // mapping panel can render INSIDE ImportFlow as Step 3 — no more
+  // Phase 2 bounce.
+  async function handleImportParsed({ fullHtml: html, fileName: fname, sourceDocxBytes }) {
+    if (!html) return;
+    const docxBytes = sourceDocxBytes instanceof Uint8Array
+      ? sourceDocxBytes
+      : (sourceDocxBytes ? new Uint8Array(sourceDocxBytes) : null);
+    setFullHtml(html);
+    setFileName(fname || '');
+    if (!bookTitle && fname) setBookTitle(String(fname).replace(/\.docx$/i, ''));
+    if (docxBytes) setDocxSource({ fileName: fname || '', data: docxBytes });
+    // Highlight colour scan — same logic the legacy handleDocx used.
+    try {
+      const htmlFound = scanHighlights(html);
+      let docxFound = [];
+      if (docxBytes) {
+        try { docxFound = await extractDocxHighlightColors(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength)); }
+        catch { docxFound = []; }
+      }
+      const found = mergeHighlightSets(htmlFound, docxFound);
+      setScannedColors(found);
+      setNarratorColors([{ hex: DEFAULT_MANUAL_COLORS[0], cls: null, label: 'Custom', characterName: '', narratorName: '' }]);
+    } catch (e) {
+      console.warn('Narrator scan failed:', e);
+      setScannedColors([]);
+    }
+    // Manuscript page map from rendered DOCX XML (used as fallback when
+    // no PDF is uploaded).
+    if (docxBytes) {
+      try {
+        const jszipMod = await import('jszip');
+        const JSZip = jszipMod.default || jszipMod;
+        const zip = await JSZip.loadAsync(docxBytes.buffer.slice(docxBytes.byteOffset, docxBytes.byteOffset + docxBytes.byteLength));
+        const documentXml = await zip.file('word/document.xml')?.async('string');
+        setManuscriptPaging(extractRenderedPageMapFromDocxXml(documentXml) || null);
+      } catch (e) {
+        console.warn('Manuscript paging extraction failed:', e);
+      }
+    }
+  }
+
+  // ImportFlow's confirm now does the FINAL SAVE.
+  // No more Phase 2. We compute everything from the payload + current
+  // narrator state, then call onSave directly.
+  async function handleImportConfirm(payload) {
+    setLoading(true);
+    try {
+      const docxBytes = payload.sourceDocxBytes instanceof Uint8Array
+        ? payload.sourceDocxBytes
+        : (payload.sourceDocxBytes ? new Uint8Array(payload.sourceDocxBytes) : null);
+      const localFileName = payload.fileName || fileName || '';
+      const localTitle = (payload.title || bookTitle || localFileName || 'Untitled').trim();
+      const localPdfPaging = payload.pdfPaging || pdfPaging || null;
+      const localPdfFileName = payload.pdfFileName || pdfFileName || '';
+      const localPdfSource = payload.pdfSource || (localPdfPaging ? 'libreoffice' : null);
+      const localPageNumberAdjustment = Number(payload.pageNumberAdjustment) || 0;
+      // The slim word-index → page map. Source of
+      // truth for page lookups going forward. Built by ImportFlow.
+      const localPdfPageMap = Array.isArray(payload.pdfPageMap) ? payload.pdfPageMap : null;
+
+      // ImportFlow's chapter shape → Proof's section shape (one section
+      // per chapter — Proof doesn't split into scenes by default).
+      const adopted = (payload.chapters || []).filter(c => c.included !== false).map(c => ({
+        id: c.id || uid(),
+        title: c.title,
+        sections: [{
+          id: uid(),
+          title: c.title,
+          html: c.html || '',
+          audioFileName: null,
+          flags: [],
+          completed: false,
+          characterName: null,
+          narratorName: null,
+          isCharPOV: false,
+        }],
+      }));
+      const numbered = applyChapterNumbers(adopted);
+      const paging = annotateManuscriptPositions(numbered, {
+        pageMap: manuscriptPaging?.pageMap,
+        startPageNumber: manuscriptPaging?.startPageNumber,
+      });
+
+      const finalColors = narratorColors.filter(nc => nc.characterName.trim());
+      const bookId = Date.now();
+
+      const manuscriptSource = { stored: false, fileName: localFileName };
+      if (window.electron?.saveManuscriptSource && docxBytes) {
+        try {
+          await window.electron.saveManuscriptSource({ bookId, data: docxBytes });
+          manuscriptSource.stored = true;
+        } catch (e) {
+          console.warn('Could not store manuscript source for rescan:', e);
+        }
+      }
+
+      onSave({
+        id: bookId,
+        title: localTitle,
+        fileName: localFileName,
+        manuscriptSource,
+        chapterLevel: payload.chapterLevel || chapterLevel,
+        splitScenes: !!payload.splitScenes,
+        narratorColors: finalColors,
+        chapters: paging.chapters,
+        manuscriptPaging: {
+          mode: paging.mode,
+          totalWordCount: paging.totalWordCount,
+          exactPageCount: paging.exactPageCount,
+          pageMap: paging.pageMap,
+          startPageNumber: paging.startPageNumber,
+        },
+        pdfPaging: localPdfPaging,
+        pdfPageMap: localPdfPageMap,
+        pdfFileName: localPdfFileName,
+        pdfSource: localPdfSource,
+        pageNumberAdjustment: localPageNumberAdjustment,
+      });
+    } catch (e) {
+      console.warn('Could not save book:', e);
+      alert('Could not save book: ' + (e?.message || e));
+    }
+    setLoading(false);
+  }
+
+  async function handleDocx(file) {
+    setLoading(true);
+    setPdfStatus('');
+    try {
+      const mammoth = (await import('mammoth')).default;
+      const ab = await file.arrayBuffer();
+      const docxBytes = new Uint8Array(ab);
+      const { buffer: processedAb, hexMap } = await convertShadingToHighlight(ab);
+      const result = await mammoth.convertToHtml({ arrayBuffer: processedAb }, { styleMap: STYLE_MAP });
+      const jszipMod = await import('jszip');
+      const JSZip = jszipMod.default || jszipMod;
+      const zip = await JSZip.loadAsync(ab);
+      const documentXml = await zip.file('word/document.xml')?.async('string');
+      setManuscriptPaging(extractRenderedPageMapFromDocxXml(documentXml) || null);
+      setPdfPaging(null);
+      setPdfFileName('');
+      const processedHtml = applyHexColors(result.value, hexMap);
+      setFullHtml(processedHtml);
+      setFileName(file.name);
+      setDocxSource({ fileName: file.name, data: docxBytes });
+      if (!bookTitle) setBookTitle(file.name.replace(/\.docx$/i,''));
+      // Scan for highlight colours from rendered HTML and raw DOCX XML (highlight + shading).
+      const htmlFound = scanHighlights(processedHtml);
+      let docxFound = [];
+      try {
+        docxFound = await extractDocxHighlightColors(ab);
+      } catch {
+        docxFound = [];
+      }
+      const found = mergeHighlightSets(htmlFound, docxFound);
+      setScannedColors(found);
+      // Start with one gentle manual row instead of flooding the screen with every detected highlight.
+      setNarratorColors([{ hex:DEFAULT_MANUAL_COLORS[0], cls:null, label:'Custom', characterName:'', narratorName:'' }]);
+      // Parse chapters (names empty for now — will reparse on save)
+      const parsed = parseStructure(processedHtml, chapterTag, [], { splitScenes });
+      setChapters(withReviewState(parsed));
+
+      if (window.electron?.convertDocxToPdf) {
+        try {
+          setPdfStatus('Generating page map from your DOCX…');
+          const converted = await extractDocxPdfPaging(docxBytes, file.name);
+          const nextPdfPaging = converted.pdfPaging;
+          if (!nextPdfPaging) {
+            throw new Error('The app did not return a page map for this manuscript.');
+          }
+          setPdfPaging(nextPdfPaging);
+          setPdfFileName(converted.fileName || file.name.replace(/\.docx$/i, '.pdf'));
+          setPdfStatus('Page numbers scanned automatically.');
+        } catch (pdfError) {
+          console.warn('Automatic DOCX-to-PDF conversion failed:', pdfError);
+          setPdfStatus(`Could not scan page numbers automatically: ${pdfError.message}`);
+        }
+      }
+    } catch(e) { alert('Could not read file: '+e.message); }
+    setLoading(false);
+  }
+
+  async function handlePdf(file) {
+    setLoading(true);
+    try {
+      const nextPdfPaging = await extractPdfPagingWithFallback(file);
+      setPdfPaging(nextPdfPaging);
+      setPdfFileName(file.name);
+      setPdfStatus('Using your uploaded PDF for page numbers.');
+    } catch(e) {
+      setPdfStatus(`Could not read that PDF: ${e.message}`);
+      alert('Could not read PDF: ' + e.message);
+    }
+    setLoading(false);
+  }
+
+  function reparse(overrides = {}) {
+    if (!fullHtml) return;
+    const nextChapterTag = overrides.chapterTag || chapterTag;
+    const nextSplitScenes = overrides.splitScenes ?? splitScenes;
+    const parsed = parseStructure(fullHtml, nextChapterTag, narratorColors.filter(nc=>nc.characterName), { splitScenes: nextSplitScenes });
+    setChapters(prev => withReviewState(parsed, prev));
+  }
+
+  function updateNC(i, field, val) {
+    setNarratorColors(nc => nc.map((n,idx) => idx===i ? {...n,[field]:val} : n));
+  }
+
+  function addManualNC() {
+    setNarratorColors(nc => [...nc, { hex:nextManualColor(nc), cls:null, label:'Custom', characterName:'', narratorName:'' }]);
+    setShowManualAdd(false);
+  }
+
+  function removeNC(i) {
+    setNarratorColors(nc => nc.filter((_,idx) => idx!==i));
+  }
+
+  function toggleChapterIncluded(id, included) {
+    setChapters(cs => cs.map(c => c.id === id ? { ...c, included, sections: c.sections.map(s => ({ ...s, included })) } : c));
+  }
+
+  function toggleSectionIncluded(chapId, secId, included) {
+    setChapters(cs => cs.map(c => c.id === chapId
+      ? {
+          ...c,
+          sections: c.sections.map(s => s.id === secId ? { ...s, included } : s),
+          included: c.sections.some(s => s.id === secId ? included : s.included),
+        }
+      : c));
+  }
+
+  function setAllChaptersIncluded(included) {
+    setChapters(cs => cs.map(c => ({
+      ...c,
+      included,
+      sections: (c.sections || []).map(s => ({ ...s, included })),
+    })));
+  }
+
+  function toggleFirstChapter(id) {
+    setChapters(cs => cs.map((c, index) => {
+      if (c.id !== id) return index === 0 ? { ...c, firstChapter: true } : c;
+      if (index === 0) return { ...c, firstChapter: true };
+      return { ...c, firstChapter: !c.firstChapter };
+    }));
+  }
+
+  const totalSections = chapters.reduce((n,c)=>n+((c.included===false?[]:(c.sections||[])).filter(s=>s.included!==false).length),0);
+  const allReviewItemsIncluded = chapters.length > 0 && chapters.every(c => c.included !== false && (c.sections || []).every(s => s.included !== false));
+  const anyReviewItemsIncluded = chapters.some(c => c.included !== false && (c.sections || []).some(s => s.included !== false));
+  const namedColors = narratorColors.filter(nc=>nc.characterName.trim());
+
+  async function doSave() {
+    const bookId = Date.now();
+    const finalColors = namedColors;
+    const numberedChapters = applyChapterNumbers(
+      (chapters || [])
+        .filter(ch => ch.included !== false)
+        .map(ch => ({
+          ...ch,
+          sections: (ch.sections || []).filter(sec => sec.included !== false).map(sec => ({
+            ...sec,
+            included: undefined,
+          })),
+        }))
+        .filter(ch => (ch.sections || []).length > 0)
+        .map(ch => ({
+          ...ch,
+          included: undefined,
+        }))
+    );
+    // wordsPerPage no longer accepted — PDF-rendered
+    // page map is the only source. annotateManuscriptPositions returns
+    // null pages when the map is missing; the UI flags it.
+    const paging = annotateManuscriptPositions(numberedChapters, {
+      pageMap: manuscriptPaging?.pageMap,
+      startPageNumber: manuscriptPaging?.startPageNumber,
+    });
+    const manuscriptSource = {
+      stored: false,
+      fileName,
+    };
+
+    if (window.electron?.saveManuscriptSource && docxSource?.data) {
+      try {
+        await window.electron.saveManuscriptSource({
+          bookId,
+          data: docxSource.data,
+        });
+        manuscriptSource.stored = true;
+      } catch (error) {
+        console.warn('Could not store manuscript source for rescan:', error);
+      }
+    }
+
+    onSave({
+      id:bookId,
+      title:bookTitle||fileName||'Untitled',
+      fileName,
+      manuscriptSource,
+      chapterLevel,
+      splitScenes,
+      narratorColors:finalColors,
+      chapters:paging.chapters,
+      manuscriptPaging: {
+        mode: paging.mode,
+        totalWordCount: paging.totalWordCount,
+        exactPageCount: paging.exactPageCount,
+        pageMap: paging.mode === 'rendered' ? paging.pageMap : undefined,
+        startPageNumber: paging.pageMap?.[0]?.pageNumber || 1,
+        hasUsablePageMap: paging.mode === 'rendered',
+      },
+      pdfPaging: pdfPaging ? {
+        mode: pdfPaging.mode,
+        fileName: pdfFileName || pdfPaging.fileName,
+        pageOffset: Number.isFinite(Number(pdfPaging.pageOffset)) ? Number(pdfPaging.pageOffset) : Number(pageOffset) || -1,
+        pageCount: pdfPaging.pageCount,
+        printedPageCount: pdfPaging.printedPageCount,
+        pages: pdfPaging.pages,
+      } : undefined,
+    });
+  }
+
+  function exportConfig() {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ title:bookTitle, fileName, pdfFileName, chapterLevel, splitScenes, narratorColors, chapters, manuscriptPaging, pdfPaging },null,2)],{type:'application/json'}));
+    a.download = `${bookTitle||'book'}-config.json`; a.click();
+  }
+
+  // The narrator-mapping panel is the ONE Proof-only step. It used to
+  // live on a second screen ("Phase 2") that also duplicated Title,
+  // Manuscript upload, H1/H2/H3, PDF, and chapter list — now merged
+  // into a single screen.
+  // The panel is now rendered INSIDE ImportFlow as the extraStepSlot,
+  // so the whole flow is one screen.
+  const narratorMappingPanel = scannedColors !== null ? (
+    <div data-tutorial="narrator-mapping">
+      <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:'0.875rem',flexWrap:'wrap' }}>
+        <Badge n={3} />
+        <span style={{ fontWeight:600,fontSize:'0.925rem' }}>Character ↔ narrator mapping</span>
+        <InfoTip tip={`Match each POV character heading to the narrator name you want on flags. Highlight colors are optional; H${Math.min(chapterLevel+1,3)} headings are still the main matcher.`} />
+        {scannedColors.length > 0
+          ? <span style={{ fontSize:'0.72rem',color:'var(--success)',background:'var(--success-light)',padding:'2px 8px',borderRadius:20 }}>✓ {scannedColors.length} highlight colour{scannedColors.length!==1?'s':''} found</span>
+          : <span style={{ fontSize:'0.72rem',color:'var(--text-muted)',background:'var(--cream)',padding:'2px 8px',borderRadius:20 }}>No highlights found — H2 mapping still works</span>}
+      </div>
+
+      {/* No highlight = narrator row */}
+      <div style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--cream)',borderRadius:10,marginBottom:10 }}>
+        <div style={{ width:32,height:32,borderRadius:8,background:'white',border:'1px solid var(--border)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14 }}>—</div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:'0.8rem',fontWeight:500 }}>No highlight</div>
+          <div style={{ fontSize:'0.7rem',color:'var(--text-muted)' }}>Narrating voice — use the narrator name set below</div>
+        </div>
+      </div>
+
+      {/* Scanned colours */}
+      {narratorColors.map((nc,i) => (
+        <div key={i} style={{ display:'grid',gridTemplateColumns:'42px 1fr 1fr auto',gap:8,alignItems:'end',marginBottom:10 }}>
+          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:3 }}>
+            {nc.cls ? (
+              <div style={{ width:36,height:36,borderRadius:8,background:nc.hex,border:'1px solid var(--border)',flexShrink:0 }} title={nc.label} />
+            ) : (
+              <input type="color" value={nc.hex} onChange={e=>updateNC(i,'hex',e.target.value)} style={{ width:36,height:36,borderRadius:8,border:'1px solid var(--border)',cursor:'pointer',padding:2 }} />
+            )}
+            <span style={{ fontSize:'0.58rem',color:'var(--text-light)',textAlign:'center',lineHeight:1.2 }}>{nc.label}</span>
+          </div>
+          <div>
+            <div style={lbl}>Character name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(main matcher for H{Math.min(chapterLevel+1,3)} headings)</span></div>
+            <input type="text" value={nc.characterName} onChange={e=>updateNC(i,'characterName',e.target.value)} placeholder="e.g. Crescent" style={inp} />
+          </div>
+          <div>
+            <div style={lbl}>Narrator name <span style={{ color:'var(--text-light)',fontWeight:400,textTransform:'none',letterSpacing:0 }}>(used as default narrator)</span></div>
+            <input type="text" value={nc.narratorName} onChange={e=>updateNC(i,'narratorName',e.target.value)} placeholder="e.g. Alyssa (Crescent)" style={inp} />
+          </div>
+          <button onClick={()=>removeNC(i)} style={{ background:'none',border:'none',cursor:'pointer',color:'var(--text-light)',fontSize:'1.2rem',padding:'0 2px',marginBottom:2,alignSelf:'flex-end' }}>×</button>
+        </div>
+      ))}
+
+      <button onClick={addManualNC} style={{ width:'100%',background:'none',border:'1px dashed var(--border)',borderRadius:8,padding:'7px',fontSize:'0.8rem',color:'var(--text-muted)',cursor:'pointer',marginTop:4 }}>
+        + Add character mapping
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <ImportFlow
+      heading="Create new book"
+      blurb="Upload the manuscript, map your narrators, pick the chapters, save."
+      submitLabel="Save book"
+      allowSceneSplitting={true}
+      defaultSplitScenes={false}
+      defaultChapterLevel={chapterLevel}
+      initialTitle={bookTitle}
+      onCancel={onBack}
+      onParsed={handleImportParsed}
+      extraStepSlot={narratorMappingPanel}
+      onConfirm={handleImportConfirm}
+    />
+  );
+}

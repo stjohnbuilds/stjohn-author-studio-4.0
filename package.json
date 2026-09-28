@@ -1,0 +1,48 @@
+{
+  "name": "stjohn-author-studio-4.0",
+  "version": "4.0.32",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && node scripts/vercel-root-to-phone.js",
+    "test": "node --test 'tests/**/*.test.mjs'",
+    "start": "node scripts/start-electron-dev.js",
+    "sandbox:pac3": "node scripts/seed-pac3-sandbox.js",
+    "sandbox:pac3:start": "node scripts/seed-pac3-sandbox.js && node scripts/start-electron-dev.js",
+    "electron-dev": "NODE_ENV=development electron .",
+    "whisper:model": "node scripts/ensure-whisper-model.js",
+    "ffmpeg:mac": "node scripts/ensure-ffmpeg.js mac",
+    "ffmpeg:win": "node scripts/ensure-ffmpeg.js win",
+    "electron-build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run whisper:model && next build && electron-builder -c.npmRebuild=false",
+    "electron-build-mac": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run whisper:model && npm run ffmpeg:mac && next build && electron-builder --mac --arm64 -c.npmRebuild=false --publish=never",
+    "electron-build-win": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run whisper:model && npm run ffmpeg:win && next build && electron-builder --win --x64 -c.npmRebuild=false --publish=never",
+    "release:mac": "npm run electron-build-mac && node scripts/copy-release.js mac",
+    "release:win": "npm run electron-build-win && node scripts/copy-release.js win",
+    "guardrails:check": "node scripts/check-protected-changes.js",
+    "guardrails:check:sync": "node scripts/check-sync-scope.js",
+    "guardrails:check:all": "npm run guardrails:check && npm run guardrails:check:sync",
+    "guardrails:sync:on": "node scripts/set-guardrails-mode.js sync",
+    "guardrails:sync:off": "node scripts/set-guardrails-mode.js normal",
+    "guardrails:sync:status": "node -p \"require('./scripts/guardrails-mode.json').mode\"",
+    "guardrails:install": "bash scripts/install-git-hooks.sh"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.1",
+    "@xenova/transformers": "^2.6.5",
+    "electron-updater": "^6.8.9",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.8.0",
+    "next": "14.2.5",
+    "pdfjs-dist": "^5.5.207",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0",
+    "postcss": "^8",
+    "tailwindcss": "^3"
+  }
+}

@@ -1,0 +1,48 @@
+node_modules
+.DS_Store
+.vscode/
+
+# Next / Electron build outputs
+.next/
+out/
+dist/
+.next.bak-*/
+out.bak-*/
+dist.bak-*/
+releases/
+Script and Sync Releases/
+
+# Packaged apps & staging (never commit)
+*.dmg
+*.blockmap
+.Proofer_contents_temp/
+*.app/
+
+# Whisper model is downloaded on demand for builds/releases
+bin/ggml-base.en.bin
+bin/ggml-base.en.bin.download
+
+# ffmpeg (ACX file checker) is downloaded on demand — too big for git
+bin/ffmpeg-x64
+bin/ffmpeg-arm64
+bin/ffmpeg-x64.exe
+bin/ffmpeg.exe
+
+# Local user library (keep out of git)
+Save Data/
+
+# Local env (Supabase URL + publishable key — never commit)
+.env.local
+.env*.local
+
+# Local tooling logs
+.claude/hook-activity.log
+.claude/edit-log.txt
+.claude/blocked-edits.log
+.vercel
+
+# Local tooling and pointer files (never tracked)
+.claude/
+CLAUDE.md
+AGENTS.md
+Save Data/

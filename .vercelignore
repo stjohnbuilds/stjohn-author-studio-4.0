@@ -1,0 +1,18 @@
+node_modules
+.git
+.next
+out
+dist
+build
+releases
+Script and Sync Releases
+Save Data
+bin/ggml-base.en.bin
+bin/ggml-base.en.bin.download
+.env.local
+.env*.local
+.DS_Store
+*.app
+*.dmg
+*.blockmap
+.Proofer_contents_temp

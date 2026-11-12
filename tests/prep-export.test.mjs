@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import JSZip from 'jszip';
 
-import { buildPrepHighlightedDocxBlob } from '../app/components/prepExport.js';
+import { buildPrepHighlightedDocx, buildPrepHighlightedDocxBlob } from '../app/components/prepExport.js';
 
 async function makeSourceDocxBase64(paragraphText, { includeExistingComment = false } = {}) {
   return makeSourceDocxBase64FromRuns([paragraphText], { includeExistingComment });
@@ -213,7 +213,13 @@ test('Prep Word export uses context when only the later duplicate is assigned', 
   );
 });
 
-test('Prep Word export does not write unattached side-voice comments when text is split across Word runs', async () => {
+// Rule is: a line that Word has split across several runs is highlighted in
+// full and carries a complete comment (start, end and reference). Before the
+// highlighter matched whole paragraphs, such lines were skipped, and this
+// test only checked that no half-attached comment was left behind. Skipping
+// them is what left most of a real book unhighlighted, so the test now asks
+// for the stronger result and still checks that no comment is left dangling.
+test('Prep Word export highlights and fully comments a line that is split across Word runs', async () => {
   const project = {
     title: 'Prep Split Run Audit',
     fileName: 'prep-split-run-audit.docx',
@@ -250,7 +256,179 @@ test('Prep Word export does not write unattached side-voice comments when text i
   const blob = await buildPrepHighlightedDocxBlob(project);
   const zip = await unzipBlob(blob);
   const documentXml = await zip.file('word/document.xml').async('string');
+  const commentsXml = await zip.file('word/comments.xml').async('string');
 
-  assert.equal((documentXml.match(/<w:commentRangeStart\b/g) || []).length, 0, 'split-run text should not receive a risky partial comment anchor');
-  assert.equal(zip.file('word/comments.xml'), null, 'unanchored new comments should not be written');
+  const sideVoiceFill = (documentXml.match(/w:fill="([0-9A-F]{6})"\/><\/w:rPr><w:t xml:space="preserve">Split /) || [])[1];
+  assert.ok(sideVoiceFill, 'the first half of the split line should be shaded');
+  const manuscriptStretches = shadedTexts(documentXml, sideVoiceFill).filter((text) => /Split|line|whispered|guard/.test(text));
+  assert.deepEqual(manuscriptStretches, ['Split line,'], 'both halves of the split line should be shaded as one stretch, and nothing after it');
+  assert.equal((documentXml.match(/<w:commentRangeStart\b/g) || []).length, 1, 'the split line should get exactly one comment start');
+  assert.equal((documentXml.match(/<w:commentRangeEnd\b/g) || []).length, 1, 'and exactly one comment end');
+  assert.equal((documentXml.match(/<w:commentReference\b/g) || []).length, 1, 'and exactly one comment reference');
+  const start = documentXml.indexOf('<w:commentRangeStart w:id="0"/>');
+  const end = documentXml.indexOf('<w:commentRangeEnd w:id="0"/>');
+  assert.ok(start !== -1 && start < documentXml.indexOf('Split '), 'the comment should start before the first half');
+  assert.ok(end > documentXml.indexOf('line,'), 'the comment should end after the second half');
+  assert.equal((commentsXml.match(/<w:comment\b/g) || []).length, 1, 'one comment written, and it is the anchored one');
+  assert.ok(commentsXml.includes('Character: Guard'));
+});
+
+// ── Whole-paragraph matching ───────────────────────────────────────────────
+// These cover what a real book contains and the single-paragraph fixtures
+// above do not: page-break markers inside runs, italics inside a line, text
+// that is already shaded, and short lines that repeat across chapters.
+
+async function makeSourceDocxBase64FromBody(bodyXml) {
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+  zip.folder('_rels').file('.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+  zip.folder('word').file('document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${bodyXml}
+    <w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
+  </w:body>
+</w:document>`);
+  zip.folder('word').folder('_rels').file('document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
+  const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+  return buffer.toString('base64');
+}
+
+// The text of every stretch shaded in one colour, in reading order. Shaded
+// runs with nothing unshaded between them count as one stretch.
+function shadedTexts(documentXml, fill) {
+  const stretches = [];
+  for (const paragraph of documentXml.matchAll(/<w:p(?=[\s>])[^>]*>([\s\S]*?)<\/w:p>/g)) {
+    let open = false;
+    for (const run of paragraph[1].matchAll(/<w:r(?=[\s>])[^>]*>([\s\S]*?)<\/w:r>/g)) {
+      let text = '';
+      for (const t of run[1].matchAll(/<w:t(?=[\s>])[^>]*>([^<]*)<\/w:t>/g)) text += t[1];
+      if (!text) continue;
+      if (run[1].includes(`w:fill="${fill}"`)) {
+        if (open) stretches[stretches.length - 1] += text;
+        else stretches.push(text);
+        open = true;
+      } else {
+        open = false;
+      }
+    }
+  }
+  return stretches.map((s) => s.replace(/&quot;/g, '"').replace(/&amp;/g, '&'));
+}
+
+function plainProject(sourceDocxBase64, characters, spans) {
+  return {
+    title: 'Whole Paragraph Audit',
+    fileName: 'whole-paragraph-audit.docx',
+    sourceDocxBase64,
+    characters,
+    chapters: [{ chapterNumber: 1, title: 'Chapter 1', sections: [{ title: 'Chapter 1', html: '', dialogueSpans: spans }] }],
+  };
+}
+
+const TEAL = { id: 'char-teal', name: 'Speaker One', narratorName: 'Narrator One', colorHex: '#11aa99', sideVoices: [] };
+const PLUM = { id: 'char-plum', name: 'Speaker Two', narratorName: 'Narrator Two', colorHex: '#aa1199', sideVoices: [] };
+
+test('Prep Word export highlights a line whose run starts with a page-break marker', async () => {
+  const source = await makeSourceDocxBase64FromBody(
+    '<w:p><w:r><w:lastRenderedPageBreak/><w:t xml:space="preserve">&quot;Over the page,&quot; she said.</w:t></w:r></w:p>'
+  );
+  const { blob, highlight } = await buildPrepHighlightedDocx(plainProject(source, [TEAL], [
+    { text: 'Over the page,', characterId: 'char-teal' },
+  ]));
+  const documentXml = await (await unzipBlob(blob)).file('word/document.xml').async('string');
+
+  assert.deepEqual(shadedTexts(documentXml, '11AA99'), ['Over the page,']);
+  assert.equal((documentXml.match(/<w:lastRenderedPageBreak\/>/g) || []).length, 1, 'the page-break marker should be kept, once');
+  assert.deepEqual({ wanted: highlight.wanted, highlighted: highlight.highlighted, missed: highlight.missed }, { wanted: 1, highlighted: 1, missed: [] });
+});
+
+test('Prep Word export highlights a line with italics in the middle and keeps the italics', async () => {
+  const source = await makeSourceDocxBase64FromBody(
+    '<w:p>'
+    + '<w:r><w:t xml:space="preserve">&quot;I </w:t></w:r>'
+    + '<w:r><w:rPr><w:i/></w:rPr><w:t>really</w:t></w:r>'
+    + '<w:r><w:t xml:space="preserve"> mean it,&quot; he said.</w:t></w:r>'
+    + '</w:p>'
+  );
+  const { blob } = await buildPrepHighlightedDocx(plainProject(source, [TEAL], [
+    { text: 'I really mean it,', characterId: 'char-teal' },
+  ]));
+  const documentXml = await (await unzipBlob(blob)).file('word/document.xml').async('string');
+
+  assert.deepEqual(shadedTexts(documentXml, '11AA99'), ['I really mean it,']);
+  assert.match(documentXml, /<w:rPr><w:i\/><w:shd [^>]*w:fill="11AA99"\/><\/w:rPr><w:t xml:space="preserve">really<\/w:t>/, 'the italic word should stay italic and gain the shading');
+  assert.ok(documentXml.includes('he said.'), 'text after the line should be untouched');
+});
+
+test('Prep Word export replaces existing shading instead of adding a second shading tag', async () => {
+  const source = await makeSourceDocxBase64FromBody(
+    '<w:p><w:r><w:rPr><w:shd w:val="clear" w:color="auto" w:fill="FFFF00"/><w:highlight w:val="yellow"/></w:rPr>'
+    + '<w:t xml:space="preserve">&quot;Already coloured,&quot; she said.</w:t></w:r></w:p>'
+  );
+  const { blob } = await buildPrepHighlightedDocx(plainProject(source, [TEAL], [
+    { text: 'Already coloured,', characterId: 'char-teal' },
+  ]));
+  const documentXml = await (await unzipBlob(blob)).file('word/document.xml').async('string');
+
+  assert.deepEqual(shadedTexts(documentXml, '11AA99'), ['Already coloured,']);
+  for (const properties of documentXml.matchAll(/<w:rPr>([\s\S]*?)<\/w:rPr>/g)) {
+    assert.ok((properties[1].match(/<w:shd\b/g) || []).length <= 1, 'no run may carry two shading tags');
+    if (properties[1].includes('11AA99')) assert.ok(!properties[1].includes('<w:highlight'), 'a marker-pen highlight would hide the character colour');
+  }
+  assert.deepEqual(shadedTexts(documentXml, 'FFFF00'), ['"', '" she said.'], 'text outside the line keeps its original shading');
+});
+
+test('Prep Word export never paints a short line onto a later repeat when its own place cannot be matched', async () => {
+  // The first short line reads differently in the Word file than in the
+  // project, so it cannot be placed. It must be reported as missed, and the
+  // identical short line three paragraphs later must still get the colour
+  // of the character it was actually given to.
+  const source = await makeSourceDocxBase64FromBody(
+    '<w:p><w:r><w:t xml:space="preserve">&quot;Yes!&quot; said the first.</w:t></w:r></w:p>'
+    + '<w:p><w:r><w:t xml:space="preserve">&quot;This long line sits between the two short ones,&quot; said the second.</w:t></w:r></w:p>'
+    + '<w:p><w:r><w:t xml:space="preserve">Nothing was said for a while.</w:t></w:r></w:p>'
+    + '<w:p><w:r><w:t xml:space="preserve">&quot;Yes.&quot; said the third.</w:t></w:r></w:p>'
+    + '<w:p><w:r><w:t xml:space="preserve">&quot;And this long line comes after both of them,&quot; said the fourth.</w:t></w:r></w:p>'
+  );
+  const { blob, highlight } = await buildPrepHighlightedDocx(plainProject(source, [TEAL, PLUM], [
+    { text: 'Yes.', characterId: 'char-teal' },
+    { text: 'This long line sits between the two short ones,', characterId: 'char-teal' },
+    { text: 'Yes.', characterId: 'char-plum' },
+    { text: 'And this long line comes after both of them,', characterId: 'char-teal' },
+  ]));
+  const documentXml = await (await unzipBlob(blob)).file('word/document.xml').async('string');
+
+  assert.deepEqual(shadedTexts(documentXml, '11AA99'), [
+    'This long line sits between the two short ones,',
+    'And this long line comes after both of them,',
+  ], 'lines after a miss should still be highlighted, and the missed one should not borrow a later match');
+  assert.deepEqual(shadedTexts(documentXml, 'AA1199'), ['Yes.'], 'the later short line keeps its own character colour');
+  assert.ok(documentXml.indexOf('w:fill="AA1199"') > documentXml.indexOf('Nothing was said'), 'and it is the later one that is shaded');
+  assert.deepEqual({ wanted: highlight.wanted, highlighted: highlight.highlighted, missed: highlight.missed }, { wanted: 4, highlighted: 3, missed: ['Yes.'] });
+});
+
+test('Prep Word export uses unassigned lines to keep its place among repeats', async () => {
+  const source = await makeSourceDocxBase64FromBody(
+    '<w:p><w:r><w:t xml:space="preserve">&quot;No.&quot; &quot;No.&quot; &quot;No.&quot;</w:t></w:r></w:p>'
+  );
+  const { blob } = await buildPrepHighlightedDocx(plainProject(source, [TEAL], [
+    { text: 'No.' },
+    { text: 'No.' },
+    { text: 'No.', characterId: 'char-teal' },
+  ]));
+  const documentXml = await (await unzipBlob(blob)).file('word/document.xml').async('string');
+
+  assert.deepEqual(shadedTexts(documentXml, '11AA99'), ['No.']);
+  const shadedAt = documentXml.indexOf('w:fill="11AA99"');
+  assert.equal((documentXml.slice(0, shadedAt).match(/No\./g) || []).length, 2, 'the first two repeats come before the shaded one');
 });

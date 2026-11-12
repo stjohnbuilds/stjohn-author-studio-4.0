@@ -20,9 +20,9 @@
 //     survives a reload, not just the last one.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { detectDialogueSpansInHtml, stripHtml as engineStripHtml, mergeDialogueAssignmentsByOccurrence } from '../../packages/manuscript-engine/index.js';
+import { detectDialogueSpansInHtml, stripHtml as engineStripHtml, mergeDialogueAssignmentsByOccurrence, pairPriorChapterSpans } from '../../packages/manuscript-engine/index.js';
 import {
-  buildPrepHighlightedDocxBlob,
+  buildPrepHighlightedDocx,
   buildPrepCsv,
   buildPrepNarratorChapterCsv,
   downloadBlob,
@@ -312,8 +312,22 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   // contents (preserve id + characters where possible) instead of
   // creating a brand-new project.
   const [replacingProjectId, setReplacingProjectId] = useState(null);
+  // What the last Word export managed to highlight, shown beside the
+  // export buttons so a file with gaps is never handed over silently.
+  const [exportNote, setExportNote] = useState(null);
   const saveTimerRef = useRef(null);
   const savedFlashRef = useRef(null);
+  // Save bookkeeping. Rule is: Prep never writes the save file unless the
+  // list really changed, never reports "Saved" for a write that failed, and
+  // never drops a change because the screen closed before the timer fired.
+  // Writing on open, ignoring a failed write and cancelling a pending save
+  // are the three ways work was lost without any sign.
+  const latestProjectsRef = useRef([]);
+  const loadedListRef = useRef(null);      // the exact list read at start; unchanged means nothing to save
+  const heldBackRef = useRef([]);          // saved projects this screen cannot open; written back untouched
+  const saveBlockedRef = useRef(false);    // the save file could not be read, so it must not be replaced
+  const savePendingRef = useRef(false);
+  const retryTimerRef = useRef(null);
 
   // ---- hydrate ----
   useEffect(() => {
@@ -324,9 +338,20 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
         if (!electron?.readPrepData) { setHydrated(true); return; }
         const list = await electron.readPrepData();
         if (cancelled) return;
-        const usable = Array.isArray(list) ? list.filter(isCompatiblePrepProject) : [];
+        if (!Array.isArray(list)) throw new Error('Saved Prep projects were not a list.');
+        const usable = list.filter(isCompatiblePrepProject);
+        heldBackRef.current = list.filter((p) => !isCompatiblePrepProject(p));
+        loadedListRef.current = usable;
         setAllProjects(usable);
-      } catch {} finally { if (!cancelled) setHydrated(true); }
+        if (heldBackRef.current.length) {
+          setError(`${heldBackRef.current.length} saved project${heldBackRef.current.length === 1 ? '' : 's'} could not be opened here. ${heldBackRef.current.length === 1 ? 'It has' : 'They have'} been left untouched in the save file.`);
+        }
+      } catch {
+        if (cancelled) return;
+        saveBlockedRef.current = true;
+        setSaveStatus('error');
+        setError('Saved Prep projects could not be read. Nothing will be saved this session, so the save file stays exactly as it is. Close the app and open it again.');
+      } finally { if (!cancelled) setHydrated(true); }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -337,22 +362,59 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   );
 
   // ---- persist on change ----
-  useEffect(() => {
-    if (!hydrated) return;
+  // Write the newest list now. Returns true only when the desktop side says
+  // the main copy was written. A failure shows "Not saved" and is retried
+  // every few seconds, because the usual cause (the file busy while it
+  // syncs) clears by itself.
+  const saveNow = useCallback(async () => {
     const electron = typeof window !== 'undefined' ? window.electron : null;
-    if (!electron?.writePrepData) return;
-    setSaveStatus('saving');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        await electron.writePrepData(allProjects);
+    if (!electron?.writePrepData || saveBlockedRef.current) return false;
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    const sent = latestProjectsRef.current;
+    let ok = false;
+    try {
+      ok = (await electron.writePrepData([...sent, ...heldBackRef.current])) === true;
+    } catch { ok = false; }
+    if (ok) {
+      // Only settle if nothing newer arrived while this write was running.
+      if (latestProjectsRef.current === sent) {
+        savePendingRef.current = false;
         setSaveStatus('saved');
         if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
-        savedFlashRef.current = setTimeout(() => setSaveStatus('idle'), 1400);
-      } catch { setSaveStatus('idle'); }
-    }, 350);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [allProjects, hydrated]);
+        savedFlashRef.current = setTimeout(() => setSaveStatus((status) => (status === 'saved' ? 'idle' : status)), 1400);
+      }
+      return true;
+    }
+    setSaveStatus('error');
+    retryTimerRef.current = setTimeout(() => { if (savePendingRef.current) saveNow(); }, 3000);
+    return false;
+  }, []);
+
+  useEffect(() => {
+    latestProjectsRef.current = allProjects;
+    if (!hydrated || saveBlockedRef.current) return;
+    // Opening Prep is not a change: the list just read is not written back.
+    if (allProjects === loadedListRef.current) return;
+    const electron = typeof window !== 'undefined' ? window.electron : null;
+    if (!electron?.writePrepData) return;
+    savePendingRef.current = true;
+    setSaveStatus('saving');
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => { saveTimerRef.current = null; saveNow(); }, 350);
+  }, [allProjects, hydrated, saveNow]);
+
+  // Leaving Prep, closing the window or quitting inside the short wait
+  // must write the pending change, not cancel it.
+  useEffect(() => {
+    const flush = () => { if (savePendingRef.current) saveNow(); };
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      flush();
+      if (savedFlashRef.current) clearTimeout(savedFlashRef.current);
+    };
+  }, [saveNow]);
 
   // ---- mutate active project ----
   const updateActive = useCallback((patcher) => {
@@ -409,6 +471,14 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       pageNumberAdjustment: Number(payload.pageNumberAdjustment) || (replacing ? (replacing.pageNumberAdjustment || 0) : 0),
     };
 
+    // Rule is: replacing the manuscript keeps every assignment whose line
+    // still reads the same. Each new chapter is paired with the old chapter
+    // of the same title (first with first, second with second), or by
+    // position when the chapter count is unchanged, and the old chapter's
+    // assigned lines are carried onto the freshly scanned ones. Before this,
+    // a replace quietly cleared every assignment in the book.
+    const priorSpansByNewChapterId = replacing ? pairPriorChapterSpans(replacing.chapters || [], chapters) : new Map();
+
     setAllProjects((all) => {
       if (replacing) return all.map((p) => (p.id === replacing.id ? shell : p));
       return [...all, shell];
@@ -432,15 +502,23 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           });
           // eslint-disable-next-line no-await-in-loop
           await new Promise((r) => setTimeout(r, 0));
-          const { dialogueSpans, issues, totalQuoteMarks, quoteMarksEven } = detectSectionSpans(sec.html || '', ch.chapterIndex, sec.sectionIndex);
+          const scanned = detectSectionSpans(sec.html || '', ch.chapterIndex, sec.sectionIndex);
+          const { issues, totalQuoteMarks, quoteMarksEven } = scanned;
+          const priorSpans = priorSpansByNewChapterId.get(ch.id);
+          const dialogueSpans = priorSpans
+            ? mergeDialogueAssignmentsByOccurrence(priorSpans, scanned.dialogueSpans)
+            : scanned.dialogueSpans;
           setAllProjects((all) => all.map((p) => {
             if (p.id !== shell.id) return p;
+            // Matched by id, not by position: a chapter removed while the
+            // scan is still running renumbers the rest, and position would
+            // then put these results on the wrong chapter.
             const newChapters = p.chapters.map((cch) => {
-              if (cch.chapterIndex !== ch.chapterIndex) return cch;
+              if (cch.id !== ch.id) return cch;
               return {
                 ...cch,
                 sections: cch.sections.map((csec) =>
-                  csec.sectionIndex !== sec.sectionIndex ? csec : {
+                  csec.id !== sec.id ? csec : {
                     ...csec,
                     dialogueSpans,
                     safetyIssues: issues,
@@ -503,7 +581,20 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
   function updateCharacter(id, patch) {
     updateActive((p) => ({ ...p, characters: (p.characters || []).map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
   }
+  // Rule is: removing a character or side voice that still has lines asks
+  // first and says how many lines are affected, because the removal clears
+  // those assignments at once and cannot be undone.
+  function countAssignedLines(matches) {
+    let count = 0;
+    (activeProject?.chapters || []).forEach((ch) => (ch.sections || []).forEach((sec) => (sec.dialogueSpans || []).forEach((sp) => {
+      if (matches(sp)) count += 1;
+    })));
+    return count;
+  }
   function removeCharacter(id) {
+    const character = (activeProject?.characters || []).find((c) => c.id === id);
+    const lines = countAssignedLines((sp) => sp.characterId === id);
+    if (lines > 0 && !window.confirm(`Remove ${character?.name || 'this character'}? ${lines} assigned line${lines === 1 ? '' : 's'} will go back to unassigned. This can't be undone.`)) return;
     updateActive((p) => ({
       ...p,
       characters: (p.characters || []).filter((c) => c.id !== id),
@@ -555,6 +646,10 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
     return sideVoiceId;
   }
   function removeSideVoice(characterId, sideVoiceId) {
+    const owner = (activeProject?.characters || []).find((c) => c.id === characterId);
+    const voice = (owner?.sideVoices || []).find((sv) => sv.id === sideVoiceId);
+    const voiceLines = countAssignedLines((sp) => sp.characterId === characterId && sp.sideVoiceId === sideVoiceId);
+    if (voiceLines > 0 && !window.confirm(`Remove the side voice ${voice?.name || ''}? Its ${voiceLines} line${voiceLines === 1 ? '' : 's'} will be given to ${owner?.name || 'the main character'} instead. This can't be undone.`)) return;
     updateActive((p) => ({
       ...p,
       characters: (p.characters || []).map((c) =>
@@ -684,7 +779,11 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       })),
     };
     return {
-      docx: async () => downloadBlob(await buildPrepHighlightedDocxBlob(flat), exportFileNames.docx(flat)),
+      docx: async () => {
+        const { blob, highlight } = await buildPrepHighlightedDocx(flat);
+        downloadBlob(blob, exportFileNames.docx(flat));
+        setExportNote(describeHighlightResult(highlight));
+      },
       csvAll: () => downloadText(buildPrepCsv(flat), exportFileNames.fullCsv(flat), 'text/csv;charset=utf-8'),
       csvNarrators: () => downloadText(buildPrepNarratorChapterCsv(flat), exportFileNames.chapterCsv(flat), 'text/csv;charset=utf-8'),
     };
@@ -732,7 +831,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           accent={PREP_INK}
           heading={replacingProjectId ? 'Replace manuscript' : 'New prep project'}
           blurb={replacingProjectId
-            ? 'Upload the corrected .docx. Your characters and assignments stay; dialogue is rescanned.'
+            ? 'Upload the corrected .docx. Your characters stay, and every line that still reads the same keeps its character. Lines you changed will need assigning again.'
             : 'Upload your .docx, check the chapters you want, and we\'ll scan dialogue.'}
           submitLabel={replacingProjectId ? 'Replace & rescan' : 'Save & scan'}
           onCancel={cancelImport}
@@ -743,7 +842,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       {view === 'home' && (
         <HomeView
           allProjects={allProjects}
-          onOpenProject={(id) => { setActiveProjectId(id); setView('bookDetail'); }}
+          onOpenProject={(id) => { setExportNote(null); setActiveProjectId(id); setView('bookDetail'); }}
           onDelete={deleteProject}
           onStartImport={() => { setReplacingProjectId(null); setView('setup'); }}
           error={error}
@@ -774,6 +873,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
           onRemoveSideVoice={removeSideVoice}
           onRemoveChapter={removeChapter}
           onExportDocx={exp?.docx}
+          exportNote={exportNote}
           onExportDialogueCsv={exp?.csvAll}
           onExportNarratorCsv={exp?.csvNarrators}
           progress={progress}
@@ -803,6 +903,7 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
             assignCurrent(same ? {} : { characterId: charId });
           }}
           onAssignSideVoice={(charId, sideId) => assignCurrent({ characterId: charId, sideVoiceId: sideId })}
+          onClearAssignment={() => assignCurrent({})}
           onAddCharacter={addCharacter}
           onUpdateCharacter={updateCharacter}
           onRemoveCharacter={removeCharacter}
@@ -813,6 +914,23 @@ export default function PrepManuscriptMode({ modeToggle, usesCustomDragRegion })
       )}
     </div>
   );
+}
+
+// Plain words for what the Word export highlighted. `highlight` is null
+// when the export had to be rebuilt without the original Word file.
+function describeHighlightResult(highlight) {
+  if (!highlight) {
+    return { tone: 'warn', text: 'Word file saved, rebuilt without the original document, so its layout is simplified.' };
+  }
+  const { wanted = 0, highlighted = 0, missed = [] } = highlight;
+  if (wanted === 0) return { tone: 'warn', text: 'Word file saved. No lines are assigned yet, so nothing is highlighted.' };
+  if (missed.length === 0) return { tone: 'ok', text: `Word file saved. All ${wanted} assigned lines are highlighted.` };
+  const first = String(missed[0] || '');
+  const sample = first.length > 60 ? `${first.slice(0, 60)}…` : first;
+  return {
+    tone: 'warn',
+    text: `Word file saved. ${highlighted} of ${wanted} assigned lines are highlighted; ${missed.length} could not be found in the Word file, starting with: "${sample}"`,
+  };
 }
 
 function currentSpanFor(project, chapterIndex, selected) {
@@ -936,7 +1054,7 @@ function BookDetailView({
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
   onRemoveChapter,
-  onExportDocx, onExportDialogueCsv, onExportNarratorCsv,
+  onExportDocx, onExportDialogueCsv, onExportNarratorCsv, exportNote,
   onUpdatePaging,
   progress,
 }) {
@@ -1011,6 +1129,11 @@ function BookDetailView({
           {onExportDialogueCsv && <button type="button" onClick={onExportDialogueCsv} style={pillBtn()}>Dialogue CSV</button>}
           {onExportNarratorCsv && <button type="button" onClick={onExportNarratorCsv} style={pillBtn()}>Narrators CSV</button>}
         </section>
+        {exportNote && (
+          <div role="status" style={{ margin: '-8px 0 16px', fontSize: '0.72rem', fontWeight: 600, color: exportNote.tone === 'warn' ? '#9a4a00' : PREP_INK }}>
+            {exportNote.text}
+          </div>
+        )}
 
         {/* Page-numbering banner, mirroring the one in SessionsView.
             Same three states (green / amber / yellow) with an Upload
@@ -1270,7 +1393,7 @@ function BookDetailView({
 function ReaderView({
   project, activeChapterIndex, setActiveChapterIndex, onJumpToChapter,
   selected, setSelected, saveStatus, usesCustomDragRegion,
-  onAssignCharacter, onAssignSideVoice,
+  onAssignCharacter, onAssignSideVoice, onClearAssignment,
   onAddCharacter, onUpdateCharacter, onRemoveCharacter,
   onAddSideVoice, onRemoveSideVoice,
   onUpdateSectionHtml,
@@ -1375,6 +1498,79 @@ function ReaderView({
     requestScroll(`${target.sectionIndex}|${target.spanIndex}`);
   }
 
+  // ── Assigning without the extra click, and from the keyboard ────────────
+  // Rule is: giving a line to a character moves the selection on to the next
+  // unassigned line in the chapter, and the whole job can be done from the
+  // keyboard (1-9 pick a character in the order shown, 0 or Backspace
+  // clears, left and right arrows move). A full-length book has thousands
+  // of lines, and two mouse clicks for each one is most of the work.
+  const keysRef = useRef({});
+  keysRef.current = { flatList, flatPos, chapter, selectedSpan, characters: project.characters || [] };
+
+  function goToNextUnassigned() {
+    const { flatList: list, flatPos: pos, chapter: ch } = keysRef.current;
+    for (let i = Math.max(0, pos) + 1; i < list.length; i += 1) {
+      const sec = (ch?.sections || []).find((s) => s.sectionIndex === list[i].sectionIndex);
+      if (!sec?.dialogueSpans?.[list[i].spanIndex]?.characterId) {
+        setSelected(list[i]);
+        requestScroll(`${list[i].sectionIndex}|${list[i].spanIndex}`);
+        return;
+      }
+    }
+  }
+  function assignCharacterAndAdvance(charId) {
+    const span = keysRef.current.selectedSpan;
+    if (!span) return;
+    const clearing = span.characterId === charId && !span.sideVoiceId;
+    onAssignCharacter(charId);
+    if (!clearing) goToNextUnassigned();
+  }
+  function assignSideVoiceAndAdvance(charId, sideId) {
+    if (!keysRef.current.selectedSpan) return;
+    onAssignSideVoice(charId, sideId);
+    goToNextUnassigned();
+  }
+  // A double-click on a character opens it for editing. The two clicks of a
+  // double-click must not assign two lines on the way, so a click waits a
+  // moment and a second click inside that moment cancels it.
+  const chipClickTimerRef = useRef(null);
+  function assignCharacterFromClick(charId) {
+    if (chipClickTimerRef.current) {
+      clearTimeout(chipClickTimerRef.current);
+      chipClickTimerRef.current = null;
+      return;
+    }
+    chipClickTimerRef.current = setTimeout(() => {
+      chipClickTimerRef.current = null;
+      assignCharacterAndAdvance(charId);
+    }, 220);
+  }
+  useEffect(() => () => { if (chipClickTimerRef.current) clearTimeout(chipClickTimerRef.current); }, []);
+
+  const moveRef = useRef(null);
+  moveRef.current = { moveDialogue, assignCharacterAndAdvance, onClearAssignment };
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
+      const actions = moveRef.current;
+      if (e.key === 'ArrowRight') { e.preventDefault(); actions.moveDialogue(1); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); actions.moveDialogue(-1); return; }
+      if (e.key === '0' || e.key === 'Backspace' || e.key === 'Delete') {
+        if (keysRef.current.selectedSpan?.characterId && actions.onClearAssignment) { e.preventDefault(); actions.onClearAssignment(); }
+        return;
+      }
+      if (/^[1-9]$/.test(e.key)) {
+        const character = keysRef.current.characters[Number(e.key) - 1];
+        if (character) { e.preventDefault(); actions.assignCharacterAndAdvance(character.id); }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const canPrevChapter = activeChapterIndex > Math.min(...project.chapters.map((c) => c.chapterIndex));
   const canNextChapter = activeChapterIndex < Math.max(...project.chapters.map((c) => c.chapterIndex));
 
@@ -1449,8 +1645,8 @@ function ReaderView({
         positionLabel={flatPos < 0 ? '—' : `${flatPos + 1} / ${flatList.length}`}
         onPrev={() => moveDialogue(-1)}
         onNext={() => moveDialogue(1)}
-        onAssignCharacter={onAssignCharacter}
-        onAssignSideVoice={onAssignSideVoice}
+        onAssignCharacter={assignCharacterFromClick}
+        onAssignSideVoice={assignSideVoiceAndAdvance}
         onAddCharacter={onAddCharacter}
         onUpdateCharacter={onUpdateCharacter}
         onRemoveCharacter={onRemoveCharacter}
@@ -1713,8 +1909,8 @@ function ReaderDock({
       <div style={{ width: READER_WIDTH, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {/* Single row: nav + selected dialogue + current assignment. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button type="button" onClick={onPrev} style={dockBtn(false)} title="Previous dialogue">←</button>
-          <button type="button" onClick={onNext} style={dockBtn(true)} title="Next dialogue">Next →</button>
+          <button type="button" onClick={onPrev} style={dockBtn(false)} title="Previous dialogue (left arrow key)">←</button>
+          <button type="button" onClick={onNext} style={dockBtn(true)} title="Next dialogue (right arrow key)">Next →</button>
           <span style={{ fontSize: '0.66rem', fontWeight: 700, color: PREP_INK, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{positionLabel}</span>
           <div style={{ flex: 1, minWidth: 0, padding: '4px 9px', background: colorForAssignment(currentChar, currentSV) || 'white', border: '1px solid ' + (currentChar ? PREP_INK + '33' : 'var(--border-light)'), borderRadius: 7, fontSize: '0.76rem', fontFamily: 'Georgia, serif', lineHeight: 1.4, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selectedSpan ? <>“{selectedSpan.text}”</> : <span style={{ color: 'var(--text-light)' }}>Click a dialogue.</span>}
@@ -1739,6 +1935,9 @@ function ReaderDock({
             onAssignCharacter={onAssignCharacter}
             onAssignSideVoice={onAssignSideVoice}
           />
+        </div>
+        <div style={{ fontSize: '0.62rem', color: 'var(--text-light)' }}>
+          Keys: 1 to 9 give the line to a character and move on, 0 clears it, left and right arrows move between lines.
         </div>
       </div>
     </div>
@@ -1816,11 +2015,12 @@ function CharacterGrid({ characters, mode, selectedSpan, onAdd, onUpdate, onRemo
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' }}>
-        {characters.map((c) => (
+        {characters.map((c, characterIndex) => (
         <CharacterChip
           key={c.id}
           character={c}
           mode={mode}
+          shortcutKey={mode === 'assign' && characterIndex < 9 ? String(characterIndex + 1) : ''}
           isCurrent={mode === 'assign' && selectedSpan?.characterId === c.id && !selectedSpan?.sideVoiceId}
           currentSideVoiceId={mode === 'assign' && selectedSpan?.characterId === c.id ? selectedSpan?.sideVoiceId : null}
           editing={editing === c.id}
@@ -1889,7 +2089,7 @@ function AddCharacterInline({ existingCount, onSave, onCancel }) {
 }
 
 function CharacterChip({
-  character, mode, isCurrent, currentSideVoiceId,
+  character, mode, isCurrent, currentSideVoiceId, shortcutKey,
   editing, onStartEdit, onEndEdit, onEdit, onRemove,
   popoverOpen, sideAdding, onTogglePopover, onClosePopover,
   onClickAssign, onPickSideVoice, onStartAddSideVoice, onSaveSideVoice, onRemoveSideVoice,
@@ -1920,9 +2120,10 @@ function CharacterChip({
           type="button"
           onClick={mode === 'assign' ? onClickAssign : onStartEdit}
           onDoubleClick={onStartEdit}
-          title={mode === 'assign' ? (isCurrent ? 'Click to unassign · double-click to edit' : 'Assign · double-click to edit') : 'Edit character'}
+          title={mode === 'assign' ? (isCurrent ? 'Click to unassign · double-click to edit' : `Assign${shortcutKey ? ` (key ${shortcutKey})` : ''} · double-click to edit`) : 'Edit character'}
           style={{ background: 'transparent', border: 'none', padding: 0, fontSize: '0.72rem', fontWeight: 700, color: 'var(--text)', cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
+          {shortcutKey ? <span aria-hidden="true" style={{ marginRight: 5, fontWeight: 700, fontSize: '0.62rem', color: 'var(--text-muted)' }}>{shortcutKey}</span> : null}
           {character.name || 'Unnamed'}
           {character.narratorName && <span style={{ marginLeft: 4, fontWeight: 500, fontSize: '0.68rem', color: 'var(--text-muted)' }}>/ {character.narratorName}</span>}
         </button>

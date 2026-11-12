@@ -146,6 +146,8 @@ export function SaveBadge({ status, tone = 'prep' }) {
     idle:   { label: 'Saved',   color: 'var(--text-light)', dot: '#b5cbb9' },
     saving: { label: 'Saving…', color: token.ink,           dot: '#f3c93a' },
     saved:  { label: 'Saved',   color: token.ink,           dot: '#3F8F65' },
+    // A write that did not reach the disk must never read as saved.
+    error:  { label: 'Not saved', color: '#B3261E',         dot: '#B3261E' },
   };
   const m = map[status] || map.idle;
   return (

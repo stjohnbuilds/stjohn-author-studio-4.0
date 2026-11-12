@@ -106,3 +106,63 @@ test('empty inputs are safe', () => {
   assert.equal(mergeDialogueAssignmentsByOccurrence([], [{ text: 'X' }]).length, 1);
   assert.deepEqual(mergeDialogueAssignmentsByOccurrence(null, null), []);
 });
+
+// ── Replace manuscript ─────────────────────────────────────────────────────
+// Rule is: replacing the manuscript keeps every assignment whose line still
+// reads the same. These tests run the same pairing and carrying the screen
+// runs when a corrected file is brought in.
+
+import { pairPriorChapterSpans } from '../packages/manuscript-engine/merge-dialogue-assignments.js';
+
+function chapter(id, title, spans) {
+  return { id, title, sections: [{ id: `${id}-s`, dialogueSpans: spans }] };
+}
+
+test('replace: chapters are paired by title and unchanged lines keep their character', () => {
+  const oldChapters = [
+    chapter('o1', 'Chapter One', [{ text: 'Hi.', characterId: 'A' }, { text: 'Go on.', characterId: 'B', sideVoiceId: 'sv1' }]),
+    chapter('o2', 'Chapter Two', [{ text: 'Hi.', characterId: 'C' }]),
+  ];
+  // The corrected file gained a prologue, so positions no longer line up.
+  const newChapters = [
+    chapter('n0', 'Prologue', []),
+    chapter('n1', 'chapter  one', []),
+    chapter('n2', 'Chapter Two', []),
+  ];
+  const pairs = pairPriorChapterSpans(oldChapters, newChapters);
+  assert.equal(pairs.has('n0'), false, 'a brand-new chapter has nothing to carry');
+
+  const rescannedOne = [{ text: 'Hi.' }, { text: 'Go on, then.' }, { text: 'Go on.' }];
+  assert.deepEqual(mergeDialogueAssignmentsByOccurrence(pairs.get('n1'), rescannedOne), [
+    { text: 'Hi.', characterId: 'A', sideVoiceId: null },
+    { text: 'Go on, then.' },
+    { text: 'Go on.', characterId: 'B', sideVoiceId: 'sv1' },
+  ], 'same text keeps its character and side voice; a reworded line is left for assigning');
+
+  assert.deepEqual(mergeDialogueAssignmentsByOccurrence(pairs.get('n2'), [{ text: 'Hi.' }]), [
+    { text: 'Hi.', characterId: 'C', sideVoiceId: null },
+  ], 'the same words in another chapter keep that chapter\'s character');
+});
+
+test('replace: two chapters with one title pair first with first, second with second', () => {
+  const oldChapters = [
+    chapter('o1', 'Interlude', [{ text: 'One.', characterId: 'A' }]),
+    chapter('o2', 'Interlude', [{ text: 'One.', characterId: 'B' }]),
+  ];
+  const newChapters = [chapter('n1', 'Interlude', []), chapter('n2', 'Interlude', [])];
+  const pairs = pairPriorChapterSpans(oldChapters, newChapters);
+  assert.equal(pairs.get('n1')[0].characterId, 'A');
+  assert.equal(pairs.get('n2')[0].characterId, 'B');
+});
+
+test('replace: renamed chapters fall back to position only when the chapter count is unchanged', () => {
+  const oldChapters = [
+    chapter('o1', 'One', [{ text: 'A line.', characterId: 'A' }]),
+    chapter('o2', 'Two', [{ text: 'B line.', characterId: 'B' }]),
+  ];
+  const renamed = [chapter('n1', 'One', []), chapter('n2', 'The Second', [])];
+  assert.equal(pairPriorChapterSpans(oldChapters, renamed).get('n2')[0].characterId, 'B', 'same count: pair what is left by position');
+
+  const renamedAndAdded = [chapter('n1', 'One', []), chapter('n2', 'The Second', []), chapter('n3', 'Three', [])];
+  assert.equal(pairPriorChapterSpans(oldChapters, renamedAndAdded).has('n2'), false, 'different count: position proves nothing, so nothing is guessed');
+});

@@ -1345,11 +1345,13 @@ ipcMain.handle('update:install-now', () => {
 // Lets the renderer ask "what version am I running?" so the bottom-of-
 // app version stamp ("v4.0.2 · built 2026-06-07") doesn't have to
 // guess. Build date comes from package.json's mtime at packaging time.
-// Per-build emoji marker — baked into each release so an auto-update
-// landing can be visually confirmed. v4.0.2 ships without one (older
-// build); v4.0.3 ships with 🌟. Future builds rotate this so every
-// successful update changes the badge in the corner.
-const BUILD_EMOJI = '🌈';
+// Rule is: every version carries its own emoji in the version badge, and
+// the emoji changes in the same change as the version number, because the
+// badge is how a new version is told apart from the last one at a glance.
+// The emoji used by each version is recorded in scripts/build-markers.json,
+// and tests/build-marker.test.mjs fails when a version has no entry of its
+// own or reuses an earlier one.
+const BUILD_EMOJI = '🦋';
 ipcMain.handle('app:get-version-info', () => {
   let buildDate = null;
   try {

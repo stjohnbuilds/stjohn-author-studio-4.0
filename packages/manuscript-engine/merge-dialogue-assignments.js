@@ -25,3 +25,28 @@ export function mergeDialogueAssignmentsByOccurrence(oldSpans, newSpans) {
       : sp;
   });
 }
+
+// For "Replace manuscript": which old chapter's assigned lines belong to each
+// new chapter. Returns Map(new chapter id -> old chapter's dialogue lines).
+export function pairPriorChapterSpans(oldChapters = [], newChapters = []) {
+  const titleKey = (ch) => String(ch?.title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const spansOf = (ch) => (ch?.sections || []).flatMap((sec) => sec.dialogueSpans || []);
+  const pairs = new Map();
+  const used = new Set();
+  newChapters.forEach((ch) => {
+    const key = titleKey(ch);
+    if (!key) return;
+    const match = oldChapters.find((old) => !used.has(old) && titleKey(old) === key);
+    if (!match) return;
+    used.add(match);
+    pairs.set(ch.id, spansOf(match));
+  });
+  if (oldChapters.length === newChapters.length) {
+    newChapters.forEach((ch, i) => {
+      if (pairs.has(ch.id) || used.has(oldChapters[i])) return;
+      used.add(oldChapters[i]);
+      pairs.set(ch.id, spansOf(oldChapters[i]));
+    });
+  }
+  return pairs;
+}

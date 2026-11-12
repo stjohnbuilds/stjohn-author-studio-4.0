@@ -1,6 +1,6 @@
 # StJohn Author Studio
 
-Desktop app for preparing and proofing self-published audiobooks and special-edition print manuscripts, with a phone companion for two of its modes. Built on Electron and Next.js. Current version: 4.0.32.
+Desktop app for preparing and proofing self-published audiobooks and special-edition print manuscripts, with a phone companion for two of its modes. Built on Electron and Next.js. Current version: 4.0.33.
 
 ## Modes
 
